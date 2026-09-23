@@ -1,5 +1,7 @@
 # مفاتيح · Mafatih
 
+THIS PROJECT IS MOSTLY AI GENERATED. Dont use it if you care about quality code or souls.
+
 A keybr.com for Arabic — touch-typing practice **with diacritics**, built on Qur'anic text.
 
 Arabic typing has three problems Latin typing does not, and all three had to be solved before a
