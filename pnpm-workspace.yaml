@@ -1,0 +1,6 @@
+packages: []
+allowBuilds:
+  cypress: false
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@types/node@26.6.2'

@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "./src/**",
+      "./scripts/**",
+      "./cypress/**",
+      "./biome.json",
+      "./cypress.config.mjs",
+      "./package.json",
+      "./tsconfig.json",
+      "./vite.config.ts"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn",
+        "useExhaustiveDependencies": "off"
+      },
+      "performance": { "noBarrelFile": "off" },
+      "suspicious": { "noArrayIndexKey": "off" },
+      "style": { "useBlockStatements": "warn", "noParameterAssign": "off" }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentWidth": 2,
+    "indentStyle": "space",
+    "lineEnding": "lf",
+    "lineWidth": 120
+  },
+  "assist": {
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
+  },
+  "css": { "parser": { "tailwindDirectives": true } }
+}

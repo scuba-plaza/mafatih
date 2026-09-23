@@ -1,0 +1,914 @@
+[
+ {
+  "n": 1,
+  "name": "الفاتحة",
+  "tname": "Al-Faatiha",
+  "ename": "The Opening",
+  "ayat": 7,
+  "type": "meccan"
+ },
+ {
+  "n": 2,
+  "name": "البقرة",
+  "tname": "Al-Baqara",
+  "ename": "The Cow",
+  "ayat": 286,
+  "type": "medinan"
+ },
+ {
+  "n": 3,
+  "name": "آل عمران",
+  "tname": "Aal-i-Imraan",
+  "ename": "The Family of Imraan",
+  "ayat": 200,
+  "type": "medinan"
+ },
+ {
+  "n": 4,
+  "name": "النساء",
+  "tname": "An-Nisaa",
+  "ename": "The Women",
+  "ayat": 176,
+  "type": "medinan"
+ },
+ {
+  "n": 5,
+  "name": "المائدة",
+  "tname": "Al-Maaida",
+  "ename": "The Table",
+  "ayat": 120,
+  "type": "medinan"
+ },
+ {
+  "n": 6,
+  "name": "الأنعام",
+  "tname": "Al-An'aam",
+  "ename": "The Cattle",
+  "ayat": 165,
+  "type": "meccan"
+ },
+ {
+  "n": 7,
+  "name": "الأعراف",
+  "tname": "Al-A'raaf",
+  "ename": "The Heights",
+  "ayat": 206,
+  "type": "meccan"
+ },
+ {
+  "n": 8,
+  "name": "الأنفال",
+  "tname": "Al-Anfaal",
+  "ename": "The Spoils of War",
+  "ayat": 75,
+  "type": "medinan"
+ },
+ {
+  "n": 9,
+  "name": "التوبة",
+  "tname": "At-Tawba",
+  "ename": "The Repentance",
+  "ayat": 129,
+  "type": "medinan"
+ },
+ {
+  "n": 10,
+  "name": "يونس",
+  "tname": "Yunus",
+  "ename": "Jonas",
+  "ayat": 109,
+  "type": "meccan"
+ },
+ {
+  "n": 11,
+  "name": "هود",
+  "tname": "Hud",
+  "ename": "Hud",
+  "ayat": 123,
+  "type": "meccan"
+ },
+ {
+  "n": 12,
+  "name": "يوسف",
+  "tname": "Yusuf",
+  "ename": "Joseph",
+  "ayat": 111,
+  "type": "meccan"
+ },
+ {
+  "n": 13,
+  "name": "الرعد",
+  "tname": "Ar-Ra'd",
+  "ename": "The Thunder",
+  "ayat": 43,
+  "type": "medinan"
+ },
+ {
+  "n": 14,
+  "name": "ابراهيم",
+  "tname": "Ibrahim",
+  "ename": "Abraham",
+  "ayat": 52,
+  "type": "meccan"
+ },
+ {
+  "n": 15,
+  "name": "الحجر",
+  "tname": "Al-Hijr",
+  "ename": "The Rock",
+  "ayat": 99,
+  "type": "meccan"
+ },
+ {
+  "n": 16,
+  "name": "النحل",
+  "tname": "An-Nahl",
+  "ename": "The Bee",
+  "ayat": 128,
+  "type": "meccan"
+ },
+ {
+  "n": 17,
+  "name": "الإسراء",
+  "tname": "Al-Israa",
+  "ename": "The Night Journey",
+  "ayat": 111,
+  "type": "meccan"
+ },
+ {
+  "n": 18,
+  "name": "الكهف",
+  "tname": "Al-Kahf",
+  "ename": "The Cave",
+  "ayat": 110,
+  "type": "meccan"
+ },
+ {
+  "n": 19,
+  "name": "مريم",
+  "tname": "Maryam",
+  "ename": "Mary",
+  "ayat": 98,
+  "type": "meccan"
+ },
+ {
+  "n": 20,
+  "name": "طه",
+  "tname": "Taa-Haa",
+  "ename": "Taa-Haa",
+  "ayat": 135,
+  "type": "meccan"
+ },
+ {
+  "n": 21,
+  "name": "الأنبياء",
+  "tname": "Al-Anbiyaa",
+  "ename": "The Prophets",
+  "ayat": 112,
+  "type": "meccan"
+ },
+ {
+  "n": 22,
+  "name": "الحج",
+  "tname": "Al-Hajj",
+  "ename": "The Pilgrimage",
+  "ayat": 78,
+  "type": "medinan"
+ },
+ {
+  "n": 23,
+  "name": "المؤمنون",
+  "tname": "Al-Muminoon",
+  "ename": "The Believers",
+  "ayat": 118,
+  "type": "meccan"
+ },
+ {
+  "n": 24,
+  "name": "النور",
+  "tname": "An-Noor",
+  "ename": "The Light",
+  "ayat": 64,
+  "type": "medinan"
+ },
+ {
+  "n": 25,
+  "name": "الفرقان",
+  "tname": "Al-Furqaan",
+  "ename": "The Criterion",
+  "ayat": 77,
+  "type": "meccan"
+ },
+ {
+  "n": 26,
+  "name": "الشعراء",
+  "tname": "Ash-Shu'araa",
+  "ename": "The Poets",
+  "ayat": 227,
+  "type": "meccan"
+ },
+ {
+  "n": 27,
+  "name": "النمل",
+  "tname": "An-Naml",
+  "ename": "The Ant",
+  "ayat": 93,
+  "type": "meccan"
+ },
+ {
+  "n": 28,
+  "name": "القصص",
+  "tname": "Al-Qasas",
+  "ename": "The Stories",
+  "ayat": 88,
+  "type": "meccan"
+ },
+ {
+  "n": 29,
+  "name": "العنكبوت",
+  "tname": "Al-Ankaboot",
+  "ename": "The Spider",
+  "ayat": 69,
+  "type": "meccan"
+ },
+ {
+  "n": 30,
+  "name": "الروم",
+  "tname": "Ar-Room",
+  "ename": "The Romans",
+  "ayat": 60,
+  "type": "meccan"
+ },
+ {
+  "n": 31,
+  "name": "لقمان",
+  "tname": "Luqman",
+  "ename": "Luqman",
+  "ayat": 34,
+  "type": "meccan"
+ },
+ {
+  "n": 32,
+  "name": "السجدة",
+  "tname": "As-Sajda",
+  "ename": "The Prostration",
+  "ayat": 30,
+  "type": "meccan"
+ },
+ {
+  "n": 33,
+  "name": "الأحزاب",
+  "tname": "Al-Ahzaab",
+  "ename": "The Clans",
+  "ayat": 73,
+  "type": "medinan"
+ },
+ {
+  "n": 34,
+  "name": "سبإ",
+  "tname": "Saba",
+  "ename": "Sheba",
+  "ayat": 54,
+  "type": "meccan"
+ },
+ {
+  "n": 35,
+  "name": "فاطر",
+  "tname": "Faatir",
+  "ename": "The Originator",
+  "ayat": 45,
+  "type": "meccan"
+ },
+ {
+  "n": 36,
+  "name": "يس",
+  "tname": "Yaseen",
+  "ename": "Yaseen",
+  "ayat": 83,
+  "type": "meccan"
+ },
+ {
+  "n": 37,
+  "name": "الصافات",
+  "tname": "As-Saaffaat",
+  "ename": "Those drawn up in Ranks",
+  "ayat": 182,
+  "type": "meccan"
+ },
+ {
+  "n": 38,
+  "name": "ص",
+  "tname": "Saad",
+  "ename": "The letter Saad",
+  "ayat": 88,
+  "type": "meccan"
+ },
+ {
+  "n": 39,
+  "name": "الزمر",
+  "tname": "Az-Zumar",
+  "ename": "The Groups",
+  "ayat": 75,
+  "type": "meccan"
+ },
+ {
+  "n": 40,
+  "name": "غافر",
+  "tname": "Al-Ghaafir",
+  "ename": "The Forgiver",
+  "ayat": 85,
+  "type": "meccan"
+ },
+ {
+  "n": 41,
+  "name": "فصلت",
+  "tname": "Fussilat",
+  "ename": "Explained in detail",
+  "ayat": 54,
+  "type": "meccan"
+ },
+ {
+  "n": 42,
+  "name": "الشورى",
+  "tname": "Ash-Shura",
+  "ename": "Consultation",
+  "ayat": 53,
+  "type": "meccan"
+ },
+ {
+  "n": 43,
+  "name": "الزخرف",
+  "tname": "Az-Zukhruf",
+  "ename": "Ornaments of gold",
+  "ayat": 89,
+  "type": "meccan"
+ },
+ {
+  "n": 44,
+  "name": "الدخان",
+  "tname": "Ad-Dukhaan",
+  "ename": "The Smoke",
+  "ayat": 59,
+  "type": "meccan"
+ },
+ {
+  "n": 45,
+  "name": "الجاثية",
+  "tname": "Al-Jaathiya",
+  "ename": "Crouching",
+  "ayat": 37,
+  "type": "meccan"
+ },
+ {
+  "n": 46,
+  "name": "الأحقاف",
+  "tname": "Al-Ahqaf",
+  "ename": "The Dunes",
+  "ayat": 35,
+  "type": "meccan"
+ },
+ {
+  "n": 47,
+  "name": "محمد",
+  "tname": "Muhammad",
+  "ename": "Muhammad",
+  "ayat": 38,
+  "type": "medinan"
+ },
+ {
+  "n": 48,
+  "name": "الفتح",
+  "tname": "Al-Fath",
+  "ename": "The Victory",
+  "ayat": 29,
+  "type": "medinan"
+ },
+ {
+  "n": 49,
+  "name": "الحجرات",
+  "tname": "Al-Hujuraat",
+  "ename": "The Inner Apartments",
+  "ayat": 18,
+  "type": "medinan"
+ },
+ {
+  "n": 50,
+  "name": "ق",
+  "tname": "Qaaf",
+  "ename": "The letter Qaaf",
+  "ayat": 45,
+  "type": "meccan"
+ },
+ {
+  "n": 51,
+  "name": "الذاريات",
+  "tname": "Adh-Dhaariyat",
+  "ename": "The Winnowing Winds",
+  "ayat": 60,
+  "type": "meccan"
+ },
+ {
+  "n": 52,
+  "name": "الطور",
+  "tname": "At-Tur",
+  "ename": "The Mount",
+  "ayat": 49,
+  "type": "meccan"
+ },
+ {
+  "n": 53,
+  "name": "النجم",
+  "tname": "An-Najm",
+  "ename": "The Star",
+  "ayat": 62,
+  "type": "meccan"
+ },
+ {
+  "n": 54,
+  "name": "القمر",
+  "tname": "Al-Qamar",
+  "ename": "The Moon",
+  "ayat": 55,
+  "type": "meccan"
+ },
+ {
+  "n": 55,
+  "name": "الرحمن",
+  "tname": "Ar-Rahmaan",
+  "ename": "The Beneficent",
+  "ayat": 78,
+  "type": "medinan"
+ },
+ {
+  "n": 56,
+  "name": "الواقعة",
+  "tname": "Al-Waaqia",
+  "ename": "The Inevitable",
+  "ayat": 96,
+  "type": "meccan"
+ },
+ {
+  "n": 57,
+  "name": "الحديد",
+  "tname": "Al-Hadid",
+  "ename": "The Iron",
+  "ayat": 29,
+  "type": "medinan"
+ },
+ {
+  "n": 58,
+  "name": "المجادلة",
+  "tname": "Al-Mujaadila",
+  "ename": "The Pleading Woman",
+  "ayat": 22,
+  "type": "medinan"
+ },
+ {
+  "n": 59,
+  "name": "الحشر",
+  "tname": "Al-Hashr",
+  "ename": "The Exile",
+  "ayat": 24,
+  "type": "medinan"
+ },
+ {
+  "n": 60,
+  "name": "الممتحنة",
+  "tname": "Al-Mumtahana",
+  "ename": "She that is to be examined",
+  "ayat": 13,
+  "type": "medinan"
+ },
+ {
+  "n": 61,
+  "name": "الصف",
+  "tname": "As-Saff",
+  "ename": "The Ranks",
+  "ayat": 14,
+  "type": "medinan"
+ },
+ {
+  "n": 62,
+  "name": "الجمعة",
+  "tname": "Al-Jumu'a",
+  "ename": "Friday",
+  "ayat": 11,
+  "type": "medinan"
+ },
+ {
+  "n": 63,
+  "name": "المنافقون",
+  "tname": "Al-Munaafiqoon",
+  "ename": "The Hypocrites",
+  "ayat": 11,
+  "type": "medinan"
+ },
+ {
+  "n": 64,
+  "name": "التغابن",
+  "tname": "At-Taghaabun",
+  "ename": "Mutual Disillusion",
+  "ayat": 18,
+  "type": "medinan"
+ },
+ {
+  "n": 65,
+  "name": "الطلاق",
+  "tname": "At-Talaaq",
+  "ename": "Divorce",
+  "ayat": 12,
+  "type": "medinan"
+ },
+ {
+  "n": 66,
+  "name": "التحريم",
+  "tname": "At-Tahrim",
+  "ename": "The Prohibition",
+  "ayat": 12,
+  "type": "medinan"
+ },
+ {
+  "n": 67,
+  "name": "الملك",
+  "tname": "Al-Mulk",
+  "ename": "The Sovereignty",
+  "ayat": 30,
+  "type": "meccan"
+ },
+ {
+  "n": 68,
+  "name": "القلم",
+  "tname": "Al-Qalam",
+  "ename": "The Pen",
+  "ayat": 52,
+  "type": "meccan"
+ },
+ {
+  "n": 69,
+  "name": "الحاقة",
+  "tname": "Al-Haaqqa",
+  "ename": "The Reality",
+  "ayat": 52,
+  "type": "meccan"
+ },
+ {
+  "n": 70,
+  "name": "المعارج",
+  "tname": "Al-Ma'aarij",
+  "ename": "The Ascending Stairways",
+  "ayat": 44,
+  "type": "meccan"
+ },
+ {
+  "n": 71,
+  "name": "نوح",
+  "tname": "Nooh",
+  "ename": "Noah",
+  "ayat": 28,
+  "type": "meccan"
+ },
+ {
+  "n": 72,
+  "name": "الجن",
+  "tname": "Al-Jinn",
+  "ename": "The Jinn",
+  "ayat": 28,
+  "type": "meccan"
+ },
+ {
+  "n": 73,
+  "name": "المزمل",
+  "tname": "Al-Muzzammil",
+  "ename": "The Enshrouded One",
+  "ayat": 20,
+  "type": "meccan"
+ },
+ {
+  "n": 74,
+  "name": "المدثر",
+  "tname": "Al-Muddaththir",
+  "ename": "The Cloaked One",
+  "ayat": 56,
+  "type": "meccan"
+ },
+ {
+  "n": 75,
+  "name": "القيامة",
+  "tname": "Al-Qiyaama",
+  "ename": "The Resurrection",
+  "ayat": 40,
+  "type": "meccan"
+ },
+ {
+  "n": 76,
+  "name": "الانسان",
+  "tname": "Al-Insaan",
+  "ename": "Man",
+  "ayat": 31,
+  "type": "medinan"
+ },
+ {
+  "n": 77,
+  "name": "المرسلات",
+  "tname": "Al-Mursalaat",
+  "ename": "The Emissaries",
+  "ayat": 50,
+  "type": "meccan"
+ },
+ {
+  "n": 78,
+  "name": "النبإ",
+  "tname": "An-Naba",
+  "ename": "The Announcement",
+  "ayat": 40,
+  "type": "meccan"
+ },
+ {
+  "n": 79,
+  "name": "النازعات",
+  "tname": "An-Naazi'aat",
+  "ename": "Those who drag forth",
+  "ayat": 46,
+  "type": "meccan"
+ },
+ {
+  "n": 80,
+  "name": "عبس",
+  "tname": "Abasa",
+  "ename": "He frowned",
+  "ayat": 42,
+  "type": "meccan"
+ },
+ {
+  "n": 81,
+  "name": "التكوير",
+  "tname": "At-Takwir",
+  "ename": "The Overthrowing",
+  "ayat": 29,
+  "type": "meccan"
+ },
+ {
+  "n": 82,
+  "name": "الإنفطار",
+  "tname": "Al-Infitaar",
+  "ename": "The Cleaving",
+  "ayat": 19,
+  "type": "meccan"
+ },
+ {
+  "n": 83,
+  "name": "المطففين",
+  "tname": "Al-Mutaffifin",
+  "ename": "Defrauding",
+  "ayat": 36,
+  "type": "meccan"
+ },
+ {
+  "n": 84,
+  "name": "الإنشقاق",
+  "tname": "Al-Inshiqaaq",
+  "ename": "The Splitting Open",
+  "ayat": 25,
+  "type": "meccan"
+ },
+ {
+  "n": 85,
+  "name": "البروج",
+  "tname": "Al-Burooj",
+  "ename": "The Constellations",
+  "ayat": 22,
+  "type": "meccan"
+ },
+ {
+  "n": 86,
+  "name": "الطارق",
+  "tname": "At-Taariq",
+  "ename": "The Morning Star",
+  "ayat": 17,
+  "type": "meccan"
+ },
+ {
+  "n": 87,
+  "name": "الأعلى",
+  "tname": "Al-A'laa",
+  "ename": "The Most High",
+  "ayat": 19,
+  "type": "meccan"
+ },
+ {
+  "n": 88,
+  "name": "الغاشية",
+  "tname": "Al-Ghaashiya",
+  "ename": "The Overwhelming",
+  "ayat": 26,
+  "type": "meccan"
+ },
+ {
+  "n": 89,
+  "name": "الفجر",
+  "tname": "Al-Fajr",
+  "ename": "The Dawn",
+  "ayat": 30,
+  "type": "meccan"
+ },
+ {
+  "n": 90,
+  "name": "البلد",
+  "tname": "Al-Balad",
+  "ename": "The City",
+  "ayat": 20,
+  "type": "meccan"
+ },
+ {
+  "n": 91,
+  "name": "الشمس",
+  "tname": "Ash-Shams",
+  "ename": "The Sun",
+  "ayat": 15,
+  "type": "meccan"
+ },
+ {
+  "n": 92,
+  "name": "الليل",
+  "tname": "Al-Lail",
+  "ename": "The Night",
+  "ayat": 21,
+  "type": "meccan"
+ },
+ {
+  "n": 93,
+  "name": "الضحى",
+  "tname": "Ad-Dhuhaa",
+  "ename": "The Morning Hours",
+  "ayat": 11,
+  "type": "meccan"
+ },
+ {
+  "n": 94,
+  "name": "الشرح",
+  "tname": "Ash-Sharh",
+  "ename": "The Consolation",
+  "ayat": 8,
+  "type": "meccan"
+ },
+ {
+  "n": 95,
+  "name": "التين",
+  "tname": "At-Tin",
+  "ename": "The Fig",
+  "ayat": 8,
+  "type": "meccan"
+ },
+ {
+  "n": 96,
+  "name": "العلق",
+  "tname": "Al-Alaq",
+  "ename": "The Clot",
+  "ayat": 19,
+  "type": "meccan"
+ },
+ {
+  "n": 97,
+  "name": "القدر",
+  "tname": "Al-Qadr",
+  "ename": "The Power, Fate",
+  "ayat": 5,
+  "type": "meccan"
+ },
+ {
+  "n": 98,
+  "name": "البينة",
+  "tname": "Al-Bayyina",
+  "ename": "The Evidence",
+  "ayat": 8,
+  "type": "medinan"
+ },
+ {
+  "n": 99,
+  "name": "الزلزلة",
+  "tname": "Az-Zalzala",
+  "ename": "The Earthquake",
+  "ayat": 8,
+  "type": "medinan"
+ },
+ {
+  "n": 100,
+  "name": "العاديات",
+  "tname": "Al-Aadiyaat",
+  "ename": "The Chargers",
+  "ayat": 11,
+  "type": "meccan"
+ },
+ {
+  "n": 101,
+  "name": "القارعة",
+  "tname": "Al-Qaari'a",
+  "ename": "The Calamity",
+  "ayat": 11,
+  "type": "meccan"
+ },
+ {
+  "n": 102,
+  "name": "التكاثر",
+  "tname": "At-Takaathur",
+  "ename": "Competition",
+  "ayat": 8,
+  "type": "meccan"
+ },
+ {
+  "n": 103,
+  "name": "العصر",
+  "tname": "Al-Asr",
+  "ename": "The Declining Day, Epoch",
+  "ayat": 3,
+  "type": "meccan"
+ },
+ {
+  "n": 104,
+  "name": "الهمزة",
+  "tname": "Al-Humaza",
+  "ename": "The Traducer",
+  "ayat": 9,
+  "type": "meccan"
+ },
+ {
+  "n": 105,
+  "name": "الفيل",
+  "tname": "Al-Fil",
+  "ename": "The Elephant",
+  "ayat": 5,
+  "type": "meccan"
+ },
+ {
+  "n": 106,
+  "name": "قريش",
+  "tname": "Quraish",
+  "ename": "Quraysh",
+  "ayat": 4,
+  "type": "meccan"
+ },
+ {
+  "n": 107,
+  "name": "الماعون",
+  "tname": "Al-Maa'un",
+  "ename": "Almsgiving",
+  "ayat": 7,
+  "type": "meccan"
+ },
+ {
+  "n": 108,
+  "name": "الكوثر",
+  "tname": "Al-Kawthar",
+  "ename": "Abundance",
+  "ayat": 3,
+  "type": "meccan"
+ },
+ {
+  "n": 109,
+  "name": "الكافرون",
+  "tname": "Al-Kaafiroon",
+  "ename": "The Disbelievers",
+  "ayat": 6,
+  "type": "meccan"
+ },
+ {
+  "n": 110,
+  "name": "النصر",
+  "tname": "An-Nasr",
+  "ename": "Divine Support",
+  "ayat": 3,
+  "type": "medinan"
+ },
+ {
+  "n": 111,
+  "name": "المسد",
+  "tname": "Al-Masad",
+  "ename": "The Palm Fibre",
+  "ayat": 5,
+  "type": "meccan"
+ },
+ {
+  "n": 112,
+  "name": "الإخلاص",
+  "tname": "Al-Ikhlaas",
+  "ename": "Sincerity",
+  "ayat": 4,
+  "type": "meccan"
+ },
+ {
+  "n": 113,
+  "name": "الفلق",
+  "tname": "Al-Falaq",
+  "ename": "The Dawn",
+  "ayat": 5,
+  "type": "meccan"
+ },
+ {
+  "n": 114,
+  "name": "الناس",
+  "tname": "An-Naas",
+  "ename": "Mankind",
+  "ayat": 6,
+  "type": "meccan"
+ }
+]
