@@ -6,7 +6,22 @@ export interface VirtualKeyboardProps {
   shiftHeld?: boolean;
 }
 
-const ROW_OFFSETS = ["", "", "pl-6", "pl-10"];
+const KEY_REM = 2.5;
+const GAP_REM = 0.25;
+const UNIT_REM = KEY_REM + GAP_REM;
+
+const ROW_INDENT_UNITS = [0, 1.5, 1.75, 0];
+const SHIFT_UNITS = 2.25;
+const SPACE_INDENT_UNITS = 3.75;
+const SPACE_UNITS = 6.25;
+
+function units(count: number): string {
+  return `${count * UNIT_REM}rem`;
+}
+
+function span(count: number): string {
+  return `${count * UNIT_REM - GAP_REM}rem`;
+}
 
 const KEY = "flex h-10 w-10 flex-col items-center justify-center rounded-md text-center transition-colors";
 const IDLE = "bg-stone-100 text-stone-600 dark:bg-stone-900 dark:text-stone-400";
@@ -22,7 +37,7 @@ export default function VirtualKeyboard({ layout, nextChar, shiftHeld = false }:
   const caps = capsOf(layout);
   const target = nextChar === undefined ? undefined : strokeFor(nextChar, layout);
   const needsShift = target?.shift === true;
-  const rows = ROW_OFFSETS.map((_, row) => caps.filter((cap) => cap.row === row));
+  const rows = ROW_INDENT_UNITS.map((_, row) => caps.filter((cap) => cap.row === row));
   const space = caps.find((cap) => cap.code === "Space");
   const spaceIsTarget = target?.code === "Space";
 
@@ -34,9 +49,14 @@ export default function VirtualKeyboard({ layout, nextChar, shiftHeld = false }:
       className="select-none"
       dir="ltr"
     >
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-col items-start gap-1">
         {rows.map((row, index) => (
-          <div key={index} className={`flex gap-1 ${ROW_OFFSETS[index] ?? ""}`}>
+          <div
+            key={index}
+            data-cy="keyboard-row"
+            className="flex gap-1"
+            style={{ marginLeft: units(ROW_INDENT_UNITS[index] ?? 0) }}
+          >
             {index === 3 ? <ShiftKey active={needsShift} held={shiftHeld} /> : null}
             {row.map((cap) => {
               const label = keycapLabel(cap);
@@ -70,7 +90,8 @@ export default function VirtualKeyboard({ layout, nextChar, shiftHeld = false }:
             data-cy="keycap"
             data-code="Space"
             data-target={spaceIsTarget ? "true" : "false"}
-            className={`mt-0.5 h-8 w-64 rounded-md ${spaceIsTarget ? TARGET : IDLE}`}
+            className={`h-8 rounded-md ${spaceIsTarget ? TARGET : IDLE}`}
+            style={{ marginLeft: units(SPACE_INDENT_UNITS), width: span(SPACE_UNITS) }}
           />
         ) : null}
       </div>
@@ -84,7 +105,8 @@ function ShiftKey({ active, held }: { active: boolean; held: boolean }) {
       data-cy="shift-key"
       data-active={active ? "true" : "false"}
       data-held={held ? "true" : "false"}
-      className={`flex h-10 w-14 items-center justify-center rounded-md text-[0.6rem] font-semibold uppercase tracking-wider transition-colors ${
+      style={{ width: span(SHIFT_UNITS) }}
+      className={`flex h-10 items-center justify-center rounded-md text-[0.6rem] font-semibold uppercase tracking-wider transition-colors ${
         active || held ? "bg-amber-500/20 text-amber-700 dark:text-amber-300" : `${IDLE} text-stone-400`
       }`}
     >
