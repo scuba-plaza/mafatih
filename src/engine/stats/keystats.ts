@@ -13,6 +13,12 @@ const EWMA_ALPHA = 0.25;
 
 export const RECENT_ACCURACY_ALPHA = 0.05;
 
+export const LATENCY_CAP_MS = 3000;
+
+export function isPause(latencyMs: number): boolean {
+  return latencyMs > LATENCY_CAP_MS;
+}
+
 export function emptyStats(): KeyStats {
   return {};
 }
@@ -24,14 +30,15 @@ export function statFor(stats: KeyStats, char: string): KeyStat {
 export function recordKeystroke(stats: KeyStats, char: string, latencyMs: number, correct: boolean): KeyStats {
   const prev = statFor(stats, char);
   const rate = Math.max(RECENT_ACCURACY_ALPHA, 1 / (attemptsOf(prev) + 1));
-  const meanMs = correct
+  const timed = correct && !isPause(latencyMs);
+  const meanMs = timed
     ? prev.samples === 0
       ? latencyMs
       : EWMA_ALPHA * latencyMs + (1 - EWMA_ALPHA) * prev.meanMs
     : prev.meanMs;
   const next: KeyStat = {
     char,
-    samples: prev.samples + (correct ? 1 : 0),
+    samples: prev.samples + (timed ? 1 : 0),
     meanMs,
     hits: prev.hits + (correct ? 1 : 0),
     misses: prev.misses + (correct ? 0 : 1),

@@ -1,7 +1,7 @@
 import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
 import { formatNumber, formatPercent } from "~/engine/format.ts";
-import { isHaraka } from "~/engine/layout/ara.ts";
+import { isHaraka, LIGATURE_KEYS } from "~/engine/layout/ara.ts";
 import { attemptsOf, type KeyStats, recentAccuracyOf, statFor } from "~/engine/stats/keystats.ts";
 import { type Progress, tierChars } from "~/engine/stats/unlock.ts";
 import type { SessionSummary } from "~/storage/profile.ts";
@@ -73,7 +73,11 @@ function when(at: number): string {
 
 export default function Stats({ progress, stats, history, effectiveTier }: StatsProps) {
   const marks = TIERS.slice(1, TIERS.indexOf(effectiveTier) + 1).flatMap(tierChars);
-  const tracked = [...letterOrder.slice(0, progress.unlockedCount), ...marks];
+  const unlocked = letterOrder.slice(0, progress.unlockedCount);
+  const ligatures = [...LIGATURE_KEYS.entries()]
+    .filter(([sequence]) => [...sequence].every((letter) => unlocked.includes(letter)))
+    .map(([, key]) => key);
+  const tracked = [...unlocked, ...marks, ...ligatures];
   const recent = [...history].reverse();
   const best = history.reduce((max, entry) => Math.max(max, entry.cpm), 0);
   const lastTen = recent.slice(0, 10);
@@ -105,7 +109,7 @@ export default function Stats({ progress, stats, history, effectiveTier }: Stats
         <p className="text-[0.65rem] text-stone-400">
           Bar height is recent accuracy, roughly your last forty keystrokes of that character, so old mistakes fade; the
           number below each character is mean latency in ms. Statistics are kept per character, so a haraka scores
-          separately from the letter sharing its key.
+          separately from the letter sharing its key, and a lam-alef typed with its ligature key scores as that key.
         </p>
       </div>
 

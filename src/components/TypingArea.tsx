@@ -278,8 +278,12 @@ export default function TypingArea({
 
   useEffect(() => {
     window.addEventListener("resize", remeasure);
+    document.fonts?.addEventListener("loadingdone", remeasure);
     document.fonts?.ready.then(remeasure).catch(() => undefined);
-    return () => window.removeEventListener("resize", remeasure);
+    return () => {
+      window.removeEventListener("resize", remeasure);
+      document.fonts?.removeEventListener("loadingdone", remeasure);
+    };
   }, [remeasure]);
 
   useLayoutEffect(() => {
@@ -315,6 +319,19 @@ export default function TypingArea({
     range.detach();
     setClipLeft(rect.width === 0 ? startEdge : rect.left - containerRect.left);
   }, [cursor, activeIndex, lines, segments, tick, size]);
+
+  const followedRef = useRef<{ chars: readonly string[]; line: number } | null>(null);
+
+  useEffect(() => {
+    const previous = followedRef.current;
+    followedRef.current = { chars, line: activeIndex };
+    const line = activeLineRef.current;
+    if (line === null || previous === null || (previous.chars === chars && previous.line === activeIndex)) {
+      return;
+    }
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    line.scrollIntoView({ block: "center", inline: "nearest", behavior: still ? "auto" : "smooth" });
+  }, [chars, activeIndex]);
 
   const bandStart = highlight?.start ?? -1;
   const bandEnd = highlight?.end ?? -1;
@@ -375,6 +392,8 @@ export default function TypingArea({
             ref={isActive ? activeLineRef : undefined}
             data-cy="line"
             data-line-index={index}
+            data-active={isActive}
+            style={{ scrollMarginBottom: "var(--keyboard-dock-inset, 0px)" }}
             data-centered={isCentered}
             className={`relative whitespace-nowrap ${isCentered ? "text-center" : ""}`}
           >

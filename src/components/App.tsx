@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
 import FocusLetter from "~/components/FocusLetter.tsx";
@@ -15,7 +15,7 @@ import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
 import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { fontStack } from "~/engine/fonts.ts";
-import { metrics as computeMetrics, isComplete } from "~/engine/session/session.ts";
+import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
 import { completedSurahs, type StoryPosition } from "~/engine/story/story.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
 import { useRecitation } from "~/hooks/useRecitation.ts";
@@ -45,7 +45,7 @@ export default function App() {
   const { profile, lesson, session, effectiveTier, latinDetected, shiftHeld, lastSummary } = trainer;
   const { settings } = profile;
   const live = computeMetrics(session, isComplete(session) ? undefined : performance.now());
-  const nextChar = session.chars[session.cursor];
+  const nextChar = expectedKey(session);
   const audioCache = useAudioCache(modal === "recitation");
   const recitation = useRecitation({
     lesson,
@@ -63,6 +63,29 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.setProperty("--font-arabic-active", fontStack(settings.font));
   }, [settings.font]);
+
+  const dockRef = useRef<HTMLDivElement>(null);
+  const docked = settings.showKeyboard && route === "practice";
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const dock = dockRef.current;
+    if (!docked || dock === null) {
+      root.style.setProperty("--keyboard-dock-inset", "0px");
+      return;
+    }
+    const measure = () => {
+      const offset = Number.parseFloat(getComputedStyle(dock).bottom) || 0;
+      root.style.setProperty("--keyboard-dock-inset", `${dock.offsetHeight + offset}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(dock);
+    return () => {
+      observer.disconnect();
+      root.style.setProperty("--keyboard-dock-inset", "0px");
+    };
+  }, [docked]);
 
   const playFromMap = (position: StoryPosition) => {
     trainer.goTo(position);
@@ -170,6 +193,7 @@ export default function App() {
 
           {settings.showKeyboard ? (
             <div
+              ref={dockRef}
               data-cy="keyboard-dock"
               className="sticky bottom-6 z-10 mx-auto w-fit rounded-2xl bg-stone-50/90 px-4 py-3 shadow-lg shadow-stone-900/5 ring-1 ring-stone-900/5 backdrop-blur-md dark:bg-stone-950/90 dark:ring-stone-100/10"
             >

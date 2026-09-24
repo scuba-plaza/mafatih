@@ -5,6 +5,7 @@ import {
   emptyStats,
   isMastered,
   type KeyStats,
+  LATENCY_CAP_MS,
   RECENT_ACCURACY_ALPHA,
   recentAccuracyOf,
   recordKeystroke,
@@ -78,4 +79,23 @@ test("a stored recent accuracy survives, and nonsense in storage is repaired", (
   assert.equal(statFor(stats, "ن").samples, 0);
   assert.deepEqual(sanitizeStats([1, 2]), {});
   assert.deepEqual(sanitizeStats(null), {});
+});
+
+test("a keystroke after a pause counts for accuracy but not as a latency sample", () => {
+  let stats = typeRun(emptyStats(), "ب", Array(10).fill(true));
+  const before = statFor(stats, "ب");
+  stats = recordKeystroke(stats, "ب", 10 * 60_000, true);
+  const after = statFor(stats, "ب");
+  assert.equal(after.meanMs, before.meanMs);
+  assert.equal(after.samples, before.samples);
+  assert.equal(after.hits, before.hits + 1);
+  assert.equal(isMastered(after, 8, 700, 0.95), true, "a ten-minute break does not undo mastery");
+});
+
+test("a slow but real keystroke under the cap still counts toward latency", () => {
+  let stats = typeRun(emptyStats(), "ب", Array(10).fill(true));
+  stats = recordKeystroke(stats, "ب", LATENCY_CAP_MS, true);
+  const stat = statFor(stats, "ب");
+  assert.equal(stat.samples, 11);
+  assert.ok(stat.meanMs > 300);
 });

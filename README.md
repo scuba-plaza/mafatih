@@ -65,6 +65,13 @@ through the real lesson, session and unlock code, that learner now climbs past t
 in three hundred lessons, while one at 20% errors still has to improve first. The header shows the
 focus letter with its recent accuracy and latency, so it is always clear what the next unlock needs.
 
+**A pause is not a slow keystroke.** Any gap longer than three seconds is treated as a break: the
+keystroke that ends it still counts for accuracy, but not as a latency sample, and the break itself
+is left out of the lesson's elapsed time and speed. Three seconds is long enough for a beginner
+hunting for an unfamiliar key — that slowness is real and should count — and far too long to be
+typing. Without the cap, one ten-minute interruption would have pushed a letter's average latency
+into the minutes and blocked its unlock for dozens of keystrokes.
+
 ## 3. Arabic is cursive, so per-character highlighting breaks letter joining
 
 Wrapping each character in its own `<span>` — the obvious approach — risks breaking cursive joining
@@ -114,13 +121,20 @@ Windows has `‘` and `’`.
 | lam-alef | `ﻻ` on `B`, with `ﻷ ﻹ ﻵ` on Shift+`G T B` |
 | far corners | `ذ` on the backtick, `د` and `ج` on the bracket keys |
 
-Windows sends a lam-alef key as its two letters in one event, where xkb sends a single presentation
-form; the session accepts both. Typing `لا` as two separate keys works too, since input is read from
-the character your OS emits, not from the key position.
+**The four lam-alef ligature keys are encouraged.** Arabic (101) types `لا`, `لأ`, `لإ` and `لآ`
+with a single key (`B`, Shift+`G`, Shift+`T`, Shift+`B`), so wherever a lam is followed directly by
+an alef, the on-screen keyboard highlights the ligature key rather than the lam. Typing the two
+letters separately is still accepted. A ligature is scored as a key like any other: one keystroke,
+one latency sample, under its own entry in the per-character statistics, rather than being split
+across its letters (which used to hand the alef a zero-millisecond sample). A wrong key where a
+ligature is due counts as a miss on the ligature. Windows sends a ligature key as its two letters in
+one event, where xkb sends a single presentation form; the session accepts both.
 
 The keyboard **docks to the bottom of the window**, a margin clear of the edge, and floats over the
 lesson on a faintly tinted, blurred panel rather than sitting under it. A long passage scrolls
-past a keyboard that stays where your eyes already are. It can also be hidden entirely from
+past a keyboard that stays where your eyes already are: whenever the cursor moves onto a new line,
+or a new lesson starts, that line is scrolled to the middle of the space above the keyboard —
+smoothly, or instantly under `prefers-reduced-motion`. It can also be hidden entirely from
 settings once you no longer need it, and hiding it removes the dock with it.
 
 ## Fonts

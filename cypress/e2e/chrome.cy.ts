@@ -293,3 +293,45 @@ describe("search and sharing metadata", () => {
     cy.request("/sitemap.xml").its("body").should("contain", "<urlset").and("contain", "<loc>https://");
   });
 });
+
+describe("lam-alef ligature keys", () => {
+  it("highlights the ligature key, not lam, where lam meets an alef", () => {
+    visitWith({ settings: { mode: "custom", customText: "لا لأ", tierOverride: "none" } });
+    cy.targetText().should("equal", "لا لأ");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyB");
+    cy.get("[data-cy=keycap][data-code=KeyB]").should("have.attr", "data-target", "true");
+    cy.get("[data-cy=keycap][data-code=KeyG]").should("have.attr", "data-target", "false");
+    cy.get("[data-cy=shift-key]").should("have.attr", "data-active", "false");
+    cy.typeRawKey("ﻻ", "KeyB");
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "2");
+    cy.typeArabic(" ");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyG");
+    cy.get("[data-cy=shift-key]").should("have.attr", "data-active", "true");
+  });
+
+  it("still takes lam then alef as two keys", () => {
+    visitWith({ settings: { mode: "custom", customText: "لا", tierOverride: "none" } });
+    cy.targetText().should("equal", "لا");
+    cy.typeArabic("ل");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyH");
+    cy.typeArabic("ا");
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.get("[data-cy=summary-errors]").should("have.text", "0");
+  });
+
+  it("scores a ligature keystroke as its own key", () => {
+    visitWith({ surah: 2, ayah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 1 } });
+    cy.targetText().then((text) => {
+      const chars = [...text];
+      const at = text.indexOf("لا");
+      expect(at, "2:2 contains lam-alef").to.be.greaterThan(0);
+      cy.typeArabic(chars.slice(0, at).join(""), { delay: 20 });
+      cy.get("[data-cy=keycap][data-code=KeyB]").should("have.attr", "data-target", "true");
+      cy.typeRawKey("ﻻ", "KeyB");
+      cy.typeArabic(chars.slice(at + 2).join(""));
+    });
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.showStats();
+    cy.get("[data-cy=letter-stat][data-char=ﻻ]").should("have.attr", "data-attempts", "1");
+  });
+});

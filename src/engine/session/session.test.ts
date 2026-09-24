@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { LIGATURE_KEYS } from "~/engine/layout/ara.ts";
 import type { SessionState } from "~/engine/session/session.ts";
-import { applyKey, createSession, expectedChar, isComplete, isTypedKey, metrics } from "~/engine/session/session.ts";
+import {
+  applyKey,
+  createSession,
+  expectedChar,
+  expectedKey,
+  isComplete,
+  isTypedKey,
+  metrics,
+} from "~/engine/session/session.ts";
 
 function typeAll(state: SessionState, keys: readonly string[], step = 100): SessionState {
   let next = state;
@@ -157,4 +166,84 @@ test("Windows sends a lam-alef key as its two letters, and that satisfies both p
   state = applyKey(state, "لأ", 300);
   assert.equal(state.cursor, 5);
   assert.equal(state.errors, 0);
+});
+
+test("Arabic (101) offers exactly four lam-alef ligature keys", () => {
+  assert.deepEqual(
+    [...LIGATURE_KEYS.entries()].sort(),
+    [
+      ["لآ", "ﻵ"],
+      ["لأ", "ﻷ"],
+      ["لإ", "ﻹ"],
+      ["لا", "ﻻ"],
+    ].sort(),
+  );
+});
+
+test("the next key is the ligature wherever lam is followed directly by an alef", () => {
+  assert.equal(expectedKey(createSession("لا")), "ﻻ");
+  assert.equal(expectedKey(createSession("لأن")), "ﻷ");
+  assert.equal(expectedKey(createSession("لإ")), "ﻹ");
+  assert.equal(expectedKey(createSession("لآ")), "ﻵ");
+  assert.equal(expectedKey(createSession("لَا")), "ل", "a haraka between them rules the ligature out");
+  assert.equal(expectedKey(createSession("لم")), "ل");
+  assert.equal(expectedKey(createSession("الله")), "ا");
+});
+
+test("a ligature keystroke is one keystroke, scored under the ligature key", () => {
+  const typed = applyKey(applyKey(createSession("ما لا"), "م", 0), "ا", 100);
+  let state = applyKey(typed, " ", 200);
+  state = applyKey(state, "ﻻ", 500);
+  assert.equal(isComplete(state), true);
+  assert.equal(state.keystrokes, 4);
+  const last = state.records[state.records.length - 1];
+  assert.deepEqual(last, { expected: "ﻻ", typed: "ﻻ", correct: true, latencyMs: 300, at: 500 });
+  assert.deepEqual(
+    state.records.map((r) => r.expected),
+    ["م", "ا", " ", "ﻻ"],
+  );
+});
+
+test("typing the ligature as two letters still works and scores each letter", () => {
+  let state = applyKey(createSession("لا"), "ل", 0);
+  assert.equal(expectedKey(state), "ا");
+  state = applyKey(state, "ا", 200);
+  assert.equal(isComplete(state), true);
+  assert.deepEqual(
+    state.records.map((r) => r.expected),
+    ["ل", "ا"],
+  );
+});
+
+test("a wrong key where a ligature is due is a miss on the ligature", () => {
+  let state = applyKey(createSession("لا"), "م", 0);
+  assert.equal(state.cursor, 0);
+  assert.equal(state.records[0]?.expected, "ﻻ");
+  state = applyKey(state, "ﻷ", 100);
+  assert.equal(state.cursor, 0, "the wrong ligature does not advance");
+  assert.equal(state.errors, 2);
+  assert.equal(state.records[1]?.expected, "ﻻ");
+  state = applyKey(state, "لا", 200);
+  assert.equal(isComplete(state), true);
+  assert.equal(state.outcomes[0], "corrected");
+  assert.equal(state.outcomes[1], "corrected");
+});
+
+test("a break between keystrokes is left out of the elapsed time", () => {
+  let state = createSession("ابت");
+  state = applyKey(state, "ا", 0);
+  state = applyKey(state, "ب", 500);
+  state = applyKey(state, "ت", 500 + 10 * 60_000);
+  const m = metrics(state);
+  assert.equal(m.elapsedMs, 500 + 3000);
+  assert.ok(m.cpm > 40, `cpm ${m.cpm} should not collapse after a break`);
+});
+
+test("the live clock stops while the typist is away", () => {
+  let state = createSession("ابت");
+  state = applyKey(state, "ا", 0);
+  state = applyKey(state, "ب", 500);
+  assert.equal(metrics(state, 1000).elapsedMs, 1000);
+  assert.equal(metrics(state, 60_000).elapsedMs, 3500);
+  assert.equal(metrics(state, 600_000).elapsedMs, 3500);
 });

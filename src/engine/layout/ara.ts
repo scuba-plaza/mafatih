@@ -1,4 +1,4 @@
-import { LIGATURES } from "~/engine/layout/ligatures.ts";
+import { expandLigature, LIGATURES } from "~/engine/layout/ligatures.ts";
 
 export interface KeyCap {
   code: string;
@@ -182,4 +182,22 @@ export function reachOf(char: string): number {
 
 export function isHaraka(char: string): boolean {
   return HARAKAT.has(char);
+}
+
+function ligatureKeysOf(caps: readonly KeyCap[]): ReadonlyMap<string, string> {
+  const keys = new Map<string, string>();
+  for (const cap of caps) {
+    for (const glyph of [cap.base, cap.shift]) {
+      if (LIGATURE_FORMS.has(glyph)) {
+        keys.set(expandLigature(glyph), glyph);
+      }
+    }
+  }
+  return keys;
+}
+
+export const LIGATURE_KEYS: ReadonlyMap<string, string> = ligatureKeysOf(WIN101_CAPS);
+
+export function isLigatureKey(glyph: string): boolean {
+  return LIGATURE_FORMS.has(glyph);
 }

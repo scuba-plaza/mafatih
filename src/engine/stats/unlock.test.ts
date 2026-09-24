@@ -127,3 +127,12 @@ test("tier does not advance on a sloppy run", () => {
   stats = drill(stats, unlockedLetters(progress), 10, 200, false);
   assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
 });
+
+test("a long break mid-session does not hold back the next letter", () => {
+  const progress = initialProgress();
+  const focus = focusLetter(progress);
+  assert.ok(focus);
+  let stats = drill(emptyStats(), [focus], cfg.minSamples * 2, 250);
+  stats = recordKeystroke(stats, focus, 15 * 60_000, true);
+  assert.equal(shouldUnlockNext(stats, progress, cfg), true);
+});

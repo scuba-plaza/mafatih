@@ -8,7 +8,8 @@ describe("progression and persistence", () => {
     cy.get("[data-cy=unlocked-count]").should("have.text", "6");
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.showStats();
-    cy.get("[data-cy=letter-stat]").should("have.length", 6);
+    cy.get("[data-cy=letter-stat]").should("have.length", 7);
+    cy.get("[data-cy=letter-stat]").last().should("have.attr", "data-char", "ﻻ");
   });
 
   it("unlocks the next letter once the focus letter is mastered", () => {

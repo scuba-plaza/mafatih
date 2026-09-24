@@ -221,3 +221,77 @@ describe("the on-screen keyboard", () => {
     });
   });
 });
+
+function lineStarts($lines: JQuery<HTMLElement>): string[] {
+  return $lines.toArray().map((line) => line.querySelector("[data-seg-start]")?.getAttribute("data-seg-start") ?? "");
+}
+
+function settledLineStarts(attempts = 10): Cypress.Chainable<string[]> {
+  return cy.get("[data-cy=line]").then(($first) => {
+    const first = lineStarts($first);
+    cy.wait(400);
+    return cy.get("[data-cy=line]").then(($second) => {
+      const second = lineStarts($second);
+      if (JSON.stringify(first) === JSON.stringify(second) || attempts <= 1) {
+        return cy.wrap(second);
+      }
+      return settledLineStarts(attempts - 1);
+    });
+  });
+}
+
+describe("following the cursor down a long passage", () => {
+  const visibleBottom = (win: Cypress.AUTWindow): number => {
+    const dock = win.document.querySelector("[data-cy=keyboard-dock]");
+    return dock === null ? win.innerHeight : dock.getBoundingClientRect().top;
+  };
+
+  it("centres the new line above the keyboard whenever the cursor moves onto it", () => {
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 20, fontSize: 72 } });
+    cy.document().its("fonts.status").should("equal", "loaded");
+    cy.get("[data-cy=line]").should("have.length.greaterThan", 8);
+    cy.window().its("scrollY").should("equal", 0);
+    settledLineStarts().as("startsBefore");
+    cy.get("[data-cy=line]")
+      .eq(6)
+      .find("[data-seg-start]")
+      .first()
+      .invoke("attr", "data-seg-start")
+      .then((start) => {
+        cy.targetText().then((text) => {
+          cy.typeArabic([...text].slice(0, Number(start)).join(""));
+        });
+      });
+    cy.get("[data-cy=line]").eq(6).should("have.attr", "data-active", "true");
+    cy.get("@startsBefore").then((before) => {
+      cy.get("[data-cy=line]").then(($lines) => {
+        expect(lineStarts($lines), "typing never reflows the lines").to.deep.equal(before);
+      });
+    });
+    cy.window().then((win) => {
+      cy.get("[data-cy=line]")
+        .eq(6)
+        .should(($line) => {
+          const rect = ($line[0] as HTMLElement).getBoundingClientRect();
+          const centre = rect.top + rect.height / 2;
+          expect(Math.abs(centre - visibleBottom(win) / 2), "line centre vs visible centre").to.be.lessThan(24);
+        });
+    });
+  });
+
+  it("brings the next level's first line into view", () => {
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 5, fontSize: 72 } });
+    cy.typeTarget();
+    cy.get("[data-cy=attribution]").should("contain.text", "2:6");
+    cy.window().then((win) => {
+      cy.get("[data-cy=line]")
+        .first()
+        .should("have.attr", "data-active", "true")
+        .and(($line) => {
+          const rect = ($line[0] as HTMLElement).getBoundingClientRect();
+          expect(rect.top, "the first line is not above the window").to.be.at.least(0);
+          expect(rect.bottom, "the first line is not under the keyboard").to.be.at.most(visibleBottom(win));
+        });
+    });
+  });
+});
