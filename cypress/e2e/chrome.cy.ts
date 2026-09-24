@@ -247,3 +247,51 @@ describe("font selection", () => {
     });
   });
 });
+
+describe("search and sharing metadata", () => {
+  beforeEach(() => {
+    cy.visit("/?seed=5");
+  });
+
+  it("describes the page for search engines and link previews", () => {
+    cy.title().should("contain", "Mafatih");
+    cy.get('head meta[name="description"]')
+      .should("have.attr", "content")
+      .and("match", /Arabic touch-typing/);
+    cy.get('head link[rel="canonical"]')
+      .should("have.attr", "href")
+      .and("match", /^https:\/\/.+\/$/);
+    for (const property of ["og:title", "og:description", "og:url", "og:image", "og:type"]) {
+      cy.get(`head meta[property="${property}"]`).should("have.attr", "content").and("not.be.empty");
+    }
+    cy.get('head meta[property="og:image"]')
+      .should("have.attr", "content")
+      .and("match", /^https:\/\/.+og-image\.png$/);
+    cy.get('head meta[name="twitter:card"]').should("have.attr", "content", "summary_large_image");
+    cy.get('head script[type="application/ld+json"]').then(($script) => {
+      const data = JSON.parse($script.text());
+      expect(data["@type"]).to.equal("WebApplication");
+      expect(data.url).to.match(/^https:\/\//);
+    });
+  });
+
+  it("serves every icon, the manifest, the share image, robots.txt and the sitemap", () => {
+    cy.get('head link[rel~="icon"], head link[rel="apple-touch-icon"], head link[rel="manifest"]').each(($link) => {
+      cy.request($link.attr("href") as string)
+        .its("status")
+        .should("equal", 200);
+    });
+    cy.request("/site.webmanifest").then((response) => {
+      const manifest = typeof response.body === "string" ? JSON.parse(response.body) : response.body;
+      expect(manifest.name).to.contain("Mafatih");
+      for (const icon of manifest.icons as { src: string }[]) {
+        cy.request(`/${icon.src}`).its("status").should("equal", 200);
+      }
+    });
+    cy.request("/og-image.png").its("headers").its("content-type").should("contain", "image/png");
+    cy.request("/robots.txt")
+      .its("body")
+      .should("match", /Sitemap: https:\/\/.+\/sitemap\.xml/);
+    cy.request("/sitemap.xml").its("body").should("contain", "<urlset").and("contain", "<loc>https://");
+  });
+});
