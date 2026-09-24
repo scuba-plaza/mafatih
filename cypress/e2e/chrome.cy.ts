@@ -336,7 +336,7 @@ describe("the privacy policy", () => {
 });
 
 describe("the finger zones", () => {
-  it("shade every key by the finger that types it, and mark the home keys", () => {
+  it("shade every key by the finger that types it", () => {
     cy.visit("/?seed=3");
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "true");
     cy.get("[data-cy=keycap][data-code=KeyF]").should("have.attr", "data-finger", "left-index");
@@ -345,9 +345,6 @@ describe("the finger zones", () => {
       .should("have.attr", "data-finger", "right-pinky")
       .and("have.attr", "title", "Right pinky");
     cy.get("[data-cy=keycap][data-code=Space]").should("have.attr", "data-finger", "both-thumb");
-    cy.get("[data-cy=home-mark]").should("have.length", 8);
-    cy.get("[data-cy=keycap][data-code=KeyH] [data-cy=finger-edge]").should("exist");
-    cy.get("[data-cy=keycap][data-code=KeyG] [data-cy=finger-edge]").should("not.exist");
     cy.get("[data-cy=keycap][data-target=true]").should("have.length", 1).and("have.class", "ring-1");
   });
 
@@ -357,8 +354,6 @@ describe("the finger zones", () => {
     cy.get("[data-cy=setting-show-fingers]").should("be.checked").uncheck();
     cy.closeSettings();
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "false");
-    cy.get("[data-cy=home-mark]").should("not.exist");
-    cy.get("[data-cy=finger-edge]").should("not.exist");
     cy.get("[data-cy=keycap][data-finger]").should("not.exist");
     cy.reload();
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "false");

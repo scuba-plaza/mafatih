@@ -29,8 +29,7 @@ Windows. Add it in your system's language settings and switch to it before typin
 with an English layout by mistake, Mafatih tells you.
 
 An on-screen keyboard shows which key to press next, including when you need Shift. Its keys are
-softly coloured by the finger that should press them, with the home keys marked; you can turn the
-colours off in the settings.
+softly coloured by the finger that should press them; you can turn the colours off in the settings.
 
 ## Your data
 

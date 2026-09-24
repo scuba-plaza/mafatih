@@ -1,5 +1,5 @@
 import { isHaraka, type KeyCap, LAYOUT_NAME, strokeFor, WIN101_CAPS } from "~/engine/layout/ara.ts";
-import { type Digit, fingerName, fingerOf, HOME_KEYS, sameFinger } from "~/engine/layout/fingers.ts";
+import { type Digit, fingerName, fingerOf } from "~/engine/layout/fingers.ts";
 
 export interface VirtualKeyboardProps {
   nextChar?: string;
@@ -37,10 +37,6 @@ const ZONE_FILL: Record<Digit, string> = {
   index: "bg-violet-100/70 dark:bg-violet-400/10",
   thumb: IDLE_FILL,
 };
-
-const ZONE_EDGE =
-  "pointer-events-none absolute inset-y-1.5 -left-[0.1875rem] w-px bg-stone-400/60 dark:bg-stone-500/60";
-const HOME_MARK = "pointer-events-none absolute bottom-0.5 h-0.5 w-3 rounded-full bg-current opacity-50";
 
 function keyClass(code: string, isTarget: boolean, fingers: boolean): string {
   if (isTarget) {
@@ -85,13 +81,10 @@ export default function VirtualKeyboard({ nextChar, shiftHeld = false, fingers =
             style={{ marginLeft: units(ROW_INDENT_UNITS[index] ?? 0) }}
           >
             {index === 3 ? <ShiftKey active={needsShift} held={shiftHeld} /> : null}
-            {row.map((cap, position) => {
+            {row.map((cap) => {
               const label = keycapLabel(cap);
               const isTarget = target?.code === cap.code;
               const finger = fingerOf(cap.code);
-              const previous = row[position - 1];
-              const edge = fingers && previous !== undefined && !sameFinger(fingerOf(previous.code), finger);
-              const home = fingers && HOME_KEYS.has(cap.code);
               return (
                 <div
                   key={cap.code}
@@ -99,12 +92,9 @@ export default function VirtualKeyboard({ nextChar, shiftHeld = false, fingers =
                   data-code={cap.code}
                   data-target={isTarget ? "true" : "false"}
                   data-finger={fingers && finger !== undefined ? `${finger.hand}-${finger.digit}` : undefined}
-                  data-home={home ? "true" : undefined}
                   title={fingers && finger !== undefined ? fingerName(finger) : undefined}
                   className={`${KEY} ${keyClass(cap.code, isTarget, fingers)}`}
                 >
-                  {edge ? <span data-cy="finger-edge" aria-hidden="true" className={ZONE_EDGE} /> : null}
-                  {home ? <span data-cy="home-mark" aria-hidden="true" className={HOME_MARK} /> : null}
                   <span
                     lang="ar"
                     className={`text-[0.65rem] leading-none ${

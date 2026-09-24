@@ -143,9 +143,8 @@ settings once you no longer need it, and hiding it removes the dock with it.
 finger that types it, from the standard touch-typing assignment: the index fingers take the two
 inner columns each, the thumbs the space bar. The hues mirror across the hands — both index fingers
 share one — so there are four to learn, not eight, and they stay pale in both themes so the next-key
-highlight remains the loudest thing on the board. Colour is never the only cue: a thin rule separates
-neighbouring zones, the eight home keys carry a small mark, and every key names its finger on hover.
-The assignment lives in `engine/layout/fingers.ts`, checked by unit tests to cover every key on the
+highlight remains the loudest thing on the board. Every key also names its finger on hover. The
+assignment lives in `engine/layout/fingers.ts`, checked by unit tests to cover every key on the
 layout and to rest one finger on each home key.
 
 ## Fonts
