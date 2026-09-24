@@ -139,6 +139,15 @@ or a new lesson starts, that line is scrolled to the middle of the space above t
 smoothly, or instantly under `prefers-reduced-motion`. It can also be hidden entirely from
 settings once you no longer need it, and hiding it removes the dock with it.
 
+**Finger zones** are on by default and have their own setting. Each key is faintly tinted by the
+finger that types it, from the standard touch-typing assignment: the index fingers take the two
+inner columns each, the thumbs the space bar. The hues mirror across the hands — both index fingers
+share one — so there are four to learn, not eight, and they stay pale in both themes so the next-key
+highlight remains the loudest thing on the board. Colour is never the only cue: a thin rule separates
+neighbouring zones, the eight home keys carry a small mark, and every key names its finger on hover.
+The assignment lives in `engine/layout/fingers.ts`, checked by unit tests to cover every key on the
+layout and to rest one finger on each home key.
+
 ## Fonts
 
 Three Arabic faces ship self-hosted, selectable in settings, **defaulting to Noto Naskh Arabic** —
@@ -427,7 +436,7 @@ data/surahs.json         surah metadata
 scripts/build-corpus.ts  data/ -> generated/, with the build-time assertions
 generated/corpus.json    build output (gitignored), its own bundle chunk
 src/engine/              pure TypeScript, zero React
-  layout/                Arabic (101) key table from KBDA1, key reach, ligature keys
+  layout/                Arabic (101) key table from KBDA1, key reach, ligature keys, fingers
   corpus/                whitelist normalisation, tier stripping, corpus loader
   lessons/               adaptive, recitation and custom generators, seeded PRNG
   stats/                 per-character recent accuracy and latency, unlock and tier rules
@@ -451,8 +460,8 @@ unit-testable without a DOM, leaving Cypress to cover only what is genuinely vis
 
 ## Testing
 
-**Unit** (`pnpm test`) — routes and addresses, normalisation, the Arabic (101) key table and its reach model, the
-letter order, ligature keys, bitmask filtering, recent accuracy and the pause cap, unlock and tier
+**Unit** (`pnpm test`) — routes and addresses, normalisation, the Arabic (101) key table, its reach
+model and finger zones, the letter order, ligature keys, bitmask filtering, recent accuracy and the pause cap, unlock and tier
 rules, simulated learners typing their way up the alphabet, seeded-RNG reproducibility, line
 chunking, the session machine (ligature strokes, resumed sessions, active time), recitation
 progress (ayah ranges, passages, resuming, completion, surah order), where a session starts, metric
@@ -467,8 +476,8 @@ Covered: lesson rendering and RTL, cursor advance, refusal to advance past an er
 the shift layer, lam-alef ligature keys (highlighted, one stroke, scored as their own key) and the
 two-letter path, letters earned by typing from a fresh profile — cleanly, with mistakes, and out of a
 stuck profile — tier progression, profile persistence, the layout guard, cursive shaping, caret
-tracking, the on-screen keyboard and its row stagger, hiding the keyboard, font selection and size,
-the page following the cursor down a long passage, the dialogs, recitation (passages advancing,
+tracking, the on-screen keyboard, its row stagger and finger zones, hiding the keyboard, font
+selection and size, the page following the cursor down a long passage, the dialogs, recitation (passages advancing,
 navigation by button, key, picker and progress bar, resuming a level after a reload, finished
 passages asking before a redo, surah completion and its celebration, the surah map, Juz ʿAmma order,
 resets), the recitation player (transport, label, volume, running on through a passage and into the

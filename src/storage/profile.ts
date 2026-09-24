@@ -23,6 +23,7 @@ export interface Settings {
   ayatPerLesson: number;
   customText: string;
   showKeyboard: boolean;
+  showFingers: boolean;
   reciter: ReciterId;
   volume: number;
   muted: boolean;
@@ -60,6 +61,7 @@ export function defaultSettings(): Settings {
     ayatPerLesson: DEFAULT_AYAT_PER_LESSON,
     customText: DEFAULT_CUSTOM_TEXT,
     showKeyboard: true,
+    showFingers: true,
     reciter: DEFAULT_RECITER,
     volume: DEFAULT_VOLUME,
     muted: false,
@@ -91,6 +93,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     ayatPerLesson: clampAyatPerLesson(raw.ayatPerLesson),
     customText: typeof raw.customText === "string" ? raw.customText.slice(0, MAX_CUSTOM_CHARS) : fallback.customText,
     showKeyboard: typeof raw.showKeyboard === "boolean" ? raw.showKeyboard : fallback.showKeyboard,
+    showFingers: typeof raw.showFingers === "boolean" ? raw.showFingers : fallback.showFingers,
     reciter: isReciterId(raw.reciter) ? raw.reciter : fallback.reciter,
     volume: clampVolume(raw.volume),
     muted: typeof raw.muted === "boolean" ? raw.muted : fallback.muted,

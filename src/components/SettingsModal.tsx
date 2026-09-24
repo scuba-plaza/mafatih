@@ -84,6 +84,13 @@ export default function SettingsModal({
         onChange={(showKeyboard) => onChange({ showKeyboard })}
       />
 
+      <CheckboxRow
+        label="Show finger zones"
+        cy="setting-show-fingers"
+        checked={settings.showFingers}
+        onChange={(showFingers) => onChange({ showFingers })}
+      />
+
       <SelectRow
         label="Font"
         cy="setting-font"

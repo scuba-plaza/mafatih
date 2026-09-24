@@ -28,7 +28,9 @@ Mafatih uses your computer's **Arabic (101)** keyboard layout, the standard Arab
 Windows. Add it in your system's language settings and switch to it before typing. If you type
 with an English layout by mistake, Mafatih tells you.
 
-An on-screen keyboard shows which key to press next, including when you need Shift.
+An on-screen keyboard shows which key to press next, including when you need Shift. Its keys are
+softly coloured by the finger that should press them, with the home keys marked; you can turn the
+colours off in the settings.
 
 ## Your data
 
