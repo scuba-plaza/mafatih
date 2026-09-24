@@ -149,11 +149,11 @@ describe("Arabic rendering", () => {
 
 describe("the on-screen keyboard", () => {
   beforeEach(() => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full", layout: "mac" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
-  it("defaults to the Macintosh layout", () => {
+  it("shows the Macintosh layout when it is chosen", () => {
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
   });
 

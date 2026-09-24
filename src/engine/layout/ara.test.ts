@@ -13,6 +13,7 @@ import {
   TYPEABLE,
   TYPEABLE_LETTERS,
   TYPEABLE_PUNCTUATION,
+  WIN101_CAPS,
 } from "~/engine/layout/ara.ts";
 import { expandLigatures } from "~/engine/layout/ligatures.ts";
 
@@ -145,6 +146,58 @@ test("layouts have unique key codes and a spacebar", () => {
   }
 });
 
-test("strokeFor defaults to the Macintosh layout", () => {
-  assert.deepEqual(strokeFor("ِ"), strokeFor("ِ", "mac"));
+test("strokeFor defaults to the Windows Arabic 101 layout", () => {
+  assert.deepEqual(strokeFor("ّ"), strokeFor("ّ", "win101"));
+  assert.equal(strokeFor("ّ")?.code, "Backquote");
+});
+
+test("Arabic 101 matches Microsoft's KBDA1 table", () => {
+  const expected: Record<string, [string, string]> = {
+    Backquote: ["ذ", "ّ"],
+    KeyQ: ["ض", "َ"],
+    KeyW: ["ص", "ً"],
+    KeyE: ["ث", "ُ"],
+    KeyR: ["ق", "ٌ"],
+    KeyT: ["ف", "ﻹ"],
+    KeyY: ["غ", "إ"],
+    KeyU: ["ع", "‘"],
+    KeyI: ["ه", "÷"],
+    KeyO: ["خ", "×"],
+    KeyP: ["ح", "؛"],
+    BracketLeft: ["ج", "<"],
+    BracketRight: ["د", ">"],
+    KeyA: ["ش", "ِ"],
+    KeyS: ["س", "ٍ"],
+    KeyD: ["ي", "]"],
+    KeyF: ["ب", "["],
+    KeyG: ["ل", "ﻷ"],
+    KeyH: ["ا", "أ"],
+    KeyJ: ["ت", "ـ"],
+    KeyK: ["ن", "،"],
+    KeyL: ["م", "/"],
+    Semicolon: ["ك", ":"],
+    Quote: ["ط", '"'],
+    KeyZ: ["ئ", "~"],
+    KeyX: ["ء", "ْ"],
+    KeyC: ["ؤ", "}"],
+    KeyV: ["ر", "{"],
+    KeyB: ["ﻻ", "ﻵ"],
+    KeyN: ["ى", "آ"],
+    KeyM: ["ة", "’"],
+    Comma: ["و", ","],
+    Period: ["ز", "."],
+    Slash: ["ظ", "؟"],
+  };
+  for (const [code, [base, shift]] of Object.entries(expected)) {
+    const cap = WIN101_CAPS.find((c) => c.code === code);
+    assert.deepEqual([cap?.base, cap?.shift], [base, shift], code);
+  }
+});
+
+test("Arabic 101 differs from the Linux xkb table only in its typographic quotes", () => {
+  const differing = WIN101_CAPS.filter((cap, i) => {
+    const other = PC102_CAPS[i];
+    return other === undefined || other.base !== cap.base || other.shift !== cap.shift;
+  }).map((cap) => cap.code);
+  assert.deepEqual(differing, ["KeyU", "KeyM"]);
 });

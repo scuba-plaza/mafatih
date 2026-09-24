@@ -128,25 +128,31 @@ describe("keyboard layout selection", () => {
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
-  it("defaults to Arabic (Macintosh)", () => {
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
+  it("defaults to Arabic (101), with the shadda on the backtick", () => {
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "win101");
+    cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
+    cy.get("[data-cy=keycap][data-code=KeyA]").should("contain.text", "ِ");
+    cy.get("[data-cy=keycap][data-code=KeyU]").should("contain.text", "‘");
     cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("have.value", "mac");
+    cy.get("[data-cy=setting-layout]").should("have.value", "win101");
+    cy.get("[data-cy=setting-layout] option").first().should("have.text", "Arabic (101)");
   });
 
-  it("puts the shadda on a letter key, not the backtick, on Macintosh", () => {
+  it("switches to Arabic (Macintosh) and moves the shadda onto a letter key", () => {
+    cy.openSettings();
+    cy.get("[data-cy=setting-layout]").select("mac");
+    cy.closeSettings();
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
     cy.get("[data-cy=keycap][data-code=KeyI]").should("contain.text", "ّ");
     cy.get("[data-cy=keycap][data-code=Backquote]").should("not.contain.text", "ّ");
   });
 
-  it("switches to Arabic (102) and moves the harakat accordingly", () => {
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").select("pc102");
-    cy.closeSettings();
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "pc102");
-    cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
-    cy.get("[data-cy=keycap][data-code=KeyA]").should("contain.text", "ِ");
-    cy.get("[data-cy=keycap][data-code=KeyI]").should("not.contain.text", "ّ");
+  it("accepts the lam-alef key the way Windows sends it, as two letters at once", () => {
+    visitWith({ settings: { mode: "custom", customText: "لا", tierOverride: "none" } });
+    cy.targetText().should("equal", "لا");
+    cy.typeRawKey("لا", "KeyB");
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.get("[data-cy=summary-errors]").should("have.text", "0");
   });
 
   it("remembers the layout across a reload", () => {

@@ -1,4 +1,4 @@
-import { expandLigature } from "~/engine/layout/ligatures.ts";
+import { expandLigature, LIGATURE_SEQUENCES } from "~/engine/layout/ligatures.ts";
 
 export type Outcome = "pending" | "correct" | "corrected";
 
@@ -53,7 +53,7 @@ export function isComplete(state: SessionState): boolean {
 }
 
 export function isTypedKey(key: string): boolean {
-  return key === "Backspace" || [...key].length === 1;
+  return key === "Backspace" || [...key].length === 1 || LIGATURE_SEQUENCES.has(key);
 }
 
 function applyChar(state: SessionState, typed: string, at: number): SessionState {

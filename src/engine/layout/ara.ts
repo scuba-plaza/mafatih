@@ -5,7 +5,7 @@ export interface KeyCap {
   row: number;
 }
 
-export type LayoutId = "mac" | "pc102";
+export type LayoutId = "win101" | "mac" | "pc102";
 
 export interface KeyboardLayout {
   id: LayoutId;
@@ -68,6 +68,13 @@ export const PC102_CAPS: readonly KeyCap[] = [
   { code: "Space", base: " ", shift: " ", row: 4 },
 ];
 
+const WINDOWS_QUOTES: Readonly<Record<string, string>> = { KeyU: "‘", KeyM: "’" };
+
+export const WIN101_CAPS: readonly KeyCap[] = PC102_CAPS.map((cap) => {
+  const shift = WINDOWS_QUOTES[cap.code];
+  return shift === undefined ? cap : { ...cap, shift };
+});
+
 export const MAC_CAPS: readonly KeyCap[] = [
   { code: "Backquote", base: "ـ", shift: "", row: 0 },
   { code: "Digit1", base: "١", shift: "!", row: 0 },
@@ -124,17 +131,18 @@ export const MAC_CAPS: readonly KeyCap[] = [
 ];
 
 export const LAYOUTS: Record<LayoutId, KeyboardLayout> = {
+  win101: { id: "win101", name: "Arabic (101)", caps: WIN101_CAPS },
   mac: { id: "mac", name: "Arabic (Macintosh)", caps: MAC_CAPS },
-  pc102: { id: "pc102", name: "Arabic (102)", caps: PC102_CAPS },
+  pc102: { id: "pc102", name: "Arabic (Linux xkb)", caps: PC102_CAPS },
 };
 
-export const LAYOUT_IDS: readonly LayoutId[] = ["mac", "pc102"];
+export const LAYOUT_IDS: readonly LayoutId[] = ["win101", "mac", "pc102"];
 
 export function isLayoutId(value: unknown): value is LayoutId {
   return typeof value === "string" && LAYOUT_IDS.includes(value as LayoutId);
 }
 
-export const DEFAULT_LAYOUT: LayoutId = "mac";
+export const DEFAULT_LAYOUT: LayoutId = "win101";
 
 const FATHA = "َ";
 const DAMMA = "ُ";
@@ -205,6 +213,7 @@ function indexOf(caps: readonly KeyCap[]): ReadonlyMap<string, KeyStroke> {
 }
 
 const STROKE_INDEX: Record<LayoutId, ReadonlyMap<string, KeyStroke>> = {
+  win101: indexOf(WIN101_CAPS),
   mac: indexOf(MAC_CAPS),
   pc102: indexOf(PC102_CAPS),
 };

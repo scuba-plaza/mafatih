@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SessionState } from "~/engine/session/session.ts";
-import { applyKey, createSession, expectedChar, isComplete, metrics } from "~/engine/session/session.ts";
+import { applyKey, createSession, expectedChar, isComplete, isTypedKey, metrics } from "~/engine/session/session.ts";
 
 function typeAll(state: SessionState, keys: readonly string[], step = 100): SessionState {
   let next = state;
@@ -144,4 +144,17 @@ test("metrics on an untouched session do not divide by zero", () => {
   assert.equal(m.cpm, 0);
   assert.equal(m.wpm, 0);
   assert.equal(m.accuracy, 0);
+});
+
+test("Windows sends a lam-alef key as its two letters, and that satisfies both positions", () => {
+  assert.equal(isTypedKey("لا"), true);
+  assert.equal(isTypedKey("لأ"), true);
+  assert.equal(isTypedKey("ab"), false);
+  let state = createSession("لا لأ");
+  state = applyKey(state, "لا", 100);
+  assert.equal(state.cursor, 2);
+  state = applyKey(state, " ", 200);
+  state = applyKey(state, "لأ", 300);
+  assert.equal(state.cursor, 5);
+  assert.equal(state.errors, 0);
 });

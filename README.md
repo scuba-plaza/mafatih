@@ -81,11 +81,12 @@ are chosen by the app at spaces only, so no cursive join is ever split.
 
 ## Setup
 
-Mafatih reads the characters your OS produces, so **an Arabic layout must be active**:
+Mafatih reads the characters your OS produces, so **an Arabic layout must be active**. On Windows,
+add **Arabic (101)** — the default here — under Settings → Time & language → Language. On Linux:
 
 ```sh
-setxkbmap ara -variant mac   # Arabic (Macintosh) — the default
-setxkbmap ara                # Arabic (102)
+setxkbmap ara                # Arabic, the xkb port of Arabic (101)
+setxkbmap ara -variant mac   # Arabic (Macintosh)
 ```
 
 If the app sees Latin keystrokes it says so rather than silently scoring them as errors.
@@ -98,15 +99,20 @@ pnpm dev
 
 ## Keyboard layouts
 
-Two layouts ship, selectable in settings, **defaulting to Arabic (Macintosh)** — GNOME's name for
-the xkb `ara(mac)` variant. Both tables are transcribed from `xkeyboard-config`; the Macintosh one
-was resolved with `xkbcli compile-keymap --layout ara --variant mac`, since it is a partial override
-over `ara(digits)` over `ara(basic)` rather than a standalone definition.
+Three layouts ship, selectable in settings, **defaulting to Arabic (101)**, the standard Windows
+Arabic keyboard (`KBDA1`), transcribed from Microsoft's own layout table. **Arabic (Linux xkb)** is
+xkb's `ara(basic)`, a port of the same layout that differs only in two shifted keys, where it types
+ASCII `` ` `` and `'` instead of Windows' `‘` and `’`. It used to be labelled *Arabic (102)*, but
+Windows' real Arabic (102), `KBDA2`, is a different arrangement. **Arabic (Macintosh)** is GNOME's
+name for the xkb `ara(mac)` variant, resolved with `xkbcli compile-keymap --layout ara --variant mac`,
+since it is a partial override over `ara(digits)` over `ara(basic)` rather than a standalone
+definition.
 
-Both reach all 73 typeable codepoints — asserted in the unit tests, so neither can drift. They
-differ in ways that matter at the keycap:
+All three reach all 73 typeable codepoints — asserted in the unit tests, so none can drift. Windows
+sends a lam-alef key as its two letters in one event, where xkb sends a single presentation form;
+the session accepts both. The two families differ in ways that matter at the keycap:
 
-| | Arabic (Macintosh) | Arabic (102) |
+| | Arabic (Macintosh) | Arabic (101) and Linux xkb |
 |---|---|---|
 | harakat | all eight on the top letter row, `Q`–`I` | scattered across `Q W E R`, `A S`, `X`, backtick |
 | shadda | `I` | backtick |
@@ -114,7 +120,8 @@ differ in ways that matter at the keycap:
 | lam-alef `ﻻ` single key | absent | `B` |
 | backtick key | tatweel | `ذ` |
 
-The Macintosh arrangement is materially better for this app: with 43% of keystrokes on the shift
+Arabic (101) is the default because it is the layout most Arabic typists already have, on Windows
+and on Linux alike. The Macintosh arrangement is arguably better for this app: with 43% of keystrokes on the shift
 layer, having every haraka under one row of the home position matters. Because the ligature key is
 absent there, `لا` is typed as two keys — the session accepts either path regardless of which layout
 is displayed, since input is read from the character your OS emits, not from the key position.
