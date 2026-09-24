@@ -14,6 +14,15 @@ import {
 } from "~/engine/session/session.ts";
 import { type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
 import { advanceProgress, DEFAULT_UNLOCK_CONFIG, focusLetter } from "~/engine/stats/unlock.ts";
+import {
+  clampPosition,
+  emptyStory,
+  passageAfter,
+  passageBefore,
+  recordPassage,
+  type StoryPosition,
+  type SurahCompletion,
+} from "~/engine/story/story.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
 import {
   defaultProfile,
@@ -31,7 +40,9 @@ const PREVENTED_KEYS: readonly string[] = [" ", "Backspace", "Tab"];
 
 const PASSTHROUGH_TAGS: readonly string[] = ["INPUT", "SELECT", "TEXTAREA", "BUTTON"];
 
-const LESSON_SETTINGS: readonly (keyof Settings)[] = ["mode", "tierOverride", "surah", "ayatPerLesson", "customText"];
+const LESSON_SETTINGS: readonly (keyof Settings)[] = ["mode", "tierOverride", "ayatPerLesson", "customText"];
+
+const PASSAGE_KEYS: Readonly<Record<string, 1 | -1>> = { PageDown: 1, PageUp: -1 };
 
 function seedFromLocation(): number | null {
   if (typeof window === "undefined") {
@@ -53,7 +64,8 @@ function buildLesson(profile: Profile, seed: number): Lesson {
   const { settings } = profile;
   const tier = tierOf(profile);
   if (settings.mode === "recite") {
-    return generateRecitePassage({ surah: settings.surah, tier, maxAyat: settings.ayatPerLesson });
+    const { surah, ayah } = profile.story.position;
+    return generateRecitePassage({ surah, fromAyah: ayah, tier, maxAyat: settings.ayatPerLesson });
   }
   if (settings.mode === "custom") {
     return generateCustomLesson({ text: settings.customText, tier });
@@ -80,9 +92,16 @@ export interface Trainer {
   latinDetected: boolean;
   lastSummary: SessionSummary | null;
   shiftHeld: boolean;
+  completion: SurahCompletion | null;
   dismissLatin: () => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetProfile: () => void;
+  goTo: (position: StoryPosition) => void;
+  nextPassage: () => void;
+  previousPassage: () => void;
+  dismissCompletion: () => void;
+  replaySurah: () => void;
+  resetStory: () => void;
 }
 
 export interface TrainerOptions {
@@ -96,10 +115,12 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   const [latinDetected, setLatinDetected] = useState(false);
   const [shiftHeld, setShiftHeld] = useState(false);
   const [lastSummary, setLastSummary] = useState<SessionSummary | null>(null);
+  const [completion, setCompletion] = useState<SurahCompletion | null>(null);
   const baseSeed = useRef(seedFromLocation() ?? Math.floor(Math.random() * 1e9));
 
   const profileRef = useLatest(profile);
   const enabledRef = useLatest(enabled);
+  const completionRef = useLatest(completion);
 
   const [lesson, setLesson] = useState<Lesson>(() => buildLesson(profile, baseSeed.current));
   const [session, setSession] = useState<SessionState>(() => createSession(lesson.text));
@@ -138,12 +159,28 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
         return;
       }
       const stats = aggregate(current.stats, finished);
+      const passage = recordPassage(
+        current.story,
+        lessonRef.current.source,
+        {
+          at: summary.at,
+          chars: m.typedChars,
+          keystrokes: finished.keystrokes,
+          errors: m.errors,
+          elapsedMs: m.elapsedMs,
+        },
+        current.settings.surahOrder,
+      );
       commit({
         ...current,
         stats,
         progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
         history: pushHistory(current.history, summary),
+        story: passage.story,
       });
+      if (passage.completion !== null) {
+        setCompletion(passage.completion);
+      }
     },
     [commit, profileRef, lessonRef],
   );
@@ -158,9 +195,51 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     regenerate(profileRef.current);
   }, [session, finish, regenerate, profileRef]);
 
+  const goTo = useCallback(
+    (position: StoryPosition) => {
+      const current = profileRef.current;
+      const updated: Profile = {
+        ...current,
+        settings: current.settings.mode === "recite" ? current.settings : { ...current.settings, mode: "recite" },
+        story: { ...current.story, position: clampPosition(position) },
+      };
+      commit(updated);
+      regenerate(updated);
+    },
+    [commit, regenerate, profileRef],
+  );
+
+  const stepPassage = useCallback(
+    (direction: 1 | -1) => {
+      const { source } = lessonRef.current;
+      const { settings } = profileRef.current;
+      if (source.kind !== "recite" || source.surah === undefined) {
+        return;
+      }
+      const target =
+        direction === 1
+          ? passageAfter(source.surah, source.toAyah ?? 1, settings.surahOrder)
+          : passageBefore(source.surah, source.fromAyah ?? 1, settings.ayatPerLesson, settings.surahOrder);
+      goTo(target);
+    },
+    [goTo, lessonRef, profileRef],
+  );
+
+  const nextPassage = useCallback(() => stepPassage(1), [stepPassage]);
+  const previousPassage = useCallback(() => stepPassage(-1), [stepPassage]);
+  const stepPassageRef = useLatest(stepPassage);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!enabledRef.current || event.ctrlKey || event.altKey || event.metaKey) {
+      if (!enabledRef.current || completionRef.current !== null || event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+      const direction = PASSAGE_KEYS[event.key];
+      if (direction !== undefined) {
+        if (lessonRef.current.source.kind === "recite") {
+          event.preventDefault();
+          stepPassageRef.current(direction);
+        }
         return;
       }
       if (event.key === "Shift") {
@@ -198,7 +277,7 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [enabledRef]);
+  }, [enabledRef, completionRef, lessonRef, stepPassageRef]);
 
   const updateSettings = useCallback(
     (patch: Partial<Settings>) => {
@@ -213,11 +292,32 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   );
 
   const resetProfile = useCallback(() => {
-    const fresh: Profile = { ...defaultProfile(), settings: profileRef.current.settings };
+    const { settings, story } = profileRef.current;
+    const fresh: Profile = { ...defaultProfile(), settings, story };
     commit(fresh);
     setLastSummary(null);
     regenerate(fresh);
   }, [commit, regenerate, profileRef]);
+
+  const resetStory = useCallback(() => {
+    const current = profileRef.current;
+    const updated: Profile = { ...current, story: emptyStory(current.settings.surahOrder) };
+    commit(updated);
+    setCompletion(null);
+    if (current.settings.mode === "recite") {
+      regenerate(updated);
+    }
+  }, [commit, regenerate, profileRef]);
+
+  const dismissCompletion = useCallback(() => setCompletion(null), []);
+
+  const replaySurah = useCallback(() => {
+    const surah = completionRef.current?.surah;
+    setCompletion(null);
+    if (surah !== undefined) {
+      goTo({ surah, ayah: 1 });
+    }
+  }, [goTo, completionRef]);
 
   const dismissLatin = useCallback(() => setLatinDetected(false), []);
 
@@ -229,8 +329,15 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     latinDetected,
     lastSummary,
     shiftHeld,
+    completion,
     dismissLatin,
     updateSettings,
     resetProfile,
+    goTo,
+    nextPassage,
+    previousPassage,
+    dismissCompletion,
+    replaySurah,
+    resetStory,
   };
 }

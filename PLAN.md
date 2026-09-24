@@ -71,7 +71,10 @@ re-served the same ayat.
 `profile.story`:
 
 - `position: { surah, ayah }` — where the next passage starts.
-- `surahs: Record<n, { furthestAyah, completions, bestCpm, bestAccuracy, completedAt }>`.
+- `surahs: Record<n, { run, resume, completions, bestCpm, bestAccuracy, completedAt }>`, where `run`
+  holds the merged ayah ranges typed since the last completion plus their keystroke tallies, and
+  `resume` is where that surah continues. Tracking ranges rather than a furthest ayah is what lets
+  "every ayah typed" mean exactly that after jumping around.
 
 Pure logic in `src/engine/story/story.ts` (`recordPassage`, `surahProgress`, `nextSurah`, …) with unit
 tests. `settings.surah` is migrated into `story.position`. Recite lessons keep counting toward letter
@@ -80,8 +83,8 @@ statistics.
 ### Navigation
 
 - Recitation settings: surah picker plus a "Start at ayah" picker, and the surah order option.
-- Under the passage: previous / next passage buttons, "Al-Baqarah · 17–20 / 286", a clickable surah
-  progress bar, and Alt+← / Alt+→ shortcuts.
+- Under the passage: previous / next passage buttons, a typed-so-far count, a clickable surah
+  progress bar, and Page Up / Page Down shortcuts (Alt+← is the browser's Back on Windows and Linux).
 - `#/story` route: a map of 114 surah tiles with progress rings, ✓ for complete, ★ for ≥95%.
   Clicking a tile continues from the furthest ayah in that surah.
 
@@ -106,5 +109,7 @@ every passage.
 3. Navigation.
 4. Surah map.
 5. Celebration.
+
+Status: all five steps are done.
 
 `pnpm check`, `pnpm typecheck`, `pnpm test` and `pnpm cypress:run` after each step.

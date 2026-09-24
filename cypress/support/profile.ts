@@ -1,5 +1,6 @@
 import type { KeyStat } from "../../src/engine/stats/keystats.ts";
 import type { Progress } from "../../src/engine/stats/unlock.ts";
+import type { Story } from "../../src/engine/story/story.ts";
 import { defaultProfile, type Profile, type Settings, STORAGE_KEY } from "../../src/storage/profile.ts";
 
 export type StoredStat = Omit<KeyStat, "recentAccuracy"> & Partial<Pick<KeyStat, "recentAccuracy">>;
@@ -12,6 +13,9 @@ export interface ProfileSeed {
   settings?: Partial<Settings>;
   progress?: Partial<Progress>;
   stats?: StoredStats;
+  surah?: number;
+  ayah?: number;
+  story?: Partial<Story>;
 }
 
 export function buildProfile(seed: ProfileSeed = {}): StoredProfile {
@@ -21,6 +25,16 @@ export function buildProfile(seed: ProfileSeed = {}): StoredProfile {
     progress: { ...base.progress, ...seed.progress },
     settings: { ...base.settings, ...seed.settings },
     stats: seed.stats ?? base.stats,
+    story: {
+      ...base.story,
+      ...seed.story,
+      position: {
+        ...base.story.position,
+        ...seed.story?.position,
+        ...(seed.surah === undefined ? {} : { surah: seed.surah }),
+        ...(seed.ayah === undefined ? {} : { ayah: seed.ayah }),
+      },
+    },
   };
 }
 

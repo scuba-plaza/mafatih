@@ -57,6 +57,14 @@ Tiers advance automatically at ≥95% accuracy and can be overridden. Statistics
 character, not per keycap**, so `َ` carries its own speed and accuracy independently of `ض` even
 though they share a key. Diacritics are first-class citizens of the unlock ladder.
 
+The accuracy that gates both the tiers and the next letter is **recent**, not lifetime: the exact
+mean over a character's first twenty attempts, then a moving average over roughly the last forty.
+Gating on the lifetime ratio meant early mistakes never aged out — a learner with a sloppy first
+hour, or a steady 6% error rate, stayed at six letters no matter how long they practised. Simulated
+through the real lesson, session and unlock code, that learner now climbs past twenty-five letters
+in three hundred lessons, while one at 20% errors still has to improve first. The header shows the
+focus letter with its recent accuracy and latency, so it is always clear what the next unlock needs.
+
 ## 3. Arabic is cursive, so per-character highlighting breaks letter joining
 
 Wrapping each character in its own `<span>` — the obvious approach — risks breaking cursive joining
@@ -143,7 +151,7 @@ the face and the size actually rendered, plus the ayah marks drawn into it — a
 the next one would pass the measured column. A line therefore comes out the same width at every
 diacritic tier, in every face, and at every window width, including the narrow ones where the size
 is itself capped at `8vw`. A resize re-measures and re-chunks. Changing the face or the size does
-not restart the lesson — only mode, diacritic tier and surah do, since only those change the text.
+not restart the lesson — only mode, diacritic tier and passage do, since only those change the text.
 
 ## Interface
 
@@ -157,9 +165,10 @@ live metrics, so the numbers for it are still there while you type on.
 | | |
 |---|---|
 | Practice | the lesson itself; `6/36 · none` in the header is the whole progress display |
+| Story | its own route at `#/story` — the surah map, see *Story mode* below |
 | Stats | its own route at `#/stats` — tiles, the per-character bars, and the last ten lessons |
 | Settings | a modal `<dialog>`, closed on Escape, on a backdrop click or on **Done** |
-| Recitation | a second `<dialog>` reached from Settings — surah, length, reciter, cache |
+| Recitation | a second `<dialog>` reached from Settings — surah, starting ayah, order, length, reciter, cache |
 
 Settings holds what applies to every lesson: mode, diacritics, layout, font. Everything that only
 means something in Recite mode lives one step in, behind **Recitation**, which keeps the first
@@ -177,7 +186,7 @@ Everything in settings is written to `localStorage` on change, under the same
 `mafatih.profile.v1` key as progress and history, and is read back through a whitelist — an unknown
 font, an out-of-range surah or a hand-edited font size falls back to its default rather than
 reaching the app. **Reset progress** clears progress, statistics and history but keeps the settings,
-since they are not progress.
+since they are not progress, and keeps the story, which has its own **Reset story** on the map.
 
 ## Adaptive lessons from real words
 
@@ -201,6 +210,30 @@ the setting for drilling a line until it is clean; twenty is for reading through
 
 One caveat worth stating: a single long ayah is still long. Al-Baqara 2:282 runs past a thousand
 characters on its own, and no ayah count can make it shorter.
+
+## Story mode
+
+Adaptive practice is the open world; recitation is the story, and every surah is a level.
+
+**A finished passage moves the story on.** The next lesson starts at the ayah after the last one
+typed, and the position is saved with the profile, so a reload — or a week away — resumes exactly
+there. Each surah remembers where it was left, so switching surahs and back loses nothing.
+
+**Navigation is precise.** Recitation settings pick the surah and the starting ayah. Under the
+passage sit previous and next buttons (also Page Up / Page Down), which cross into the neighbouring
+surah at either end, and a progress bar for the surah that shows every ayah typed so far and jumps
+to any ayah on a click.
+
+**A surah is complete once every one of its ayat has been typed**, in any order: skip ahead and the
+end of the surah sends you back to the first gap. Completing one opens a celebration — the surah's
+name, the ayat, accuracy, speed and time across all of its passages, a short burst that
+`prefers-reduced-motion` turns off — and offers to continue with the next surah or type this one
+again. Typing is paused while it is open. Holding 95% accuracy over the whole surah earns a ★.
+
+**The surah map** at `#/story` shows all 114 surahs as tiles with a progress ring, a ✓ once complete
+and the ★, and continues any of them from where it was left. The order is the mushaf's by default,
+or Juz ʿAmma first — An-Nas back to An-Naba, then on from Al-Fatiha — for the order surahs are
+usually learnt in. Nothing is locked.
 
 ## Ayah marks, and the line the basmala gets
 

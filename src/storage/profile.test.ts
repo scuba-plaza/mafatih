@@ -25,7 +25,7 @@ test("every setting survives a round trip through storage", () => {
       customText: "الحمد\nلله",
       font: "amiri" as const,
       fontSize: 64,
-      surah: 112,
+      surahOrder: "juz-amma" as const,
       ayatPerLesson: 10,
       layout: "pc102" as const,
       showKeyboard: false,
@@ -65,7 +65,7 @@ test("a profile saved before recitation shipped keeps its progress and gains the
   const profile = parseProfile(JSON.stringify(before));
   assert.equal(profile.progress.unlockedCount, 12);
   assert.equal(profile.history.length, 1);
-  assert.equal(profile.settings.surah, 112);
+  assert.deepEqual(profile.story.position, { surah: 112, ayah: 1 });
   assert.equal(profile.settings.reciter, DEFAULT_RECITER);
   assert.equal(profile.settings.volume, DEFAULT_VOLUME);
   assert.equal(profile.settings.muted, false);
@@ -81,7 +81,7 @@ test("hand-edited nonsense in storage cannot break a setting", () => {
     tierOverride: "extreme",
     font: "comic sans",
     fontSize: "enormous",
-    surah: 900,
+    surahOrder: "alphabetical",
     ayatPerLesson: "all of them",
     layout: "dvorak",
     showKeyboard: "yes",
@@ -126,4 +126,27 @@ test("letter statistics saved before recent accuracy existed are carried over, n
     misses: 20,
     recentAccuracy: 0.9,
   });
+});
+
+test("the story survives a round trip and a stored story wins over the old surah setting", () => {
+  const stored = {
+    ...defaultProfile(),
+    settings: { ...defaultSettings(), surah: 36 },
+    story: {
+      position: { surah: 2, ayah: 17 },
+      surahs: {
+        "112": {
+          run: { typed: [], chars: 0, keystrokes: 0, errors: 0, elapsedMs: 0 },
+          resume: 1,
+          completions: 1,
+          bestAccuracy: 0.97,
+          bestCpm: 120,
+          completedAt: 5,
+        },
+      },
+    },
+  };
+  const profile = parseProfile(JSON.stringify(stored));
+  assert.deepEqual(profile.story, stored.story);
+  assert.equal("surah" in profile.settings, false);
 });

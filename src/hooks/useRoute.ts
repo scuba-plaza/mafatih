@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 
-export type Route = "practice" | "stats";
+export type Route = "practice" | "story" | "stats";
 
 export const ROUTE_HASH: Record<Route, string> = {
   practice: "#/",
+  story: "#/story",
   stats: "#/stats",
 };
 
 function routeOf(hash: string): Route {
-  return hash.replace(/^#\/?/, "") === "stats" ? "stats" : "practice";
+  const path = hash.replace(/^#\/?/, "");
+  return path === "stats" || path === "story" ? path : "practice";
 }
 
 export function useRoute(): Route {

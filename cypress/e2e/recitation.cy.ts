@@ -21,7 +21,7 @@ function requested(): Cypress.Chainable<string[]> {
 
 function visitRecite(surah = 112): void {
   stubRecitation();
-  visitWith({ settings: { mode: "recite", surah, tierOverride: "none", autoAdvance: false } });
+  visitWith({ surah: surah, settings: { mode: "recite", tierOverride: "none", autoAdvance: false } });
 }
 
 function dropCache(): void {
@@ -171,7 +171,7 @@ describe("recitation playback", () => {
 
   it("says so when the recitation cannot be fetched, and stays typeable", () => {
     cy.intercept("GET", CDN, { statusCode: 404, body: "" }).as("missing");
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=recitation]").should("have.attr", "data-failed", "true");
     cy.get("[data-cy=recitation-label]").should("contain.text", "Recitation unavailable");
     cy.get("[data-cy=recitation-toggle]").should("be.disabled");
@@ -183,7 +183,7 @@ describe("recitation playback", () => {
   });
   it("runs on through the passage by default", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
     cy.openRecitationSettings();
     cy.get("[data-cy=setting-auto-advance]").should("be.checked");
     cy.get("[data-cy=reciter-note]").should("contain.text", "runs on through the passage");
@@ -194,7 +194,7 @@ describe("recitation playback", () => {
 
   it("stops at the end of the passage while the loop is off", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 112, ayatPerLesson: 2, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", ayatPerLesson: 2, tierOverride: "none" } });
     cy.get("[data-cy=recitation]").should("have.attr", "data-loop", "false");
     cy.get("[data-cy=recitation-loop]").should("have.attr", "aria-pressed", "false");
 
@@ -206,7 +206,7 @@ describe("recitation playback", () => {
 
   it("starts the passage over from the beginning once the loop is on", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 112, ayatPerLesson: 2, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", ayatPerLesson: 2, tierOverride: "none" } });
     cy.get("[data-cy=recitation-loop]").click();
     cy.get("[data-cy=recitation]").should("have.attr", "data-loop", "true");
     cy.get("[data-cy=recitation-loop]").should("have.attr", "aria-pressed", "true");
@@ -220,7 +220,8 @@ describe("recitation playback", () => {
   it("remembers the loop across a reload and wraps with the next button", () => {
     stubRecitation();
     visitWith({
-      settings: { mode: "recite", surah: 112, ayatPerLesson: 2, tierOverride: "none", autoAdvance: false },
+      surah: 112,
+      settings: { mode: "recite", ayatPerLesson: 2, tierOverride: "none", autoAdvance: false },
     });
     cy.get("[data-cy=recitation-loop]").click();
     cy.reload();
@@ -238,7 +239,8 @@ describe("recitation playback", () => {
   it("keeps stopping at each ayah while the loop is on but auto-advance is off", () => {
     stubRecitation();
     visitWith({
-      settings: { mode: "recite", surah: 112, ayatPerLesson: 2, tierOverride: "none", autoAdvance: false, loop: true },
+      surah: 112,
+      settings: { mode: "recite", ayatPerLesson: 2, tierOverride: "none", autoAdvance: false, loop: true },
     });
     cy.get("[data-cy=recitation-next]").click();
     cy.get("[data-cy=recitation]").should("have.attr", "data-ayah", "1");
@@ -251,7 +253,8 @@ describe("recitation playback", () => {
   it("wraps at the true end of the passage even with auto-advance off", () => {
     stubRecitation();
     visitWith({
-      settings: { mode: "recite", surah: 112, ayatPerLesson: 2, tierOverride: "none", autoAdvance: false, loop: true },
+      surah: 112,
+      settings: { mode: "recite", ayatPerLesson: 2, tierOverride: "none", autoAdvance: false, loop: true },
     });
     for (const ayah of ["1", "2"]) {
       cy.get("[data-cy=recitation-next]").click();
@@ -281,7 +284,7 @@ describe("recitation playback", () => {
     const second: string[] = [];
 
     stubRecitation(first);
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none", autoAdvance: false } });
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get("[data-cy=recitation]", { timeout: 10000 }).should("have.attr", "data-failed", "false");
     cy.wrap(null).should(() => {
@@ -301,7 +304,7 @@ describe("recitation playback", () => {
       first.length = 0;
     });
     stubRecitation(second);
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none", autoAdvance: false } });
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get("[data-cy=recitation]", { timeout: 10000 }).should("have.attr", "data-playing", "true");
     cy.get("[data-cy=recitation]").should("have.attr", "data-failed", "false");
@@ -325,7 +328,7 @@ describe("recitation playback", () => {
   it("plays the basmala that the passage actually shows", () => {
     const seen: string[] = [];
     stubRecitation(seen);
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "none" } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=recitation]").should("have.attr", "data-ayah", "basmala");
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get("[data-cy=recitation]", { timeout: 15000 }).should("have.attr", "data-playing", "false");
@@ -340,7 +343,7 @@ describe("recitation playback", () => {
   it("does not invent a basmala for a surah that has none", () => {
     const seen: string[] = [];
     stubRecitation(seen);
-    visitWith({ settings: { mode: "recite", surah: 9, tierOverride: "none" } });
+    visitWith({ surah: 9, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get("[data-cy=recitation]", { timeout: 10000 }).should("have.attr", "data-playing", "false");
     cy.wrap(null).should(() => {
@@ -351,7 +354,7 @@ describe("recitation playback", () => {
   it("does not double the basmala in al-Fatiha, where it is ayah one", () => {
     const seen: string[] = [];
     stubRecitation(seen);
-    visitWith({ settings: { mode: "recite", surah: 1, tierOverride: "none" } });
+    visitWith({ surah: 1, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get("[data-cy=recitation]", { timeout: 10000 }).should("have.attr", "data-playing", "false");
     cy.wrap(null).should(() => {
@@ -375,7 +378,7 @@ describe("recitation playback", () => {
 
   it("marks the basmala on its own, never as part of ayah one", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "full", autoAdvance: false } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "full", autoAdvance: false } });
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get('[data-cy=ayah-band][data-line-index="0"]').should("exist");
     cy.get("[data-cy=ayah-band]").should("have.length", 1);
@@ -446,7 +449,7 @@ describe("recitation playback", () => {
   });
   it("renders as many ayat as the setting asks for", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "none", ayatPerLesson: 2 } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 2 } });
     cy.get("[data-cy=ayah-mark]").should("have.length", 2);
     cy.get("[data-cy=attribution]").should("contain.text", "2:1–2");
 
@@ -461,14 +464,14 @@ describe("recitation playback", () => {
 
   it("never runs past the end of a short surah", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none", ayatPerLesson: 20 } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 20 } });
     cy.get("[data-cy=ayah-mark]").should("have.length", 4);
     cy.get("[data-cy=attribution]").should("contain.text", "112:1–4");
   });
 
   it("offers one ayah at a time for drilling a single line", () => {
     stubRecitation();
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "none", ayatPerLesson: 1 } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 1 } });
     cy.get("[data-cy=ayah-mark]").should("have.length", 1);
     cy.get("[data-cy=setting-ayat]").should("not.be.visible");
     cy.openRecitationSettings();

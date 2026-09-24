@@ -2,7 +2,7 @@ import { visitWith } from "../support/profile.ts";
 
 describe("Arabic rendering", () => {
   beforeEach(() => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
@@ -70,7 +70,7 @@ describe("Arabic rendering", () => {
   });
 
   it("ghosts an expected haraka but never an expected letter", () => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "full" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
     cy.get("[data-cy=ghost-haraka]").should("not.exist");
     cy.targetText().then((text) => {
@@ -82,7 +82,7 @@ describe("Arabic rendering", () => {
   });
 
   it("wraps long passages onto several lines without leading spaces", () => {
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "none" } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=line]").should("have.length.greaterThan", 1);
     cy.get("[data-cy=line-untyped]").each(($span) => {
       expect($span.text().startsWith(" ")).to.equal(false);
@@ -92,7 +92,7 @@ describe("Arabic rendering", () => {
   it("keeps every line inside the column at any viewport width", () => {
     for (const width of [1280, 768, 390]) {
       cy.viewport(width, 800);
-      visitWith({ settings: { mode: "recite", surah: 67, tierOverride: "none" } });
+      visitWith({ surah: 67, settings: { mode: "recite", tierOverride: "none" } });
       cy.get("[data-cy=line]").should("have.length.greaterThan", 1);
       cy.get("[data-cy=typing-area]").then(($area) => {
         const column = ($area[0] as HTMLElement).getBoundingClientRect();
@@ -109,7 +109,7 @@ describe("Arabic rendering", () => {
 
   it("re-chunks the lesson when the window is resized", () => {
     cy.viewport(1280, 800);
-    visitWith({ settings: { mode: "recite", surah: 67, tierOverride: "none" } });
+    visitWith({ surah: 67, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=line]").then(($wide) => {
       const wide = $wide.length;
       cy.viewport(420, 800);
@@ -128,7 +128,7 @@ describe("Arabic rendering", () => {
 
   it("keeps every line inside the column whatever the diacritic tier", () => {
     for (const tier of ["none", "core", "full"] as const) {
-      visitWith({ settings: { mode: "recite", surah: 67, tierOverride: tier } });
+      visitWith({ surah: 67, settings: { mode: "recite", tierOverride: tier } });
       cy.get("[data-cy=line]").should("have.length.greaterThan", 1);
       cy.get("[data-cy=typing-area]").then(($area) => {
         const column = ($area[0] as HTMLElement).getBoundingClientRect();
@@ -149,7 +149,7 @@ describe("Arabic rendering", () => {
 
 describe("the on-screen keyboard", () => {
   beforeEach(() => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "full" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 

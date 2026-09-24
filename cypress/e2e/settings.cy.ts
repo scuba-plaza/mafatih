@@ -78,7 +78,7 @@ describe("font size", () => {
   });
 
   it("wraps the same passage onto more lines as the text grows", () => {
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "none", fontSize: 28 } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", fontSize: 28 } });
     cy.get("[data-cy=line]").then(($small) => {
       const small = $small.length;
       cy.openSettings();
@@ -89,7 +89,7 @@ describe("font size", () => {
   });
 
   it("keeps the lesson and re-measures the caret across a resize", () => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none", fontSize: 32 } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none", fontSize: 32 } });
     cy.targetText().then((text) => {
       cy.typeArabic([...text].slice(0, 4).join(""));
       cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "4");
@@ -113,7 +113,7 @@ describe("font size", () => {
 
 describe("the recitation modal", () => {
   beforeEach(() => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
   });
 
   it("keeps the recitation controls out of the basic settings", () => {

@@ -6,6 +6,14 @@ import { DEFAULT_CUSTOM_TEXT, MAX_CUSTOM_CHARS } from "~/engine/lessons/custom.t
 import { clampAyatPerLesson, DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
 import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
 import { initialProgress, type Progress } from "~/engine/stats/unlock.ts";
+import {
+  DEFAULT_SURAH_ORDER,
+  emptyStory,
+  isSurahOrder,
+  type Story,
+  type SurahOrder,
+  sanitizeStory,
+} from "~/engine/story/story.ts";
 
 export type Mode = "adaptive" | "recite" | "custom";
 
@@ -20,7 +28,7 @@ export interface Settings {
   tierOverride: Tier | null;
   font: FontId;
   fontSize: number;
-  surah: number;
+  surahOrder: SurahOrder;
   ayatPerLesson: number;
   customText: string;
   layout: LayoutId;
@@ -47,11 +55,11 @@ export interface Profile {
   stats: KeyStats;
   settings: Settings;
   history: SessionSummary[];
+  story: Story;
 }
 
 const PROFILE_VERSION = 1;
 const MAX_HISTORY = 50;
-const SURAH_COUNT = 114;
 
 export const STORAGE_KEY = "mafatih.profile.v1";
 
@@ -61,7 +69,7 @@ export function defaultSettings(): Settings {
     tierOverride: null,
     font: DEFAULT_FONT,
     fontSize: DEFAULT_FONT_SIZE,
-    surah: 1,
+    surahOrder: DEFAULT_SURAH_ORDER,
     ayatPerLesson: DEFAULT_AYAT_PER_LESSON,
     customText: DEFAULT_CUSTOM_TEXT,
     layout: DEFAULT_LAYOUT,
@@ -81,6 +89,7 @@ export function defaultProfile(): Profile {
     stats: emptyStats(),
     settings: defaultSettings(),
     history: [],
+    story: emptyStory(),
   };
 }
 
@@ -93,13 +102,12 @@ export function sanitizeSettings(raw: unknown): Settings {
   if (!isRecord(raw)) {
     return fallback;
   }
-  const surah = Number(raw.surah);
   return {
     mode: isMode(raw.mode) ? raw.mode : fallback.mode,
     tierOverride: isTier(raw.tierOverride) ? raw.tierOverride : null,
     font: isFontId(raw.font) ? raw.font : fallback.font,
     fontSize: clampFontSize(raw.fontSize),
-    surah: Number.isInteger(surah) && surah >= 1 && surah <= SURAH_COUNT ? surah : fallback.surah,
+    surahOrder: isSurahOrder(raw.surahOrder) ? raw.surahOrder : fallback.surahOrder,
     ayatPerLesson: clampAyatPerLesson(raw.ayatPerLesson),
     customText: typeof raw.customText === "string" ? raw.customText.slice(0, MAX_CUSTOM_CHARS) : fallback.customText,
     layout: isLayoutId(raw.layout) ? raw.layout : fallback.layout,
@@ -131,8 +139,9 @@ export function parseProfile(raw: string | null): Profile {
   const stats = sanitizeStats(parsed.stats);
   const settings = sanitizeSettings(parsed.settings);
   const history = Array.isArray(parsed.history) ? (parsed.history as SessionSummary[]) : [];
+  const story = sanitizeStory(parsed.story, isRecord(parsed.settings) ? parsed.settings.surah : undefined);
 
-  return { version: PROFILE_VERSION, progress, stats, settings, history };
+  return { version: PROFILE_VERSION, progress, stats, settings, history, story };
 }
 
 export function loadProfile(): Profile {

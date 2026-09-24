@@ -43,7 +43,7 @@ describe("text direction", () => {
   });
 
   it("isolates the Arabic surah name inside otherwise LTR attribution", () => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
     cy.get("[data-cy=attribution]").should(($el) => {
       expect(directionOf($el)).to.equal("ltr");
       expect($el.text()).to.contain("112:");
@@ -66,7 +66,7 @@ describe("hiding the virtual keyboard", () => {
   });
 
   it("docks to the bottom of the window, clear of the edge, over a long passage", () => {
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "full", ayatPerLesson: 20 } });
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "full", ayatPerLesson: 20 } });
     cy.get("[data-cy=keyboard-dock]").should("have.css", "position", "sticky");
     cy.get("[data-cy=keyboard-dock]").should("have.css", "background-color").and("not.equal", "rgba(0, 0, 0, 0)");
 
@@ -124,7 +124,7 @@ describe("hiding the virtual keyboard", () => {
 
 describe("keyboard layout selection", () => {
   beforeEach(() => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "full" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
