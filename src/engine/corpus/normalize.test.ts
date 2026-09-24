@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isTypeable, normalizeText, skeleton, stripToTier, untypeableChars } from "~/engine/corpus/normalize.ts";
+import { normalizeText, skeleton, stripToTier, untypeableChars } from "~/engine/corpus/normalize.ts";
 import { TYPEABLE } from "~/engine/layout/ara.ts";
 
 const DAGGER = "ٰ";
@@ -27,7 +27,7 @@ test("strips the uthmani recitation apparatus", () => {
   const noisy = `ب${WAQF_SALI}سْمِ${RUB_EL_HIZB} ${WASLA}للَّهِ${SMALL_HIGH_MEEM} الرَّح${TATWEEL}يمِ`;
   const out = normalizeText(noisy);
   assert.equal(out, "بسْمِ للَّهِ الرَّحيمِ");
-  assert.ok(isTypeable(out));
+  assert.deepEqual(untypeableChars(out), []);
   assert.deepEqual(untypeableChars(out), []);
 });
 

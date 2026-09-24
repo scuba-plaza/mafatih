@@ -29,6 +29,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm check
+
+      - name: Unit tests
+        run: pnpm test
+
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
@@ -37,6 +43,7 @@ jobs:
         run: pnpm build
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

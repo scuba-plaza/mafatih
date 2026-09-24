@@ -1,8 +1,8 @@
 import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
 import { formatNumber, formatPercent } from "~/engine/format.ts";
-import { isHaraka } from "~/engine/layout/ara.ts";
-import { accuracyOf, attemptsOf, type KeyStats, statFor } from "~/engine/stats/keystats.ts";
+import { isHaraka, LIGATURE_KEYS } from "~/engine/layout/ara.ts";
+import { attemptsOf, type KeyStats, recentAccuracyOf, statFor } from "~/engine/stats/keystats.ts";
 import { type Progress, tierChars } from "~/engine/stats/unlock.ts";
 import type { SessionSummary } from "~/storage/profile.ts";
 
@@ -36,7 +36,7 @@ function Tile({ label, value, hint, cy }: { label: string; value: string; hint?:
 function Bar({ char, stats }: { char: string; stats: KeyStats }) {
   const stat = statFor(stats, char);
   const attempts = attemptsOf(stat);
-  const accuracy = accuracyOf(stat);
+  const accuracy = recentAccuracyOf(stat);
   const pct = attempts === 0 ? 0 : Math.round(accuracy * 100);
   const tone =
     attempts === 0
@@ -73,7 +73,11 @@ function when(at: number): string {
 
 export default function Stats({ progress, stats, history, effectiveTier }: StatsProps) {
   const marks = TIERS.slice(1, TIERS.indexOf(effectiveTier) + 1).flatMap(tierChars);
-  const tracked = [...letterOrder.slice(0, progress.unlockedCount), ...marks];
+  const unlocked = letterOrder.slice(0, progress.unlockedCount);
+  const ligatures = [...LIGATURE_KEYS.entries()]
+    .filter(([sequence]) => [...sequence].every((letter) => unlocked.includes(letter)))
+    .map(([, key]) => key);
+  const tracked = [...unlocked, ...marks, ...ligatures];
   const recent = [...history].reverse();
   const best = history.reduce((max, entry) => Math.max(max, entry.cpm), 0);
   const lastTen = recent.slice(0, 10);
@@ -103,8 +107,9 @@ export default function Stats({ progress, stats, history, effectiveTier }: Stats
           ))}
         </div>
         <p className="text-[0.65rem] text-stone-400">
-          Bar height is accuracy; the number below each character is mean latency in ms. Statistics are kept per
-          character, so a haraka scores separately from the letter sharing its key.
+          Bar height is recent accuracy, roughly your last forty keystrokes of that character, so old mistakes fade; the
+          number below each character is mean latency in ms. Statistics are kept per character, so a haraka scores
+          separately from the letter sharing its key, and a lam-alef typed with its ligature key scores as that key.
         </p>
       </div>
 

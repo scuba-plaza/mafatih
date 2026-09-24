@@ -3,14 +3,25 @@ import { isReciterId, RECITERS, reciterOption } from "~/engine/audio/reciters.ts
 import { surahs } from "~/engine/corpus/corpus.ts";
 import { formatBytes } from "~/engine/format.ts";
 import { AYAT_PER_LESSON, clampAyatPerLesson } from "~/engine/lessons/lesson.ts";
+import {
+  ayatCount,
+  isSurahOrder,
+  progressOf,
+  type Recitation,
+  type RecitationPosition,
+  resumeOf,
+  surahSequence,
+} from "~/engine/recitation/recitation.ts";
 import type { AudioCache } from "~/hooks/useAudioCache.ts";
 import type { Settings } from "~/storage/profile.ts";
 
 export interface RecitationModalProps {
   open: boolean;
   settings: Settings;
+  recitation: Recitation;
   audioCache: AudioCache;
   onChange: (patch: Partial<Settings>) => void;
+  onGoTo: (position: RecitationPosition) => void;
   onBack: () => void;
   onClose: () => void;
 }
@@ -20,12 +31,16 @@ const USAGE = "font-mono text-xs tabular-nums text-stone-400";
 export default function RecitationModal({
   open,
   settings,
+  recitation,
   audioCache,
   onChange,
+  onGoTo,
   onBack,
   onClose,
 }: RecitationModalProps) {
   const reciter = reciterOption(settings.reciter);
+  const { surah, ayah } = recitation.position;
+  const byNumber = new Map(surahs.map((s) => [s.n, s]));
 
   return (
     <Modal
@@ -44,14 +59,44 @@ export default function RecitationModal({
       <SelectRow
         label="Surah"
         cy="setting-surah"
-        value={settings.surah}
-        onChange={(value) => onChange({ surah: Number(value) })}
+        value={surah}
+        onChange={(value) => {
+          const next = Number(value);
+          onGoTo({ surah: next, ayah: resumeOf(recitation, next) });
+        }}
       >
-        {surahs.map((s) => (
-          <option key={s.n} value={s.n}>
-            {`${s.n}. ${s.tname}`}
+        {surahSequence(settings.surahOrder).map((n) => {
+          const meta = byNumber.get(n);
+          const done = progressOf(recitation, n).complete ? " ✓" : "";
+          return meta === undefined ? null : (
+            <option key={n} value={n}>
+              {`${n}. ${meta.tname}${done}`}
+            </option>
+          );
+        })}
+      </SelectRow>
+
+      <SelectRow
+        label="Start at ayah"
+        cy="setting-ayah"
+        value={ayah}
+        onChange={(value) => onGoTo({ surah, ayah: Number(value) })}
+      >
+        {Array.from({ length: ayatCount(surah) }, (_, i) => i + 1).map((n) => (
+          <option key={n} value={n}>
+            {`${surah}:${n}`}
           </option>
         ))}
+      </SelectRow>
+
+      <SelectRow
+        label="Surah order"
+        cy="setting-surah-order"
+        value={settings.surahOrder}
+        onChange={(value) => onChange(isSurahOrder(value) ? { surahOrder: value } : {})}
+      >
+        <option value="mushaf">Mushaf · Al-Fatiha to An-Nas</option>
+        <option value="juz-amma">Juz ʿAmma first · An-Nas back to An-Naba</option>
       </SelectRow>
 
       <SelectRow

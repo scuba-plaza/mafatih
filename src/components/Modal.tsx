@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { PRIMARY_BUTTON } from "~/components/ui.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
 
 export const FIELD =
@@ -57,12 +58,7 @@ export function CheckboxRow({
 
 export function DoneButton({ cy, onClick }: { cy: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      data-cy={cy}
-      onClick={onClick}
-      className="rounded-full bg-stone-900 px-4 py-1.5 text-xs font-medium text-stone-50 hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
-    >
+    <button type="button" data-cy={cy} onClick={onClick} className={`${PRIMARY_BUTTON} py-1.5`}>
       Done
     </button>
   );

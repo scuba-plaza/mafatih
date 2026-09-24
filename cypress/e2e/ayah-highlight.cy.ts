@@ -102,9 +102,9 @@ describe("the mark on the recited ayah", () => {
     const { surah, font, fontSize, contains } = testCase;
     it(`encloses every character of surah ${surah} in ${font} at ${fontSize}px`, () => {
       visitWith({
+        surah,
+        page: "recite",
         settings: {
-          mode: "recite",
-          surah,
           tierOverride: "full",
           font,
           fontSize,
@@ -131,9 +131,9 @@ describe("the mark on the recited ayah", () => {
 
   it("covers an ayah on every line it wraps onto", () => {
     visitWith({
+      surah: 2,
+      page: "recite",
       settings: {
-        mode: "recite",
-        surah: 2,
         tierOverride: "full",
         fontSize: 72,
         showKeyboard: false,
@@ -149,7 +149,7 @@ describe("the mark on the recited ayah", () => {
   });
 
   it("marks nothing once playback stops", () => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "full", showKeyboard: false } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "full", showKeyboard: false } });
     cy.get("[data-cy=ayah-band]").should("not.exist");
   });
 });

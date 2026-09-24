@@ -43,7 +43,7 @@ describe("text direction", () => {
   });
 
   it("isolates the Arabic surah name inside otherwise LTR attribution", () => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "none" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "none" } });
     cy.get("[data-cy=attribution]").should(($el) => {
       expect(directionOf($el)).to.equal("ltr");
       expect($el.text()).to.contain("112:");
@@ -66,7 +66,7 @@ describe("hiding the virtual keyboard", () => {
   });
 
   it("docks to the bottom of the window, clear of the edge, over a long passage", () => {
-    visitWith({ settings: { mode: "recite", surah: 2, tierOverride: "full", ayatPerLesson: 20 } });
+    visitWith({ surah: 2, page: "recite", settings: { tierOverride: "full", ayatPerLesson: 20 } });
     cy.get("[data-cy=keyboard-dock]").should("have.css", "position", "sticky");
     cy.get("[data-cy=keyboard-dock]").should("have.css", "background-color").and("not.equal", "rgba(0, 0, 0, 0)");
 
@@ -122,44 +122,28 @@ describe("hiding the virtual keyboard", () => {
   });
 });
 
-describe("keyboard layout selection", () => {
+describe("the Arabic (101) keyboard", () => {
   beforeEach(() => {
-    visitWith({ settings: { mode: "recite", surah: 112, tierOverride: "full" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
-  it("defaults to Arabic (Macintosh)", () => {
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("have.value", "mac");
-  });
-
-  it("puts the shadda on a letter key, not the backtick, on Macintosh", () => {
-    cy.get("[data-cy=keycap][data-code=KeyI]").should("contain.text", "ّ");
-    cy.get("[data-cy=keycap][data-code=Backquote]").should("not.contain.text", "ّ");
-  });
-
-  it("switches to Arabic (102) and moves the harakat accordingly", () => {
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").select("pc102");
-    cy.closeSettings();
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "pc102");
+  it("shows the Arabic (101) keys, with the shadda on the backtick", () => {
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "title", "Arabic (101) keyboard");
     cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
     cy.get("[data-cy=keycap][data-code=KeyA]").should("contain.text", "ِ");
-    cy.get("[data-cy=keycap][data-code=KeyI]").should("not.contain.text", "ّ");
+    cy.get("[data-cy=keycap][data-code=KeyU]").should("contain.text", "‘");
   });
 
-  it("remembers the layout across a reload", () => {
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").select("pc102");
-    cy.closeSettings();
-    cy.reload();
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "pc102");
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("have.value", "pc102");
+  it("accepts the lam-alef key the way Windows sends it, as two letters at once", () => {
+    visitWith({ page: "custom", settings: { customText: "لا", tierOverride: "none" } });
+    cy.targetText().should("equal", "لا");
+    cy.typeRawKey("لا", "KeyB");
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.get("[data-cy=summary-errors]").should("have.text", "0");
   });
 
-  it("highlights the Macintosh key for the next character", () => {
+  it("highlights the key for the next haraka, with shift", () => {
     cy.targetText().then((text) => {
       const chars = [...text];
       const i = chars.findIndex((c) => /[ً-ْ]/.test(c));
@@ -170,7 +154,7 @@ describe("keyboard layout selection", () => {
     });
   });
 
-  it("types a full diacritised passage on either layout", () => {
+  it("types a full diacritised passage", () => {
     cy.typeTarget();
     cy.get("[data-cy=completion]").should("be.visible");
     cy.get("[data-cy=summary-errors]").should("have.text", "0");
@@ -245,5 +229,133 @@ describe("font selection", () => {
         expect(families.has(name), `${name} should be declared`).to.equal(true);
       }
     });
+  });
+});
+
+describe("search and sharing metadata", () => {
+  beforeEach(() => {
+    cy.visit("/?seed=5");
+  });
+
+  it("describes the page for search engines and link previews", () => {
+    cy.title().should("contain", "Mafatih");
+    cy.get('head meta[name="description"]')
+      .should("have.attr", "content")
+      .and("match", /Arabic touch-typing/);
+    cy.get('head link[rel="canonical"]')
+      .should("have.attr", "href")
+      .and("match", /^https:\/\/.+\/$/);
+    for (const property of ["og:title", "og:description", "og:url", "og:image", "og:type"]) {
+      cy.get(`head meta[property="${property}"]`).should("have.attr", "content").and("not.be.empty");
+    }
+    cy.get('head meta[property="og:image"]')
+      .should("have.attr", "content")
+      .and("match", /^https:\/\/.+og-image\.png$/);
+    cy.get('head meta[name="twitter:card"]').should("have.attr", "content", "summary_large_image");
+    cy.get('head script[type="application/ld+json"]').then(($script) => {
+      const data = JSON.parse($script.text());
+      expect(data["@type"]).to.equal("WebApplication");
+      expect(data.url).to.match(/^https:\/\//);
+    });
+  });
+
+  it("serves every icon, the manifest, the share image, robots.txt and the sitemap", () => {
+    cy.get('head link[rel~="icon"], head link[rel="apple-touch-icon"], head link[rel="manifest"]').each(($link) => {
+      cy.request($link.attr("href") as string)
+        .its("status")
+        .should("equal", 200);
+    });
+    cy.request("/site.webmanifest").then((response) => {
+      const manifest = typeof response.body === "string" ? JSON.parse(response.body) : response.body;
+      expect(manifest.name).to.contain("Mafatih");
+      for (const icon of manifest.icons as { src: string }[]) {
+        cy.request(`/${icon.src}`).its("status").should("equal", 200);
+      }
+    });
+    cy.request("/og-image.png").its("headers").its("content-type").should("contain", "image/png");
+    cy.request("/robots.txt")
+      .its("body")
+      .should("match", /Sitemap: https:\/\/.+\/sitemap\.xml/);
+    cy.request("/sitemap.xml").its("body").should("contain", "<urlset").and("contain", "<loc>https://");
+  });
+});
+
+describe("lam-alef ligature keys", () => {
+  it("highlights the ligature key, not lam, where lam meets an alef", () => {
+    visitWith({ page: "custom", settings: { customText: "لا لأ", tierOverride: "none" } });
+    cy.targetText().should("equal", "لا لأ");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyB");
+    cy.get("[data-cy=keycap][data-code=KeyB]").should("have.attr", "data-target", "true");
+    cy.get("[data-cy=keycap][data-code=KeyG]").should("have.attr", "data-target", "false");
+    cy.get("[data-cy=shift-key]").should("have.attr", "data-active", "false");
+    cy.typeRawKey("ﻻ", "KeyB");
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "2");
+    cy.typeArabic(" ");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyG");
+    cy.get("[data-cy=shift-key]").should("have.attr", "data-active", "true");
+  });
+
+  it("still takes lam then alef as two keys", () => {
+    visitWith({ page: "custom", settings: { customText: "لا", tierOverride: "none" } });
+    cy.targetText().should("equal", "لا");
+    cy.typeArabic("ل");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyH");
+    cy.typeArabic("ا");
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.get("[data-cy=summary-errors]").should("have.text", "0");
+  });
+
+  it("scores a ligature keystroke as its own key", () => {
+    visitWith({ surah: 2, ayah: 2, page: "recite", settings: { tierOverride: "none", ayatPerLesson: 1 } });
+    cy.targetText().then((text) => {
+      const chars = [...text];
+      const at = text.indexOf("لا");
+      expect(at, "2:2 contains lam-alef").to.be.greaterThan(0);
+      cy.typeArabic(chars.slice(0, at).join(""), { delay: 20 });
+      cy.get("[data-cy=keycap][data-code=KeyB]").should("have.attr", "data-target", "true");
+      cy.typeRawKey("ﻻ", "KeyB");
+      cy.typeArabic(chars.slice(at + 2).join(""));
+    });
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.showStats();
+    cy.get("[data-cy=letter-stat][data-char=ﻻ]").should("have.attr", "data-attempts", "1");
+  });
+});
+
+describe("the privacy policy", () => {
+  it("is linked from every page and has its own address", () => {
+    cy.visit("/?seed=3#/stats");
+    cy.get("[data-cy=nav-privacy]").click();
+    cy.location("hash").should("equal", "#/privacy");
+    cy.get("[data-cy=privacy]").should("contain.text", "Privacy policy").and("contain.text", "everyayah.com");
+    cy.get("[data-cy=typing-area]").should("not.exist");
+    cy.get("[data-cy=nav-practice]").click();
+    cy.get("[data-cy=typing-area]").should("be.visible");
+    cy.get("[data-cy=nav-privacy]").should("be.visible");
+  });
+});
+
+describe("the finger zones", () => {
+  it("shade every key by the finger that types it", () => {
+    cy.visit("/?seed=3");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "true");
+    cy.get("[data-cy=keycap][data-code=KeyF]").should("have.attr", "data-finger", "left-index");
+    cy.get("[data-cy=keycap][data-code=KeyH]").should("have.attr", "data-finger", "right-index");
+    cy.get("[data-cy=keycap][data-code=Semicolon]")
+      .should("have.attr", "data-finger", "right-pinky")
+      .and("have.attr", "title", "Right pinky");
+    cy.get("[data-cy=keycap][data-code=Space]").should("have.attr", "data-finger", "both-thumb");
+    cy.get("[data-cy=keycap][data-target=true]").should("have.length", 1).and("have.class", "ring-1");
+  });
+
+  it("can be switched off in the settings, and stay off", () => {
+    cy.visit("/?seed=3");
+    cy.openSettings();
+    cy.get("[data-cy=setting-show-fingers]").should("be.checked").uncheck();
+    cy.closeSettings();
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "false");
+    cy.get("[data-cy=keycap][data-finger]").should("not.exist");
+    cy.reload();
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "false");
   });
 });

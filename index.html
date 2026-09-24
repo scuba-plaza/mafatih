@@ -3,10 +3,63 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>مفاتيح · Mafatih</title>
-    <meta name="description" content="Arabic touch-typing trainer with diacritics." />
+    <title>مفاتيح · Mafatih — Arabic touch-typing with diacritics</title>
+    <meta
+      name="description"
+      content="Free Arabic touch-typing trainer with full diacritics (harakat), built on the text of the Qur'an. Adaptive lessons unlock letters as you master them, and recitation mode lets you type through every surah with audio."
+    />
+    <meta name="application-name" content="Mafatih" />
+    <meta name="apple-mobile-web-app-title" content="Mafatih" />
+    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)" />
+    <link rel="canonical" href="%SITE_URL%" />
+
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mafatih" />
+    <meta property="og:title" content="مفاتيح · Mafatih — Arabic touch-typing with diacritics" />
+    <meta
+      property="og:description"
+      content="Learn to touch-type Arabic with harakat, one letter at a time, on real words from the Qur'an."
+    />
+    <meta property="og:url" content="%SITE_URL%" />
+    <meta property="og:image" content="%SITE_URL%og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Mafatih — مفاتيح written in Naskh beside a row of Arabic keycaps" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ar_AR" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="مفاتيح · Mafatih — Arabic touch-typing with diacritics" />
+    <meta
+      name="twitter:description"
+      content="Learn to touch-type Arabic with harakat, one letter at a time, on real words from the Qur'an."
+    />
+    <meta name="twitter:image" content="%SITE_URL%og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Mafatih",
+        "alternateName": "مفاتيح",
+        "url": "%SITE_URL%",
+        "description": "Arabic touch-typing trainer with diacritics, built on the text of the Qur'an.",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "inLanguage": ["en", "ar"],
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
   </head>
   <body>
+    <noscript>Mafatih is an interactive Arabic typing trainer and needs JavaScript to run.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

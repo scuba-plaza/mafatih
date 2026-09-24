@@ -1,97 +1,99 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
+import Footer from "~/components/Footer.tsx";
+import Header from "~/components/Header.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
+import PassageBar from "~/components/PassageBar.tsx";
+import PassageDone from "~/components/PassageDone.tsx";
+import Privacy from "~/components/Privacy.tsx";
 import RecitationBar from "~/components/RecitationBar.tsx";
 import RecitationModal from "~/components/RecitationModal.tsx";
 import SettingsModal from "~/components/SettingsModal.tsx";
 import Stats from "~/components/Stats.tsx";
+import SurahComplete from "~/components/SurahComplete.tsx";
+import SurahMap from "~/components/SurahMap.tsx";
 import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
-import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { fontStack } from "~/engine/fonts.ts";
-import { metrics as computeMetrics, isComplete } from "~/engine/session/session.ts";
+import { ayahAt } from "~/engine/lessons/lesson.ts";
+import { completedSurahs, progressOf } from "~/engine/recitation/recitation.ts";
+import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
-import { useRecitation } from "~/hooks/useRecitation.ts";
-import { ROUTE_HASH, type Route, useRoute } from "~/hooks/useRoute.ts";
+import { useDockInset } from "~/hooks/useDockInset.ts";
+import { useLatest } from "~/hooks/useLatest.ts";
+import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
+import { recitationHref, targetOf, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
 
-const NAV = "text-xs transition-colors";
-const NAV_ON = "text-stone-900 dark:text-stone-100";
-const NAV_OFF = "text-stone-400 hover:text-stone-900 dark:hover:text-stone-100";
-
-function NavLink({ target, current, label }: { target: Route; current: Route; label: string }) {
-  return (
-    <a
-      data-cy={`nav-${target}`}
-      href={ROUTE_HASH[target]}
-      className={`${NAV} ${target === current ? NAV_ON : NAV_OFF}`}
-    >
-      {label}
-    </a>
-  );
-}
-
 export default function App() {
-  const route: Route = useRoute();
+  const { route, replace } = useRoute();
+  const target = targetOf(route);
+  const reciting = target?.mode === "recite";
   const [modal, setModal] = useState<"none" | "settings" | "recitation" | "custom">("none");
-  const trainer = useTrainer({ enabled: route === "practice" && modal === "none" });
+  const trainer = useTrainer({ target, enabled: target !== null && modal === "none" });
   const { profile, lesson, session, effectiveTier, latinDetected, shiftHeld, lastSummary } = trainer;
   const { settings } = profile;
   const live = computeMetrics(session, isComplete(session) ? undefined : performance.now());
-  const nextChar = session.chars[session.cursor];
+  const nextChar = expectedKey(session);
   const audioCache = useAudioCache(modal === "recitation");
-  const recitation = useRecitation({
+  const startAyah = trainer.reviewing || session.origin === 0 ? undefined : ayahAt(lesson, session.origin);
+  const player = useRecitationPlayer({
     lesson,
     settings,
     updateSettings: trainer.updateSettings,
+    active: reciting,
+    held: modal !== "none" || trainer.completion !== null || trainer.reviewing,
+    startAyah,
   });
   const playingSpan =
-    (recitation.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === recitation.ayah)) ?? null;
-  const reciting = recitation.playing || recitation.progress > 0;
+    (player.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === player.ayah)) ?? null;
+  const sounding = player.playing || player.progress > 0;
   const highlight = useMemo(
-    () => (playingSpan !== null && reciting ? { start: playingSpan.start, end: playingSpan.end } : null),
-    [playingSpan, reciting],
+    () => (playingSpan !== null && sounding ? { start: playingSpan.start, end: playingSpan.end } : null),
+    [playingSpan, sounding],
   );
 
   useEffect(() => {
     document.documentElement.style.setProperty("--font-arabic-active", fontStack(settings.font));
   }, [settings.font]);
 
+  const dockRef = useRef<HTMLDivElement>(null);
+  useDockInset(dockRef, settings.showKeyboard && target !== null);
+
+  const routeRef = useLatest(route);
+  useEffect(() => {
+    const { kind, surah, fromAyah } = lesson.source;
+    const current = routeRef.current;
+    if (kind !== "recite" || surah === undefined || fromAyah === undefined || current.page !== "recitation") {
+      return;
+    }
+    if (current.surah !== null && (current.surah !== surah || current.ayah !== fromAyah)) {
+      replace({ page: "recitation", surah, ayah: fromAyah });
+    }
+  }, [lesson, replace, routeRef]);
+
   return (
     <div
       className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-10 px-6 py-6"
       data-cy="app"
-      data-route={route}
+      data-route={route.page}
       data-font={settings.font}
     >
-      <header className="flex items-center justify-between gap-4">
-        <a href={ROUTE_HASH.practice} className="flex items-baseline gap-2" aria-label="Mafatih">
-          <span lang="ar" className="font-arabic text-xl leading-none text-stone-900 dark:text-stone-100">
-            مفاتيح
-          </span>
-        </a>
-        <nav className="flex items-center gap-4">
-          <span data-cy="progress-summary" className="font-mono text-xs tabular-nums text-stone-400">
-            <span data-cy="unlocked-count">{profile.progress.unlockedCount}</span>
-            {`/${letterOrder.length} · `}
-            <span data-cy="tier">{effectiveTier}</span>
-          </span>
-          <NavLink target="practice" current={route} label="Practice" />
-          <NavLink target="stats" current={route} label="Stats" />
-          <button
-            type="button"
-            data-cy="open-settings"
-            onClick={() => setModal("settings")}
-            className={`${NAV} ${NAV_OFF}`}
-          >
-            Settings
-          </button>
-        </nav>
-      </header>
+      <Header
+        page={route.page}
+        progress={profile.progress}
+        stats={profile.stats}
+        tier={effectiveTier}
+        onOpenSettings={() => setModal("settings")}
+      />
 
-      {route === "stats" ? (
+      {route.page === "privacy" ? (
+        <main className="flex flex-1 flex-col">
+          <Privacy />
+        </main>
+      ) : route.page === "stats" ? (
         <main className="flex flex-1 flex-col">
           <Stats
             progress={profile.progress}
@@ -100,12 +102,50 @@ export default function App() {
             effectiveTier={effectiveTier}
           />
         </main>
+      ) : target === null ? (
+        <main className="flex flex-1 flex-col">
+          <SurahMap
+            recitation={profile.recitation}
+            order={settings.surahOrder}
+            onOrder={(surahOrder) => trainer.updateSettings({ surahOrder })}
+            onReset={trainer.resetRecitation}
+          />
+        </main>
       ) : (
         <main className="flex flex-1 flex-col justify-center gap-10">
           <LayoutGuard latinDetected={latinDetected} onDismiss={trainer.dismissLatin} />
 
           <section className="flex flex-col gap-6">
-            <Attribution source={lesson.source} />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <Attribution source={lesson.source} />
+                {lesson.source.kind === "custom" ? (
+                  <button
+                    type="button"
+                    data-cy="edit-custom-text"
+                    onClick={() => setModal("custom")}
+                    className="shrink-0 text-xs text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
+                  >
+                    Edit text
+                  </button>
+                ) : null}
+              </div>
+              <PassageBar
+                source={lesson.source}
+                recitation={profile.recitation}
+                onPrevious={trainer.previousPassage}
+                onNext={trainer.nextPassage}
+                onJump={(ayah) => trainer.goTo({ surah: lesson.source.surah ?? 1, ayah })}
+              />
+            </div>
+            {trainer.reviewing ? (
+              <PassageDone
+                source={lesson.source}
+                surahComplete={progressOf(profile.recitation, lesson.source.surah ?? 0).complete}
+                onRedo={trainer.redoPassage}
+                onNext={trainer.nextPassage}
+              />
+            ) : null}
             <TypingArea
               chars={session.chars}
               cursor={session.cursor}
@@ -115,6 +155,7 @@ export default function App() {
               ayat={lesson.ayat}
               breaks={lesson.breaks}
               centered={lesson.basmala}
+              follow={!trainer.reviewing}
             />
             <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
               <Hud metrics={live} />
@@ -132,19 +173,22 @@ export default function App() {
                 </div>
               ) : null}
             </div>
-            {lesson.source.kind === "recite" ? <RecitationBar recitation={recitation} /> : null}
+            {lesson.source.kind === "recite" ? <RecitationBar player={player} /> : null}
           </section>
 
           {settings.showKeyboard ? (
             <div
+              ref={dockRef}
               data-cy="keyboard-dock"
               className="sticky bottom-6 z-10 mx-auto w-fit rounded-2xl bg-stone-50/90 px-4 py-3 shadow-lg shadow-stone-900/5 ring-1 ring-stone-900/5 backdrop-blur-md dark:bg-stone-950/90 dark:ring-stone-100/10"
             >
-              <VirtualKeyboard layout={settings.layout} nextChar={nextChar} shiftHeld={shiftHeld} />
+              <VirtualKeyboard nextChar={nextChar} shiftHeld={shiftHeld} fingers={settings.showFingers} />
             </div>
           ) : null}
         </main>
       )}
+
+      <Footer />
 
       <SettingsModal
         open={modal === "settings"}
@@ -152,7 +196,6 @@ export default function App() {
         autoTier={profile.progress.tier}
         onChange={trainer.updateSettings}
         onOpenRecitation={() => setModal("recitation")}
-        onOpenCustomText={() => setModal("custom")}
         onReset={trainer.resetProfile}
         onClose={() => setModal("none")}
       />
@@ -160,17 +203,27 @@ export default function App() {
       <RecitationModal
         open={modal === "recitation"}
         settings={settings}
+        recitation={profile.recitation}
         audioCache={audioCache}
         onChange={trainer.updateSettings}
+        onGoTo={({ surah, ayah }) => {
+          window.location.hash = recitationHref(surah, ayah);
+        }}
         onBack={() => setModal("settings")}
         onClose={() => setModal("none")}
+      />
+
+      <SurahComplete
+        completion={trainer.completion}
+        completedSurahs={completedSurahs(profile.recitation)}
+        onContinue={trainer.dismissCompletion}
+        onReplay={trainer.replaySurah}
       />
 
       <CustomTextModal
         open={modal === "custom"}
         settings={settings}
         onChange={trainer.updateSettings}
-        onBack={() => setModal("settings")}
         onClose={() => setModal("none")}
       />
     </div>

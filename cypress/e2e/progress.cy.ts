@@ -8,7 +8,8 @@ describe("progression and persistence", () => {
     cy.get("[data-cy=unlocked-count]").should("have.text", "6");
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.showStats();
-    cy.get("[data-cy=letter-stat]").should("have.length", 6);
+    cy.get("[data-cy=letter-stat]").should("have.length", 7);
+    cy.get("[data-cy=letter-stat]").last().should("have.attr", "data-char", "ﻻ");
   });
 
   it("unlocks the next letter once the focus letter is mastered", () => {
@@ -22,9 +23,19 @@ describe("progression and persistence", () => {
     cy.get("[data-cy=letter-stat]").should("have.length.greaterThan", 6);
   });
 
-  it("advances the tier from none to core after an accurate run", () => {
+  it("keeps the harakat back until every letter is unlocked", () => {
     const first8 = letterOrder.slice(0, 8);
     visitWith({ progress: { unlockedCount: 8, tier: "none" }, stats: masteredStats(first8) });
+    cy.typeTarget();
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.get("[data-cy=tier]").should("have.text", "none");
+  });
+
+  it("advances the tier from none to core after an accurate run on the whole alphabet", () => {
+    visitWith({
+      progress: { unlockedCount: letterOrder.length, tier: "none" },
+      stats: masteredStats(letterOrder),
+    });
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.typeTarget();
     cy.get("[data-cy=completion]").should("be.visible");
@@ -60,11 +71,11 @@ describe("progression and persistence", () => {
   it("reset returns the profile to its initial state but keeps the settings", () => {
     const first6 = letterOrder.slice(0, 6);
     visitWith({
-      progress: { unlockedCount: 12, tier: "core" },
+      progress: { unlockedCount: letterOrder.length, tier: "core" },
       settings: { font: "amiri", fontSize: 32 },
       stats: masteredStats(first6),
     });
-    cy.get("[data-cy=unlocked-count]").should("have.text", "12");
+    cy.get("[data-cy=unlocked-count]").should("have.text", String(letterOrder.length));
     cy.openSettings();
     cy.get("[data-cy=reset-profile]").click();
     cy.get("[data-cy=settings]").should("not.be.visible");
@@ -87,6 +98,50 @@ describe("progression and persistence", () => {
     cy.get("[data-cy=completion]").should("be.visible");
     cy.showStats();
     cy.get("[data-cy=letter-stat][data-attempts='0']").should("have.length.lessThan", 6);
+  });
+});
+
+describe("earning letters by typing", () => {
+  const TYPING = { delay: 25 } as const;
+  const first5 = letterOrder.slice(0, 5);
+  const sixth = letterOrder[5] as string;
+  const seventh = letterOrder[6] as string;
+
+  it("a fresh profile types its way from six letters to eight, surviving a reload", () => {
+    cy.visit("/?seed=7");
+    cy.get("[data-cy=unlocked-count]").should("have.text", "6");
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", sixth);
+
+    cy.completeLessonsUntilUnlocked(7, { ...TYPING, maxLessons: 4 });
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
+    cy.targetText().should("contain", seventh);
+
+    cy.reload();
+    cy.get("[data-cy=unlocked-count]").should("have.text", "7");
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
+
+    cy.completeLessonsUntilUnlocked(8, { ...TYPING, maxLessons: 4 });
+    cy.get("[data-cy=tier]").should("have.text", "none");
+    cy.showStats();
+    cy.get("[data-cy=letter-stat]").should("have.length.at.least", 8);
+  });
+
+  it("keeps climbing for a learner who slips on one letter in fifteen", () => {
+    cy.visit("/?seed=7");
+    cy.completeLessonsUntilUnlocked(8, { ...TYPING, mistakeEvery: 15, maxLessons: 12 });
+  });
+
+  it("lets a letter dragged down by early mistakes recover once the typing is clean", () => {
+    visitWith({
+      progress: { unlockedCount: 6, tier: "none" },
+      stats: {
+        ...masteredStats(first5),
+        [sixth]: { char: sixth, samples: 180, meanMs: 300, hits: 180, misses: 20, recentAccuracy: 0.9 },
+      },
+    });
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", sixth).and("have.attr", "data-accuracy", "0.900");
+    cy.completeLessonsUntilUnlocked(7, { ...TYPING, maxLessons: 5 });
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
   });
 });
 

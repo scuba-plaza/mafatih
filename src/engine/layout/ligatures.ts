@@ -9,6 +9,8 @@ export const LIGATURES: ReadonlyMap<string, string> = new Map([
   ["ﻶ", "لآ"],
 ]);
 
+export const LIGATURE_SEQUENCES: ReadonlySet<string> = new Set(LIGATURES.values());
+
 export function expandLigature(char: string): string {
   return LIGATURES.get(char) ?? char;
 }

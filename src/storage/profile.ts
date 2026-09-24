@@ -1,31 +1,29 @@
 import { clampVolume, DEFAULT_RECITER, DEFAULT_VOLUME, isReciterId, type ReciterId } from "~/engine/audio/reciters.ts";
 import { isTier, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, DEFAULT_FONT, DEFAULT_FONT_SIZE, type FontId, isFontId } from "~/engine/fonts.ts";
-import { DEFAULT_LAYOUT, isLayoutId, type LayoutId } from "~/engine/layout/ara.ts";
+import { isRecord, nonNegative } from "~/engine/guards.ts";
 import { DEFAULT_CUSTOM_TEXT, MAX_CUSTOM_CHARS } from "~/engine/lessons/custom.ts";
 import { clampAyatPerLesson, DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
-import type { KeyStats } from "~/engine/stats/keystats.ts";
-import { emptyStats } from "~/engine/stats/keystats.ts";
-import { initialProgress, type Progress } from "~/engine/stats/unlock.ts";
-
-export type Mode = "adaptive" | "recite" | "custom";
-
-export const MODES: readonly Mode[] = ["adaptive", "recite", "custom"];
-
-export function isMode(value: unknown): value is Mode {
-  return typeof value === "string" && (MODES as readonly string[]).includes(value);
-}
+import {
+  DEFAULT_SURAH_ORDER,
+  emptyRecitation,
+  isSurahOrder,
+  type Recitation,
+  type SurahOrder,
+  sanitizeRecitation,
+} from "~/engine/recitation/recitation.ts";
+import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
+import { initialProgress, type Progress, sanitizeProgress } from "~/engine/stats/unlock.ts";
 
 export interface Settings {
-  mode: Mode;
   tierOverride: Tier | null;
   font: FontId;
   fontSize: number;
-  surah: number;
+  surahOrder: SurahOrder;
   ayatPerLesson: number;
   customText: string;
-  layout: LayoutId;
   showKeyboard: boolean;
+  showFingers: boolean;
   reciter: ReciterId;
   volume: number;
   muted: boolean;
@@ -43,30 +41,27 @@ export interface SessionSummary {
 }
 
 export interface Profile {
-  version: number;
   progress: Progress;
   stats: KeyStats;
   settings: Settings;
   history: SessionSummary[];
+  recitation: Recitation;
 }
 
-const PROFILE_VERSION = 1;
 const MAX_HISTORY = 50;
-const SURAH_COUNT = 114;
 
-export const STORAGE_KEY = "mafatih.profile.v1";
+export const STORAGE_KEY = "mafatih.profile";
 
 export function defaultSettings(): Settings {
   return {
-    mode: "adaptive",
     tierOverride: null,
     font: DEFAULT_FONT,
     fontSize: DEFAULT_FONT_SIZE,
-    surah: 1,
+    surahOrder: DEFAULT_SURAH_ORDER,
     ayatPerLesson: DEFAULT_AYAT_PER_LESSON,
     customText: DEFAULT_CUSTOM_TEXT,
-    layout: DEFAULT_LAYOUT,
     showKeyboard: true,
+    showFingers: true,
     reciter: DEFAULT_RECITER,
     volume: DEFAULT_VOLUME,
     muted: false,
@@ -77,16 +72,12 @@ export function defaultSettings(): Settings {
 
 export function defaultProfile(): Profile {
   return {
-    version: PROFILE_VERSION,
     progress: initialProgress(),
     stats: emptyStats(),
     settings: defaultSettings(),
     history: [],
+    recitation: emptyRecitation(),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
 
 export function sanitizeSettings(raw: unknown): Settings {
@@ -94,17 +85,15 @@ export function sanitizeSettings(raw: unknown): Settings {
   if (!isRecord(raw)) {
     return fallback;
   }
-  const surah = Number(raw.surah);
   return {
-    mode: isMode(raw.mode) ? raw.mode : fallback.mode,
     tierOverride: isTier(raw.tierOverride) ? raw.tierOverride : null,
     font: isFontId(raw.font) ? raw.font : fallback.font,
     fontSize: clampFontSize(raw.fontSize),
-    surah: Number.isInteger(surah) && surah >= 1 && surah <= SURAH_COUNT ? surah : fallback.surah,
+    surahOrder: isSurahOrder(raw.surahOrder) ? raw.surahOrder : fallback.surahOrder,
     ayatPerLesson: clampAyatPerLesson(raw.ayatPerLesson),
     customText: typeof raw.customText === "string" ? raw.customText.slice(0, MAX_CUSTOM_CHARS) : fallback.customText,
-    layout: isLayoutId(raw.layout) ? raw.layout : fallback.layout,
     showKeyboard: typeof raw.showKeyboard === "boolean" ? raw.showKeyboard : fallback.showKeyboard,
+    showFingers: typeof raw.showFingers === "boolean" ? raw.showFingers : fallback.showFingers,
     reciter: isReciterId(raw.reciter) ? raw.reciter : fallback.reciter,
     volume: clampVolume(raw.volume),
     muted: typeof raw.muted === "boolean" ? raw.muted : fallback.muted,
@@ -123,17 +112,40 @@ export function parseProfile(raw: string | null): Profile {
   } catch {
     return defaultProfile();
   }
-  if (!isRecord(parsed) || parsed.version !== PROFILE_VERSION) {
+  if (!isRecord(parsed)) {
     return defaultProfile();
   }
+  return {
+    progress: sanitizeProgress(parsed.progress),
+    stats: sanitizeStats(parsed.stats),
+    settings: sanitizeSettings(parsed.settings),
+    history: sanitizeHistory(parsed.history),
+    recitation: sanitizeRecitation(parsed.recitation),
+  };
+}
 
-  const fallback = defaultProfile();
-  const progress = isRecord(parsed.progress) ? (parsed.progress as unknown as Progress) : fallback.progress;
-  const stats = isRecord(parsed.stats) ? (parsed.stats as unknown as KeyStats) : fallback.stats;
-  const settings = sanitizeSettings(parsed.settings);
-  const history = Array.isArray(parsed.history) ? (parsed.history as SessionSummary[]) : [];
+function sanitizeSummary(raw: unknown): SessionSummary | null {
+  if (!isRecord(raw) || !isTier(raw.tier)) {
+    return null;
+  }
+  return {
+    at: nonNegative(raw.at, 0),
+    cpm: nonNegative(raw.cpm, 0),
+    accuracy: Math.min(1, nonNegative(raw.accuracy, 0)),
+    errors: nonNegative(raw.errors, 0),
+    chars: nonNegative(raw.chars, 0),
+    tier: raw.tier,
+  };
+}
 
-  return { version: PROFILE_VERSION, progress, stats, settings, history };
+function sanitizeHistory(raw: unknown): SessionSummary[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .map(sanitizeSummary)
+    .filter((entry): entry is SessionSummary => entry !== null)
+    .slice(-MAX_HISTORY);
 }
 
 export function loadProfile(): Profile {

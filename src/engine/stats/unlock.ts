@@ -1,7 +1,8 @@
 import { letterOrder } from "~/engine/corpus/corpus.ts";
-import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
+import { isTier, TIERS, type Tier } from "~/engine/corpus/normalize.ts";
+import { clampInt, isRecord } from "~/engine/guards.ts";
 import { CORE_HARAKAT, TANWEEN } from "~/engine/layout/ara.ts";
-import { attemptsOf, isMastered, type KeyStats, statFor } from "~/engine/stats/keystats.ts";
+import { attemptsOf, isMastered, type KeyStats, recentAccuracyOf, statFor } from "~/engine/stats/keystats.ts";
 
 export interface Progress {
   unlockedCount: number;
@@ -28,6 +29,16 @@ export const STARTING_LETTERS = 6;
 
 export function initialProgress(): Progress {
   return { unlockedCount: STARTING_LETTERS, tier: "none" };
+}
+
+export function sanitizeProgress(raw: unknown): Progress {
+  if (!isRecord(raw)) {
+    return initialProgress();
+  }
+  return {
+    unlockedCount: clampInt(raw.unlockedCount, STARTING_LETTERS, letterOrder.length, STARTING_LETTERS),
+    tier: isTier(raw.tier) ? raw.tier : "none",
+  };
 }
 
 export function unlockedLetters(progress: Progress): string[] {
@@ -65,21 +76,29 @@ function tierAfter(tier: Tier): Tier | undefined {
 }
 
 export function shouldAdvanceTier(stats: KeyStats, progress: Progress, config: UnlockConfig): boolean {
-  if (tierAfter(progress.tier) === undefined) {
+  if (tierAfter(progress.tier) === undefined || progress.unlockedCount < letterOrder.length) {
+    return false;
+  }
+  const practised = tierChars(progress.tier).every((char) => {
+    const stat = statFor(stats, char);
+    return attemptsOf(stat) >= config.minSamples && recentAccuracyOf(stat) >= config.tierMinAccuracy;
+  });
+  if (!practised) {
     return false;
   }
   const active = [...unlockedLetters(progress), ...tierChars(progress.tier)];
   let attempts = 0;
-  let hits = 0;
+  let weighted = 0;
   for (const char of active) {
     const stat = statFor(stats, char);
-    attempts += attemptsOf(stat);
-    hits += stat.hits;
+    const count = attemptsOf(stat);
+    attempts += count;
+    weighted += count * recentAccuracyOf(stat);
   }
   if (attempts < config.tierMinAttempts) {
     return false;
   }
-  return hits / attempts >= config.tierMinAccuracy;
+  return weighted / attempts >= config.tierMinAccuracy;
 }
 
 export function advanceProgress(stats: KeyStats, progress: Progress, config: UnlockConfig): Progress {

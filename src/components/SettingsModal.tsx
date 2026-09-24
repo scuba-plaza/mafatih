@@ -1,8 +1,7 @@
 import Modal, { CheckboxRow, DoneButton, FIELD, NAME, ROW, SelectRow } from "~/components/Modal.tsx";
 import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, FONT_SIZES, FONTS, fontOption, isFontId } from "~/engine/fonts.ts";
-import { LAYOUT_IDS, LAYOUTS, type LayoutId } from "~/engine/layout/ara.ts";
-import { isMode, type Settings } from "~/storage/profile.ts";
+import type { Settings } from "~/storage/profile.ts";
 
 export interface SettingsModalProps {
   open: boolean;
@@ -10,7 +9,6 @@ export interface SettingsModalProps {
   autoTier: Tier;
   onChange: (patch: Partial<Settings>) => void;
   onOpenRecitation: () => void;
-  onOpenCustomText: () => void;
   onReset: () => void;
   onClose: () => void;
 }
@@ -37,7 +35,6 @@ export default function SettingsModal({
   autoTier,
   onChange,
   onOpenRecitation,
-  onOpenCustomText,
   onReset,
   onClose,
 }: SettingsModalProps) {
@@ -65,17 +62,6 @@ export default function SettingsModal({
       }
     >
       <SelectRow
-        label="Mode"
-        cy="setting-mode"
-        value={settings.mode}
-        onChange={(value) => onChange(isMode(value) ? { mode: value } : {})}
-      >
-        <option value="adaptive">Practice · adaptive</option>
-        <option value="recite">Recite · continuous ayat</option>
-        <option value="custom">Custom · your own text</option>
-      </SelectRow>
-
-      <SelectRow
         label="Diacritics"
         cy="setting-tier"
         value={settings.tierOverride ?? "auto"}
@@ -91,26 +77,18 @@ export default function SettingsModal({
 
       <SubSettings label="Recitation" cy="open-recitation-settings" onOpen={onOpenRecitation} />
 
-      <SubSettings label="Custom text" cy="open-custom-text-settings" onOpen={onOpenCustomText} />
-
-      <SelectRow
-        label="Keyboard layout"
-        cy="setting-layout"
-        value={settings.layout}
-        onChange={(value) => onChange({ layout: value as LayoutId })}
-      >
-        {LAYOUT_IDS.map((id) => (
-          <option key={id} value={id}>
-            {LAYOUTS[id].name}
-          </option>
-        ))}
-      </SelectRow>
-
       <CheckboxRow
         label="Show keyboard"
         cy="setting-show-keyboard"
         checked={settings.showKeyboard}
         onChange={(showKeyboard) => onChange({ showKeyboard })}
+      />
+
+      <CheckboxRow
+        label="Show finger zones"
+        cy="setting-show-fingers"
+        checked={settings.showFingers}
+        onChange={(showFingers) => onChange({ showFingers })}
       />
 
       <SelectRow

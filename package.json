@@ -1,6 +1,6 @@
 {
   "name": "mafatih",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Arabic touch-typing trainer with diacritics, built on Quranic text. A keybr for لوحة المفاتيح.",
@@ -15,9 +15,9 @@
     "cypress:nix:open": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress open'",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run --e2e",
-    "dev": "vite",
+    "dev": "pnpm build:corpus && vite",
     "preview": "vite preview",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "pnpm build:corpus && node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

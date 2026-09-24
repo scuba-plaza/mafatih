@@ -1,8 +1,8 @@
-import type { SyntheticEvent } from "react";
-import type { Recitation } from "~/hooks/useRecitation.ts";
+import { blur, blurAfter } from "~/components/ui.ts";
+import type { RecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 
 export interface RecitationBarProps {
-  recitation: Recitation;
+  player: RecitationPlayer;
 }
 
 const BAR =
@@ -34,20 +34,9 @@ function Icon({ path }: { path: string }) {
   );
 }
 
-function blur(event: SyntheticEvent<HTMLElement>): void {
-  event.currentTarget.blur();
-}
-
-function withBlur(run: () => void) {
-  return (event: SyntheticEvent<HTMLElement>) => {
-    run();
-    event.currentTarget.blur();
-  };
-}
-
-export default function RecitationBar({ recitation }: RecitationBarProps) {
-  const { ayah, basmala, reciter, surah, playing, loading, failed, muted, volume, loop, progress } = recitation;
-  const idle = failed || ayah === undefined;
+export default function RecitationBar({ player }: RecitationBarProps) {
+  const { ayah, basmala, reciter, surah, playing, loading, failed, muted, volume, loop, progress } = player;
+  const idle = failed || ayah === undefined || player.held;
 
   const verse = ayah === undefined ? "" : ayah === null ? "bismillah" : `${surah}:${ayah}`;
   const playingWhat = `${reciter.style} ${reciter.kbps} kbps · ${verse}`;
@@ -56,6 +45,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
     <div
       data-cy="recitation"
       data-playing={playing}
+      data-held={player.held}
       data-loading={loading}
       data-failed={failed}
       data-loop={loop}
@@ -68,7 +58,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
           data-cy="recitation-previous"
           aria-label="Previous ayah"
           disabled={idle}
-          onClick={withBlur(recitation.previous)}
+          onClick={blurAfter(player.previous)}
           className={BUTTON}
         >
           <Icon path={PATHS.previous} />
@@ -78,7 +68,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
           data-cy="recitation-toggle"
           aria-label={playing ? "Pause recitation" : "Play recitation"}
           disabled={idle}
-          onClick={withBlur(recitation.toggle)}
+          onClick={blurAfter(player.toggle)}
           className={PLAY}
         >
           <Icon path={playing ? PATHS.pause : PATHS.play} />
@@ -88,7 +78,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
           data-cy="recitation-next"
           aria-label="Next ayah"
           disabled={idle}
-          onClick={withBlur(recitation.next)}
+          onClick={blurAfter(player.next)}
           className={BUTTON}
         >
           <Icon path={PATHS.next} />
@@ -98,7 +88,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
           data-cy="recitation-loop"
           aria-label={loop ? "Stop repeating the passage" : "Repeat the passage"}
           aria-pressed={loop}
-          onClick={withBlur(recitation.toggleLoop)}
+          onClick={blurAfter(player.toggleLoop)}
           className={loop ? TOGGLED : BUTTON}
         >
           <Icon path={PATHS.loop} />
@@ -110,7 +100,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
           type="button"
           data-cy="recitation-mute"
           aria-label={muted ? "Unmute recitation" : "Mute recitation"}
-          onClick={withBlur(recitation.toggleMute)}
+          onClick={blurAfter(player.toggleMute)}
           className={BUTTON}
         >
           <Icon path={muted ? PATHS.muted : PATHS.volume} />
@@ -124,9 +114,9 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
           step={0.01}
           value={muted ? 0 : volume}
           disabled={muted}
-          onChange={(event) => recitation.setVolume(Number(event.target.value))}
-          onPointerUp={withBlur(recitation.commitVolume)}
-          onBlur={recitation.commitVolume}
+          onChange={(event) => player.setVolume(Number(event.target.value))}
+          onPointerUp={blurAfter(player.commitVolume)}
+          onBlur={player.commitVolume}
           className={`${SLIDER} w-full sm:w-24`}
         />
       </div>
@@ -157,7 +147,7 @@ export default function RecitationBar({ recitation }: RecitationBarProps) {
         step={0.001}
         value={progress}
         disabled={idle}
-        onChange={(event) => recitation.seek(Number(event.target.value))}
+        onChange={(event) => player.seek(Number(event.target.value))}
         onPointerUp={blur}
         className={`${SLIDER} order-4 w-full`}
       />
