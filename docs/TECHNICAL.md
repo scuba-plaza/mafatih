@@ -140,8 +140,8 @@ smoothly, or instantly under `prefers-reduced-motion`. It can also be hidden ent
 settings once you no longer need it, and hiding it removes the dock with it.
 
 **Finger zones** are on by default and have their own setting. Each key is faintly tinted by the
-finger that types it, from the standard touch-typing assignment: the index fingers take the two
-inner columns each, the thumbs the space bar. The hues mirror across the hands — both index fingers
+finger that types it, from the standard touch-typing assignment: each index finger also covers the
+inner column beside it, and the thumbs take the space bar. The hues mirror across the hands — both index fingers
 share one — so there are four to learn, not eight, and they stay pale in both themes so the next-key
 highlight remains the loudest thing on the board. Every key also names its finger on hover. The
 assignment lives in `engine/layout/fingers.ts`, checked by unit tests to cover every key on the
@@ -521,6 +521,8 @@ Open Graph tags, `robots.txt` and `sitemap.xml`. The GitHub Pages workflow sets 
   which clears the saved profile first, for the case where corrupt local data is the cause.
 - **Privacy.** No cookies, analytics or third-party fonts. The only third-party request is the
   recitation audio. `#/privacy` says so for users.
+- **Deploys are gated.** The GitHub Pages workflow runs lint and the unit tests before it builds, and
+  the build itself typechecks; only `main` is deployed.
 - `pnpm preview` serves the built site on :5173, so the end-to-end suite can run against the
   production build as well as the dev server.
 
