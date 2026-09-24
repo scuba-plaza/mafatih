@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { LIGATURE_KEYS } from "~/engine/layout/ara.ts";
 import type { SessionState } from "~/engine/session/session.ts";
 import {
+  activeMsBetween,
   applyKey,
   createSession,
   expectedChar,
@@ -246,4 +247,28 @@ test("the live clock stops while the typist is away", () => {
   assert.equal(metrics(state, 1000).elapsedMs, 1000);
   assert.equal(metrics(state, 60_000).elapsedMs, 3500);
   assert.equal(metrics(state, 600_000).elapsedMs, 3500);
+});
+
+test("a session can start part-way, with the text before it already typed", () => {
+  let state = createSession("ابت ثج", 4);
+  assert.equal(state.cursor, 4);
+  assert.equal(state.origin, 4);
+  assert.deepEqual(state.outcomes, ["correct", "correct", "correct", "correct", "pending", "pending"]);
+  state = applyKey(state, "ث", 0);
+  state = applyKey(state, "ج", 60_000 / 120);
+  assert.equal(isComplete(state), true);
+  const m = metrics(state);
+  assert.equal(m.typedChars, 2, "only what was typed in this session counts");
+  assert.equal(m.cpm, 240);
+});
+
+test("active typing time between keystrokes leaves pauses out", () => {
+  let state = createSession("ابتث");
+  state = applyKey(state, "ا", 0);
+  state = applyKey(state, "ب", 400);
+  state = applyKey(state, "ت", 400 + 60_000);
+  state = applyKey(state, "ث", 400 + 60_000 + 300);
+  assert.equal(activeMsBetween(state, 0, 4), 400 + 3000 + 300);
+  assert.equal(activeMsBetween(state, 2, 4), 3000 + 300);
+  assert.equal(activeMsBetween(state, 0, 2), 400);
 });

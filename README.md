@@ -238,9 +238,16 @@ characters on its own, and no ayah count can make it shorter.
 Adaptive practice is the open world; recitation goes through the Qur'an in order, and every surah is
 a level.
 
-**A finished passage moves the recitation on.** The next lesson starts at the ayah after the last one
-typed, and the position is saved with the profile, so a reload — or a week away — resumes exactly
-there. Each surah remembers where it was left, so switching surahs and back loses nothing.
+**Progress is saved ayah by ayah.** The moment the last letter of an ayah is typed, that ayah is
+recorded — in the surah's progress and in the per-letter statistics — so a reload, or a week away,
+picks the passage up with the cursor after the last finished ayah and the player cued to the next
+one. Only the ayah being typed at the time is lost. A finished passage moves the recitation on: the
+next lesson starts at the ayah after it. Each surah remembers where it was left, so switching surahs
+and back loses nothing.
+
+**A finished passage asks before it is typed again.** Going back to a passage whose ayat are all
+typed — or to any passage of a completed surah — shows it as done, with *Type it again* and
+*Next passage*, and keystrokes are ignored until one of them is chosen.
 
 **Navigation is precise.** Recitation settings pick the surah and the starting ayah. Under the
 passage sit previous and next buttons (also Page Up / Page Down), which cross into the neighbouring
@@ -280,9 +287,9 @@ than assuming one node per line.
 show it, so it carries no ayah mark there. The recite generator emits a forced line break after it
 and the chunker honours that alongside its width rule.
 
-## Recitation
+## Recitation audio
 
-The passage a recite lesson puts on screen is a bounded ayah range, so it has a canonical audio
+The passage a recitation lesson puts on screen is a bounded ayah range, so it has a canonical audio
 counterpart. The player under the metrics line plays exactly that range and never runs past it into
 the rest of the surah.
 
@@ -320,6 +327,11 @@ The player is **fully independent of typing**: typing never starts or stops the 
 never moves the cursor. The one place the two touch is focus — every control returns focus to the
 document as you release it, because the trainer ignores keystrokes aimed at a button, and a play
 button that kept focus would silently eat the next space you typed.
+
+Moving on never interrupts it: finish a passage — or a whole surah — while it plays, and it carries
+on from the start of the next one; a paused player stays paused. A resumed passage cues the ayah the
+cursor resumes at. Leaving the practice page pauses the player, and it waits there, in place, for
+play to be pressed again.
 
 The strip always names what is playing, or what will play next:
 

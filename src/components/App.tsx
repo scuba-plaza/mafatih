@@ -5,6 +5,7 @@ import FocusLetter from "~/components/FocusLetter.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
 import PassageBar from "~/components/PassageBar.tsx";
+import PassageDone from "~/components/PassageDone.tsx";
 import RecitationBar from "~/components/RecitationBar.tsx";
 import RecitationModal from "~/components/RecitationModal.tsx";
 import SettingsModal from "~/components/SettingsModal.tsx";
@@ -15,7 +16,7 @@ import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
 import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { fontStack } from "~/engine/fonts.ts";
-import { completedSurahs, type RecitationPosition } from "~/engine/recitation/recitation.ts";
+import { completedSurahs, progressOf, type RecitationPosition } from "~/engine/recitation/recitation.ts";
 import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
@@ -47,11 +48,16 @@ export default function App() {
   const live = computeMetrics(session, isComplete(session) ? undefined : performance.now());
   const nextChar = expectedKey(session);
   const audioCache = useAudioCache(modal === "recitation");
+  const startAyah =
+    trainer.reviewing || session.origin === 0
+      ? undefined
+      : lesson.ayat.find((span) => span.start <= session.origin && session.origin < span.end)?.ayah;
   const player = useRecitationPlayer({
     lesson,
     settings,
     updateSettings: trainer.updateSettings,
     active: route === "practice",
+    startAyah,
   });
   const playingSpan =
     (player.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === player.ayah)) ?? null;
@@ -163,6 +169,14 @@ export default function App() {
                 onJump={(ayah) => trainer.goTo({ surah: lesson.source.surah ?? 1, ayah })}
               />
             </div>
+            {trainer.reviewing ? (
+              <PassageDone
+                source={lesson.source}
+                surahComplete={progressOf(profile.recitation, lesson.source.surah ?? 0).complete}
+                onRedo={trainer.redoPassage}
+                onNext={trainer.nextPassage}
+              />
+            ) : null}
             <TypingArea
               chars={session.chars}
               cursor={session.cursor}
@@ -172,6 +186,7 @@ export default function App() {
               ayat={lesson.ayat}
               breaks={lesson.breaks}
               centered={lesson.basmala}
+              follow={!trainer.reviewing}
             />
             <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
               <Hud metrics={live} />

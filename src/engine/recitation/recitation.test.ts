@@ -13,9 +13,11 @@ import {
   type PassageResult,
   passageAfter,
   passageBefore,
+  passageStatus,
   previousSurah,
   progressOf,
   type Recitation,
+  recordAyat,
   recordPassage,
   resumeOf,
   sanitizeRecitation,
@@ -201,4 +203,52 @@ test("a stored recitation survives a round trip and nonsense in it is repaired",
   assert.equal(record.resume, 4);
   assert.equal(record.completions, 2);
   assert.equal(record.bestAccuracy, 1);
+});
+
+function typedAyat(
+  recitation: Recitation,
+  surah: number,
+  from: number,
+  to: number,
+  passage: [number, number],
+): Recitation {
+  return recordAyat(recitation, { surah, from, to, passageFrom: passage[0], passageTo: passage[1] }, CLEAN, "mushaf")
+    .recitation;
+}
+
+test("finishing some ayat of a passage saves them and keeps the passage where it is", () => {
+  const recitation = typedAyat(emptyRecitation(), 2, 1, 3, [1, 4]);
+  assert.deepEqual(recitation.position, { surah: 2, ayah: 1 });
+  assert.equal(resumeOf(recitation, 2), 1);
+  assert.equal(progressOf(recitation, 2).covered, 3);
+  assert.deepEqual(passageStatus(recitation, 2, 1, 4), { done: false, typedThrough: 3 });
+});
+
+test("finishing the last ayah of a passage moves on to the next passage", () => {
+  let recitation = typedAyat(emptyRecitation(), 2, 1, 3, [1, 4]);
+  recitation = typedAyat(recitation, 2, 4, 4, [1, 4]);
+  assert.deepEqual(recitation.position, { surah: 2, ayah: 5 });
+  assert.deepEqual(passageStatus(recitation, 2, 1, 4), { done: true, typedThrough: 4 });
+  assert.deepEqual(passageStatus(recitation, 2, 5, 8), { done: false, typedThrough: 4 });
+});
+
+test("a passage resumes only after the ayat typed from its start, not after a later island", () => {
+  const recitation = typedAyat(emptyRecitation(), 2, 2, 3, [2, 5]);
+  assert.deepEqual(passageStatus(recitation, 2, 1, 4), { done: false, typedThrough: 0 });
+  assert.deepEqual(passageStatus(recitation, 2, 2, 5), { done: false, typedThrough: 3 });
+});
+
+test("every passage of a completed surah is done until it is typed again", () => {
+  let recitation = typeSurah(emptyRecitation(), 112, 4);
+  assert.deepEqual(passageStatus(recitation, 112, 1, 4), { done: true, typedThrough: 4 });
+  recitation = typedAyat(recitation, 112, 1, 2, [1, 4]);
+  assert.deepEqual(passageStatus(recitation, 112, 1, 4), { done: false, typedThrough: 2 });
+});
+
+test("finishing the missing ayah in the middle of a passage completes the surah there and then", () => {
+  let recitation = typedAyat(emptyRecitation(), 112, 1, 1, [1, 4]);
+  recitation = typedAyat(recitation, 112, 3, 4, [3, 4]);
+  const update = recordAyat(recitation, { surah: 112, from: 2, to: 2, passageFrom: 1, passageTo: 4 }, CLEAN, "mushaf");
+  assert.equal(update.completion?.surah, 112);
+  assert.equal(update.recitation.position.surah, 113);
 });

@@ -27,6 +27,7 @@ export interface TypingAreaProps {
   ayat?: readonly AyahCut[];
   breaks?: readonly number[];
   centered?: Highlight | null;
+  follow?: boolean;
 }
 
 interface Column {
@@ -232,6 +233,7 @@ export default function TypingArea({
   ayat = NO_CUTS,
   breaks = NO_BREAKS,
   centered,
+  follow = true,
 }: TypingAreaProps) {
   const size = clampFontSize(fontSize ?? DEFAULT_FONT_SIZE);
   const [column, setColumn] = useState<Column | null>(null);
@@ -326,12 +328,13 @@ export default function TypingArea({
     const previous = followedRef.current;
     followedRef.current = { chars, line: activeIndex };
     const line = activeLineRef.current;
-    if (line === null || previous === null || (previous.chars === chars && previous.line === activeIndex)) {
+    const unmoved = previous === null ? cursor === 0 : previous.chars === chars && previous.line === activeIndex;
+    if (!follow || line === null || unmoved) {
       return;
     }
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     line.scrollIntoView({ block: "center", inline: "nearest", behavior: still ? "auto" : "smooth" });
-  }, [chars, activeIndex]);
+  }, [chars, activeIndex, follow]);
 
   const bandStart = highlight?.start ?? -1;
   const bandEnd = highlight?.end ?? -1;

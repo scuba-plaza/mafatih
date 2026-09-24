@@ -1,3 +1,4 @@
+import { generateRecitePassage } from "../../src/engine/lessons/recite.ts";
 import type { SurahRecord } from "../../src/engine/recitation/recitation.ts";
 import { STORAGE_KEY } from "../../src/storage/profile.ts";
 import { masteredStats, visitWith } from "../support/profile.ts";
@@ -307,5 +308,127 @@ describe("the surah map", () => {
     passage(36, "21–24");
     cy.get("[data-cy=nav-recitation]").click();
     cy.get("[data-cy=recitation-surahs]").should("have.text", "1/114");
+  });
+});
+
+function ayahStart(surah: number, fromAyah: number, ayah: number): number {
+  const lesson = generateRecitePassage({ surah, fromAyah, tier: "none", maxAyat: 4 });
+  const span = lesson.ayat.find((candidate) => candidate.ayah === ayah);
+  if (span === undefined) {
+    throw new Error(`ayah ${ayah} is not in ${surah}:${fromAyah}`);
+  }
+  return span.start;
+}
+
+function typeUpTo(cursor: number): void {
+  cy.targetText().then((text) => {
+    cy.typeArabic([...text].slice(0, cursor).join(""));
+  });
+  cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", String(cursor));
+}
+
+function stubAudio(): void {
+  cy.intercept("GET", "https://everyayah.com/data/**/*.mp3", {
+    fixture: "ayah.mp3,null",
+    headers: { "content-type": "audio/mpeg" },
+  });
+}
+
+describe("resuming a level", () => {
+  beforeEach(stubAudio);
+
+  it("picks the level up after the last finished ayah when the page is reloaded", () => {
+    visitWith({ surah: 2, settings: RECITE });
+    const fourth = ayahStart(2, 1, 4);
+    typeUpTo(fourth);
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-covered", "3");
+
+    cy.reload();
+    passage(2, "1–4");
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", String(fourth));
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-covered", "3");
+    cy.get("[data-cy=passage-done]").should("not.exist");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-ayah", "4");
+    cy.get("[data-cy=hud-cpm]").should("have.text", "0");
+
+    cy.targetText().then((text) => {
+      cy.typeArabic([...text].slice(fourth).join(""));
+    });
+    passage(2, "5–8");
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-covered", "4");
+  });
+
+  it("keeps every finished ayah but not the half-typed one", () => {
+    visitWith({ surah: 2, settings: RECITE });
+    const second = ayahStart(2, 1, 2);
+    typeUpTo(second + 3);
+    cy.reload();
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", String(second));
+    cy.get("[data-cy=recitation]").should("have.attr", "data-ayah", "2");
+  });
+
+  it("saves the letter statistics of finished ayat before the level is over", () => {
+    visitWith({ surah: 2, settings: RECITE });
+    typeUpTo(ayahStart(2, 1, 3));
+    cy.reload();
+    cy.showStats();
+    cy.get("[data-cy=letter-stat][data-attempts!='0']").should("have.length.greaterThan", 0);
+  });
+});
+
+describe("finished levels", () => {
+  beforeEach(stubAudio);
+
+  it("shows a finished passage as done, and only types it again when asked", () => {
+    visitWith({ surah: 2, settings: RECITE });
+    cy.completeLesson();
+    passage(2, "5–8");
+    cy.get("[data-cy=passage-done]").should("not.exist");
+
+    cy.get("[data-cy=passage-previous]").click();
+    passage(2, "1–4");
+    cy.get("[data-cy=passage-done]").should("be.visible").and("contain.text", "Already typed");
+    cy.get("[data-cy=typing-area]")
+      .invoke("attr", "data-total")
+      .then((total) => {
+        cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", String(total));
+      });
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "");
+    cy.typeArabic("ا");
+    cy.get("[data-cy=hud-errors]").should("have.text", "0");
+
+    cy.reload();
+    cy.get("[data-cy=passage-done]").should("be.visible");
+
+    cy.get("[data-cy=passage-redo]").click();
+    cy.get("[data-cy=passage-done]").should("not.exist");
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
+    cy.targetText().then((text) => {
+      cy.typeArabic([...text].slice(0, 2).join(""));
+    });
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "2");
+  });
+
+  it("moves on from a finished passage with its next button", () => {
+    visitWith({ surah: 2, settings: RECITE, recitation: { surahs: { 2: partial(5, 4) } } });
+    passage(2, "1–4");
+    cy.get("[data-cy=passage-done]").should("be.visible");
+    cy.get("[data-cy=passage-done-next]").click();
+    passage(2, "5–8");
+    cy.get("[data-cy=passage-done]").should("not.exist");
+    cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
+  });
+
+  it("treats every passage of a completed surah as done", () => {
+    visitWith({ surah: 112, settings: RECITE, recitation: { surahs: { 112: completed(0.99) } } });
+    cy.get("[data-cy=passage-done]").should("be.visible");
+    cy.get("[data-cy=passage-done-note]").should("contain.text", "surah is complete");
+  });
+
+  it("opens a completed surah from the map as done", () => {
+    visitWith({ recitation: { surahs: { 112: completed(0.99) } } }, "?seed=3#/recitation");
+    cy.get("[data-cy=surah-tile][data-surah=112]").click();
+    passage(112, "1–4");
+    cy.get("[data-cy=passage-done]").should("be.visible");
   });
 });

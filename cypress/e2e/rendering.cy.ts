@@ -279,6 +279,33 @@ describe("following the cursor down a long passage", () => {
     });
   });
 
+  it("brings the resumed line into view when a long level is picked up again", () => {
+    visitWith({
+      surah: 2,
+      settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 20, fontSize: 72 },
+      recitation: {
+        surahs: {
+          2: {
+            run: { typed: [[1, 12]], chars: 0, keystrokes: 0, errors: 0, elapsedMs: 0 },
+            resume: 1,
+            completions: 0,
+            bestAccuracy: 0,
+            bestCpm: 0,
+            completedAt: null,
+          },
+        },
+      },
+    });
+    cy.get("[data-cy=typing-area]").invoke("attr", "data-cursor").then(Number).should("be.greaterThan", 0);
+    cy.window().then((win) => {
+      cy.get("[data-cy=line][data-active=true]").should(($line) => {
+        const rect = ($line[0] as HTMLElement).getBoundingClientRect();
+        expect(rect.top, "the resumed line is not above the window").to.be.at.least(0);
+        expect(rect.bottom, "the resumed line is not under the keyboard").to.be.at.most(visibleBottom(win));
+      });
+    });
+  });
+
   it("brings the next level's first line into view", () => {
     visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 5, fontSize: 72 } });
     cy.typeTarget();

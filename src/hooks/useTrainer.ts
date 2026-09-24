@@ -9,16 +9,19 @@ import {
   emptyRecitation,
   passageAfter,
   passageBefore,
+  passageStatus,
   type RecitationPosition,
-  recordPassage,
+  recordAyat,
   type SurahCompletion,
 } from "~/engine/recitation/recitation.ts";
 import {
+  activeMsBetween,
   applyKey,
   metrics as computeMetrics,
   createSession,
   isComplete,
   isTypedKey,
+  type KeystrokeRecord,
   type SessionState,
 } from "~/engine/session/session.ts";
 import { type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
@@ -78,10 +81,40 @@ function buildLesson(profile: Profile, seed: number): Lesson {
   });
 }
 
-function aggregate(stats: KeyStats, session: SessionState): KeyStats {
-  return session.records
-    .slice(1)
-    .reduce((next, record) => recordKeystroke(next, record.expected, record.latencyMs, record.correct), stats);
+function aggregate(stats: KeyStats, records: readonly KeystrokeRecord[]): KeyStats {
+  return records.reduce(
+    (next, record) => recordKeystroke(next, record.expected, record.latencyMs, record.correct),
+    stats,
+  );
+}
+
+interface Start {
+  session: SessionState;
+  reviewing: boolean;
+}
+
+function startSession(profile: Profile, lesson: Lesson, redo: boolean): Start {
+  const { surah, fromAyah, toAyah, kind } = lesson.source;
+  if (kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
+    return { session: createSession(lesson.text), reviewing: false };
+  }
+  const status = passageStatus(profile.recitation, surah, fromAyah, toAyah);
+  if (status.done && !redo) {
+    return { session: createSession(lesson.text, lesson.text.length), reviewing: true };
+  }
+  if (status.done) {
+    return { session: createSession(lesson.text), reviewing: false };
+  }
+  const next = lesson.ayat.find((span) => span.ayah === status.typedThrough + 1);
+  return {
+    session: createSession(lesson.text, status.typedThrough >= fromAyah ? (next?.start ?? 0) : 0),
+    reviewing: false,
+  };
+}
+
+interface Checkpoint {
+  cursor: number;
+  record: number;
 }
 
 export interface Trainer {
@@ -93,10 +126,12 @@ export interface Trainer {
   lastSummary: SessionSummary | null;
   shiftHeld: boolean;
   completion: SurahCompletion | null;
+  reviewing: boolean;
   dismissLatin: () => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetProfile: () => void;
-  goTo: (position: RecitationPosition) => void;
+  goTo: (position: RecitationPosition, redo?: boolean) => void;
+  redoPassage: () => void;
   nextPassage: () => void;
   previousPassage: () => void;
   dismissCompletion: () => void;
@@ -122,15 +157,36 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   const enabledRef = useLatest(enabled);
   const completionRef = useLatest(completion);
 
-  const [lesson, setLesson] = useState<Lesson>(() => buildLesson(profile, baseSeed.current));
-  const [session, setSession] = useState<SessionState>(() => createSession(lesson.text));
+  const [initial] = useState(() => {
+    const first = buildLesson(profile, baseSeed.current);
+    return { lesson: first, ...startSession(profile, first, false) };
+  });
+  const [lesson, setLesson] = useState<Lesson>(initial.lesson);
+  const [session, setSession] = useState<SessionState>(initial.session);
+  const [reviewing, setReviewing] = useState(initial.reviewing);
   const lessonRef = useLatest(lesson);
+  const reviewingRef = useLatest(reviewing);
+  const checkpointRef = useRef<Checkpoint>({ cursor: initial.session.origin, record: 0 });
 
-  const regenerate = useCallback((source: Profile) => {
-    lessonCounter.current += 1;
-    const next = buildLesson(source, baseSeed.current + lessonCounter.current);
+  const begin = useCallback((next: Lesson, started: Start) => {
+    checkpointRef.current = { cursor: started.session.origin, record: 0 };
     setLesson(next);
-    setSession(createSession(next.text));
+    setSession(started.session);
+    setReviewing(started.reviewing);
+  }, []);
+
+  const regenerate = useCallback(
+    (source: Profile, redo = false) => {
+      lessonCounter.current += 1;
+      const next = buildLesson(source, baseSeed.current + lessonCounter.current);
+      begin(next, startSession(source, next, redo));
+    },
+    [begin],
+  );
+
+  const pendingRecords = useCallback((state: SessionState): KeystrokeRecord[] => {
+    const from = checkpointRef.current.record;
+    return state.records.slice(Math.max(1, from));
   }, []);
 
   const commit = useCallback(
@@ -158,45 +214,81 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
       if (!countsTowardProgress(lessonRef.current.source)) {
         return;
       }
-      const stats = aggregate(current.stats, finished);
-      const passage = recordPassage(
-        current.recitation,
-        lessonRef.current.source,
-        {
-          at: summary.at,
-          chars: m.typedChars,
-          keystrokes: finished.keystrokes,
-          errors: m.errors,
-          elapsedMs: m.elapsedMs,
-        },
-        current.settings.surahOrder,
-      );
+      const stats = aggregate(current.stats, pendingRecords(finished));
+      checkpointRef.current = { cursor: finished.cursor, record: finished.records.length };
       commit({
         ...current,
         stats,
         progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
         history: pushHistory(current.history, summary),
-        recitation: passage.recitation,
       });
-      if (passage.completion !== null) {
-        setCompletion(passage.completion);
-      }
     },
-    [commit, profileRef, lessonRef],
+    [commit, profileRef, lessonRef, pendingRecords],
+  );
+
+  const checkpoint = useCallback(
+    (state: SessionState): SurahCompletion | null => {
+      const { source, ayat } = lessonRef.current;
+      const { surah, fromAyah, toAyah } = source;
+      if (
+        reviewingRef.current ||
+        source.kind !== "recite" ||
+        surah === undefined ||
+        fromAyah === undefined ||
+        toAyah === undefined
+      ) {
+        return null;
+      }
+      const mark = checkpointRef.current;
+      const finished = ayat.filter((span) => span.end <= state.cursor && span.end > mark.cursor);
+      const first = finished[0];
+      const last = finished[finished.length - 1];
+      if (first === undefined || last === undefined) {
+        return null;
+      }
+      const current = profileRef.current;
+      const records = pendingRecords(state);
+      const stats = aggregate(current.stats, records);
+      const update = recordAyat(
+        current.recitation,
+        { surah, from: first.ayah, to: last.ayah, passageFrom: fromAyah, passageTo: toAyah },
+        {
+          at: Date.now(),
+          chars: state.cursor - mark.cursor,
+          keystrokes: state.records.length - mark.record,
+          errors: state.records.slice(mark.record).filter((record) => !record.correct).length,
+          elapsedMs: activeMsBetween(state, mark.record, state.records.length),
+        },
+        current.settings.surahOrder,
+      );
+      checkpointRef.current = { cursor: state.cursor, record: state.records.length };
+      commit({
+        ...current,
+        stats,
+        progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
+        recitation: update.recitation,
+      });
+      if (update.completion !== null) {
+        setCompletion(update.completion);
+      }
+      return update.completion;
+    },
+    [commit, profileRef, lessonRef, reviewingRef, pendingRecords],
   );
 
   const settledRef = useRef<SessionState | null>(null);
   useEffect(() => {
-    if (!isComplete(session) || settledRef.current === session) {
+    const completed = checkpoint(session);
+    if ((!isComplete(session) && completed === null) || settledRef.current === session) {
       return;
     }
     settledRef.current = session;
     finish(session);
     regenerate(profileRef.current);
-  }, [session, finish, regenerate, profileRef]);
+  }, [session, checkpoint, finish, regenerate, profileRef]);
 
   const goTo = useCallback(
-    (position: RecitationPosition) => {
+    (position: RecitationPosition, redo = false) => {
       const current = profileRef.current;
       const updated: Profile = {
         ...current,
@@ -204,10 +296,14 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
         recitation: { ...current.recitation, position: clampPosition(position) },
       };
       commit(updated);
-      regenerate(updated);
+      regenerate(updated, redo);
     },
     [commit, regenerate, profileRef],
   );
+
+  const redoPassage = useCallback(() => {
+    begin(lessonRef.current, startSession(profileRef.current, lessonRef.current, true));
+  }, [begin, lessonRef, profileRef]);
 
   const stepPassage = useCallback(
     (direction: 1 | -1) => {
@@ -250,6 +346,9 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
       if (target instanceof HTMLElement && PASSTHROUGH_TAGS.includes(target.tagName)) {
         return;
       }
+      if (reviewingRef.current) {
+        return;
+      }
       if (LATIN.test(event.key)) {
         event.preventDefault();
         setLatinDetected(true);
@@ -277,7 +376,7 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [enabledRef, completionRef, lessonRef, stepPassageRef]);
+  }, [enabledRef, completionRef, lessonRef, reviewingRef, stepPassageRef]);
 
   const updateSettings = useCallback(
     (patch: Partial<Settings>) => {
@@ -315,7 +414,7 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     const surah = completionRef.current?.surah;
     setCompletion(null);
     if (surah !== undefined) {
-      goTo({ surah, ayah: 1 });
+      goTo({ surah, ayah: 1 }, true);
     }
   }, [goTo, completionRef]);
 
@@ -330,10 +429,12 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     lastSummary,
     shiftHeld,
     completion,
+    reviewing,
     dismissLatin,
     updateSettings,
     resetProfile,
     goTo,
+    redoPassage,
     nextPassage,
     previousPassage,
     dismissCompletion,

@@ -46,6 +46,7 @@ export interface RecitationPlayerOptions {
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
   active?: boolean;
+  startAyah?: number;
 }
 
 export function useRecitationPlayer({
@@ -53,6 +54,7 @@ export function useRecitationPlayer({
   settings,
   updateSettings,
   active = true,
+  startAyah,
 }: RecitationPlayerOptions): RecitationPlayer {
   const { source } = lesson;
   const surah = source.surah ?? 0;
@@ -73,7 +75,8 @@ export function useRecitationPlayer({
   const loadedRef = useRef<string | null>(null);
   const tokenRef = useRef(0);
 
-  const [clipIndex, setClipIndex] = useState(0);
+  const startIndex = startAyah === undefined ? 0 : firstClipOf(clips, startAyah);
+  const [clipIndex, setClipIndex] = useState(startIndex);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -108,8 +111,8 @@ export function useRecitationPlayer({
     if (promise === undefined) {
       return;
     }
-    promise.catch(() => {
-      if (audio.readyState === 0) {
+    promise.catch((error: unknown) => {
+      if (audio.readyState === 0 || (error instanceof DOMException && error.name === "AbortError")) {
         return;
       }
       setPlaying(false);
@@ -134,11 +137,12 @@ export function useRecitationPlayer({
     }
   }, [active]);
 
-  const passageKey = `${surah}:${fromAyah}:${toAyah}:${settings.reciter}`;
+  const passageKey = `${surah}:${fromAyah}:${toAyah}:${startAyah ?? 0}:${settings.reciter}`;
+  const startIndexRef = useLatest(startIndex);
   const passageRef = useRef(passageKey);
 
   useEffect(() => {
-    setClipIndex(0);
+    setClipIndex(startIndexRef.current);
     setFailed(false);
     setProgress(0);
     audioRef.current?.pause();
@@ -149,7 +153,7 @@ export function useRecitationPlayer({
     if (!available) {
       setPlaying(false);
     }
-  }, [available, passageKey]);
+  }, [available, passageKey, startIndexRef]);
 
   useEffect(() => {
     const audio = element();

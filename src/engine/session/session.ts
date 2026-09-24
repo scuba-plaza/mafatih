@@ -24,6 +24,7 @@ export interface SessionState {
   errorAt: number | null;
   records: readonly KeystrokeRecord[];
   idleMs: number;
+  origin: number;
 }
 
 export interface SessionMetrics {
@@ -35,12 +36,13 @@ export interface SessionMetrics {
   errors: number;
 }
 
-export function createSession(text: string): SessionState {
+export function createSession(text: string, origin = 0): SessionState {
   const chars = [...text];
+  const start = Math.max(0, Math.min(origin, chars.length));
   return {
     chars,
-    cursor: 0,
-    outcomes: chars.map(() => "pending" as Outcome),
+    cursor: start,
+    outcomes: chars.map((_, i) => (i < start ? "correct" : "pending") as Outcome),
     errors: 0,
     keystrokes: 0,
     startedAt: null,
@@ -49,6 +51,7 @@ export function createSession(text: string): SessionState {
     errorAt: null,
     records: [],
     idleMs: 0,
+    origin: start,
   };
 }
 
@@ -166,10 +169,19 @@ export function metrics(state: SessionState, now?: number): SessionMetrics {
   const end = state.finishedAt ?? live ?? state.lastAcceptedAt ?? state.startedAt ?? 0;
   const start = state.startedAt ?? end;
   const elapsedMs = Math.max(0, end - start - state.idleMs);
-  const typedChars = state.cursor;
+  const typedChars = state.cursor - state.origin;
   const minutes = elapsedMs / 60000;
   const cpm = minutes > 0 ? typedChars / minutes : 0;
   const correctStrokes = state.keystrokes - state.errors;
   const accuracy = state.keystrokes === 0 ? 0 : correctStrokes / state.keystrokes;
   return { elapsedMs, typedChars, cpm, wpm: cpm / 5, accuracy, errors: state.errors };
+}
+
+export function activeMsBetween(state: SessionState, fromRecord: number, toRecord: number): number {
+  let total = 0;
+  for (let i = Math.max(1, fromRecord); i < Math.min(toRecord, state.records.length); i += 1) {
+    const gap = (state.records[i]?.at ?? 0) - (state.records[i - 1]?.at ?? 0);
+    total += Math.min(Math.max(0, gap), LATENCY_CAP_MS);
+  }
+  return total;
 }

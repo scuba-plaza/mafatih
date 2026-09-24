@@ -227,16 +227,21 @@ export interface RecitationUpdate {
   completion: SurahCompletion | null;
 }
 
-export function recordPassage(
+export interface AyatTyped {
+  surah: number;
+  from: number;
+  to: number;
+  passageFrom: number;
+  passageTo: number;
+}
+
+export function recordAyat(
   recitation: Recitation,
-  source: LessonSource,
+  typed: AyatTyped,
   result: PassageResult,
   order: SurahOrder,
 ): RecitationUpdate {
-  const { surah, fromAyah, toAyah } = source;
-  if (source.kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
-    return { recitation, completion: null };
-  }
+  const { surah, from, to, passageFrom, passageTo } = typed;
   const total = ayatCount(surah);
   if (total === 0) {
     return { recitation, completion: null };
@@ -244,7 +249,7 @@ export function recordPassage(
 
   const record = recordOf(recitation, surah);
   const run: Run = {
-    typed: addRange(record.run.typed, fromAyah, toAyah),
+    typed: addRange(record.run.typed, from, to),
     chars: record.run.chars + result.chars,
     keystrokes: record.run.keystrokes + result.keystrokes,
     errors: record.run.errors + result.errors,
@@ -252,7 +257,8 @@ export function recordPassage(
   };
 
   if (coveredAyat(run.typed) < total) {
-    const resume = toAyah < total ? toAyah + 1 : (firstGap(run.typed, total) ?? 1);
+    const passageDone = to >= passageTo;
+    const resume = !passageDone ? passageFrom : passageTo < total ? passageTo + 1 : (firstGap(run.typed, total) ?? 1);
     const position = { surah, ayah: resume };
     return { recitation: withRecord(recitation, surah, { ...record, run, resume }, position), completion: null };
   }
@@ -287,6 +293,42 @@ export function recordPassage(
       next,
     },
   };
+}
+
+export function recordPassage(
+  recitation: Recitation,
+  source: LessonSource,
+  result: PassageResult,
+  order: SurahOrder,
+): RecitationUpdate {
+  const { surah, fromAyah, toAyah } = source;
+  if (source.kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
+    return { recitation, completion: null };
+  }
+  return recordAyat(
+    recitation,
+    { surah, from: fromAyah, to: toAyah, passageFrom: fromAyah, passageTo: toAyah },
+    result,
+    order,
+  );
+}
+
+export interface PassageStatus {
+  done: boolean;
+  typedThrough: number;
+}
+
+export function passageStatus(recitation: Recitation, surah: number, fromAyah: number, toAyah: number): PassageStatus {
+  const record = recordOf(recitation, surah);
+  const covering = record.run.typed.find(([start, end]) => start <= fromAyah && end >= fromAyah);
+  const typedThrough = covering === undefined ? fromAyah - 1 : Math.min(covering[1], toAyah);
+  if (typedThrough >= toAyah) {
+    return { done: true, typedThrough };
+  }
+  if (typedThrough < fromAyah && record.completions > 0) {
+    return { done: true, typedThrough: toAyah };
+  }
+  return { done: false, typedThrough };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
