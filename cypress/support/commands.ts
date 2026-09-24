@@ -1,10 +1,20 @@
+import { letterIndex } from "../../src/engine/corpus/corpus.ts";
 import { DEFAULT_LAYOUT, type KeyStroke, type LayoutId, strokeFor } from "../../src/engine/layout/ara.ts";
 import { LIGATURES } from "../../src/engine/layout/ligatures.ts";
 
 export interface ArabicTypeOptions {
   delay?: number;
   layout?: LayoutId;
+  mistakeEvery?: number;
 }
+
+export interface LessonLoopOptions extends ArabicTypeOptions {
+  maxLessons?: number;
+}
+
+const MISTAKE = "ز";
+const MISTAKE_FALLBACK = "ظ";
+const DEFAULT_MAX_LESSONS = 10;
 
 function dispatch(win: Cypress.AUTWindow, type: "keydown" | "keyup", key: string, code: string, shift: boolean): void {
   const event = new win.KeyboardEvent(type, {
@@ -36,17 +46,37 @@ function pressChar(win: Cypress.AUTWindow, char: string, layout: LayoutId): void
   press(win, char, stroke);
 }
 
+function withMistakes(text: string, every: number): string[] {
+  const strokes: string[] = [];
+  let letters = 0;
+  for (const char of [...text]) {
+    if (every > 0 && letterIndex.has(char)) {
+      letters += 1;
+      if (letters % every === 0) {
+        strokes.push(char === MISTAKE ? MISTAKE_FALLBACK : MISTAKE);
+      }
+    }
+    strokes.push(char);
+  }
+  return strokes;
+}
+
 Cypress.Commands.add("typeArabic", (text: string, options: ArabicTypeOptions = {}) => {
   const delay = options.delay ?? 0;
   const layout = options.layout ?? DEFAULT_LAYOUT;
-  cy.window({ log: false }).then((win) => {
-    for (const char of [...text]) {
-      pressChar(win, char, layout);
-      if (delay > 0) {
-        cy.wait(delay, { log: false });
-      }
+  const strokes = withMistakes(text, options.mistakeEvery ?? 0);
+  if (delay > 0) {
+    for (const char of strokes) {
+      cy.window({ log: false }).then((win) => pressChar(win, char, layout));
+      cy.wait(delay, { log: false });
     }
-  });
+  } else {
+    cy.window({ log: false }).then((win) => {
+      for (const char of strokes) {
+        pressChar(win, char, layout);
+      }
+    });
+  }
   cy.log(`typeArabic: ${text}`);
 });
 
@@ -81,6 +111,39 @@ Cypress.Commands.add("typeTarget", (options: ArabicTypeOptions = {}) => {
   cy.targetText().then((text) => {
     cy.typeArabic(text, options);
   });
+});
+
+Cypress.Commands.add("completeLesson", (options: ArabicTypeOptions = {}) => {
+  cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
+  cy.typeTarget(options);
+  cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
+});
+
+function lessonsUntil(
+  selector: string,
+  reached: (text: string) => boolean,
+  options: LessonLoopOptions,
+  typed: number,
+): Cypress.Chainable<number> {
+  return cy
+    .get(selector, { log: false })
+    .invoke({ log: false }, "text")
+    .then((text: string) => {
+      if (reached(text)) {
+        cy.log(`reached after ${typed} lessons`);
+        return cy.wrap(typed, { log: false });
+      }
+      const max = options.maxLessons ?? DEFAULT_MAX_LESSONS;
+      if (typed >= max) {
+        throw new Error(`${selector} still reads ${JSON.stringify(text)} after ${typed} lessons`);
+      }
+      cy.completeLesson(options);
+      return lessonsUntil(selector, reached, options, typed + 1);
+    });
+}
+
+Cypress.Commands.add("completeLessonsUntilUnlocked", (count: number, options: LessonLoopOptions = {}) => {
+  return lessonsUntil("[data-cy=unlocked-count]", (text) => Number(text) >= count, options, 0);
 });
 
 Cypress.Commands.add("openSettings", () => {

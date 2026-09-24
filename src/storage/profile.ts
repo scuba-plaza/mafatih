@@ -4,8 +4,7 @@ import { clampFontSize, DEFAULT_FONT, DEFAULT_FONT_SIZE, type FontId, isFontId }
 import { DEFAULT_LAYOUT, isLayoutId, type LayoutId } from "~/engine/layout/ara.ts";
 import { DEFAULT_CUSTOM_TEXT, MAX_CUSTOM_CHARS } from "~/engine/lessons/custom.ts";
 import { clampAyatPerLesson, DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
-import type { KeyStats } from "~/engine/stats/keystats.ts";
-import { emptyStats } from "~/engine/stats/keystats.ts";
+import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
 import { initialProgress, type Progress } from "~/engine/stats/unlock.ts";
 
 export type Mode = "adaptive" | "recite" | "custom";
@@ -129,7 +128,7 @@ export function parseProfile(raw: string | null): Profile {
 
   const fallback = defaultProfile();
   const progress = isRecord(parsed.progress) ? (parsed.progress as unknown as Progress) : fallback.progress;
-  const stats = isRecord(parsed.stats) ? (parsed.stats as unknown as KeyStats) : fallback.stats;
+  const stats = sanitizeStats(parsed.stats);
   const settings = sanitizeSettings(parsed.settings);
   const history = Array.isArray(parsed.history) ? (parsed.history as SessionSummary[]) : [];
 

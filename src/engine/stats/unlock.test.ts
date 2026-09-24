@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { letterOrder } from "~/engine/corpus/corpus.ts";
-import { emptyStats, type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
+import {
+  accuracyOf,
+  emptyStats,
+  type KeyStats,
+  recordKeystroke,
+  sanitizeStats,
+  statFor,
+} from "~/engine/stats/keystats.ts";
 import {
   advanceProgress,
   DEFAULT_UNLOCK_CONFIG,
@@ -65,6 +72,26 @@ test("a fast accurate focus letter unlocks the next one", () => {
   const stats = drill(emptyStats(), [focus], cfg.minSamples * 2, 200);
   assert.equal(shouldUnlockNext(stats, progress, cfg), true);
   assert.equal(advanceProgress(stats, progress, cfg).unlockedCount, STARTING_LETTERS + 1);
+});
+
+test("a focus letter held back by old mistakes unlocks once recent typing is clean", () => {
+  const progress = initialProgress();
+  const focus = focusLetter(progress);
+  assert.ok(focus);
+  const stuck: KeyStats = sanitizeStats({ [focus]: { char: focus, samples: 180, meanMs: 300, hits: 180, misses: 20 } });
+  assert.equal(shouldUnlockNext(stuck, progress, cfg), false);
+  const recovered = drill(stuck, [focus], 15, 300);
+  assert.ok(accuracyOf(statFor(recovered, focus)) < cfg.minAccuracy);
+  assert.equal(shouldUnlockNext(recovered, progress, cfg), true);
+});
+
+test("the tier waits for recent accuracy, not a lifetime of clean typing", () => {
+  const progress = initialProgress();
+  let stats = drill(emptyStats(), unlockedLetters(progress), 30, 200);
+  stats = drill(stats, unlockedLetters(progress), 4, 200, false);
+  assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
+  stats = drill(stats, unlockedLetters(progress), 30, 200);
+  assert.equal(shouldAdvanceTier(stats, progress, cfg), true);
 });
 
 test("unlocking stops at the end of the alphabet", () => {

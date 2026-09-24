@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
+import FocusLetter from "~/components/FocusLetter.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
 import RecitationBar from "~/components/RecitationBar.tsx";
@@ -77,6 +78,9 @@ export default function App() {
             <span data-cy="unlocked-count">{profile.progress.unlockedCount}</span>
             {`/${letterOrder.length} · `}
             <span data-cy="tier">{effectiveTier}</span>
+          </span>
+          <span className="font-mono text-xs tabular-nums text-stone-400">
+            <FocusLetter progress={profile.progress} stats={profile.stats} />
           </span>
           <NavLink target="practice" current={route} label="Practice" />
           <NavLink target="stats" current={route} label="Stats" />

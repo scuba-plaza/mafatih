@@ -90,6 +90,50 @@ describe("progression and persistence", () => {
   });
 });
 
+describe("earning letters by typing", () => {
+  const TYPING = { delay: 25 } as const;
+  const first5 = letterOrder.slice(0, 5);
+  const sixth = letterOrder[5] as string;
+  const seventh = letterOrder[6] as string;
+
+  it("a fresh profile types its way from six letters to eight, surviving a reload", () => {
+    cy.visit("/?seed=7");
+    cy.get("[data-cy=unlocked-count]").should("have.text", "6");
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", sixth);
+
+    cy.completeLessonsUntilUnlocked(7, { ...TYPING, maxLessons: 4 });
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
+    cy.targetText().should("contain", seventh);
+
+    cy.reload();
+    cy.get("[data-cy=unlocked-count]").should("have.text", "7");
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
+
+    cy.completeLessonsUntilUnlocked(8, { ...TYPING, maxLessons: 4 });
+    cy.get("[data-cy=tier]").should("not.have.text", "none");
+    cy.showStats();
+    cy.get("[data-cy=letter-stat]").should("have.length.at.least", 8);
+  });
+
+  it("keeps climbing for a learner who slips on one letter in fifteen", () => {
+    cy.visit("/?seed=7");
+    cy.completeLessonsUntilUnlocked(8, { ...TYPING, mistakeEvery: 15, maxLessons: 12 });
+  });
+
+  it("lets a letter dragged down by early mistakes recover once the typing is clean", () => {
+    visitWith({
+      progress: { unlockedCount: 6, tier: "none" },
+      stats: {
+        ...masteredStats(first5),
+        [sixth]: { char: sixth, samples: 180, meanMs: 300, hits: 180, misses: 20 },
+      },
+    });
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", sixth).and("have.attr", "data-accuracy", "0.900");
+    cy.completeLessonsUntilUnlocked(7, { ...TYPING, maxLessons: 5 });
+    cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
+  });
+});
+
 describe("the stats page", () => {
   it("lives on its own route, reachable and leavable from the header", () => {
     cy.visit("/?seed=7");

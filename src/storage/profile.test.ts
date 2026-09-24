@@ -109,3 +109,21 @@ test("a profile from a future version is discarded", () => {
   assert.deepEqual(parseProfile("{not json"), defaultProfile());
   assert.deepEqual(parseProfile(null), defaultProfile());
 });
+
+test("letter statistics saved before recent accuracy existed are carried over, not wiped", () => {
+  const stored = {
+    ...defaultProfile(),
+    progress: { unlockedCount: 6, tier: "none" },
+    stats: { ي: { char: "ي", samples: 180, meanMs: 300, hits: 180, misses: 20 } },
+  };
+  const profile = parseProfile(JSON.stringify(stored));
+  assert.equal(profile.progress.unlockedCount, 6);
+  assert.deepEqual(profile.stats.ي, {
+    char: "ي",
+    samples: 180,
+    meanMs: 300,
+    hits: 180,
+    misses: 20,
+    recentAccuracy: 0.9,
+  });
+});
