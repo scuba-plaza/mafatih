@@ -85,7 +85,7 @@ Cypress.Commands.add("typeLigature", (ligature: string) => {
     throw new Error(`${JSON.stringify(ligature)} is not a lam-alef ligature`);
   }
   cy.window({ log: false }).then((win) => {
-    const stroke = strokeFor(ligature, "pc102");
+    const stroke = strokeFor(ligature, "win101");
     if (stroke === undefined) {
       throw new Error(`no keystroke produces ${JSON.stringify(ligature)}`);
     }

@@ -7,7 +7,6 @@ import {
   LAYOUTS,
   lettersOfLayout,
   MAC_CAPS,
-  PC102_CAPS,
   strokeFor,
   TATWEEL,
   TYPEABLE,
@@ -35,14 +34,14 @@ test("sentence punctuation is typeable, because both layouts carry it", () => {
 });
 
 test("a glyph only one layout carries is not typeable", () => {
-  for (const glyph of [",", "'", "~", "×", "1"]) {
-    assert.ok(strokeFor(glyph, "pc102"), `Arabic 102 should carry ${glyph}`);
+  for (const glyph of [",", "‘", "~", "×", "1"]) {
+    assert.ok(strokeFor(glyph, "win101"), `Arabic 101 should carry ${glyph}`);
     assert.equal(strokeFor(glyph, "mac"), undefined, `Macintosh should not carry ${glyph}`);
     assert.ok(!TYPEABLE.has(glyph), `${glyph} is not reachable on every layout`);
   }
   for (const glyph of ["«", "»", "١", "ٱ"]) {
     assert.ok(strokeFor(glyph, "mac"), `Macintosh should carry ${glyph}`);
-    assert.equal(strokeFor(glyph, "pc102"), undefined, `Arabic 102 should not carry ${glyph}`);
+    assert.equal(strokeFor(glyph, "win101"), undefined, `Arabic 101 should not carry ${glyph}`);
     assert.ok(!TYPEABLE.has(glyph), `${glyph} is not reachable on every layout`);
   }
 });
@@ -57,13 +56,13 @@ test("both layouts reach every typeable character", () => {
 
 test("both layouts expose exactly the same Arabic letters", () => {
   const mac = [...lettersOfLayout("mac")].sort();
-  const pc = [...lettersOfLayout("pc102")].sort();
-  assert.deepEqual(mac, pc);
+  const win = [...lettersOfLayout("win101")].sort();
+  assert.deepEqual(mac, win);
   assert.equal(mac.length, 36);
 });
 
 test("tatweel is reachable on both layouts but is not a corpus letter", () => {
-  assert.ok(PC102_CAPS.some((cap) => cap.shift === TATWEEL));
+  assert.ok(WIN101_CAPS.some((cap) => cap.shift === TATWEEL));
   assert.ok(MAC_CAPS.some((cap) => cap.base === TATWEEL));
   assert.ok(!TYPEABLE.has(TATWEEL));
 });
@@ -76,7 +75,7 @@ test("every haraka needs shift on both layouts", () => {
   }
 });
 
-test("Arabic 102 places the harakat on its documented xkb keys", () => {
+test("Arabic 101 places the harakat on its documented keys", () => {
   const expected: [string, string][] = [
     ["َ", "KeyQ"],
     ["ً", "KeyW"],
@@ -88,7 +87,7 @@ test("Arabic 102 places the harakat on its documented xkb keys", () => {
     ["ّ", "Backquote"],
   ];
   for (const [char, code] of expected) {
-    assert.equal(strokeFor(char, "pc102")?.code, code, `${char} should sit on ${code}`);
+    assert.equal(strokeFor(char, "win101")?.code, code, `${char} should sit on ${code}`);
   }
 });
 
@@ -127,10 +126,10 @@ test("Macintosh moves the hamza carriers onto the bottom row", () => {
   }
 });
 
-test("only Arabic 102 carries a lam-alef ligature key", () => {
-  const pc = PC102_CAPS.find((k) => k.code === "KeyB");
-  assert.equal(expandLigatures(pc?.base ?? ""), "لا");
-  assert.equal(strokeFor("ﻻ", "pc102")?.code, "KeyB");
+test("only Arabic 101 carries a lam-alef ligature key", () => {
+  const win = WIN101_CAPS.find((k) => k.code === "KeyB");
+  assert.equal(expandLigatures(win?.base ?? ""), "لا");
+  assert.equal(strokeFor("ﻻ", "win101")?.code, "KeyB");
   assert.equal(strokeFor("ﻻ", "mac"), undefined, "the Macintosh layout has no ligature key");
 });
 
@@ -194,10 +193,10 @@ test("Arabic 101 matches Microsoft's KBDA1 table", () => {
   }
 });
 
-test("Arabic 101 differs from the Linux xkb table only in its typographic quotes", () => {
-  const differing = WIN101_CAPS.filter((cap, i) => {
-    const other = PC102_CAPS[i];
-    return other === undefined || other.base !== cap.base || other.shift !== cap.shift;
-  }).map((cap) => cap.code);
-  assert.deepEqual(differing, ["KeyU", "KeyM"]);
+test("only Arabic (101) and Arabic (Macintosh) are offered", () => {
+  assert.deepEqual(LAYOUT_IDS, ["win101", "mac"]);
+  assert.deepEqual(
+    LAYOUT_IDS.map((id) => LAYOUTS[id].name),
+    ["Arabic (101)", "Arabic (Macintosh)"],
+  );
 });

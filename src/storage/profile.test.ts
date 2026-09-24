@@ -27,7 +27,7 @@ test("every setting survives a round trip through storage", () => {
       fontSize: 64,
       surahOrder: "juz-amma" as const,
       ayatPerLesson: 10,
-      layout: "pc102" as const,
+      layout: "mac" as const,
       showKeyboard: false,
       reciter: "mujawwad" as const,
       volume: 0.35,
@@ -149,4 +149,10 @@ test("the story survives a round trip and a stored story wins over the old surah
   const profile = parseProfile(JSON.stringify(stored));
   assert.deepEqual(profile.story, stored.story);
   assert.equal("surah" in profile.settings, false);
+});
+
+test("a profile that chose the removed Arabic (102) layout lands on Arabic (101)", () => {
+  const stored = { ...defaultProfile(), settings: { ...defaultSettings(), layout: "pc102" } };
+  assert.equal(parseProfile(JSON.stringify(stored)).settings.layout, "win101");
+  assert.equal(sanitizeSettings({ layout: "pc102" }).layout, "win101");
 });

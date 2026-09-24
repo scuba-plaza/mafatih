@@ -5,7 +5,7 @@ export interface KeyCap {
   row: number;
 }
 
-export type LayoutId = "win101" | "mac" | "pc102";
+export type LayoutId = "win101" | "mac";
 
 export interface KeyboardLayout {
   id: LayoutId;
@@ -13,7 +13,7 @@ export interface KeyboardLayout {
   caps: readonly KeyCap[];
 }
 
-export const PC102_CAPS: readonly KeyCap[] = [
+export const WIN101_CAPS: readonly KeyCap[] = [
   { code: "Backquote", base: "ذ", shift: "ّ", row: 0 },
   { code: "Digit1", base: "1", shift: "!", row: 0 },
   { code: "Digit2", base: "2", shift: "@", row: 0 },
@@ -34,7 +34,7 @@ export const PC102_CAPS: readonly KeyCap[] = [
   { code: "KeyR", base: "ق", shift: "ٌ", row: 1 },
   { code: "KeyT", base: "ف", shift: "ﻹ", row: 1 },
   { code: "KeyY", base: "غ", shift: "إ", row: 1 },
-  { code: "KeyU", base: "ع", shift: "`", row: 1 },
+  { code: "KeyU", base: "ع", shift: "‘", row: 1 },
   { code: "KeyI", base: "ه", shift: "÷", row: 1 },
   { code: "KeyO", base: "خ", shift: "×", row: 1 },
   { code: "KeyP", base: "ح", shift: "؛", row: 1 },
@@ -60,20 +60,13 @@ export const PC102_CAPS: readonly KeyCap[] = [
   { code: "KeyV", base: "ر", shift: "{", row: 3 },
   { code: "KeyB", base: "ﻻ", shift: "ﻵ", row: 3 },
   { code: "KeyN", base: "ى", shift: "آ", row: 3 },
-  { code: "KeyM", base: "ة", shift: "'", row: 3 },
+  { code: "KeyM", base: "ة", shift: "’", row: 3 },
   { code: "Comma", base: "و", shift: ",", row: 3 },
   { code: "Period", base: "ز", shift: ".", row: 3 },
   { code: "Slash", base: "ظ", shift: "؟", row: 3 },
 
   { code: "Space", base: " ", shift: " ", row: 4 },
 ];
-
-const WINDOWS_QUOTES: Readonly<Record<string, string>> = { KeyU: "‘", KeyM: "’" };
-
-export const WIN101_CAPS: readonly KeyCap[] = PC102_CAPS.map((cap) => {
-  const shift = WINDOWS_QUOTES[cap.code];
-  return shift === undefined ? cap : { ...cap, shift };
-});
 
 export const MAC_CAPS: readonly KeyCap[] = [
   { code: "Backquote", base: "ـ", shift: "", row: 0 },
@@ -133,10 +126,9 @@ export const MAC_CAPS: readonly KeyCap[] = [
 export const LAYOUTS: Record<LayoutId, KeyboardLayout> = {
   win101: { id: "win101", name: "Arabic (101)", caps: WIN101_CAPS },
   mac: { id: "mac", name: "Arabic (Macintosh)", caps: MAC_CAPS },
-  pc102: { id: "pc102", name: "Arabic (Linux xkb)", caps: PC102_CAPS },
 };
 
-export const LAYOUT_IDS: readonly LayoutId[] = ["win101", "mac", "pc102"];
+export const LAYOUT_IDS: readonly LayoutId[] = ["win101", "mac"];
 
 export function isLayoutId(value: unknown): value is LayoutId {
   return typeof value === "string" && LAYOUT_IDS.includes(value as LayoutId);
@@ -182,7 +174,7 @@ function reachableOnEveryLayout(): string[] {
   return [...(first ?? [])].filter((glyph) => rest.every((layout) => layout.has(glyph)));
 }
 
-export const TYPEABLE_LETTERS: readonly string[] = lettersOf(PC102_CAPS);
+export const TYPEABLE_LETTERS: readonly string[] = lettersOf(WIN101_CAPS);
 
 export const TYPEABLE_PUNCTUATION: readonly string[] = reachableOnEveryLayout().filter(
   (glyph) => glyph !== " " && !ARABIC_LETTER.test(glyph) && !HARAKAT.has(glyph),
@@ -215,7 +207,6 @@ function indexOf(caps: readonly KeyCap[]): ReadonlyMap<string, KeyStroke> {
 const STROKE_INDEX: Record<LayoutId, ReadonlyMap<string, KeyStroke>> = {
   win101: indexOf(WIN101_CAPS),
   mac: indexOf(MAC_CAPS),
-  pc102: indexOf(PC102_CAPS),
 };
 
 export function strokeFor(char: string, layout: LayoutId = DEFAULT_LAYOUT): KeyStroke | undefined {

@@ -135,7 +135,9 @@ describe("keyboard layout selection", () => {
     cy.get("[data-cy=keycap][data-code=KeyU]").should("contain.text", "‘");
     cy.openSettings();
     cy.get("[data-cy=setting-layout]").should("have.value", "win101");
+    cy.get("[data-cy=setting-layout] option").should("have.length", 2);
     cy.get("[data-cy=setting-layout] option").first().should("have.text", "Arabic (101)");
+    cy.get("[data-cy=setting-layout] option[value=pc102]").should("not.exist");
   });
 
   it("switches to Arabic (Macintosh) and moves the shadda onto a letter key", () => {
@@ -157,12 +159,12 @@ describe("keyboard layout selection", () => {
 
   it("remembers the layout across a reload", () => {
     cy.openSettings();
-    cy.get("[data-cy=setting-layout]").select("pc102");
+    cy.get("[data-cy=setting-layout]").select("mac");
     cy.closeSettings();
     cy.reload();
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "pc102");
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
     cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("have.value", "pc102");
+    cy.get("[data-cy=setting-layout]").should("have.value", "mac");
   });
 
   it("highlights the Macintosh key for the next character", () => {

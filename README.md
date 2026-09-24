@@ -14,7 +14,7 @@ Qur'anic orthography carries marks no standard keyboard can produce. The whole Q
 | | |
 |---|---|
 | Distinct codepoints in the entire text | **46** |
-| Untypeable on the standard Arabic 102 layout | **1** (`U+0670`, dagger alef — 3,330 occurrences) |
+| Untypeable on the standard Arabic (101) layout | **1** (`U+0670`, dagger alef — 3,330 occurrences) |
 | Untypeable after normalisation | **0** |
 | Distinct fully-diacritised word forms | 18,198 |
 
@@ -85,7 +85,7 @@ Mafatih reads the characters your OS produces, so **an Arabic layout must be act
 add **Arabic (101)** — the default here — under Settings → Time & language → Language. On Linux:
 
 ```sh
-setxkbmap ara                # Arabic, the xkb port of Arabic (101)
+setxkbmap ara                # Arabic — the same keys as Arabic (101)
 setxkbmap ara -variant mac   # Arabic (Macintosh)
 ```
 
@@ -99,20 +99,19 @@ pnpm dev
 
 ## Keyboard layouts
 
-Three layouts ship, selectable in settings, **defaulting to Arabic (101)**, the standard Windows
-Arabic keyboard (`KBDA1`), transcribed from Microsoft's own layout table. **Arabic (Linux xkb)** is
-xkb's `ara(basic)`, a port of the same layout that differs only in two shifted keys, where it types
-ASCII `` ` `` and `'` instead of Windows' `‘` and `’`. It used to be labelled *Arabic (102)*, but
-Windows' real Arabic (102), `KBDA2`, is a different arrangement. **Arabic (Macintosh)** is GNOME's
-name for the xkb `ara(mac)` variant, resolved with `xkbcli compile-keymap --layout ara --variant mac`,
-since it is a partial override over `ara(digits)` over `ara(basic)` rather than a standalone
-definition.
+Two layouts ship, selectable in settings, **defaulting to Arabic (101)**, the standard Windows
+Arabic keyboard (`KBDA1`), transcribed from Microsoft's own layout table. Linux's `ara` layout is a
+port of it with the same keys for everything a lesson can contain — it differs only in typing ASCII
+`` ` `` and `'` where Windows has `‘` and `’` — so it is the one to pick there too. **Arabic
+(Macintosh)** is GNOME's name for the xkb `ara(mac)` variant, resolved with
+`xkbcli compile-keymap --layout ara --variant mac`, since it is a partial override over
+`ara(digits)` over `ara(basic)` rather than a standalone definition.
 
-All three reach all 73 typeable codepoints — asserted in the unit tests, so none can drift. Windows
+Both reach all 73 typeable codepoints — asserted in the unit tests, so neither can drift. Windows
 sends a lam-alef key as its two letters in one event, where xkb sends a single presentation form;
-the session accepts both. The two families differ in ways that matter at the keycap:
+the session accepts both. The layouts differ in ways that matter at the keycap:
 
-| | Arabic (Macintosh) | Arabic (101) and Linux xkb |
+| | Arabic (Macintosh) | Arabic (101) |
 |---|---|---|
 | harakat | all eight on the top letter row, `Q`–`I` | scattered across `Q W E R`, `A S`, `X`, backtick |
 | shadda | `I` | backtick |
@@ -121,10 +120,11 @@ the session accepts both. The two families differ in ways that matter at the key
 | backtick key | tatweel | `ذ` |
 
 Arabic (101) is the default because it is the layout most Arabic typists already have, on Windows
-and on Linux alike. The Macintosh arrangement is arguably better for this app: with 43% of keystrokes on the shift
-layer, having every haraka under one row of the home position matters. Because the ligature key is
-absent there, `لا` is typed as two keys — the session accepts either path regardless of which layout
-is displayed, since input is read from the character your OS emits, not from the key position.
+and on Linux alike. The Macintosh arrangement is arguably better for this app: with 43% of
+keystrokes on the shift layer, having every haraka under one row of the home position matters.
+Because the ligature key is absent there, `لا` is typed as two keys — the session accepts either
+path regardless of which layout is displayed, since input is read from the character your OS emits,
+not from the key position.
 
 The keyboard **docks to the bottom of the window**, a margin clear of the edge, and floats over the
 lesson on a faintly tinted, blurred panel rather than sitting under it. A long passage scrolls
@@ -449,7 +449,7 @@ large because it has to be.
 Qur'an text: **Tanzil Project**, Simple (imlaei), version 1.1 — <https://tanzil.net> — used under
 **Creative Commons Attribution 3.0**. `data/quran-simple.txt` is included verbatim with its
 copyright block intact; `generated/corpus.json` is a clearly-marked derived artifact, normalised to
-the characters reachable on the standard Arabic 102 keyboard.
+the characters reachable on every offered Arabic keyboard layout.
 
 Recitation audio: **Abdul Basit ʿAbd us-Samad**, streamed per ayah from the **EveryAyah** archive
 — <https://everyayah.com> — sets `Abdul_Basit_Murattal_64kbps` and `Abdul_Basit_Mujawwad_128kbps`.
