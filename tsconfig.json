@@ -18,7 +18,7 @@
     "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node", "cypress"],
+    "types": ["node", "cypress", "vite/client"],
     "paths": { "~/*": ["./src/*"], "~generated/*": ["./generated/*"] }
   },
   "include": ["src", "scripts", "cypress", "vite.config.ts"],

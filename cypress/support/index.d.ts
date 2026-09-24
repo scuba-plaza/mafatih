@@ -1,5 +1,3 @@
-/// <reference types="cypress" />
-
 import type { ArabicTypeOptions, LessonLoopOptions } from "./commands.ts";
 
 declare global {
