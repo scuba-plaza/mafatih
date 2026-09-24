@@ -1,7 +1,6 @@
 import Modal, { CheckboxRow, DoneButton, FIELD, NAME, ROW, SelectRow } from "~/components/Modal.tsx";
 import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, FONT_SIZES, FONTS, fontOption, isFontId } from "~/engine/fonts.ts";
-import { LAYOUT_IDS, LAYOUTS, type LayoutId } from "~/engine/layout/ara.ts";
 import { isMode, type Settings } from "~/storage/profile.ts";
 
 export interface SettingsModalProps {
@@ -92,19 +91,6 @@ export default function SettingsModal({
       <SubSettings label="Recitation" cy="open-recitation-settings" onOpen={onOpenRecitation} />
 
       <SubSettings label="Custom text" cy="open-custom-text-settings" onOpen={onOpenCustomText} />
-
-      <SelectRow
-        label="Keyboard layout"
-        cy="setting-layout"
-        value={settings.layout}
-        onChange={(value) => onChange({ layout: value as LayoutId })}
-      >
-        {LAYOUT_IDS.map((id) => (
-          <option key={id} value={id}>
-            {LAYOUTS[id].name}
-          </option>
-        ))}
-      </SelectRow>
 
       <CheckboxRow
         label="Show keyboard"

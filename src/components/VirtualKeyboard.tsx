@@ -1,7 +1,6 @@
-import { capsOf, isHaraka, type KeyCap, type LayoutId, strokeFor } from "~/engine/layout/ara.ts";
+import { isHaraka, type KeyCap, LAYOUT_NAME, strokeFor, WIN101_CAPS } from "~/engine/layout/ara.ts";
 
 export interface VirtualKeyboardProps {
-  layout: LayoutId;
   nextChar?: string;
   shiftHeld?: boolean;
 }
@@ -33,9 +32,9 @@ function keycapLabel(cap: KeyCap): { base: string; shift: string } {
   return { base, shift };
 }
 
-export default function VirtualKeyboard({ layout, nextChar, shiftHeld = false }: VirtualKeyboardProps) {
-  const caps = capsOf(layout);
-  const target = nextChar === undefined ? undefined : strokeFor(nextChar, layout);
+export default function VirtualKeyboard({ nextChar, shiftHeld = false }: VirtualKeyboardProps) {
+  const caps = WIN101_CAPS;
+  const target = nextChar === undefined ? undefined : strokeFor(nextChar);
   const needsShift = target?.shift === true;
   const rows = ROW_INDENT_UNITS.map((_, row) => caps.filter((cap) => cap.row === row));
   const space = caps.find((cap) => cap.code === "Space");
@@ -44,7 +43,7 @@ export default function VirtualKeyboard({ layout, nextChar, shiftHeld = false }:
   return (
     <div
       data-cy="virtual-keyboard"
-      data-layout={layout}
+      title={`${LAYOUT_NAME} keyboard`}
       data-next-code={target?.code ?? ""}
       className="select-none"
       dir="ltr"

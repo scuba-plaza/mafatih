@@ -1,10 +1,9 @@
 import { letterIndex } from "../../src/engine/corpus/corpus.ts";
-import { DEFAULT_LAYOUT, type KeyStroke, type LayoutId, strokeFor } from "../../src/engine/layout/ara.ts";
+import { type KeyStroke, strokeFor } from "../../src/engine/layout/ara.ts";
 import { LIGATURES } from "../../src/engine/layout/ligatures.ts";
 
 export interface ArabicTypeOptions {
   delay?: number;
-  layout?: LayoutId;
   mistakeEvery?: number;
 }
 
@@ -38,10 +37,10 @@ function press(win: Cypress.AUTWindow, key: string, stroke: KeyStroke): void {
   }
 }
 
-function pressChar(win: Cypress.AUTWindow, char: string, layout: LayoutId): void {
-  const stroke = strokeFor(char, layout);
+function pressChar(win: Cypress.AUTWindow, char: string): void {
+  const stroke = strokeFor(char);
   if (stroke === undefined) {
-    throw new Error(`no keystroke on the ${layout} layout produces ${JSON.stringify(char)}`);
+    throw new Error(`no keystroke on Arabic (101) produces ${JSON.stringify(char)}`);
   }
   press(win, char, stroke);
 }
@@ -63,17 +62,16 @@ function withMistakes(text: string, every: number): string[] {
 
 Cypress.Commands.add("typeArabic", (text: string, options: ArabicTypeOptions = {}) => {
   const delay = options.delay ?? 0;
-  const layout = options.layout ?? DEFAULT_LAYOUT;
   const strokes = withMistakes(text, options.mistakeEvery ?? 0);
   if (delay > 0) {
     for (const char of strokes) {
-      cy.window({ log: false }).then((win) => pressChar(win, char, layout));
+      cy.window({ log: false }).then((win) => pressChar(win, char));
       cy.wait(delay, { log: false });
     }
   } else {
     cy.window({ log: false }).then((win) => {
       for (const char of strokes) {
-        pressChar(win, char, layout);
+        pressChar(win, char);
       }
     });
   }
@@ -85,7 +83,7 @@ Cypress.Commands.add("typeLigature", (ligature: string) => {
     throw new Error(`${JSON.stringify(ligature)} is not a lam-alef ligature`);
   }
   cy.window({ log: false }).then((win) => {
-    const stroke = strokeFor(ligature, "win101");
+    const stroke = strokeFor(ligature);
     if (stroke === undefined) {
       throw new Error(`no keystroke produces ${JSON.stringify(ligature)}`);
     }

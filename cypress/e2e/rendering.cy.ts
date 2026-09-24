@@ -149,44 +149,36 @@ describe("Arabic rendering", () => {
 
 describe("the on-screen keyboard", () => {
   beforeEach(() => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full", layout: "mac" } });
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
   it("staggers the rows like a real keyboard", () => {
-    for (const layout of ["win101", "mac"] as const) {
-      visitWith({ settings: { layout } });
-      cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", layout);
-      cy.get("[data-cy=keycap]").then(($caps) => {
-        const left = (code: string): number => {
-          const cap = $caps.filter(`[data-code=${code}]`)[0];
-          expect(cap, code).to.exist;
-          return (cap as HTMLElement).getBoundingClientRect().left;
-        };
-        const unit = left("Digit1") - left("Backquote");
-        const offset = (code: string, from: string): number => (left(code) - left(from)) / unit;
-        expect(offset("KeyQ", "Backquote"), "Q sits 1.5 keys in").to.be.closeTo(1.5, 0.05);
-        expect(offset("KeyA", "KeyQ"), "A sits a quarter key right of Q").to.be.closeTo(0.25, 0.05);
-        expect(offset("KeyZ", "KeyA"), "Z sits half a key right of A").to.be.closeTo(0.5, 0.05);
-        expect(offset("Space", "Backquote"), "the spacebar starts under C").to.be.closeTo(3.75, 0.05);
-      });
-    }
+    cy.get("[data-cy=keycap]").then(($caps) => {
+      const left = (code: string): number => {
+        const cap = $caps.filter(`[data-code=${code}]`)[0];
+        expect(cap, code).to.exist;
+        return (cap as HTMLElement).getBoundingClientRect().left;
+      };
+      const unit = left("Digit1") - left("Backquote");
+      const offset = (code: string, from: string): number => (left(code) - left(from)) / unit;
+      expect(offset("KeyQ", "Backquote"), "Q sits 1.5 keys in").to.be.closeTo(1.5, 0.05);
+      expect(offset("KeyA", "KeyQ"), "A sits a quarter key right of Q").to.be.closeTo(0.25, 0.05);
+      expect(offset("KeyZ", "KeyA"), "Z sits half a key right of A").to.be.closeTo(0.5, 0.05);
+      expect(offset("Space", "Backquote"), "the spacebar starts under C").to.be.closeTo(3.75, 0.05);
+    });
   });
 
-  it("shows the Macintosh layout when it is chosen", () => {
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
-  });
-
-  it("places every haraka on its documented Macintosh key", () => {
+  it("places every haraka on its documented Arabic (101) key", () => {
     const expected: [string, string][] = [
       ["َ", "KeyQ"],
       ["ً", "KeyW"],
-      ["ِ", "KeyE"],
-      ["ٍ", "KeyR"],
-      ["ُ", "KeyT"],
-      ["ٌ", "KeyY"],
-      ["ْ", "KeyU"],
-      ["ّ", "KeyI"],
+      ["ُ", "KeyE"],
+      ["ٌ", "KeyR"],
+      ["ِ", "KeyA"],
+      ["ٍ", "KeyS"],
+      ["ْ", "KeyX"],
+      ["ّ", "Backquote"],
     ];
     for (const [char, code] of expected) {
       cy.get(`[data-cy=keycap][data-code=${code}]`).should("contain.text", char);

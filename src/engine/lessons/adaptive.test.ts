@@ -79,7 +79,7 @@ test("the candidate pool grows as letters unlock", () => {
     const curr = sizes[i];
     assert.ok(prev !== undefined && curr !== undefined && curr > prev, `pool did not grow: ${sizes.join(",")}`);
   }
-  assert.equal(sizes[0], 190);
+  assert.equal(sizes[0], 186);
   assert.equal(sizes[sizes.length - 1], 18198);
 });
 

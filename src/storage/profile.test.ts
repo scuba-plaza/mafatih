@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DEFAULT_RECITER, DEFAULT_VOLUME } from "~/engine/audio/reciters.ts";
 import { DEFAULT_FONT, DEFAULT_FONT_SIZE } from "~/engine/fonts.ts";
-import { DEFAULT_LAYOUT } from "~/engine/layout/ara.ts";
 import { DEFAULT_CUSTOM_TEXT } from "~/engine/lessons/custom.ts";
 import { DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
 import { defaultProfile, defaultSettings, parseProfile, sanitizeSettings } from "~/storage/profile.ts";
@@ -11,7 +10,6 @@ test("a fresh profile types Noto Naskh at the default size", () => {
   const settings = defaultSettings();
   assert.equal(settings.font, DEFAULT_FONT);
   assert.equal(settings.fontSize, DEFAULT_FONT_SIZE);
-  assert.equal(settings.layout, DEFAULT_LAYOUT);
 });
 
 test("every setting survives a round trip through storage", () => {
@@ -27,7 +25,6 @@ test("every setting survives a round trip through storage", () => {
       fontSize: 64,
       surahOrder: "juz-amma" as const,
       ayatPerLesson: 10,
-      layout: "mac" as const,
       showKeyboard: false,
       reciter: "mujawwad" as const,
       volume: 0.35,
@@ -45,7 +42,6 @@ test("missing settings fall back rather than yielding undefined", () => {
   assert.equal(settings.font, "amiri");
   assert.equal(settings.fontSize, DEFAULT_FONT_SIZE);
   assert.equal(settings.mode, "adaptive");
-  assert.equal(settings.layout, DEFAULT_LAYOUT);
   assert.equal(settings.showKeyboard, true);
   assert.equal(settings.reciter, DEFAULT_RECITER);
   assert.equal(settings.volume, DEFAULT_VOLUME);
@@ -151,8 +147,11 @@ test("the story survives a round trip and a stored story wins over the old surah
   assert.equal("surah" in profile.settings, false);
 });
 
-test("a profile that chose the removed Arabic (102) layout lands on Arabic (101)", () => {
-  const stored = { ...defaultProfile(), settings: { ...defaultSettings(), layout: "pc102" } };
-  assert.equal(parseProfile(JSON.stringify(stored)).settings.layout, "win101");
-  assert.equal(sanitizeSettings({ layout: "pc102" }).layout, "win101");
+test("a keyboard layout chosen before Arabic (101) became the only one is dropped, not kept", () => {
+  for (const layout of ["mac", "pc102", "win101"]) {
+    const stored = { ...defaultProfile(), settings: { ...defaultSettings(), layout } };
+    const settings = parseProfile(JSON.stringify(stored)).settings;
+    assert.equal("layout" in settings, false);
+    assert.deepEqual(settings, defaultSettings());
+  }
 });

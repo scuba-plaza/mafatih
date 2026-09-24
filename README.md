@@ -26,12 +26,12 @@ distinct codepoints where the Uthmani text has 62. The 17 extras are precisely t
 recitation apparatus — wasla `ٱ`, maddah `ٓ`, the silent-letter zero `۟`, small waw/yeh, tatweel,
 small high/low meem. Simple contains none of them, nor waqf/sajda/juz markers, nor punctuation.
 
-Normalisation is nonetheless a **whitelist**, not a blacklist: it keeps the 73 typeable codepoints —
-36 letters, 8 harakat, the space, and the 28 punctuation marks (`. ، : ؛ ؟ ! " ( ) [ ] { } …`) that
-*every* offered layout can produce — and drops everything else. Deriving the set from the
-intersection of the layouts, rather than from one of them, is what makes a lesson typeable no matter
-which layout the reader has selected; tatweel is the one deliberate exclusion, being an elongation
-glyph with no phonetic content. It cannot miss a mark nobody thought of, and it makes the pipeline
+Normalisation is nonetheless a **whitelist**, not a blacklist: it keeps the 90 typeable codepoints —
+36 letters, 8 harakat, the space, and the 45 punctuation marks, digits and symbols
+(`. ، : ؛ ؟ ! " ( ) [ ] { } 0–9 …`) the Arabic (101) keyboard produces — and drops everything else.
+The set is derived from the keyboard table itself, so a lesson can never contain a character the
+keyboard cannot type; tatweel is the one deliberate exclusion, being an elongation glyph with no
+phonetic content. It cannot miss a mark nobody thought of, and it makes the pipeline
 edition-agnostic — point it at Uthmani text, or at hadith or plain MSA prose, and it just works.
 
 `pnpm build:corpus` fails the build unless the output contains exactly 6,236 ayat, the surah
@@ -81,12 +81,12 @@ are chosen by the app at spaces only, so no cursive join is ever split.
 
 ## Setup
 
-Mafatih reads the characters your OS produces, so **an Arabic layout must be active**. On Windows,
-add **Arabic (101)** — the default here — under Settings → Time & language → Language. On Linux:
+Mafatih reads the characters your OS produces and is built around **Arabic (101)**, so that layout
+must be active. On Windows, add **Arabic (101)** under Settings → Time & language → Language. On
+Linux:
 
 ```sh
 setxkbmap ara                # Arabic — the same keys as Arabic (101)
-setxkbmap ara -variant mac   # Arabic (Macintosh)
 ```
 
 If the app sees Latin keystrokes it says so rather than silently scoring them as errors.
@@ -97,34 +97,26 @@ pnpm build:corpus
 pnpm dev
 ```
 
-## Keyboard layouts
+## The keyboard
 
-Two layouts ship, selectable in settings, **defaulting to Arabic (101)**, the standard Windows
-Arabic keyboard (`KBDA1`), transcribed from Microsoft's own layout table. Linux's `ara` layout is a
-port of it with the same keys for everything a lesson can contain — it differs only in typing ASCII
-`` ` `` and `'` where Windows has `‘` and `’` — so it is the one to pick there too. **Arabic
-(Macintosh)** is GNOME's name for the xkb `ara(mac)` variant, resolved with
-`xkbcli compile-keymap --layout ara --variant mac`, since it is a partial override over
-`ara(digits)` over `ara(basic)` rather than a standalone definition.
+Mafatih supports exactly one layout, **Arabic (101)**: the standard Windows Arabic keyboard
+(`KBDA1`), transcribed from Microsoft's own layout table and checked key by key in the unit tests.
+It is the layout most Arabic typists already have, and supporting one layout means the letter order
+can be tuned to it (see *Adaptive lessons* below). Linux's `ara` layout is a port of it with the same
+keys for everything a lesson can contain — it differs only in typing ASCII `` ` `` and `'` where
+Windows has `‘` and `’`.
 
-Both reach all 73 typeable codepoints — asserted in the unit tests, so neither can drift. Windows
-sends a lam-alef key as its two letters in one event, where xkb sends a single presentation form;
-the session accepts both. The layouts differ in ways that matter at the keycap:
+| | Arabic (101) |
+|---|---|
+| home row | `ش س ي ب ل ا ت ن م ك ط` |
+| harakat | on the shift layer of `Q W E R` (`َ ً ُ ٌ`), `A S` (`ِ ٍ`), `X` (`ْ`) and the backtick (`ّ`) |
+| hamza carriers | `أ` Shift+`H`, `إ` Shift+`Y`, `آ` Shift+`N`; `ؤ ئ ء` on `C Z X` |
+| lam-alef | `ﻻ` on `B`, with `ﻷ ﻹ ﻵ` on Shift+`G T B` |
+| far corners | `ذ` on the backtick, `د` and `ج` on the bracket keys |
 
-| | Arabic (Macintosh) | Arabic (101) |
-|---|---|---|
-| harakat | all eight on the top letter row, `Q`–`I` | scattered across `Q W E R`, `A S`, `X`, backtick |
-| shadda | `I` | backtick |
-| hamza carriers `أ إ ؤ ئ ء` | bottom row | scattered |
-| lam-alef `ﻻ` single key | absent | `B` |
-| backtick key | tatweel | `ذ` |
-
-Arabic (101) is the default because it is the layout most Arabic typists already have, on Windows
-and on Linux alike. The Macintosh arrangement is arguably better for this app: with 43% of
-keystrokes on the shift layer, having every haraka under one row of the home position matters.
-Because the ligature key is absent there, `لا` is typed as two keys — the session accepts either
-path regardless of which layout is displayed, since input is read from the character your OS emits,
-not from the key position.
+Windows sends a lam-alef key as its two letters in one event, where xkb sends a single presentation
+form; the session accepts both. Typing `لا` as two separate keys works too, since input is read from
+the character your OS emits, not from the key position.
 
 The keyboard **docks to the bottom of the window**, a margin clear of the edge, and floats over the
 lesson on a faintly tinted, blurred panel rather than sitting under it. A long passage scrolls
@@ -197,14 +189,22 @@ since they are not progress, and keeps the story, which has its own **Reset stor
 
 ## Adaptive lessons from real words
 
-Letters unlock in corpus-frequency order:
+Letters unlock in an order tuned to Arabic (101): each letter's frequency in the corpus, weighted
+by how far its key is from the home position. Every key has a reach cost — 0 for the eight home
+keys, ½ for the inner stretches to `ل` and `ا`, more for the rows above and below, the pinky
+corners and the number row, and 1 more for Shift — and a letter scores `frequency × e^(−reach)`:
 
 ```
-ا ل ن م و ي ه ر ب ك ت ع أ ف ق س د إ ذ ح ج ى خ ة ش ص ض ء آ ز ث ط غ ئ ظ ؤ
+ن م ا ي ل ب ك ت و س ه ر ع ق ش أ ف ح خ ة ص ء ى ز ث د ط ج إ ض غ ئ ذ ؤ ظ آ
 ```
+
+So the first six letters all sit on the home row or right beside it, and a frequent letter on a far
+key waits: `ذ`, on the backtick, went from 19th under pure frequency to 33rd, while `ة`, under the
+right index finger, moved up from 24th to 20th and the home-row `ش` from 25th to 15th. The order is
+computed by the corpus build from the keyboard table, so it cannot drift from the keys.
 
 keybr must invent pseudo-words for a restricted alphabet. Mafatih never does — even six unlocked
-letters yield 190 real Qur'anic word forms, ten yield 1,158, fifteen yield 4,909. Every lesson is
+letters yield 186 real Qur'anic word forms, ten yield 1,237, fifteen yield 4,176. Every lesson is
 built from actual word forms, filtered by a 36-bit letter-skeleton bitmask.
 
 **Recite** mode is the second mode: continuous ayat with a surah picker.
@@ -449,12 +449,12 @@ large because it has to be.
 Qur'an text: **Tanzil Project**, Simple (imlaei), version 1.1 — <https://tanzil.net> — used under
 **Creative Commons Attribution 3.0**. `data/quran-simple.txt` is included verbatim with its
 copyright block intact; `generated/corpus.json` is a clearly-marked derived artifact, normalised to
-the characters reachable on every offered Arabic keyboard layout.
+the characters the Arabic (101) keyboard can produce.
 
 Recitation audio: **Abdul Basit ʿAbd us-Samad**, streamed per ayah from the **EveryAyah** archive
 — <https://everyayah.com> — sets `Abdul_Basit_Murattal_64kbps` and `Abdul_Basit_Mujawwad_128kbps`.
 Nothing is redistributed: the files are fetched by the browser at play time and no audio ships in
 the build.
 
-Keyboard tables are transcribed from `xkeyboard-config`, `symbols/ara` — `xkb_symbols "basic"` and
-`xkb_symbols "mac"`.
+The keyboard table is transcribed from Microsoft's `KBDA1` (Arabic 101) layout, cross-checked against
+`xkeyboard-config`'s `symbols/ara`, `xkb_symbols "basic"`.

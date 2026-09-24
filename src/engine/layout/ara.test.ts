@@ -1,12 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { letterOrder } from "~/engine/corpus/corpus.ts";
 import {
-  capsOf,
   HARAKAT,
-  LAYOUT_IDS,
-  LAYOUTS,
-  lettersOfLayout,
-  MAC_CAPS,
+  reachOf,
   strokeFor,
   TATWEEL,
   TYPEABLE,
@@ -14,68 +11,50 @@ import {
   TYPEABLE_PUNCTUATION,
   WIN101_CAPS,
 } from "~/engine/layout/ara.ts";
-import { expandLigatures } from "~/engine/layout/ligatures.ts";
+import { expandLigatures, LIGATURES } from "~/engine/layout/ligatures.ts";
 
-test("the typeable set is 36 letters plus 8 harakat plus punctuation plus space", () => {
+test("the typeable set is 36 letters, 8 harakat, what else Arabic (101) types, and space", () => {
   assert.equal(TYPEABLE_LETTERS.length, 36);
   assert.equal(HARAKAT.size, 8);
-  assert.equal(TYPEABLE_PUNCTUATION.length, 28);
-  assert.equal(TYPEABLE.size, 36 + 8 + 28 + 1);
+  assert.equal(TYPEABLE_PUNCTUATION.length, 45);
+  assert.equal(TYPEABLE.size, 36 + 8 + 45 + 1);
   assert.ok(TYPEABLE.has(" "));
 });
 
-test("sentence punctuation is typeable, because both layouts carry it", () => {
-  for (const mark of [".", "،", ":", "؟", "؛", "!"]) {
+test("every typeable character has a key on Arabic (101)", () => {
+  for (const char of TYPEABLE) {
+    assert.ok(strokeFor(char), `Arabic (101) cannot produce ${JSON.stringify(char)}`);
+  }
+});
+
+test("sentence punctuation, Latin digits and the typographic quotes are typeable", () => {
+  for (const mark of [".", "،", ":", "؟", "؛", "!", ",", "1", "‘", "’", "×"]) {
     assert.ok(TYPEABLE.has(mark), `${mark} should be typeable`);
-    for (const id of LAYOUT_IDS) {
-      assert.ok(strokeFor(mark, id), `${LAYOUTS[id].name} cannot produce ${JSON.stringify(mark)}`);
-    }
   }
 });
 
-test("a glyph only one layout carries is not typeable", () => {
-  for (const glyph of [",", "‘", "~", "×", "1"]) {
-    assert.ok(strokeFor(glyph, "win101"), `Arabic 101 should carry ${glyph}`);
-    assert.equal(strokeFor(glyph, "mac"), undefined, `Macintosh should not carry ${glyph}`);
-    assert.ok(!TYPEABLE.has(glyph), `${glyph} is not reachable on every layout`);
-  }
-  for (const glyph of ["«", "»", "١", "ٱ"]) {
-    assert.ok(strokeFor(glyph, "mac"), `Macintosh should carry ${glyph}`);
-    assert.equal(strokeFor(glyph, "win101"), undefined, `Arabic 101 should not carry ${glyph}`);
-    assert.ok(!TYPEABLE.has(glyph), `${glyph} is not reachable on every layout`);
+test("what Arabic (101) has no key for is not typeable", () => {
+  for (const glyph of ["«", "»", "١", "ٱ", "٪", "h"]) {
+    assert.equal(strokeFor(glyph), undefined, `${glyph} has no key`);
+    assert.ok(!TYPEABLE.has(glyph), `${glyph} should not be typeable`);
   }
 });
 
-test("both layouts reach every typeable character", () => {
-  for (const id of LAYOUT_IDS) {
-    for (const char of TYPEABLE) {
-      assert.ok(strokeFor(char, id), `${LAYOUTS[id].name} cannot produce ${JSON.stringify(char)}`);
-    }
-  }
-});
-
-test("both layouts expose exactly the same Arabic letters", () => {
-  const mac = [...lettersOfLayout("mac")].sort();
-  const win = [...lettersOfLayout("win101")].sort();
-  assert.deepEqual(mac, win);
-  assert.equal(mac.length, 36);
-});
-
-test("tatweel is reachable on both layouts but is not a corpus letter", () => {
+test("tatweel has a key but is not a corpus character, and ligature keys are not characters", () => {
   assert.ok(WIN101_CAPS.some((cap) => cap.shift === TATWEEL));
-  assert.ok(MAC_CAPS.some((cap) => cap.base === TATWEEL));
   assert.ok(!TYPEABLE.has(TATWEEL));
-});
-
-test("every haraka needs shift on both layouts", () => {
-  for (const id of LAYOUT_IDS) {
-    for (const haraka of HARAKAT) {
-      assert.equal(strokeFor(haraka, id)?.shift, true, `${haraka} should need shift on ${id}`);
-    }
+  for (const form of LIGATURES.keys()) {
+    assert.ok(!TYPEABLE.has(form), `${form} is typed as its letters`);
   }
 });
 
-test("Arabic 101 places the harakat on its documented keys", () => {
+test("every haraka needs shift", () => {
+  for (const haraka of HARAKAT) {
+    assert.equal(strokeFor(haraka)?.shift, true, `${haraka} should need shift`);
+  }
+});
+
+test("Arabic (101) places the harakat on its documented keys", () => {
   const expected: [string, string][] = [
     ["َ", "KeyQ"],
     ["ً", "KeyW"],
@@ -87,67 +66,20 @@ test("Arabic 101 places the harakat on its documented keys", () => {
     ["ّ", "Backquote"],
   ];
   for (const [char, code] of expected) {
-    assert.equal(strokeFor(char, "win101")?.code, code, `${char} should sit on ${code}`);
+    assert.equal(strokeFor(char)?.code, code, `${char} should sit on ${code}`);
   }
 });
 
-test("Arabic Macintosh gathers all eight harakat onto the top row", () => {
-  const expected: [string, string][] = [
-    ["َ", "KeyQ"],
-    ["ً", "KeyW"],
-    ["ِ", "KeyE"],
-    ["ٍ", "KeyR"],
-    ["ُ", "KeyT"],
-    ["ٌ", "KeyY"],
-    ["ْ", "KeyU"],
-    ["ّ", "KeyI"],
-  ];
-  for (const [char, code] of expected) {
-    const stroke = strokeFor(char, "mac");
-    assert.equal(stroke?.code, code, `${char} should sit on ${code}`);
-  }
-  for (const haraka of HARAKAT) {
-    const code = strokeFor(haraka, "mac")?.code;
-    const cap = MAC_CAPS.find((c) => c.code === code);
-    assert.equal(cap?.row, 1, `${haraka} should be on the top letter row`);
-  }
+test("the lam-alef ligature key types lam then alef", () => {
+  const cap = WIN101_CAPS.find((k) => k.code === "KeyB");
+  assert.equal(expandLigatures(cap?.base ?? ""), "لا");
+  assert.equal(strokeFor("ﻻ")?.code, "KeyB");
 });
 
-test("Macintosh moves the hamza carriers onto the bottom row", () => {
-  for (const [char, code] of [
-    ["أ", "KeyB"],
-    ["إ", "KeyN"],
-    ["ؤ", "KeyM"],
-    ["ئ", "KeyC"],
-    ["ء", "KeyV"],
-    ["آ", "KeyH"],
-  ] as [string, string][]) {
-    assert.equal(strokeFor(char, "mac")?.code, code);
-  }
-});
-
-test("only Arabic 101 carries a lam-alef ligature key", () => {
-  const win = WIN101_CAPS.find((k) => k.code === "KeyB");
-  assert.equal(expandLigatures(win?.base ?? ""), "لا");
-  assert.equal(strokeFor("ﻻ", "win101")?.code, "KeyB");
-  assert.equal(strokeFor("ﻻ", "mac"), undefined, "the Macintosh layout has no ligature key");
-});
-
-test("layouts have unique key codes and a spacebar", () => {
-  for (const id of LAYOUT_IDS) {
-    const caps = capsOf(id);
-    const codes = caps.map((c) => c.code);
-    assert.equal(new Set(codes).size, codes.length, `${id} has duplicate key codes`);
-    assert.ok(
-      caps.some((c) => c.code === "Space" && c.base === " "),
-      `${id} is missing a spacebar`,
-    );
-  }
-});
-
-test("strokeFor defaults to the Windows Arabic 101 layout", () => {
-  assert.deepEqual(strokeFor("ّ"), strokeFor("ّ", "win101"));
-  assert.equal(strokeFor("ّ")?.code, "Backquote");
+test("the layout has unique key codes and a spacebar", () => {
+  const codes = WIN101_CAPS.map((c) => c.code);
+  assert.equal(new Set(codes).size, codes.length);
+  assert.ok(WIN101_CAPS.some((c) => c.code === "Space" && c.base === " "));
 });
 
 test("Arabic 101 matches Microsoft's KBDA1 table", () => {
@@ -193,10 +125,28 @@ test("Arabic 101 matches Microsoft's KBDA1 table", () => {
   }
 });
 
-test("only Arabic (101) and Arabic (Macintosh) are offered", () => {
-  assert.deepEqual(LAYOUT_IDS, ["win101", "mac"]);
-  assert.deepEqual(
-    LAYOUT_IDS.map((id) => LAYOUTS[id].name),
-    ["Arabic (101)", "Arabic (Macintosh)"],
-  );
+test("reach is zero on the home keys and grows with every stretch, row and shift", () => {
+  for (const letter of ["ش", "س", "ي", "ب", "ت", "ن", "م", "ك"]) {
+    assert.equal(reachOf(letter), 0, `${letter} rests under a finger`);
+  }
+  assert.ok(reachOf("ا") > 0 && reachOf("ا") < reachOf("و"), "alef is a short index stretch");
+  assert.ok(reachOf("ة") < reachOf("ج"), "teh marbuta sits under the right index");
+  assert.ok(reachOf("أ") > reachOf("ا"), "hamza above alef needs shift");
+  for (const letter of TYPEABLE_LETTERS) {
+    if (letter !== "ذ") {
+      assert.ok(reachOf(letter) < reachOf("ذ") || reachOf(letter) >= 3, `${letter} is closer than thal`);
+    }
+  }
+});
+
+test("the letters unlock home row first, and far keys come late even when frequent", () => {
+  const first = letterOrder.slice(0, 6);
+  for (const letter of first) {
+    assert.ok(reachOf(letter) <= 0.5, `${letter} should be on or beside the home row`);
+  }
+  assert.deepEqual([...first].sort(), ["ا", "ب", "ل", "م", "ن", "ي"].sort());
+  assert.ok(letterOrder.indexOf("ذ") >= letterOrder.length - 5, "thal on the number row comes near the end");
+  assert.ok(letterOrder.indexOf("ة") < letterOrder.indexOf("ذ"), "teh marbuta comes before thal");
+  assert.ok(letterOrder.indexOf("ش") < letterOrder.indexOf("د"), "a home-row letter beats a far pinky reach");
+  assert.equal(new Set(letterOrder).size, 36);
 });

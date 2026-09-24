@@ -173,7 +173,7 @@ export default function App() {
               data-cy="keyboard-dock"
               className="sticky bottom-6 z-10 mx-auto w-fit rounded-2xl bg-stone-50/90 px-4 py-3 shadow-lg shadow-stone-900/5 ring-1 ring-stone-900/5 backdrop-blur-md dark:bg-stone-950/90 dark:ring-stone-100/10"
             >
-              <VirtualKeyboard layout={settings.layout} nextChar={nextChar} shiftHeld={shiftHeld} />
+              <VirtualKeyboard nextChar={nextChar} shiftHeld={shiftHeld} />
             </div>
           ) : null}
         </main>

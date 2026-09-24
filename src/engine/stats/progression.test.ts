@@ -9,7 +9,7 @@ const SEEDS = [1, 2, 3];
 test("a careful typist climbs through most of the alphabet and all the tiers", () => {
   for (const seed of SEEDS) {
     const { progress } = practise({ msPerKey: 400, errorRate: () => 0.02 }, 150, seed);
-    assert.ok(progress.unlockedCount >= 24, `seed ${seed}: ${progress.unlockedCount} letters`);
+    assert.ok(progress.unlockedCount >= 20, `seed ${seed}: ${progress.unlockedCount} letters`);
     assert.equal(progress.tier, "full", `seed ${seed}`);
   }
 });

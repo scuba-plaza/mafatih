@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeText, skeleton, untypeableChars } from "../src/engine/corpus/normalize.ts";
+import { reachOf } from "../src/engine/layout/ara.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const EXPECTED_AYAT = 6236;
@@ -51,7 +52,10 @@ function buildLetterOrder(words: Map<string, number>): string[] {
       weight.set(letter, (weight.get(letter) ?? 0) + freq);
     }
   }
-  return [...weight.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([letter]) => letter);
+  const score = (letter: string, count: number): number => count * Math.exp(-reachOf(letter));
+  return [...weight.entries()]
+    .sort((a, b) => score(b[0], b[1]) - score(a[0], a[1]) || a[0].localeCompare(b[0]))
+    .map(([letter]) => letter);
 }
 
 function assertIndexed(word: string, index: ReadonlyMap<string, number>): void {
@@ -120,7 +124,7 @@ const artifact = {
   _source: "Tanzil Quran Text (Simple, Version 1.1) - Copyright (C) 2007-2026 Tanzil Project",
   _license: "Creative Commons Attribution 3.0 - https://tanzil.net",
   _derivation:
-    "NFC normalised, ligatures decomposed, filtered to the characters every offered Arabic keyboard layout can produce.",
+    "NFC normalised, ligatures decomposed, filtered to the characters the Arabic (101) keyboard layout can produce.",
   letterOrder,
   surahs: surahs.map((s) => [s.n, s.name, s.tname, s.ename, s.ayat, s.type]),
   ayat: ayat.map(({ t }) => t),

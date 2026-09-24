@@ -1,4 +1,5 @@
-import { visitWith } from "../support/profile.ts";
+import { STORAGE_KEY } from "../../src/storage/profile.ts";
+import { buildProfile, visitWith } from "../support/profile.ts";
 
 const directionOf = ($el: JQuery<HTMLElement>): string =>
   ($el[0] as HTMLElement).ownerDocument.defaultView?.getComputedStyle($el[0] as HTMLElement).direction ?? "";
@@ -122,31 +123,30 @@ describe("hiding the virtual keyboard", () => {
   });
 });
 
-describe("keyboard layout selection", () => {
+describe("the Arabic (101) keyboard", () => {
   beforeEach(() => {
     visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
-  it("defaults to Arabic (101), with the shadda on the backtick", () => {
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "win101");
+  it("is the only layout, with the shadda on the backtick and no layout setting", () => {
+    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "title", "Arabic (101) keyboard");
     cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
     cy.get("[data-cy=keycap][data-code=KeyA]").should("contain.text", "ِ");
     cy.get("[data-cy=keycap][data-code=KeyU]").should("contain.text", "‘");
     cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("have.value", "win101");
-    cy.get("[data-cy=setting-layout] option").should("have.length", 2);
-    cy.get("[data-cy=setting-layout] option").first().should("have.text", "Arabic (101)");
-    cy.get("[data-cy=setting-layout] option[value=pc102]").should("not.exist");
+    cy.get("[data-cy=setting-layout]").should("not.exist");
+    cy.get("[data-cy=settings]").should("not.contain.text", "Keyboard layout");
   });
 
-  it("switches to Arabic (Macintosh) and moves the shadda onto a letter key", () => {
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").select("mac");
-    cy.closeSettings();
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
-    cy.get("[data-cy=keycap][data-code=KeyI]").should("contain.text", "ّ");
-    cy.get("[data-cy=keycap][data-code=Backquote]").should("not.contain.text", "ّ");
+  it("ignores a layout a profile saved before Arabic (101) became the only one", () => {
+    cy.visit("/?seed=5", {
+      onBeforeLoad(win) {
+        const stored = { ...buildProfile(), settings: { ...buildProfile().settings, layout: "mac" } };
+        win.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+      },
+    });
+    cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
   });
 
   it("accepts the lam-alef key the way Windows sends it, as two letters at once", () => {
@@ -157,17 +157,7 @@ describe("keyboard layout selection", () => {
     cy.get("[data-cy=summary-errors]").should("have.text", "0");
   });
 
-  it("remembers the layout across a reload", () => {
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").select("mac");
-    cy.closeSettings();
-    cy.reload();
-    cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-layout", "mac");
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("have.value", "mac");
-  });
-
-  it("highlights the Macintosh key for the next character", () => {
+  it("highlights the key for the next haraka, with shift", () => {
     cy.targetText().then((text) => {
       const chars = [...text];
       const i = chars.findIndex((c) => /[ً-ْ]/.test(c));
@@ -178,7 +168,7 @@ describe("keyboard layout selection", () => {
     });
   });
 
-  it("types a full diacritised passage on either layout", () => {
+  it("types a full diacritised passage", () => {
     cy.typeTarget();
     cy.get("[data-cy=completion]").should("be.visible");
     cy.get("[data-cy=summary-errors]").should("have.text", "0");

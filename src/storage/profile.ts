@@ -1,7 +1,6 @@
 import { clampVolume, DEFAULT_RECITER, DEFAULT_VOLUME, isReciterId, type ReciterId } from "~/engine/audio/reciters.ts";
 import { isTier, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, DEFAULT_FONT, DEFAULT_FONT_SIZE, type FontId, isFontId } from "~/engine/fonts.ts";
-import { DEFAULT_LAYOUT, isLayoutId, type LayoutId } from "~/engine/layout/ara.ts";
 import { DEFAULT_CUSTOM_TEXT, MAX_CUSTOM_CHARS } from "~/engine/lessons/custom.ts";
 import { clampAyatPerLesson, DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
 import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
@@ -31,7 +30,6 @@ export interface Settings {
   surahOrder: SurahOrder;
   ayatPerLesson: number;
   customText: string;
-  layout: LayoutId;
   showKeyboard: boolean;
   reciter: ReciterId;
   volume: number;
@@ -72,7 +70,6 @@ export function defaultSettings(): Settings {
     surahOrder: DEFAULT_SURAH_ORDER,
     ayatPerLesson: DEFAULT_AYAT_PER_LESSON,
     customText: DEFAULT_CUSTOM_TEXT,
-    layout: DEFAULT_LAYOUT,
     showKeyboard: true,
     reciter: DEFAULT_RECITER,
     volume: DEFAULT_VOLUME,
@@ -110,7 +107,6 @@ export function sanitizeSettings(raw: unknown): Settings {
     surahOrder: isSurahOrder(raw.surahOrder) ? raw.surahOrder : fallback.surahOrder,
     ayatPerLesson: clampAyatPerLesson(raw.ayatPerLesson),
     customText: typeof raw.customText === "string" ? raw.customText.slice(0, MAX_CUSTOM_CHARS) : fallback.customText,
-    layout: isLayoutId(raw.layout) ? raw.layout : fallback.layout,
     showKeyboard: typeof raw.showKeyboard === "boolean" ? raw.showKeyboard : fallback.showKeyboard,
     reciter: isReciterId(raw.reciter) ? raw.reciter : fallback.reciter,
     volume: clampVolume(raw.volume),
