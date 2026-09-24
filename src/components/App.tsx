@@ -44,6 +44,7 @@ export default function App() {
     settings,
     updateSettings: trainer.updateSettings,
     active: reciting,
+    held: modal !== "none" || trainer.completion !== null || trainer.reviewing,
     startAyah,
   });
   const playingSpan =

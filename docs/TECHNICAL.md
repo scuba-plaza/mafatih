@@ -265,7 +265,7 @@ to any ayah on a click.
 end of the surah sends you back to the first gap. Completing one opens a celebration — the surah's
 name, the ayat, accuracy, speed and time across all of its passages, a short burst that
 `prefers-reduced-motion` turns off — and offers to continue with the next surah or type this one
-again. Typing is paused while it is open. Holding 95% accuracy over the whole surah earns a ★.
+again. Typing and the recitation are paused while it is open. Holding 95% accuracy over the whole surah earns a ★.
 
 **The surah map** at `#/recitation` shows all 114 surahs as tiles with a progress ring, a ✓ once complete
 and the ★, and continues any of them from where it was left. The order is the mushaf's by default,
@@ -337,8 +337,13 @@ button that kept focus would silently eat the next space you typed.
 
 Moving on never interrupts it: finish a passage — or a whole surah — while it plays, and it carries
 on from the start of the next one; a paused player stays paused. A resumed passage cues the ayah the
-cursor resumes at. Leaving the practice page pauses the player, and it waits there, in place, for
-play to be pressed again.
+cursor resumes at.
+
+The recitation never runs on while typing is paused. A settings dialog, the surah celebration or a
+finished passage waiting for **Type it again** holds the player, and it plays on by itself once
+you close the dialog or make your choice, if it was playing before. While a finished passage waits,
+the player's controls are disabled too: the recitation only ever plays along with typing. Leaving the recitation page for
+another one pauses it for good: it waits there, in place, for play to be pressed again.
 
 The strip always names what is playing, or what will play next:
 
@@ -461,7 +466,7 @@ the page following the cursor down a long passage, the dialogs, recitation (pass
 navigation by button, key, picker and progress bar, resuming a level after a reload, finished
 passages asking before a redo, surah completion and its celebration, the surah map, Juz ʿAmma order,
 resets), the recitation player (transport, label, volume, running on through a passage and into the
-next one, pausing on another page, the ayah mark, the audio cache, a CDN failure leaving the lesson
+next one, holding for dialogs, the celebration and finished passages, pausing on another page, the ayah mark, the audio cache, a CDN failure leaving the lesson
 typeable, controls never swallowing a keystroke), the stats page, search and sharing metadata, and
 text direction — English prose computes as `ltr` with its trailing period intact while the lesson
 stays `rtl`.

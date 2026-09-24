@@ -36,7 +36,7 @@ function Icon({ path }: { path: string }) {
 
 export default function RecitationBar({ player }: RecitationBarProps) {
   const { ayah, basmala, reciter, surah, playing, loading, failed, muted, volume, loop, progress } = player;
-  const idle = failed || ayah === undefined;
+  const idle = failed || ayah === undefined || player.held;
 
   const verse = ayah === undefined ? "" : ayah === null ? "bismillah" : `${surah}:${ayah}`;
   const playingWhat = `${reciter.style} ${reciter.kbps} kbps · ${verse}`;
@@ -45,6 +45,7 @@ export default function RecitationBar({ player }: RecitationBarProps) {
     <div
       data-cy="recitation"
       data-playing={playing}
+      data-held={player.held}
       data-loading={loading}
       data-failed={failed}
       data-loop={loop}

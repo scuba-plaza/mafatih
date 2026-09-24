@@ -304,7 +304,7 @@ describe("recitation playback", () => {
     });
   });
 
-  it("keeps playing into the next surah after completing one", () => {
+  it("pauses for the surah celebration and plays on into the next surah after it", () => {
     const seen: string[] = [];
     stubLongRecitation(seen);
     visitWith({ surah: 112, page: "recite", settings: { tierOverride: "none", ayatPerLesson: 4 } });
@@ -312,12 +312,96 @@ describe("recitation playback", () => {
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
     cy.typeTarget();
     cy.get("[data-cy=surah-complete]").should("be.visible");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
+    cy.get("[data-cy=surah-complete-next]").click();
     cy.get("[data-cy=passage-bar]").should("have.attr", "data-surah", "113");
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
     cy.get("[data-cy=recitation-label]").should("have.attr", "data-verse", "bismillah");
     cy.wrap(null).should(() => {
       expect(seen.some((url) => url.endsWith("/113001.mp3"))).to.equal(true);
     });
+  });
+
+  it("pauses while the settings are open and plays on once they close", () => {
+    stubLongRecitation();
+    visitWith({ surah: 2, page: "recite", settings: { tierOverride: "none" } });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.openRecitationSettings();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
+    cy.closeRecitationSettings();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+  });
+
+  it("stays paused after the settings close when it was paused", () => {
+    stubLongRecitation();
+    visitWith({ surah: 2, page: "recite", settings: { tierOverride: "none" } });
+    cy.openSettings();
+    cy.closeSettings();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
+  });
+
+  it("pauses on a finished passage and plays on once it is typed again", () => {
+    stubLongRecitation();
+    visitWith({
+      surah: 2,
+      page: "recite",
+      settings: { tierOverride: "none", ayatPerLesson: 4 },
+      recitation: {
+        surahs: {
+          2: {
+            run: { typed: [[5, 8]], chars: 100, keystrokes: 100, errors: 0, elapsedMs: 60_000 },
+            resume: 9,
+            completions: 0,
+            bestAccuracy: 0,
+            bestCpm: 0,
+            completedAt: null,
+          },
+        },
+      },
+    });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.typeTarget();
+    cy.get("[data-cy=passage-done]").should("be.visible");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
+    cy.get("[data-cy=recitation-toggle]").should("be.disabled");
+    cy.get("[data-cy=passage-redo]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+  });
+
+  it("never plays over a finished passage, however it is reached", () => {
+    stubLongRecitation();
+    visitWith({
+      surah: 112,
+      page: "recite",
+      settings: { tierOverride: "none", ayatPerLesson: 4 },
+      recitation: {
+        surahs: {
+          113: {
+            run: { typed: [], chars: 0, keystrokes: 0, errors: 0, elapsedMs: 0 },
+            resume: 1,
+            completions: 1,
+            bestAccuracy: 1,
+            bestCpm: 100,
+            completedAt: 1,
+          },
+        },
+      },
+    });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.openRecitationSettings();
+    cy.get("[data-cy=setting-surah]").select("113. Al-Falaq ✓");
+    cy.closeRecitationSettings();
+    cy.get("[data-cy=passage-done]").should("be.visible");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false").and("have.attr", "data-held", "true");
+    cy.get("[data-cy=recitation-toggle]").should("be.disabled");
+
+    cy.get("[data-cy=nav-recitation]").click();
+    cy.get("[data-cy=surah-tile][data-surah=113]").click();
+    cy.get("[data-cy=passage-done]").should("be.visible");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
   });
 
   it("stays paused into the next passage when it was paused", () => {

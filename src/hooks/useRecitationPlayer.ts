@@ -18,6 +18,7 @@ const RESTART_THRESHOLD_SECONDS = 2;
 
 export interface RecitationPlayer {
   available: boolean;
+  held: boolean;
   surah: number;
   ayah: number | null | undefined;
   basmala: boolean;
@@ -46,6 +47,7 @@ export interface RecitationPlayerOptions {
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
   active?: boolean;
+  held?: boolean;
   startAyah?: number;
 }
 
@@ -54,6 +56,7 @@ export function useRecitationPlayer({
   settings,
   updateSettings,
   active = true,
+  held = false,
   startAyah,
 }: RecitationPlayerOptions): RecitationPlayer {
   const { source } = lesson;
@@ -74,6 +77,8 @@ export function useRecitationPlayer({
   const objectUrlRef = useRef<string | null>(null);
   const loadedRef = useRef<string | null>(null);
   const tokenRef = useRef(0);
+  const resumeRef = useRef(false);
+  const heldRef = useLatest(held);
 
   const startIndex = startAyah === undefined ? 0 : firstClipOf(clips, startAyah);
   const [clipIndex, setClipIndex] = useState(startIndex);
@@ -132,10 +137,31 @@ export function useRecitationPlayer({
 
   useEffect(() => {
     if (!active) {
+      resumeRef.current = false;
       audioRef.current?.pause();
       setPlaying(false);
     }
   }, [active]);
+
+  useEffect(() => {
+    if (held) {
+      if (playingRef.current) {
+        resumeRef.current = true;
+        audioRef.current?.pause();
+        setPlaying(false);
+      }
+      return;
+    }
+    if (!resumeRef.current) {
+      return;
+    }
+    resumeRef.current = false;
+    const audio = element();
+    if (audio !== null && clipsRef.current.length > 0) {
+      setPlaying(true);
+      start(audio);
+    }
+  }, [held, element, start, clipsRef, playingRef]);
 
   const passageKey = `${surah}:${fromAyah}:${toAyah}:${startAyah ?? 0}:${settings.reciter}`;
   const startIndexRef = useLatest(startIndex);
@@ -292,6 +318,9 @@ export function useRecitationPlayer({
     if (clipsRef.current.length === 0 || audio === null) {
       return;
     }
+    if (heldRef.current && !playingRef.current) {
+      return;
+    }
     if (playingRef.current) {
       audio.pause();
       setPlaying(false);
@@ -300,7 +329,7 @@ export function useRecitationPlayer({
     setFailed(false);
     setPlaying(true);
     start(audio);
-  }, [element, start, clipsRef, playingRef]);
+  }, [element, start, clipsRef, playingRef, heldRef]);
 
   const restart = useCallback(() => {
     const audio = audioRef.current;
@@ -408,6 +437,7 @@ export function useRecitationPlayer({
 
   return {
     available,
+    held,
     surah,
     ayah,
     basmala,
