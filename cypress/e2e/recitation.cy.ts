@@ -12,6 +12,13 @@ function stubRecitation(seen?: string[]): void {
   }).as("ayah");
 }
 
+function stubLongRecitation(seen?: string[]): void {
+  cy.intercept("GET", CDN, (req) => {
+    seen?.push(req.url);
+    req.reply({ fixture: "ayah-long.mp3,null", headers: { "content-type": "audio/mpeg" } });
+  }).as("ayah");
+}
+
 function requested(): Cypress.Chainable<string[]> {
   return cy.get("@ayah.all").then((calls) => {
     const intercepts = calls as unknown as { request: { url: string } }[];
@@ -277,6 +284,56 @@ describe("recitation playback", () => {
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
     cy.get("[data-cy=recitation]", { timeout: 10000 }).should("have.attr", "data-playing", "false");
     cy.get("[data-cy=recitation]").should("have.attr", "data-ayah", "1");
+  });
+
+  it("keeps playing into the next passage once the typed one is finished", () => {
+    const seen: string[] = [];
+    stubLongRecitation(seen);
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 1 } });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.typeTarget();
+    cy.get("[data-cy=attribution]").should("contain.text", "2:2");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true").and("have.attr", "data-ayah", "2");
+    cy.wrap(null).should(() => {
+      expect(seen.some((url) => url.endsWith("/002002.mp3"))).to.equal(true);
+    });
+  });
+
+  it("keeps playing into the next surah after completing one", () => {
+    const seen: string[] = [];
+    stubLongRecitation(seen);
+    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 4 } });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.typeTarget();
+    cy.get("[data-cy=surah-complete]").should("be.visible");
+    cy.get("[data-cy=story-bar]").should("have.attr", "data-surah", "113");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.get("[data-cy=recitation-label]").should("have.attr", "data-verse", "bismillah");
+    cy.wrap(null).should(() => {
+      expect(seen.some((url) => url.endsWith("/113001.mp3"))).to.equal(true);
+    });
+  });
+
+  it("stays paused into the next passage when it was paused", () => {
+    stubLongRecitation();
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 1 } });
+    cy.typeTarget();
+    cy.get("[data-cy=attribution]").should("contain.text", "2:2");
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
+  });
+
+  it("stops playing when the lesson leaves recitation", () => {
+    stubLongRecitation();
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none" } });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.openSettings();
+    cy.get("[data-cy=setting-mode]").select("adaptive");
+    cy.get("[data-cy=setting-mode]").select("recite");
+    cy.closeSettings();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
   });
 
   it("keeps fetched ayat so a reload costs no request", () => {

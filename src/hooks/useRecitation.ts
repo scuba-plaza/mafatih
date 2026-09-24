@@ -121,13 +121,22 @@ export function useRecitation({ lesson, settings, updateSettings }: RecitationOp
     halt();
   }, [halt]);
 
+  const passageKey = `${surah}:${fromAyah}:${toAyah}:${settings.reciter}`;
+  const passageRef = useRef(passageKey);
+
   useEffect(() => {
     setClipIndex(0);
     setFailed(false);
     setProgress(0);
-    setPlaying(false);
     audioRef.current?.pause();
-  }, [surah, fromAyah, toAyah, settings.reciter]);
+    if (passageRef.current !== passageKey) {
+      passageRef.current = passageKey;
+      loadedRef.current = null;
+    }
+    if (!available) {
+      setPlaying(false);
+    }
+  }, [available, passageKey]);
 
   useEffect(() => {
     const audio = element();
