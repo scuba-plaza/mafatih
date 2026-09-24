@@ -7,21 +7,21 @@ import {
   ayatCount,
   isSurahOrder,
   progressOf,
+  type Recitation,
+  type RecitationPosition,
   resumeOf,
-  type Story,
-  type StoryPosition,
   surahSequence,
-} from "~/engine/story/story.ts";
+} from "~/engine/recitation/recitation.ts";
 import type { AudioCache } from "~/hooks/useAudioCache.ts";
 import type { Settings } from "~/storage/profile.ts";
 
 export interface RecitationModalProps {
   open: boolean;
   settings: Settings;
-  story: Story;
+  recitation: Recitation;
   audioCache: AudioCache;
   onChange: (patch: Partial<Settings>) => void;
-  onGoTo: (position: StoryPosition) => void;
+  onGoTo: (position: RecitationPosition) => void;
   onBack: () => void;
   onClose: () => void;
 }
@@ -31,7 +31,7 @@ const USAGE = "font-mono text-xs tabular-nums text-stone-400";
 export default function RecitationModal({
   open,
   settings,
-  story,
+  recitation,
   audioCache,
   onChange,
   onGoTo,
@@ -39,7 +39,7 @@ export default function RecitationModal({
   onClose,
 }: RecitationModalProps) {
   const reciter = reciterOption(settings.reciter);
-  const { surah, ayah } = story.position;
+  const { surah, ayah } = recitation.position;
   const byNumber = new Map(surahs.map((s) => [s.n, s]));
 
   return (
@@ -62,12 +62,12 @@ export default function RecitationModal({
         value={surah}
         onChange={(value) => {
           const next = Number(value);
-          onGoTo({ surah: next, ayah: resumeOf(story, next) });
+          onGoTo({ surah: next, ayah: resumeOf(recitation, next) });
         }}
       >
         {surahSequence(settings.surahOrder).map((n) => {
           const meta = byNumber.get(n);
-          const done = progressOf(story, n).complete ? " ✓" : "";
+          const done = progressOf(recitation, n).complete ? " ✓" : "";
           return meta === undefined ? null : (
             <option key={n} value={n}>
               {`${n}. ${meta.tname}${done}`}

@@ -1,7 +1,7 @@
 import { type CSSProperties, useEffect, useRef } from "react";
 import { surahByNumber, surahs } from "~/engine/corpus/corpus.ts";
 import { formatNumber, formatPercent } from "~/engine/format.ts";
-import type { SurahCompletion } from "~/engine/story/story.ts";
+import type { SurahCompletion } from "~/engine/recitation/recitation.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
 
 export interface SurahCompleteProps {

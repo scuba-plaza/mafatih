@@ -77,14 +77,13 @@ export function sanitizeStat(char: string, raw: unknown): KeyStat {
   const record = raw as Record<string, unknown>;
   const hits = finite(record.hits, 0);
   const misses = finite(record.misses, 0);
-  const lifetime = hits + misses === 0 ? 1 : hits / (hits + misses);
   return {
     char,
     samples: finite(record.samples, hits),
     meanMs: finite(record.meanMs, 0),
     hits,
     misses,
-    recentAccuracy: Math.min(1, finite(record.recentAccuracy, lifetime)),
+    recentAccuracy: Math.min(1, finite(record.recentAccuracy, 1)),
   };
 }
 

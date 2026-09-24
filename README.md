@@ -178,7 +178,7 @@ live metrics, so the numbers for it are still there while you type on.
 | | |
 |---|---|
 | Practice | the lesson itself; `6/36 · none` in the header is the whole progress display |
-| Story | its own route at `#/story` — the surah map, see *Story mode* below |
+| Recitation | its own route at `#/recitation` — the surah map, see *Recitation* below |
 | Stats | its own route at `#/stats` — tiles, the per-character bars, and the last ten lessons |
 | Settings | a modal `<dialog>`, closed on Escape, on a backdrop click or on **Done** |
 | Recitation | a second `<dialog>` reached from Settings — surah, starting ayah, order, length, reciter, cache |
@@ -199,7 +199,8 @@ Everything in settings is written to `localStorage` on change, under the same
 `mafatih.profile.v1` key as progress and history, and is read back through a whitelist — an unknown
 font, an out-of-range surah or a hand-edited font size falls back to its default rather than
 reaching the app. **Reset progress** clears progress, statistics and history but keeps the settings,
-since they are not progress, and keeps the story, which has its own **Reset story** on the map.
+since they are not progress, and keeps the recitation progress, which has its own **Reset recitation
+progress** on the surah map.
 
 ## Adaptive lessons from real words
 
@@ -221,7 +222,7 @@ keybr must invent pseudo-words for a restricted alphabet. Mafatih never does —
 letters yield 186 real Qur'anic word forms, ten yield 1,237, fifteen yield 4,176. Every lesson is
 built from actual word forms, filtered by a 36-bit letter-skeleton bitmask.
 
-**Recite** mode is the second mode: continuous ayat with a surah picker.
+**Recitation** is the second mode: the Qur'an surah by surah, see *Recitation* below.
 
 **How much of a surah a lesson covers is a setting.** It used to be a fixed 180-character budget,
 which is meaningless from the outside: you pick al-Baqara and get however much of it happens to fit.
@@ -232,11 +233,12 @@ the setting for drilling a line until it is clean; twenty is for reading through
 One caveat worth stating: a single long ayah is still long. Al-Baqara 2:282 runs past a thousand
 characters on its own, and no ayah count can make it shorter.
 
-## Story mode
+## Recitation
 
-Adaptive practice is the open world; recitation is the story, and every surah is a level.
+Adaptive practice is the open world; recitation goes through the Qur'an in order, and every surah is
+a level.
 
-**A finished passage moves the story on.** The next lesson starts at the ayah after the last one
+**A finished passage moves the recitation on.** The next lesson starts at the ayah after the last one
 typed, and the position is saved with the profile, so a reload — or a week away — resumes exactly
 there. Each surah remembers where it was left, so switching surahs and back loses nothing.
 
@@ -251,7 +253,7 @@ name, the ayat, accuracy, speed and time across all of its passages, a short bur
 `prefers-reduced-motion` turns off — and offers to continue with the next surah or type this one
 again. Typing is paused while it is open. Holding 95% accuracy over the whole surah earns a ★.
 
-**The surah map** at `#/story` shows all 114 surahs as tiles with a progress ring, a ✓ once complete
+**The surah map** at `#/recitation` shows all 114 surahs as tiles with a progress ring, a ✓ once complete
 and the ★, and continues any of them from where it was left. The order is the mushaf's by default,
 or Juz ʿAmma first — An-Nas back to An-Naba, then on from Al-Fatiha — for the order surahs are
 usually learnt in. Nothing is locked.

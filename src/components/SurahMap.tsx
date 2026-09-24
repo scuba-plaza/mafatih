@@ -4,18 +4,18 @@ import {
   completedSurahs,
   isSurahOrder,
   progressOf,
+  type Recitation,
+  type RecitationPosition,
   resumeOf,
-  type Story,
-  type StoryPosition,
   type SurahOrder,
   surahSequence,
-} from "~/engine/story/story.ts";
+} from "~/engine/recitation/recitation.ts";
 
-export interface StoryMapProps {
-  story: Story;
+export interface SurahMapProps {
+  recitation: Recitation;
   order: SurahOrder;
   onOrder: (order: SurahOrder) => void;
-  onPlay: (position: StoryPosition) => void;
+  onPlay: (position: RecitationPosition) => void;
   onReset: () => void;
 }
 
@@ -47,13 +47,21 @@ function Ring({ fraction, complete, current }: { fraction: number; complete: boo
   );
 }
 
-function Tile({ surah, story, onPlay }: { surah: number; story: Story; onPlay: (position: StoryPosition) => void }) {
+function Tile({
+  surah,
+  recitation,
+  onPlay,
+}: {
+  surah: number;
+  recitation: Recitation;
+  onPlay: (position: RecitationPosition) => void;
+}) {
   const meta = surahByNumber(surah);
   if (meta === undefined) {
     return null;
   }
-  const progress = progressOf(story, surah);
-  const current = story.position.surah === surah;
+  const progress = progressOf(recitation, surah);
+  const current = recitation.position.surah === surah;
   const status = progress.complete
     ? progress.starred
       ? "complete with a star"
@@ -70,7 +78,7 @@ function Tile({ surah, story, onPlay }: { surah: number; story: Story; onPlay: (
       data-starred={progress.starred}
       data-current={current}
       aria-label={`${meta.tname}, ${status}`}
-      onClick={() => onPlay({ surah, ayah: resumeOf(story, surah) })}
+      onClick={() => onPlay({ surah, ayah: resumeOf(recitation, surah) })}
       className={`group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left ring-1 transition-colors hover:bg-white dark:hover:bg-stone-900 ${
         current ? "bg-white ring-sky-500/60 dark:bg-stone-900" : "ring-stone-200 dark:ring-stone-800"
       }`}
@@ -98,18 +106,18 @@ function Tile({ surah, story, onPlay }: { surah: number; story: Story; onPlay: (
   );
 }
 
-export default function StoryMap({ story, order, onOrder, onPlay, onReset }: StoryMapProps) {
-  const done = completedSurahs(story);
-  const { surah, ayah } = story.position;
+export default function SurahMap({ recitation, order, onOrder, onPlay, onReset }: SurahMapProps) {
+  const done = completedSurahs(recitation);
+  const { surah, ayah } = recitation.position;
   const current = surahByNumber(surah);
-  const typedAyat = surahs.reduce((sum, s) => sum + progressOf(story, s.n).covered, 0);
+  const typedAyat = surahs.reduce((sum, s) => sum + progressOf(recitation, s.n).covered, 0);
   const totalAyat = surahs.reduce((sum, s) => sum + s.ayatCount, 0);
 
   return (
-    <section data-cy="story" className="flex flex-col gap-8">
+    <section data-cy="recitation-page" className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Story</h1>
+          <h1 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Recitation</h1>
           <p className="max-w-md text-sm text-stone-500">
             Type the Qur'an surah by surah. Every surah is a level: finish its last ayah to complete it, and hold 95%
             accuracy to earn a star.
@@ -117,13 +125,13 @@ export default function StoryMap({ story, order, onOrder, onPlay, onReset }: Sto
         </div>
         <div className="flex gap-8 font-mono tabular-nums">
           <div className="flex flex-col">
-            <span data-cy="story-surahs" className="text-2xl text-stone-800 dark:text-stone-200">
+            <span data-cy="recitation-surahs" className="text-2xl text-stone-800 dark:text-stone-200">
               {`${done}/${surahs.length}`}
             </span>
             <span className="text-[0.6rem] uppercase tracking-[0.15em] text-stone-400">surahs</span>
           </div>
           <div className="flex flex-col">
-            <span data-cy="story-ayat" className="text-2xl text-stone-800 dark:text-stone-200">
+            <span data-cy="recitation-ayat" className="text-2xl text-stone-800 dark:text-stone-200">
               {`${typedAyat}/${totalAyat}`}
             </span>
             <span className="text-[0.6rem] uppercase tracking-[0.15em] text-stone-400">ayat</span>
@@ -135,7 +143,7 @@ export default function StoryMap({ story, order, onOrder, onPlay, onReset }: Sto
         {current === undefined ? null : (
           <button
             type="button"
-            data-cy="story-continue"
+            data-cy="recitation-continue"
             onClick={() => onPlay({ surah, ayah })}
             className="rounded-full bg-stone-900 px-4 py-2 text-xs font-medium text-stone-50 hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
           >
@@ -145,7 +153,7 @@ export default function StoryMap({ story, order, onOrder, onPlay, onReset }: Sto
         <label className="flex items-center gap-3 text-xs text-stone-400">
           Order
           <select
-            data-cy="story-order"
+            data-cy="recitation-order"
             className={FIELD}
             value={order}
             onChange={(event) => {
@@ -162,18 +170,18 @@ export default function StoryMap({ story, order, onOrder, onPlay, onReset }: Sto
 
       <div data-cy="surah-map" className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {surahSequence(order).map((n) => (
-          <Tile key={n} surah={n} story={story} onPlay={onPlay} />
+          <Tile key={n} surah={n} recitation={recitation} onPlay={onPlay} />
         ))}
       </div>
 
       <div className="flex justify-end">
         <button
           type="button"
-          data-cy="reset-story"
+          data-cy="reset-recitation"
           onClick={onReset}
           className="text-xs text-stone-400 hover:text-red-600 dark:hover:text-red-400"
         >
-          Reset story
+          Reset recitation progress
         </button>
       </div>
     </section>

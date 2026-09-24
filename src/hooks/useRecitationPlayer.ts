@@ -16,7 +16,7 @@ import type { Settings } from "~/storage/profile.ts";
 
 const RESTART_THRESHOLD_SECONDS = 2;
 
-export interface Recitation {
+export interface RecitationPlayer {
   available: boolean;
   surah: number;
   ayah: number | null | undefined;
@@ -41,14 +41,19 @@ export interface Recitation {
   toggleLoop: () => void;
 }
 
-export interface RecitationOptions {
+export interface RecitationPlayerOptions {
   lesson: Lesson;
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
   active?: boolean;
 }
 
-export function useRecitation({ lesson, settings, updateSettings, active = true }: RecitationOptions): Recitation {
+export function useRecitationPlayer({
+  lesson,
+  settings,
+  updateSettings,
+  active = true,
+}: RecitationPlayerOptions): RecitationPlayer {
   const { source } = lesson;
   const surah = source.surah ?? 0;
   const fromAyah = source.fromAyah ?? 0;

@@ -1,4 +1,4 @@
-import type { SurahRecord } from "../../src/engine/story/story.ts";
+import type { SurahRecord } from "../../src/engine/recitation/recitation.ts";
 import { STORAGE_KEY } from "../../src/storage/profile.ts";
 import { masteredStats, visitWith } from "../support/profile.ts";
 
@@ -31,23 +31,23 @@ function passage(surah: number, range: string): void {
   cy.get("[data-cy=attribution]").should("contain.text", `${surah}:${range}`);
 }
 
-describe("story mode progression", () => {
+describe("recitation mode progression", () => {
   it("moves on to the next ayat after a passage and remembers them across a reload", () => {
     visitWith({ surah: 2, settings: RECITE });
     passage(2, "1–4");
-    cy.get("[data-cy=story-bar]").should("have.attr", "data-covered", "0");
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-covered", "0");
 
     cy.completeLesson();
     passage(2, "5–8");
-    cy.get("[data-cy=story-bar]").should("have.attr", "data-from", "5").and("have.attr", "data-covered", "4");
-    cy.get("[data-cy=story-typed]").should("have.length", 1);
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-from", "5").and("have.attr", "data-covered", "4");
+    cy.get("[data-cy=passage-typed]").should("have.length", 1);
 
     cy.reload();
     passage(2, "5–8");
-    cy.get("[data-cy=story-bar]").should("have.attr", "data-covered", "4");
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-covered", "4");
     cy.window().then((win) => {
       const stored = JSON.parse(win.localStorage.getItem(STORAGE_KEY) as string);
-      expect(stored.story.position).to.deep.equal({ surah: 2, ayah: 5 });
+      expect(stored.recitation.position).to.deep.equal({ surah: 2, ayah: 5 });
     });
   });
 
@@ -58,10 +58,10 @@ describe("story mode progression", () => {
     cy.get("[data-cy=stats-sessions]").should("have.text", "1");
   });
 
-  it("shows no story bar outside recitation", () => {
+  it("shows no recitation bar outside recitation", () => {
     cy.visit("/?seed=3");
     cy.get("[data-cy=typing-area]").should("exist");
-    cy.get("[data-cy=story-bar]").should("not.exist");
+    cy.get("[data-cy=passage-bar]").should("not.exist");
   });
 });
 
@@ -77,7 +77,7 @@ describe("navigating ayat", () => {
   });
 
   it("offers every ayah of the selected surah and resumes a surah where it was left", () => {
-    visitWith({ surah: 112, settings: RECITE, story: { surahs: { 36: partial(21, 20) } } });
+    visitWith({ surah: 112, settings: RECITE, recitation: { surahs: { 36: partial(21, 20) } } });
     cy.openRecitationSettings();
     cy.get("[data-cy=setting-ayah] option").should("have.length", 4);
     cy.get("[data-cy=setting-surah]").select("36");
@@ -90,9 +90,9 @@ describe("navigating ayat", () => {
   it("steps between passages with the buttons and with Page Up / Page Down", () => {
     visitWith({ surah: 2, ayah: 100, settings: RECITE });
     passage(2, "100–103");
-    cy.get("[data-cy=story-next]").click();
+    cy.get("[data-cy=passage-next]").click();
     passage(2, "104–107");
-    cy.get("[data-cy=story-previous]").click();
+    cy.get("[data-cy=passage-previous]").click();
     passage(2, "100–103");
     cy.typeRawKey("PageDown");
     passage(2, "104–107");
@@ -102,7 +102,7 @@ describe("navigating ayat", () => {
 
   it("keeps typing after a navigation button was clicked", () => {
     visitWith({ surah: 2, ayah: 100, settings: RECITE });
-    cy.get("[data-cy=story-next]").click();
+    cy.get("[data-cy=passage-next]").click();
     passage(2, "104–107");
     cy.targetText().then((text) => {
       cy.typeArabic([...text].slice(0, 3).join(""));
@@ -112,23 +112,23 @@ describe("navigating ayat", () => {
 
   it("crosses into the neighbouring surah at either end", () => {
     visitWith({ surah: 2, ayah: 1, settings: RECITE });
-    cy.get("[data-cy=story-previous]").click();
+    cy.get("[data-cy=passage-previous]").click();
     passage(1, "4–7");
-    cy.get("[data-cy=story-next]").click();
+    cy.get("[data-cy=passage-next]").click();
     passage(2, "1–4");
     visitWith({ surah: 2, ayah: 285, settings: RECITE });
     passage(2, "285–286");
-    cy.get("[data-cy=story-next]").click();
+    cy.get("[data-cy=passage-next]").click();
     passage(3, "1–4");
   });
 
   it("jumps along the surah by clicking its progress bar", () => {
     visitWith({ surah: 2, settings: RECITE });
-    cy.get("[data-cy=story-progress]").click("right");
+    cy.get("[data-cy=passage-progress]").click("right");
     passage(2, "286");
-    cy.get("[data-cy=story-progress]").click("center");
+    cy.get("[data-cy=passage-progress]").click("center");
     passage(2, "143–146");
-    cy.get("[data-cy=story-progress]").click("left");
+    cy.get("[data-cy=passage-progress]").click("left");
     passage(2, "1–4");
   });
 
@@ -170,7 +170,7 @@ describe("completing a surah", () => {
       cy.typeArabic([...text].slice(0, 2).join(""));
       cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "2");
     });
-    cy.get("[data-cy=story-bar]").should("have.attr", "data-surah", "113");
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-surah", "113");
   });
 
   it("gathers every passage of the surah into the celebration", () => {
@@ -197,7 +197,7 @@ describe("completing a surah", () => {
     cy.get("[data-cy=surah-complete-replay]").click();
     cy.get("[data-cy=surah-complete]").should("not.exist");
     passage(112, "1–4");
-    cy.get("[data-cy=story-bar]").should("have.attr", "data-complete", "true");
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-complete", "true");
     cy.typeTarget();
     cy.get("[data-cy=surah-complete]").should("have.attr", "data-completions", "2");
     cy.get("[data-cy=surah-complete-note]").should("contain.text", "2nd time");
@@ -209,7 +209,7 @@ describe("completing a surah", () => {
     cy.get("[data-cy=surah-complete]").should("have.attr", "data-starred", "false");
     cy.get("[data-cy=surah-complete-star]").should("not.exist");
     cy.get("[data-cy=surah-complete-next]").click();
-    cy.get("[data-cy=nav-story]").click();
+    cy.get("[data-cy=nav-recitation]").click();
     cy.get("[data-cy=surah-tile][data-surah=112]")
       .should("have.attr", "data-complete", "true")
       .and("have.attr", "data-starred", "false");
@@ -227,14 +227,14 @@ describe("completing a surah", () => {
 describe("the surah map", () => {
   it("lives on its own route and lists every surah in mushaf order", () => {
     cy.visit("/?seed=3");
-    cy.get("[data-cy=nav-story]").click();
-    cy.location("hash").should("equal", "#/story");
-    cy.get("[data-cy=app]").should("have.attr", "data-route", "story");
+    cy.get("[data-cy=nav-recitation]").click();
+    cy.location("hash").should("equal", "#/recitation");
+    cy.get("[data-cy=app]").should("have.attr", "data-route", "recitation");
     cy.get("[data-cy=typing-area]").should("not.exist");
     cy.get("[data-cy=surah-tile]").should("have.length", 114);
     cy.get("[data-cy=surah-tile]").first().should("have.attr", "data-surah", "1");
     cy.get("[data-cy=surah-tile]").last().should("have.attr", "data-surah", "114");
-    cy.get("[data-cy=story-surahs]").should("have.text", "0/114");
+    cy.get("[data-cy=recitation-surahs]").should("have.text", "0/114");
   });
 
   it("shows completed, starred and partly typed surahs", () => {
@@ -243,11 +243,11 @@ describe("the surah map", () => {
         surah: 36,
         ayah: 21,
         settings: RECITE,
-        story: { surahs: { 36: partial(21, 20), 112: completed(0.99), 113: completed(0.9) } },
+        recitation: { surahs: { 36: partial(21, 20), 112: completed(0.99), 113: completed(0.9) } },
       },
-      "?seed=3#/story",
+      "?seed=3#/recitation",
     );
-    cy.get("[data-cy=story-surahs]").should("have.text", "2/114");
+    cy.get("[data-cy=recitation-surahs]").should("have.text", "2/114");
     cy.get("[data-cy=surah-tile][data-surah=112]")
       .should("have.attr", "data-complete", "true")
       .and("have.attr", "data-starred", "true");
@@ -258,22 +258,22 @@ describe("the surah map", () => {
       .should("have.attr", "data-complete", "false")
       .and("have.attr", "data-covered", "20")
       .and("have.attr", "data-current", "true");
-    cy.get("[data-cy=story-continue]").should("contain.text", "Yaseen 36:21");
+    cy.get("[data-cy=recitation-continue]").should("contain.text", "Yaseen 36:21");
   });
 
   it("continues a surah from its tile where it was left, switching into recitation", () => {
-    visitWith({ story: { surahs: { 36: partial(21, 20) } } }, "?seed=3#/story");
+    visitWith({ recitation: { surahs: { 36: partial(21, 20) } } }, "?seed=3#/recitation");
     cy.get("[data-cy=surah-tile][data-surah=36]").click();
     cy.location("hash").should("equal", "#/");
     passage(36, "21–24");
-    cy.get("[data-cy=nav-story]").click();
+    cy.get("[data-cy=nav-recitation]").click();
     cy.get("[data-cy=surah-tile][data-surah=2]").click();
     passage(2, "1–4");
   });
 
   it("reorders the map to put Juz 'Amma first", () => {
-    visitWith({}, "?seed=3#/story");
-    cy.get("[data-cy=story-order]").select("juz-amma");
+    visitWith({}, "?seed=3#/recitation");
+    cy.get("[data-cy=recitation-order]").select("juz-amma");
     cy.get("[data-cy=surah-tile]").first().should("have.attr", "data-surah", "114");
     cy.get("[data-cy=surah-tile]").eq(36).should("have.attr", "data-surah", "78");
     cy.get("[data-cy=surah-tile]").eq(37).should("have.attr", "data-surah", "1");
@@ -281,31 +281,31 @@ describe("the surah map", () => {
     cy.get("[data-cy=setting-surah-order]").should("have.value", "juz-amma");
   });
 
-  it("resets the story without touching the unlocked letters", () => {
+  it("resets the recitation without touching the unlocked letters", () => {
     visitWith(
       {
         progress: { unlockedCount: 12, tier: "core" },
         stats: masteredStats(["ا"]),
         surah: 36,
         ayah: 21,
-        story: { surahs: { 36: partial(21, 20), 112: completed(0.99) } },
+        recitation: { surahs: { 36: partial(21, 20), 112: completed(0.99) } },
       },
-      "?seed=3#/story",
+      "?seed=3#/recitation",
     );
-    cy.get("[data-cy=story-surahs]").should("have.text", "1/114");
-    cy.get("[data-cy=reset-story]").click();
-    cy.get("[data-cy=story-surahs]").should("have.text", "0/114");
+    cy.get("[data-cy=recitation-surahs]").should("have.text", "1/114");
+    cy.get("[data-cy=reset-recitation]").click();
+    cy.get("[data-cy=recitation-surahs]").should("have.text", "0/114");
     cy.get("[data-cy=surah-tile][data-surah=36]").should("have.attr", "data-covered", "0");
     cy.get("[data-cy=surah-tile][data-surah=1]").should("have.attr", "data-current", "true");
     cy.get("[data-cy=unlocked-count]").should("have.text", "12");
   });
 
-  it("keeps the story when the letter progress is reset", () => {
-    visitWith({ surah: 36, ayah: 21, settings: RECITE, story: { surahs: { 112: completed(0.99) } } });
+  it("keeps the recitation when the letter progress is reset", () => {
+    visitWith({ surah: 36, ayah: 21, settings: RECITE, recitation: { surahs: { 112: completed(0.99) } } });
     cy.openSettings();
     cy.get("[data-cy=reset-profile]").click();
     passage(36, "21–24");
-    cy.get("[data-cy=nav-story]").click();
-    cy.get("[data-cy=story-surahs]").should("have.text", "1/114");
+    cy.get("[data-cy=nav-recitation]").click();
+    cy.get("[data-cy=recitation-surahs]").should("have.text", "1/114");
   });
 });

@@ -1,4 +1,4 @@
-# Plan — letter progression fix and Story Mode
+# Plan — letter progression fix and Recitation progress
 
 ## 1. Letters never unlock
 
@@ -30,9 +30,7 @@ to an unlock. Typing with no delay also gives every keystroke the same timestamp
   streaks, and starting new characters at an assumed 100% let the tier gate pass on too little data.
 - `isMastered` gates on `recentAccuracy`; `shouldAdvanceTier` gates on the attempt-weighted recent
   accuracy of the active characters.
-- `parseProfile` backfills `recentAccuracy` from the old lifetime ratio. `PROFILE_VERSION` is **not**
-  bumped, because a version mismatch wipes the profile. A stuck profile recovers after ~20 clean
-  attempts on the focus letter.
+- A letter held back by old mistakes recovers after ~15 clean attempts on it.
 - The header shows the focus letter with its recent accuracy and latency (`data-cy=focus-letter`), and
   the Stats bars show recent accuracy.
 
@@ -48,9 +46,10 @@ Simulated again with the fix: the 6%-error typist reaches ~26 letters in 300 les
   in the lesson; a profile stuck at 90% lifetime accuracy unlocks within a bounded number of clean
   lessons; progress survives a reload mid-climb.
 
-## 2. Recitation as Story Mode
+## 2. Recitation progress
 
-Adaptive practice is the open-world sandbox, recitation is the story, and each surah is a level.
+Adaptive practice is the open-world sandbox, recitation goes through the Qur'an in order, and each
+surah is a level.
 
 ### Bug
 
@@ -64,11 +63,12 @@ re-served the same ayat.
 - **Completion**: a surah is complete once every ayah has been typed; a ★ marks a best accuracy of
   95% or more.
 - **Locking**: none — every surah is open.
-- **Resetting**: "Reset progress" keeps the story; a separate "Reset story" clears it.
+- **Resetting**: "Reset progress" keeps the recitation progress; a separate "Reset recitation progress"
+  clears it.
 
 ### Persistent state
 
-`profile.story`:
+`profile.recitation`:
 
 - `position: { surah, ayah }` — where the next passage starts.
 - `surahs: Record<n, { run, resume, completions, bestCpm, bestAccuracy, completedAt }>`, where `run`
@@ -76,16 +76,16 @@ re-served the same ayat.
   `resume` is where that surah continues. Tracking ranges rather than a furthest ayah is what lets
   "every ayah typed" mean exactly that after jumping around.
 
-Pure logic in `src/engine/story/story.ts` (`recordPassage`, `surahProgress`, `nextSurah`, …) with unit
-tests. `settings.surah` is migrated into `story.position`. Recite lessons keep counting toward letter
-statistics.
+Pure logic in `src/engine/recitation/recitation.ts` (`recordPassage`, `surahProgress`, `nextSurah`, …)
+with unit tests; `settings.surah` is replaced by `recitation.position`. Recitation lessons keep counting
+toward letter statistics.
 
 ### Navigation
 
 - Recitation settings: surah picker plus a "Start at ayah" picker, and the surah order option.
 - Under the passage: previous / next passage buttons, a typed-so-far count, a clickable surah
   progress bar, and Page Up / Page Down shortcuts (Alt+← is the browser's Back on Windows and Linux).
-- `#/story` route: a map of 114 surah tiles with progress rings, ✓ for complete, ★ for ≥95%.
+- `#/recitation` route: a map of 114 surah tiles with progress rings, ✓ for complete, ★ for ≥95%.
   Clicking a tile continues from the furthest ayah in that surah.
 
 ### Celebration
@@ -97,15 +97,15 @@ every passage.
 
 ### Tests
 
-- Unit: `generateRecitePassage` with `fromAyah`, the story transitions, profile migration.
-- E2E (`story.cy.ts`): passage advance 1–4 → 5–8, persistence across reload, ayah picker and
+- Unit: `generateRecitePassage` with `fromAyah`, the recitation transitions, profile sanitising.
+- E2E (`recitation-progress.cy.ts`): passage advance 1–4 → 5–8, persistence across reload, ayah picker and
   previous/next, surah 112 completion → celebration → "Next surah" goes to 113, the map shows 112 as
-  complete, Juz ʿAmma order, "Reset story".
+  complete, Juz ʿAmma order, "Reset recitation progress".
 
 ## Order of work
 
 1. Letter fix, unit tests, e2e.
-2. `fromAyah` bug and story state.
+2. `fromAyah` bug and recitation progress.
 3. Navigation.
 4. Surah map.
 5. Celebration.

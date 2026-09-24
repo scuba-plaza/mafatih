@@ -50,18 +50,17 @@ test("missing settings fall back rather than yielding undefined", () => {
   assert.equal(settings.customText, DEFAULT_CUSTOM_TEXT);
 });
 
-test("a profile saved before recitation shipped keeps its progress and gains the defaults", () => {
+test("a profile with only some settings keeps its progress and gains the defaults", () => {
   const before = {
     version: 1,
     progress: { unlockedCount: 12, tier: "core", focus: null },
     stats: {},
     history: [{ at: 1, cpm: 90, accuracy: 0.97, errors: 2, chars: 180, tier: "core" }],
-    settings: { mode: "recite", surah: 112, font: "amiri", fontSize: 44, layout: "pc102", showKeyboard: false },
+    settings: { mode: "recite", font: "amiri", fontSize: 44, showKeyboard: false },
   };
   const profile = parseProfile(JSON.stringify(before));
   assert.equal(profile.progress.unlockedCount, 12);
   assert.equal(profile.history.length, 1);
-  assert.deepEqual(profile.story.position, { surah: 112, ayah: 1 });
   assert.equal(profile.settings.reciter, DEFAULT_RECITER);
   assert.equal(profile.settings.volume, DEFAULT_VOLUME);
   assert.equal(profile.settings.muted, false);
@@ -106,29 +105,10 @@ test("a profile from a future version is discarded", () => {
   assert.deepEqual(parseProfile(null), defaultProfile());
 });
 
-test("letter statistics saved before recent accuracy existed are carried over, not wiped", () => {
+test("the recitation progress survives a round trip", () => {
   const stored = {
     ...defaultProfile(),
-    progress: { unlockedCount: 6, tier: "none" },
-    stats: { ي: { char: "ي", samples: 180, meanMs: 300, hits: 180, misses: 20 } },
-  };
-  const profile = parseProfile(JSON.stringify(stored));
-  assert.equal(profile.progress.unlockedCount, 6);
-  assert.deepEqual(profile.stats.ي, {
-    char: "ي",
-    samples: 180,
-    meanMs: 300,
-    hits: 180,
-    misses: 20,
-    recentAccuracy: 0.9,
-  });
-});
-
-test("the story survives a round trip and a stored story wins over the old surah setting", () => {
-  const stored = {
-    ...defaultProfile(),
-    settings: { ...defaultSettings(), surah: 36 },
-    story: {
+    recitation: {
       position: { surah: 2, ayah: 17 },
       surahs: {
         "112": {
@@ -143,15 +123,5 @@ test("the story survives a round trip and a stored story wins over the old surah
     },
   };
   const profile = parseProfile(JSON.stringify(stored));
-  assert.deepEqual(profile.story, stored.story);
-  assert.equal("surah" in profile.settings, false);
-});
-
-test("a keyboard layout chosen before Arabic (101) became the only one is dropped, not kept", () => {
-  for (const layout of ["mac", "pc102", "win101"]) {
-    const stored = { ...defaultProfile(), settings: { ...defaultSettings(), layout } };
-    const settings = parseProfile(JSON.stringify(stored)).settings;
-    assert.equal("layout" in settings, false);
-    assert.deepEqual(settings, defaultSettings());
-  }
+  assert.deepEqual(profile.recitation, stored.recitation);
 });

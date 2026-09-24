@@ -5,6 +5,15 @@ import { generateCustomLesson } from "~/engine/lessons/custom.ts";
 import { countsTowardProgress, type Lesson } from "~/engine/lessons/lesson.ts";
 import { generateRecitePassage } from "~/engine/lessons/recite.ts";
 import {
+  clampPosition,
+  emptyRecitation,
+  passageAfter,
+  passageBefore,
+  type RecitationPosition,
+  recordPassage,
+  type SurahCompletion,
+} from "~/engine/recitation/recitation.ts";
+import {
   applyKey,
   metrics as computeMetrics,
   createSession,
@@ -14,15 +23,6 @@ import {
 } from "~/engine/session/session.ts";
 import { type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
 import { advanceProgress, DEFAULT_UNLOCK_CONFIG, focusLetter } from "~/engine/stats/unlock.ts";
-import {
-  clampPosition,
-  emptyStory,
-  passageAfter,
-  passageBefore,
-  recordPassage,
-  type StoryPosition,
-  type SurahCompletion,
-} from "~/engine/story/story.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
 import {
   defaultProfile,
@@ -64,7 +64,7 @@ function buildLesson(profile: Profile, seed: number): Lesson {
   const { settings } = profile;
   const tier = tierOf(profile);
   if (settings.mode === "recite") {
-    const { surah, ayah } = profile.story.position;
+    const { surah, ayah } = profile.recitation.position;
     return generateRecitePassage({ surah, fromAyah: ayah, tier, maxAyat: settings.ayatPerLesson });
   }
   if (settings.mode === "custom") {
@@ -96,12 +96,12 @@ export interface Trainer {
   dismissLatin: () => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetProfile: () => void;
-  goTo: (position: StoryPosition) => void;
+  goTo: (position: RecitationPosition) => void;
   nextPassage: () => void;
   previousPassage: () => void;
   dismissCompletion: () => void;
   replaySurah: () => void;
-  resetStory: () => void;
+  resetRecitation: () => void;
 }
 
 export interface TrainerOptions {
@@ -160,7 +160,7 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
       }
       const stats = aggregate(current.stats, finished);
       const passage = recordPassage(
-        current.story,
+        current.recitation,
         lessonRef.current.source,
         {
           at: summary.at,
@@ -176,7 +176,7 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
         stats,
         progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
         history: pushHistory(current.history, summary),
-        story: passage.story,
+        recitation: passage.recitation,
       });
       if (passage.completion !== null) {
         setCompletion(passage.completion);
@@ -196,12 +196,12 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   }, [session, finish, regenerate, profileRef]);
 
   const goTo = useCallback(
-    (position: StoryPosition) => {
+    (position: RecitationPosition) => {
       const current = profileRef.current;
       const updated: Profile = {
         ...current,
         settings: current.settings.mode === "recite" ? current.settings : { ...current.settings, mode: "recite" },
-        story: { ...current.story, position: clampPosition(position) },
+        recitation: { ...current.recitation, position: clampPosition(position) },
       };
       commit(updated);
       regenerate(updated);
@@ -292,16 +292,16 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   );
 
   const resetProfile = useCallback(() => {
-    const { settings, story } = profileRef.current;
-    const fresh: Profile = { ...defaultProfile(), settings, story };
+    const { settings, recitation } = profileRef.current;
+    const fresh: Profile = { ...defaultProfile(), settings, recitation };
     commit(fresh);
     setLastSummary(null);
     regenerate(fresh);
   }, [commit, regenerate, profileRef]);
 
-  const resetStory = useCallback(() => {
+  const resetRecitation = useCallback(() => {
     const current = profileRef.current;
-    const updated: Profile = { ...current, story: emptyStory(current.settings.surahOrder) };
+    const updated: Profile = { ...current, recitation: emptyRecitation(current.settings.surahOrder) };
     commit(updated);
     setCompletion(null);
     if (current.settings.mode === "recite") {
@@ -338,6 +338,6 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     previousPassage,
     dismissCompletion,
     replaySurah,
-    resetStory,
+    resetRecitation,
   };
 }

@@ -52,15 +52,6 @@ test("a fresh burst of mistakes pulls recent accuracy down despite a long clean 
   assert.equal(isMastered(stat, 8, 700, 0.95), false);
 });
 
-test("stats stored before recent accuracy existed inherit their lifetime ratio", () => {
-  const stats = sanitizeStats({ ي: { char: "ي", samples: 180, meanMs: 300, hits: 180, misses: 20 } });
-  const stat = statFor(stats, "ي");
-  assert.equal(stat.recentAccuracy, 0.9);
-  assert.equal(stat.hits, 180);
-  assert.equal(stat.misses, 20);
-  assert.equal(stat.meanMs, 300);
-});
-
 test("a stored recent accuracy survives, and nonsense in storage is repaired", () => {
   const stats = sanitizeStats({
     ا: { char: "ا", samples: 10, meanMs: 250, hits: 10, misses: 2, recentAccuracy: 0.97 },

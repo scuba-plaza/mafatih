@@ -126,7 +126,7 @@ describe("earning letters by typing", () => {
       progress: { unlockedCount: 6, tier: "none" },
       stats: {
         ...masteredStats(first5),
-        [sixth]: { char: sixth, samples: 180, meanMs: 300, hits: 180, misses: 20 },
+        [sixth]: { char: sixth, samples: 180, meanMs: 300, hits: 180, misses: 20, recentAccuracy: 0.9 },
       },
     });
     cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", sixth).and("have.attr", "data-accuracy", "0.900");

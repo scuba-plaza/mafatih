@@ -3,16 +3,16 @@ import { isTier, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, DEFAULT_FONT, DEFAULT_FONT_SIZE, type FontId, isFontId } from "~/engine/fonts.ts";
 import { DEFAULT_CUSTOM_TEXT, MAX_CUSTOM_CHARS } from "~/engine/lessons/custom.ts";
 import { clampAyatPerLesson, DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
-import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
-import { initialProgress, type Progress } from "~/engine/stats/unlock.ts";
 import {
   DEFAULT_SURAH_ORDER,
-  emptyStory,
+  emptyRecitation,
   isSurahOrder,
-  type Story,
+  type Recitation,
   type SurahOrder,
-  sanitizeStory,
-} from "~/engine/story/story.ts";
+  sanitizeRecitation,
+} from "~/engine/recitation/recitation.ts";
+import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
+import { initialProgress, type Progress } from "~/engine/stats/unlock.ts";
 
 export type Mode = "adaptive" | "recite" | "custom";
 
@@ -53,7 +53,7 @@ export interface Profile {
   stats: KeyStats;
   settings: Settings;
   history: SessionSummary[];
-  story: Story;
+  recitation: Recitation;
 }
 
 const PROFILE_VERSION = 1;
@@ -86,7 +86,7 @@ export function defaultProfile(): Profile {
     stats: emptyStats(),
     settings: defaultSettings(),
     history: [],
-    story: emptyStory(),
+    recitation: emptyRecitation(),
   };
 }
 
@@ -135,9 +135,9 @@ export function parseProfile(raw: string | null): Profile {
   const stats = sanitizeStats(parsed.stats);
   const settings = sanitizeSettings(parsed.settings);
   const history = Array.isArray(parsed.history) ? (parsed.history as SessionSummary[]) : [];
-  const story = sanitizeStory(parsed.story, isRecord(parsed.settings) ? parsed.settings.surah : undefined);
+  const recitation = sanitizeRecitation(parsed.recitation);
 
-  return { version: PROFILE_VERSION, progress, stats, settings, history, story };
+  return { version: PROFILE_VERSION, progress, stats, settings, history, recitation };
 }
 
 export function loadProfile(): Profile {

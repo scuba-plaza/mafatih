@@ -7,7 +7,7 @@ import {
   clampPosition,
   completedSurahs,
   coveredAyat,
-  emptyStory,
+  emptyRecitation,
   firstGap,
   nextSurah,
   type PassageResult,
@@ -15,12 +15,12 @@ import {
   passageBefore,
   previousSurah,
   progressOf,
+  type Recitation,
   recordPassage,
   resumeOf,
-  type Story,
-  sanitizeStory,
+  sanitizeRecitation,
   surahSequence,
-} from "~/engine/story/story.ts";
+} from "~/engine/recitation/recitation.ts";
 
 const CLEAN: PassageResult = { at: 1000, chars: 100, keystrokes: 100, errors: 0, elapsedMs: 30_000 };
 
@@ -28,11 +28,11 @@ function recite(surah: number, fromAyah: number, toAyah: number): LessonSource {
   return { kind: "recite", surah, fromAyah, toAyah };
 }
 
-function typeSurah(story: Story, surah: number, perLesson: number, result = CLEAN): Story {
-  let next = story;
+function typeSurah(recitation: Recitation, surah: number, perLesson: number, result = CLEAN): Recitation {
+  let next = recitation;
   for (let from = 1; from <= ayatCount(surah); from += perLesson) {
     const to = Math.min(ayatCount(surah), from + perLesson - 1);
-    next = recordPassage(next, recite(surah, from, to), result, "mushaf").story;
+    next = recordPassage(next, recite(surah, from, to), result, "mushaf").recitation;
   }
   return next;
 }
@@ -73,34 +73,39 @@ test("ayah ranges merge when they touch or overlap", () => {
   assert.equal(firstGap([[3, 14]], 14), 1);
 });
 
-test("finishing a passage moves the story on to the next ayah", () => {
-  const { story, completion } = recordPassage(emptyStory(), recite(2, 1, 4), CLEAN, "mushaf");
+test("finishing a passage moves the recitation on to the next ayah", () => {
+  const { recitation, completion } = recordPassage(emptyRecitation(), recite(2, 1, 4), CLEAN, "mushaf");
   assert.equal(completion, null);
-  assert.deepEqual(story.position, { surah: 2, ayah: 5 });
-  assert.equal(resumeOf(story, 2), 5);
-  assert.equal(progressOf(story, 2).covered, 4);
-  assert.equal(progressOf(story, 2).complete, false);
+  assert.deepEqual(recitation.position, { surah: 2, ayah: 5 });
+  assert.equal(resumeOf(recitation, 2), 5);
+  assert.equal(progressOf(recitation, 2).covered, 4);
+  assert.equal(progressOf(recitation, 2).complete, false);
 });
 
 test("typing a surah through to its end completes it and moves on to the next", () => {
-  const { story, completion } = recordPassage(typeSurah(emptyStory(), 112, 2), recite(113, 1, 5), CLEAN, "mushaf");
-  assert.equal(progressOf(story, 112).complete, true);
-  assert.equal(progressOf(story, 112).starred, true);
+  const { recitation, completion } = recordPassage(
+    typeSurah(emptyRecitation(), 112, 2),
+    recite(113, 1, 5),
+    CLEAN,
+    "mushaf",
+  );
+  assert.equal(progressOf(recitation, 112).complete, true);
+  assert.equal(progressOf(recitation, 112).starred, true);
   assert.equal(completion?.surah, 113);
   assert.equal(completion?.next, 114);
-  assert.deepEqual(story.position, { surah: 114, ayah: 1 });
-  assert.equal(completedSurahs(story), 2);
+  assert.deepEqual(recitation.position, { surah: 114, ayah: 1 });
+  assert.equal(completedSurahs(recitation), 2);
 });
 
 test("a completion reports the whole surah, not just its last passage", () => {
-  let story = recordPassage(emptyStory(), recite(112, 1, 2), CLEAN, "mushaf").story;
+  let recitation = recordPassage(emptyRecitation(), recite(112, 1, 2), CLEAN, "mushaf").recitation;
   const update = recordPassage(
-    story,
+    recitation,
     recite(112, 3, 4),
     { at: 2000, chars: 50, keystrokes: 60, errors: 10, elapsedMs: 20_000 },
     "mushaf",
   );
-  story = update.story;
+  recitation = update.recitation;
   assert.ok(update.completion);
   assert.equal(update.completion.ayat, 4);
   assert.equal(update.completion.chars, 150);
@@ -111,41 +116,46 @@ test("a completion reports the whole surah, not just its last passage", () => {
   assert.equal(update.completion.cpm, 180);
   assert.equal(update.completion.completions, 1);
   assert.equal(update.completion.starred, false);
-  assert.equal(progressOf(story, 112).starred, false);
+  assert.equal(progressOf(recitation, 112).starred, false);
 });
 
 test("skipping ahead leaves a gap, and reaching the end sends you back to fill it", () => {
-  let story = recordPassage(emptyStory(), recite(112, 1, 1), CLEAN, "mushaf").story;
-  const update = recordPassage(story, recite(112, 3, 4), CLEAN, "mushaf");
-  story = update.story;
+  let recitation = recordPassage(emptyRecitation(), recite(112, 1, 1), CLEAN, "mushaf").recitation;
+  const update = recordPassage(recitation, recite(112, 3, 4), CLEAN, "mushaf");
+  recitation = update.recitation;
   assert.equal(update.completion, null);
-  assert.deepEqual(story.position, { surah: 112, ayah: 2 });
-  const filled = recordPassage(story, recite(112, 2, 2), CLEAN, "mushaf");
+  assert.deepEqual(recitation.position, { surah: 112, ayah: 2 });
+  const filled = recordPassage(recitation, recite(112, 2, 2), CLEAN, "mushaf");
   assert.equal(filled.completion?.surah, 112);
 });
 
 test("a completed surah can be typed again, and completes a second time only when every ayah is retyped", () => {
-  let story = typeSurah(emptyStory(), 112, 4);
-  assert.equal(progressOf(story, 112).completions, 1);
-  story = recordPassage({ ...story, position: { surah: 112, ayah: 1 } }, recite(112, 3, 4), CLEAN, "mushaf").story;
-  assert.equal(progressOf(story, 112).completions, 1);
-  assert.equal(progressOf(story, 112).complete, true);
-  const again = recordPassage(story, recite(112, 1, 2), CLEAN, "mushaf");
+  let recitation = typeSurah(emptyRecitation(), 112, 4);
+  assert.equal(progressOf(recitation, 112).completions, 1);
+  recitation = recordPassage(
+    { ...recitation, position: { surah: 112, ayah: 1 } },
+    recite(112, 3, 4),
+    CLEAN,
+    "mushaf",
+  ).recitation;
+  assert.equal(progressOf(recitation, 112).completions, 1);
+  assert.equal(progressOf(recitation, 112).complete, true);
+  const again = recordPassage(recitation, recite(112, 1, 2), CLEAN, "mushaf");
   assert.equal(again.completion?.completions, 2);
 });
 
 test("the best accuracy is kept across completions", () => {
   const sloppy = { ...CLEAN, keystrokes: 200, errors: 100 };
-  let story = typeSurah(emptyStory(), 112, 4, CLEAN);
-  story = typeSurah(story, 112, 4, sloppy);
-  assert.equal(progressOf(story, 112).completions, 2);
-  assert.equal(progressOf(story, 112).starred, true);
+  let recitation = typeSurah(emptyRecitation(), 112, 4, CLEAN);
+  recitation = typeSurah(recitation, 112, 4, sloppy);
+  assert.equal(progressOf(recitation, 112).completions, 2);
+  assert.equal(progressOf(recitation, 112).starred, true);
 });
 
 test("completing a surah continues the next one where it was left", () => {
-  let story = recordPassage(emptyStory(), recite(113, 1, 2), CLEAN, "mushaf").story;
-  story = typeSurah(story, 112, 4);
-  assert.deepEqual(story.position, { surah: 113, ayah: 3 });
+  let recitation = recordPassage(emptyRecitation(), recite(113, 1, 2), CLEAN, "mushaf").recitation;
+  recitation = typeSurah(recitation, 112, 4);
+  assert.deepEqual(recitation.position, { surah: 113, ayah: 3 });
 });
 
 test("the next and previous passages cross surah boundaries", () => {
@@ -158,10 +168,10 @@ test("the next and previous passages cross surah boundaries", () => {
   assert.deepEqual(passageBefore(113, 1, 4, "juz-amma"), { surah: 114, ayah: 3 });
 });
 
-test("adaptive and custom lessons leave the story alone", () => {
-  const story = emptyStory();
-  assert.equal(recordPassage(story, { kind: "adaptive" }, CLEAN, "mushaf").story, story);
-  assert.equal(recordPassage(story, { kind: "custom" }, CLEAN, "mushaf").story, story);
+test("adaptive and custom lessons leave the recitation alone", () => {
+  const recitation = emptyRecitation();
+  assert.equal(recordPassage(recitation, { kind: "adaptive" }, CLEAN, "mushaf").recitation, recitation);
+  assert.equal(recordPassage(recitation, { kind: "custom" }, CLEAN, "mushaf").recitation, recitation);
 });
 
 test("positions are clamped to real surahs and ayat", () => {
@@ -170,16 +180,11 @@ test("positions are clamped to real surahs and ayat", () => {
   assert.deepEqual(clampPosition({ surah: "x", ayah: 2.7 }), { surah: 1, ayah: 2 });
 });
 
-test("a profile saved before the story existed starts it at the surah it had selected", () => {
-  assert.deepEqual(sanitizeStory(undefined, 36), { position: { surah: 36, ayah: 1 }, surahs: {} });
-  assert.deepEqual(sanitizeStory(undefined), emptyStory());
-});
+test("a stored recitation survives a round trip and nonsense in it is repaired", () => {
+  const recitation = typeSurah(recordPassage(emptyRecitation(), recite(2, 1, 8), CLEAN, "mushaf").recitation, 112, 2);
+  assert.deepEqual(sanitizeRecitation(JSON.parse(JSON.stringify(recitation))), recitation);
 
-test("a stored story survives a round trip and nonsense in it is repaired", () => {
-  const story = typeSurah(recordPassage(emptyStory(), recite(2, 1, 8), CLEAN, "mushaf").story, 112, 2);
-  assert.deepEqual(sanitizeStory(JSON.parse(JSON.stringify(story))), story);
-
-  const repaired = sanitizeStory({
+  const repaired = sanitizeRecitation({
     position: { surah: 112, ayah: 99 },
     surahs: {
       "112": { run: { typed: [[3, 1], [9, 12], "x"], chars: -5 }, resume: 40, completions: "2", bestAccuracy: 7 },

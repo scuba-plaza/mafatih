@@ -308,7 +308,7 @@ describe("recitation playback", () => {
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
     cy.typeTarget();
     cy.get("[data-cy=surah-complete]").should("be.visible");
-    cy.get("[data-cy=story-bar]").should("have.attr", "data-surah", "113");
+    cy.get("[data-cy=passage-bar]").should("have.attr", "data-surah", "113");
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
     cy.get("[data-cy=recitation-label]").should("have.attr", "data-verse", "bismillah");
     cy.wrap(null).should(() => {

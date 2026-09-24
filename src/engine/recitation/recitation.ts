@@ -33,13 +33,13 @@ export interface SurahRecord {
   completedAt: number | null;
 }
 
-export interface StoryPosition {
+export interface RecitationPosition {
   surah: number;
   ayah: number;
 }
 
-export interface Story {
-  position: StoryPosition;
+export interface Recitation {
+  position: RecitationPosition;
   surahs: Readonly<Record<number, SurahRecord>>;
 }
 
@@ -112,7 +112,7 @@ function clampInt(value: unknown, min: number, max: number, fallback: number): n
   return Math.min(max, Math.max(min, Math.floor(n)));
 }
 
-export function clampPosition(position: { surah: unknown; ayah: unknown }): StoryPosition {
+export function clampPosition(position: { surah: unknown; ayah: unknown }): RecitationPosition {
   const surah = clampInt(position.surah, 1, surahs.length, 1);
   const ayah = clampInt(position.ayah, 1, Math.max(1, ayatCount(surah)), 1);
   return { surah, ayah };
@@ -126,12 +126,12 @@ export function emptyRecord(): SurahRecord {
   return { run: emptyRun(), resume: 1, completions: 0, bestAccuracy: 0, bestCpm: 0, completedAt: null };
 }
 
-export function emptyStory(order: SurahOrder = DEFAULT_SURAH_ORDER): Story {
+export function emptyRecitation(order: SurahOrder = DEFAULT_SURAH_ORDER): Recitation {
   return { position: { surah: surahSequence(order)[0] ?? 1, ayah: 1 }, surahs: {} };
 }
 
-export function recordOf(story: Story, surah: number): SurahRecord {
-  return story.surahs[surah] ?? emptyRecord();
+export function recordOf(recitation: Recitation, surah: number): SurahRecord {
+  return recitation.surahs[surah] ?? emptyRecord();
 }
 
 export function addRange(ranges: readonly AyahRange[], from: number, to: number): AyahRange[] {
@@ -171,14 +171,14 @@ export function cpmOfTally(tally: Tally): number {
   return tally.elapsedMs <= 0 ? 0 : tally.chars / (tally.elapsedMs / 60_000);
 }
 
-export function resumeOf(story: Story, surah: number): number {
+export function resumeOf(recitation: Recitation, surah: number): number {
   const total = ayatCount(surah);
-  const resume = recordOf(story, surah).resume;
+  const resume = recordOf(recitation, surah).resume;
   return resume >= 1 && resume <= total ? resume : 1;
 }
 
-export function progressOf(story: Story, surah: number): SurahProgress {
-  const record = recordOf(story, surah);
+export function progressOf(recitation: Recitation, surah: number): SurahProgress {
+  const record = recordOf(recitation, surah);
   const total = ayatCount(surah);
   const complete = record.completions > 0;
   const covered = complete ? total : Math.min(total, coveredAyat(record.run.typed));
@@ -192,11 +192,11 @@ export function progressOf(story: Story, surah: number): SurahProgress {
   };
 }
 
-export function completedSurahs(story: Story): number {
-  return Object.values(story.surahs).filter((record) => record.completions > 0).length;
+export function completedSurahs(recitation: Recitation): number {
+  return Object.values(recitation.surahs).filter((record) => record.completions > 0).length;
 }
 
-export function passageAfter(surah: number, toAyah: number, order: SurahOrder): StoryPosition {
+export function passageAfter(surah: number, toAyah: number, order: SurahOrder): RecitationPosition {
   return toAyah < ayatCount(surah) ? { surah, ayah: toAyah + 1 } : { surah: nextSurah(surah, order), ayah: 1 };
 }
 
@@ -205,7 +205,7 @@ export function passageBefore(
   fromAyah: number,
   ayatPerLesson: number,
   order: SurahOrder,
-): StoryPosition {
+): RecitationPosition {
   if (fromAyah > 1) {
     return { surah, ayah: Math.max(1, fromAyah - ayatPerLesson) };
   }
@@ -213,31 +213,36 @@ export function passageBefore(
   return { surah: previous, ayah: Math.max(1, ayatCount(previous) - ayatPerLesson + 1) };
 }
 
-function withRecord(story: Story, surah: number, record: SurahRecord, position: StoryPosition): Story {
-  return { position, surahs: { ...story.surahs, [surah]: record } };
+function withRecord(
+  recitation: Recitation,
+  surah: number,
+  record: SurahRecord,
+  position: RecitationPosition,
+): Recitation {
+  return { position, surahs: { ...recitation.surahs, [surah]: record } };
 }
 
-export interface StoryUpdate {
-  story: Story;
+export interface RecitationUpdate {
+  recitation: Recitation;
   completion: SurahCompletion | null;
 }
 
 export function recordPassage(
-  story: Story,
+  recitation: Recitation,
   source: LessonSource,
   result: PassageResult,
   order: SurahOrder,
-): StoryUpdate {
+): RecitationUpdate {
   const { surah, fromAyah, toAyah } = source;
   if (source.kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
-    return { story, completion: null };
+    return { recitation, completion: null };
   }
   const total = ayatCount(surah);
   if (total === 0) {
-    return { story, completion: null };
+    return { recitation, completion: null };
   }
 
-  const record = recordOf(story, surah);
+  const record = recordOf(recitation, surah);
   const run: Run = {
     typed: addRange(record.run.typed, fromAyah, toAyah),
     chars: record.run.chars + result.chars,
@@ -249,7 +254,7 @@ export function recordPassage(
   if (coveredAyat(run.typed) < total) {
     const resume = toAyah < total ? toAyah + 1 : (firstGap(run.typed, total) ?? 1);
     const position = { surah, ayah: resume };
-    return { story: withRecord(story, surah, { ...record, run, resume }, position), completion: null };
+    return { recitation: withRecord(recitation, surah, { ...record, run, resume }, position), completion: null };
   }
 
   const accuracy = accuracyOfTally(run);
@@ -263,11 +268,11 @@ export function recordPassage(
     completedAt: result.at,
   };
   const next = nextSurah(surah, order);
-  const updated = withRecord(story, surah, completed, story.position);
+  const updated = withRecord(recitation, surah, completed, recitation.position);
   const position = { surah: next, ayah: resumeOf(updated, next) };
 
   return {
-    story: { ...updated, position },
+    recitation: { ...updated, position },
     completion: {
       surah,
       ayat: total,
@@ -333,14 +338,13 @@ function sanitizeRecord(raw: unknown, total: number): SurahRecord {
   };
 }
 
-export function sanitizeStory(raw: unknown, legacySurah?: unknown): Story {
+export function sanitizeRecitation(raw: unknown): Recitation {
   if (!isRecord(raw)) {
-    const fresh = emptyStory();
-    return legacySurah === undefined ? fresh : { ...fresh, position: clampPosition({ surah: legacySurah, ayah: 1 }) };
+    return emptyRecitation();
   }
   const position = isRecord(raw.position)
     ? clampPosition({ surah: raw.position.surah, ayah: raw.position.ayah })
-    : emptyStory().position;
+    : emptyRecitation().position;
   const records: Record<number, SurahRecord> = {};
   if (isRecord(raw.surahs)) {
     for (const [key, value] of Object.entries(raw.surahs)) {

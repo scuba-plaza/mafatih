@@ -1,36 +1,30 @@
-import type { KeyStat } from "../../src/engine/stats/keystats.ts";
+import type { Recitation } from "../../src/engine/recitation/recitation.ts";
+import type { KeyStat, KeyStats } from "../../src/engine/stats/keystats.ts";
 import type { Progress } from "../../src/engine/stats/unlock.ts";
-import type { Story } from "../../src/engine/story/story.ts";
 import { defaultProfile, type Profile, type Settings, STORAGE_KEY } from "../../src/storage/profile.ts";
-
-export type StoredStat = Omit<KeyStat, "recentAccuracy"> & Partial<Pick<KeyStat, "recentAccuracy">>;
-
-export type StoredStats = Readonly<Record<string, StoredStat>>;
-
-export type StoredProfile = Omit<Profile, "stats"> & { stats: StoredStats };
 
 export interface ProfileSeed {
   settings?: Partial<Settings>;
   progress?: Partial<Progress>;
-  stats?: StoredStats;
+  stats?: KeyStats;
   surah?: number;
   ayah?: number;
-  story?: Partial<Story>;
+  recitation?: Partial<Recitation>;
 }
 
-export function buildProfile(seed: ProfileSeed = {}): StoredProfile {
+export function buildProfile(seed: ProfileSeed = {}): Profile {
   const base = defaultProfile();
   return {
     ...base,
     progress: { ...base.progress, ...seed.progress },
     settings: { ...base.settings, ...seed.settings },
     stats: seed.stats ?? base.stats,
-    story: {
-      ...base.story,
-      ...seed.story,
+    recitation: {
+      ...base.recitation,
+      ...seed.recitation,
       position: {
-        ...base.story.position,
-        ...seed.story?.position,
+        ...base.recitation.position,
+        ...seed.recitation?.position,
         ...(seed.surah === undefined ? {} : { surah: seed.surah }),
         ...(seed.ayah === undefined ? {} : { ayah: seed.ayah }),
       },

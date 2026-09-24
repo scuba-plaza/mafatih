@@ -4,21 +4,21 @@ import CustomTextModal from "~/components/CustomTextModal.tsx";
 import FocusLetter from "~/components/FocusLetter.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
+import PassageBar from "~/components/PassageBar.tsx";
 import RecitationBar from "~/components/RecitationBar.tsx";
 import RecitationModal from "~/components/RecitationModal.tsx";
 import SettingsModal from "~/components/SettingsModal.tsx";
 import Stats from "~/components/Stats.tsx";
-import StoryBar from "~/components/StoryBar.tsx";
-import StoryMap from "~/components/StoryMap.tsx";
 import SurahComplete from "~/components/SurahComplete.tsx";
+import SurahMap from "~/components/SurahMap.tsx";
 import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
 import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { fontStack } from "~/engine/fonts.ts";
+import { completedSurahs, type RecitationPosition } from "~/engine/recitation/recitation.ts";
 import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
-import { completedSurahs, type StoryPosition } from "~/engine/story/story.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
-import { useRecitation } from "~/hooks/useRecitation.ts";
+import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 import { ROUTE_HASH, type Route, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
 
@@ -47,15 +47,15 @@ export default function App() {
   const live = computeMetrics(session, isComplete(session) ? undefined : performance.now());
   const nextChar = expectedKey(session);
   const audioCache = useAudioCache(modal === "recitation");
-  const recitation = useRecitation({
+  const player = useRecitationPlayer({
     lesson,
     settings,
     updateSettings: trainer.updateSettings,
     active: route === "practice",
   });
   const playingSpan =
-    (recitation.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === recitation.ayah)) ?? null;
-  const reciting = recitation.playing || recitation.progress > 0;
+    (player.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === player.ayah)) ?? null;
+  const reciting = player.playing || player.progress > 0;
   const highlight = useMemo(
     () => (playingSpan !== null && reciting ? { start: playingSpan.start, end: playingSpan.end } : null),
     [playingSpan, reciting],
@@ -88,7 +88,7 @@ export default function App() {
     };
   }, [docked]);
 
-  const playFromMap = (position: StoryPosition) => {
+  const playFromMap = (position: RecitationPosition) => {
     trainer.goTo(position);
     window.location.hash = ROUTE_HASH.practice;
   };
@@ -116,7 +116,7 @@ export default function App() {
             <FocusLetter progress={profile.progress} stats={profile.stats} />
           </span>
           <NavLink target="practice" current={route} label="Practice" />
-          <NavLink target="story" current={route} label="Story" />
+          <NavLink target="recitation" current={route} label="Recitation" />
           <NavLink target="stats" current={route} label="Stats" />
           <button
             type="button"
@@ -129,14 +129,14 @@ export default function App() {
         </nav>
       </header>
 
-      {route === "story" ? (
+      {route === "recitation" ? (
         <main className="flex flex-1 flex-col">
-          <StoryMap
-            story={profile.story}
+          <SurahMap
+            recitation={profile.recitation}
             order={settings.surahOrder}
             onOrder={(surahOrder) => trainer.updateSettings({ surahOrder })}
             onPlay={playFromMap}
-            onReset={trainer.resetStory}
+            onReset={trainer.resetRecitation}
           />
         </main>
       ) : route === "stats" ? (
@@ -155,9 +155,9 @@ export default function App() {
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <Attribution source={lesson.source} />
-              <StoryBar
+              <PassageBar
                 source={lesson.source}
-                story={profile.story}
+                recitation={profile.recitation}
                 onPrevious={trainer.previousPassage}
                 onNext={trainer.nextPassage}
                 onJump={(ayah) => trainer.goTo({ surah: lesson.source.surah ?? 1, ayah })}
@@ -189,7 +189,7 @@ export default function App() {
                 </div>
               ) : null}
             </div>
-            {lesson.source.kind === "recite" ? <RecitationBar recitation={recitation} /> : null}
+            {lesson.source.kind === "recite" ? <RecitationBar player={player} /> : null}
           </section>
 
           {settings.showKeyboard ? (
@@ -218,7 +218,7 @@ export default function App() {
       <RecitationModal
         open={modal === "recitation"}
         settings={settings}
-        story={profile.story}
+        recitation={profile.recitation}
         audioCache={audioCache}
         onChange={trainer.updateSettings}
         onGoTo={trainer.goTo}
@@ -228,7 +228,7 @@ export default function App() {
 
       <SurahComplete
         completion={trainer.completion}
-        completedSurahs={completedSurahs(profile.story)}
+        completedSurahs={completedSurahs(profile.recitation)}
         onContinue={trainer.dismissCompletion}
         onReplay={trainer.replaySurah}
       />

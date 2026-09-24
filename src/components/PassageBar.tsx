@@ -1,10 +1,10 @@
 import type { KeyboardEvent, MouseEvent, SyntheticEvent } from "react";
 import type { LessonSource } from "~/engine/lessons/lesson.ts";
-import { type AyahRange, ayatCount, progressOf, recordOf, type Story } from "~/engine/story/story.ts";
+import { type AyahRange, ayatCount, progressOf, type Recitation, recordOf } from "~/engine/recitation/recitation.ts";
 
-export interface StoryBarProps {
+export interface PassageBarProps {
   source: LessonSource;
-  story: Story;
+  recitation: Recitation;
   onPrevious: () => void;
   onNext: () => void;
   onJump: (ayah: number) => void;
@@ -37,7 +37,7 @@ function blurAfter(run: () => void) {
   };
 }
 
-export default function StoryBar({ source, story, onPrevious, onNext, onJump }: StoryBarProps) {
+export default function PassageBar({ source, recitation, onPrevious, onNext, onJump }: PassageBarProps) {
   const { surah, fromAyah, toAyah } = source;
   if (source.kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
     return null;
@@ -46,8 +46,8 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
   if (total === 0) {
     return null;
   }
-  const progress = progressOf(story, surah);
-  const typed: readonly AyahRange[] = progress.complete ? [[1, total]] : recordOf(story, surah).run.typed;
+  const progress = progressOf(recitation, surah);
+  const typed: readonly AyahRange[] = progress.complete ? [[1, total]] : recordOf(recitation, surah).run.typed;
 
   const jumpTo = (event: MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -69,7 +69,7 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
 
   return (
     <div
-      data-cy="story-bar"
+      data-cy="passage-bar"
       data-surah={surah}
       data-from={fromAyah}
       data-to={toAyah}
@@ -81,7 +81,7 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
     >
       <button
         type="button"
-        data-cy="story-previous"
+        data-cy="passage-previous"
         aria-label="Previous passage"
         title="Previous passage (Page Up)"
         onClick={blurAfter(onPrevious)}
@@ -91,7 +91,7 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
       </button>
 
       <div
-        data-cy="story-progress"
+        data-cy="passage-progress"
         role="slider"
         tabIndex={0}
         aria-label="Jump to an ayah"
@@ -107,7 +107,7 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
           {typed.map(([start, end], index) => (
             <div
               key={index}
-              data-cy="story-typed"
+              data-cy="passage-typed"
               className={`absolute inset-y-0 transition-[left,width] duration-700 ease-out ${
                 progress.complete ? "bg-emerald-500/70" : "bg-stone-400 dark:bg-stone-500"
               }`}
@@ -115,7 +115,7 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
             />
           ))}
           <div
-            data-cy="story-passage"
+            data-cy="passage-current"
             className="absolute inset-y-0 rounded-full bg-sky-500 transition-[left,width] duration-500 ease-out"
             style={{ left: percent(fromAyah - 1, total), width: percent(toAyah - fromAyah + 1, total) }}
           />
@@ -123,17 +123,17 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
       </div>
 
       <span
-        data-cy="story-label"
+        data-cy="passage-label"
         className="flex shrink-0 items-baseline gap-1.5 font-mono text-xs tabular-nums text-stone-400"
       >
         {`${progress.covered}/${total}`}
         {progress.complete ? (
-          <span data-cy="story-complete" title="Surah complete" className="text-emerald-600 dark:text-emerald-400">
+          <span data-cy="passage-complete" title="Surah complete" className="text-emerald-600 dark:text-emerald-400">
             ✓
           </span>
         ) : null}
         {progress.starred ? (
-          <span data-cy="story-star" title="Completed at 95% accuracy or better" className="text-amber-500">
+          <span data-cy="passage-star" title="Completed at 95% accuracy or better" className="text-amber-500">
             ★
           </span>
         ) : null}
@@ -141,7 +141,7 @@ export default function StoryBar({ source, story, onPrevious, onNext, onJump }: 
 
       <button
         type="button"
-        data-cy="story-next"
+        data-cy="passage-next"
         aria-label="Next passage"
         title="Next passage (Page Down)"
         onClick={blurAfter(onNext)}

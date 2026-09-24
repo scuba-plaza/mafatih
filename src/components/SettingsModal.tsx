@@ -70,7 +70,7 @@ export default function SettingsModal({
         onChange={(value) => onChange(isMode(value) ? { mode: value } : {})}
       >
         <option value="adaptive">Practice · adaptive</option>
-        <option value="recite">Recite · continuous ayat</option>
+        <option value="recite">Recitation · surah by surah</option>
         <option value="custom">Custom · your own text</option>
       </SelectRow>
 

@@ -1,5 +1,4 @@
-import { STORAGE_KEY } from "../../src/storage/profile.ts";
-import { buildProfile, visitWith } from "../support/profile.ts";
+import { visitWith } from "../support/profile.ts";
 
 const directionOf = ($el: JQuery<HTMLElement>): string =>
   ($el[0] as HTMLElement).ownerDocument.defaultView?.getComputedStyle($el[0] as HTMLElement).direction ?? "";
@@ -137,16 +136,6 @@ describe("the Arabic (101) keyboard", () => {
     cy.openSettings();
     cy.get("[data-cy=setting-layout]").should("not.exist");
     cy.get("[data-cy=settings]").should("not.contain.text", "Keyboard layout");
-  });
-
-  it("ignores a layout a profile saved before Arabic (101) became the only one", () => {
-    cy.visit("/?seed=5", {
-      onBeforeLoad(win) {
-        const stored = { ...buildProfile(), settings: { ...buildProfile().settings, layout: "mac" } };
-        win.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-      },
-    });
-    cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
   });
 
   it("accepts the lam-alef key the way Windows sends it, as two letters at once", () => {

@@ -1,14 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { letterOrder } from "~/engine/corpus/corpus.ts";
-import {
-  accuracyOf,
-  emptyStats,
-  type KeyStats,
-  recordKeystroke,
-  sanitizeStats,
-  statFor,
-} from "~/engine/stats/keystats.ts";
+import { accuracyOf, emptyStats, type KeyStats, recordKeystroke, statFor } from "~/engine/stats/keystats.ts";
 import {
   advanceProgress,
   DEFAULT_UNLOCK_CONFIG,
@@ -78,7 +71,9 @@ test("a focus letter held back by old mistakes unlocks once recent typing is cle
   const progress = initialProgress();
   const focus = focusLetter(progress);
   assert.ok(focus);
-  const stuck: KeyStats = sanitizeStats({ [focus]: { char: focus, samples: 180, meanMs: 300, hits: 180, misses: 20 } });
+  const stuck: KeyStats = {
+    [focus]: { char: focus, samples: 180, meanMs: 300, hits: 180, misses: 20, recentAccuracy: 0.9 },
+  };
   assert.equal(shouldUnlockNext(stuck, progress, cfg), false);
   const recovered = drill(stuck, [focus], 15, 300);
   assert.ok(accuracyOf(statFor(recovered, focus)) < cfg.minAccuracy);
