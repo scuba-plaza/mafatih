@@ -51,6 +51,7 @@ export default function App() {
     lesson,
     settings,
     updateSettings: trainer.updateSettings,
+    active: route === "practice",
   });
   const playingSpan =
     (recitation.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === recitation.ayah)) ?? null;

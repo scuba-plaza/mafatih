@@ -324,6 +324,22 @@ describe("recitation playback", () => {
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
   });
 
+  it("pauses when another page is opened, and stays paused on return", () => {
+    stubLongRecitation();
+    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none" } });
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+    cy.window().then((win) => {
+      cy.spy(win.HTMLMediaElement.prototype, "pause").as("pause");
+    });
+    cy.showStats();
+    cy.get("@pause").should("have.been.called");
+    cy.showPractice();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "false");
+    cy.get("[data-cy=recitation-toggle]").click();
+    cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
+  });
+
   it("stops playing when the lesson leaves recitation", () => {
     stubLongRecitation();
     visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "none" } });

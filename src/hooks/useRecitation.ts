@@ -45,9 +45,10 @@ export interface RecitationOptions {
   lesson: Lesson;
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
+  active?: boolean;
 }
 
-export function useRecitation({ lesson, settings, updateSettings }: RecitationOptions): Recitation {
+export function useRecitation({ lesson, settings, updateSettings, active = true }: RecitationOptions): Recitation {
   const { source } = lesson;
   const surah = source.surah ?? 0;
   const fromAyah = source.fromAyah ?? 0;
@@ -120,6 +121,13 @@ export function useRecitation({ lesson, settings, updateSettings }: RecitationOp
     audioRef.current?.pause();
     halt();
   }, [halt]);
+
+  useEffect(() => {
+    if (!active) {
+      audioRef.current?.pause();
+      setPlaying(false);
+    }
+  }, [active]);
 
   const passageKey = `${surah}:${fromAyah}:${toAyah}:${settings.reciter}`;
   const passageRef = useRef(passageKey);
