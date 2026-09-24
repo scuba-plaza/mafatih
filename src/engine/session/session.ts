@@ -157,10 +157,6 @@ export function applyKey(state: SessionState, key: string, at: number): SessionS
   return next;
 }
 
-export function expectedChar(state: SessionState): string | undefined {
-  return state.chars[state.cursor];
-}
-
 export function metrics(state: SessionState, now?: number): SessionMetrics {
   const live =
     now === undefined || state.startedAt === null
@@ -184,4 +180,21 @@ export function activeMsBetween(state: SessionState, fromRecord: number, toRecor
     total += Math.min(Math.max(0, gap), LATENCY_CAP_MS);
   }
   return total;
+}
+
+export interface SessionTally {
+  chars: number;
+  keystrokes: number;
+  errors: number;
+  elapsedMs: number;
+}
+
+export function tallySince(state: SessionState, cursor: number, record: number): SessionTally {
+  const records = state.records.slice(record);
+  return {
+    chars: state.cursor - cursor,
+    keystrokes: records.length,
+    errors: records.filter((entry) => !entry.correct).length,
+    elapsedMs: activeMsBetween(state, record, state.records.length),
+  };
 }

@@ -17,14 +17,33 @@ import {
   previousSurah,
   progressOf,
   type Recitation,
+  type RecitationUpdate,
   recordAyat,
-  recordPassage,
   resumeOf,
+  type SurahOrder,
   sanitizeRecitation,
   surahSequence,
 } from "~/engine/recitation/recitation.ts";
 
 const CLEAN: PassageResult = { at: 1000, chars: 100, keystrokes: 100, errors: 0, elapsedMs: 30_000 };
+
+function recordPassage(
+  recitation: Recitation,
+  source: LessonSource,
+  result: PassageResult,
+  order: SurahOrder,
+): RecitationUpdate {
+  const { surah, fromAyah, toAyah } = source;
+  if (source.kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
+    return { recitation, completion: null };
+  }
+  return recordAyat(
+    recitation,
+    { surah, from: fromAyah, to: toAyah, passageFrom: fromAyah, passageTo: toAyah },
+    result,
+    order,
+  );
+}
 
 function recite(surah: number, fromAyah: number, toAyah: number): LessonSource {
   return { kind: "recite", surah, fromAyah, toAyah };
@@ -189,7 +208,7 @@ test("a stored recitation survives a round trip and nonsense in it is repaired",
   const repaired = sanitizeRecitation({
     position: { surah: 112, ayah: 99 },
     surahs: {
-      "112": { run: { typed: [[3, 1], [9, 12], "x"], chars: -5 }, resume: 40, completions: "2", bestAccuracy: 7 },
+      "112": { run: { typed: [[3, 1], [9, 12], "x"], chars: -5 }, resume: 40, completions: 2.7, bestAccuracy: 7 },
       "900": { completions: 1 },
       nonsense: {},
     },

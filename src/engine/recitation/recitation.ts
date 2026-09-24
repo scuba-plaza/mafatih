@@ -1,5 +1,5 @@
 import { surahByNumber, surahs } from "~/engine/corpus/corpus.ts";
-import type { LessonSource } from "~/engine/lessons/lesson.ts";
+import { clampInt, isRecord, nonNegative } from "~/engine/guards.ts";
 
 export type SurahOrder = "mushaf" | "juz-amma";
 
@@ -102,14 +102,6 @@ export function nextSurah(surah: number, order: SurahOrder): number {
 
 export function previousSurah(surah: number, order: SurahOrder): number {
   return step(surah, order, -1);
-}
-
-function clampInt(value: unknown, min: number, max: number, fallback: number): number {
-  const n = Number(value);
-  if (!Number.isFinite(n)) {
-    return fallback;
-  }
-  return Math.min(max, Math.max(min, Math.floor(n)));
 }
 
 export function clampPosition(position: { surah: unknown; ayah: unknown }): RecitationPosition {
@@ -295,24 +287,6 @@ export function recordAyat(
   };
 }
 
-export function recordPassage(
-  recitation: Recitation,
-  source: LessonSource,
-  result: PassageResult,
-  order: SurahOrder,
-): RecitationUpdate {
-  const { surah, fromAyah, toAyah } = source;
-  if (source.kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
-    return { recitation, completion: null };
-  }
-  return recordAyat(
-    recitation,
-    { surah, from: fromAyah, to: toAyah, passageFrom: fromAyah, passageTo: toAyah },
-    result,
-    order,
-  );
-}
-
 export interface PassageStatus {
   done: boolean;
   typedThrough: number;
@@ -329,15 +303,6 @@ export function passageStatus(recitation: Recitation, surah: number, fromAyah: n
     return { done: true, typedThrough: toAyah };
   }
   return { done: false, typedThrough };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function count(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 function sanitizeRanges(raw: unknown, total: number): AyahRange[] {
@@ -367,15 +332,15 @@ function sanitizeRecord(raw: unknown, total: number): SurahRecord {
   return {
     run: {
       typed: sanitizeRanges(run.typed, total),
-      chars: count(run.chars),
-      keystrokes: count(run.keystrokes),
-      errors: count(run.errors),
-      elapsedMs: count(run.elapsedMs),
+      chars: nonNegative(run.chars, 0),
+      keystrokes: nonNegative(run.keystrokes, 0),
+      errors: nonNegative(run.errors, 0),
+      elapsedMs: nonNegative(run.elapsedMs, 0),
     },
     resume: clampInt(raw.resume, 1, total, 1),
-    completions: Math.floor(count(raw.completions)),
-    bestAccuracy: Math.min(1, count(raw.bestAccuracy)),
-    bestCpm: count(raw.bestCpm),
+    completions: Math.floor(nonNegative(raw.completions, 0)),
+    bestAccuracy: Math.min(1, nonNegative(raw.bestAccuracy, 0)),
+    bestCpm: nonNegative(raw.bestCpm, 0),
     completedAt: raw.completedAt !== null && Number.isFinite(completedAt) ? completedAt : null,
   };
 }

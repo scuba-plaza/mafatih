@@ -1,6 +1,7 @@
-import { type SyntheticEvent, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { blurAfter, PRIMARY_BUTTON, scrollBehavior } from "~/components/ui.ts";
 import { surahByNumber } from "~/engine/corpus/corpus.ts";
-import type { LessonSource } from "~/engine/lessons/lesson.ts";
+import { ayahRange, type LessonSource } from "~/engine/lessons/lesson.ts";
 
 export interface PassageDoneProps {
   source: LessonSource;
@@ -9,26 +10,17 @@ export interface PassageDoneProps {
   onNext: () => void;
 }
 
-function blurAfter(run: () => void) {
-  return (event: SyntheticEvent<HTMLElement>) => {
-    run();
-    event.currentTarget.blur();
-  };
-}
-
 export default function PassageDone({ source, surahComplete, onRedo, onNext }: PassageDoneProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    ref.current?.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+    ref.current?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
   }, []);
 
   const surah = source.surah === undefined ? undefined : surahByNumber(source.surah);
   if (surah === undefined) {
     return null;
   }
-  const range = source.fromAyah === source.toAyah ? `${source.fromAyah}` : `${source.fromAyah}–${source.toAyah}`;
 
   return (
     <div
@@ -42,7 +34,7 @@ export default function PassageDone({ source, surahComplete, onRedo, onNext }: P
           ✓
         </span>
         <span>
-          <span className="font-semibold">{`Already typed · ${surah.tname} ${surah.n}:${range}`}</span>
+          <span className="font-semibold">{`Already typed · ${surah.tname} ${surah.n}:${ayahRange(source)}`}</span>
           <span data-cy="passage-done-note" className="block text-xs text-emerald-700/80 dark:text-emerald-300/80">
             {surahComplete
               ? "This surah is complete. Type the passage again, or move on."
@@ -63,7 +55,7 @@ export default function PassageDone({ source, surahComplete, onRedo, onNext }: P
           type="button"
           data-cy="passage-done-next"
           onClick={blurAfter(onNext)}
-          className="rounded-full bg-stone-900 px-4 py-1.5 text-xs font-medium text-stone-50 hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
+          className={`${PRIMARY_BUTTON} py-1.5`}
         >
           Next passage →
         </button>

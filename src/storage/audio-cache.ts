@@ -1,4 +1,4 @@
-export const AUDIO_DB = "mafatih.audio.v1";
+export const AUDIO_DB = "mafatih.audio";
 
 const AUDIO_STORE = "ayat";
 

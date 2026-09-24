@@ -409,17 +409,22 @@ data/surahs.json         surah metadata
 scripts/build-corpus.ts  data/ -> generated/, with the build-time assertions
 generated/corpus.json    build output (gitignored), its own bundle chunk
 src/engine/              pure TypeScript, zero React
-  layout/                xkb-derived key table, ligature expansion
+  layout/                Arabic (101) key table from KBDA1, key reach, ligature keys
   corpus/                whitelist normalisation, tier stripping, corpus loader
-  lessons/               adaptive + recite generators, seeded PRNG
-  stats/                 per-character EWMA, unlock and tier rules
-  session/               typing state machine, line chunking
+  lessons/               adaptive, recitation and custom generators, seeded PRNG
+  stats/                 per-character recent accuracy and latency, unlock and tier rules
+  session/               typing state machine, pauses, line chunking
+  recitation/            surah progress, passages, completion, surah order
   audio/                 reciter table, per-ayah URLs, volume clamp
-src/storage/             profile + settings persistence via localStorage, read back through a
-                         whitelist; the IndexedDB ayah-audio store
-src/hooks/               trainer state machine binding, recitation player, audio cache, hash route
-src/components/          React — practice chrome, recitation bar, stats page, both dialogs
-cypress/e2e/             114 end-to-end tests
+  plan.ts                which lesson to build, and where its session starts
+  guards.ts              shared sanitisers for anything read back from storage
+src/storage/             profile + settings persistence via localStorage, read back through
+                         sanitisers; the IndexedDB ayah-audio store
+src/hooks/               trainer state machine, typing keys, recitation player, audio cache,
+                         keyboard dock inset, hash route
+src/components/          React — header, practice page, passage bar, surah map, recitation
+                         player, stats page, dialogs; text measuring in measure.ts
+cypress/e2e/             end-to-end tests
 ```
 
 The `engine/` boundary is the point of the design: every rule is a pure function over plain data,
@@ -427,28 +432,31 @@ unit-testable without a DOM, leaving Cypress to cover only what is genuinely vis
 
 ## Testing
 
-**Unit** (`pnpm test`) — 106 tests over normalisation, both layout tables, ligature expansion, bitmask
-filtering, unlock and tier rules, seeded-RNG reproducibility, line chunking, the session machine,
-metric formatting, font-size snapping, per-ayah audio URLs, basmala detection, ayah spans, byte formatting and the
-settings whitelist.
+**Unit** (`pnpm test`) — normalisation, the Arabic (101) key table and its reach model, the
+letter order, ligature keys, bitmask filtering, recent accuracy and the pause cap, unlock and tier
+rules, simulated learners typing their way up the alphabet, seeded-RNG reproducibility, line
+chunking, the session machine (ligature strokes, resumed sessions, active time), recitation
+progress (ayah ranges, passages, resuming, completion, surah order), where a session starts, metric
+formatting, per-ayah audio URLs, basmala detection, ayah spans and the storage sanitisers.
 
-**End-to-end** (`pnpm cypress:run`) — 114 tests. `cy.typeArabic()` dispatches `keydown` with the
-correct `key`, `code` and `shiftKey` resolved through the layout table; `cy.type()` cannot express
-"Shift+Q produces a fatha", so without it none of the diacritic tests could be written.
+**End-to-end** (`pnpm cypress:run`) — `cy.typeArabic()` dispatches `keydown` with the correct `key`,
+`code` and `shiftKey` resolved through the key table, with real delays between keystrokes and
+optional mistakes; `cy.type()` cannot express "Shift+Q produces a fatha", so without it none of the
+diacritic tests could be written.
 
 Covered: lesson rendering and RTL, cursor advance, refusal to advance past an error, every haraka on
-the shift layer, the lam-alef ligature satisfying two cursor positions in one press *and* in two,
-tier progression, letter unlocking, profile persistence, recite mode, the layout guard, cursive
-shaping (a joined letter measured narrower than an isolated one), caret tracking, the on-screen
-keyboard, layout switching, hiding the keyboard, font selection, font size (including that the caret
-is re-measured and the line re-chunked after a resize), the settings dialog opening, closing three
-ways and swallowing keystrokes while open, the recitation dialog opening from it and handing back,
-the lesson holding exactly the number of ayat asked for, the stats route surviving a reload, the recitation player (transport by ayah, the label naming style and bitrate, persisted volume, running on through a passage and stopping at the end of one ayah when told to,
-the mark enclosing every character of the ayah being recited, a warm cache reaching the network not at all across a reload, deleting
-the cached audio, a stubbed CDN failure leaving the lesson typeable, and that a tapped control never
-swallows the keystroke after it), and text direction —
-English prose is asserted to compute as `ltr` with its trailing period intact, while the lesson stays
-`rtl`.
+the shift layer, lam-alef ligature keys (highlighted, one stroke, scored as their own key) and the
+two-letter path, letters earned by typing from a fresh profile — cleanly, with mistakes, and out of a
+stuck profile — tier progression, profile persistence, the layout guard, cursive shaping, caret
+tracking, the on-screen keyboard and its row stagger, hiding the keyboard, font selection and size,
+the page following the cursor down a long passage, the dialogs, recitation (passages advancing,
+navigation by button, key, picker and progress bar, resuming a level after a reload, finished
+passages asking before a redo, surah completion and its celebration, the surah map, Juz ʿAmma order,
+resets), the recitation player (transport, label, volume, running on through a passage and into the
+next one, pausing on another page, the ayah mark, the audio cache, a CDN failure leaving the lesson
+typeable, controls never swallowing a keystroke), the stats page, search and sharing metadata, and
+text direction — English prose computes as `ltr` with its trailing period intact while the lesson
+stays `rtl`.
 
 Lesson generation is seeded (`?seed=1234`) so every test is deterministic.
 

@@ -1,4 +1,5 @@
 import { FIELD } from "~/components/Modal.tsx";
+import { PRIMARY_BUTTON } from "~/components/ui.ts";
 import { surahByNumber, surahs } from "~/engine/corpus/corpus.ts";
 import {
   completedSurahs,
@@ -145,7 +146,7 @@ export default function SurahMap({ recitation, order, onOrder, onPlay, onReset }
             type="button"
             data-cy="recitation-continue"
             onClick={() => onPlay({ surah, ayah })}
-            className="rounded-full bg-stone-900 px-4 py-2 text-xs font-medium text-stone-50 hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
+            className={`${PRIMARY_BUTTON} py-2`}
           >
             {`Continue · ${current.tname} ${surah}:${ayah}`}
           </button>

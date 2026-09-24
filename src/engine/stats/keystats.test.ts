@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  accuracyOf,
   emptyStats,
   isMastered,
+  type KeyStat,
   type KeyStats,
   LATENCY_CAP_MS,
   RECENT_ACCURACY_ALPHA,
@@ -12,6 +12,10 @@ import {
   sanitizeStats,
   statFor,
 } from "~/engine/stats/keystats.ts";
+
+function accuracyOf(stat: KeyStat): number {
+  return stat.hits / (stat.hits + stat.misses);
+}
 
 const WARMUP = Math.round(1 / RECENT_ACCURACY_ALPHA);
 

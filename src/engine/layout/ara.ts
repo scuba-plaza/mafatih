@@ -197,7 +197,3 @@ function ligatureKeysOf(caps: readonly KeyCap[]): ReadonlyMap<string, string> {
 }
 
 export const LIGATURE_KEYS: ReadonlyMap<string, string> = ligatureKeysOf(WIN101_CAPS);
-
-export function isLigatureKey(glyph: string): boolean {
-  return LIGATURE_FORMS.has(glyph);
-}

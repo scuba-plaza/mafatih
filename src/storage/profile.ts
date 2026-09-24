@@ -1,6 +1,7 @@
 import { clampVolume, DEFAULT_RECITER, DEFAULT_VOLUME, isReciterId, type ReciterId } from "~/engine/audio/reciters.ts";
 import { isTier, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, DEFAULT_FONT, DEFAULT_FONT_SIZE, type FontId, isFontId } from "~/engine/fonts.ts";
+import { isRecord, nonNegative } from "~/engine/guards.ts";
 import { DEFAULT_CUSTOM_TEXT, MAX_CUSTOM_CHARS } from "~/engine/lessons/custom.ts";
 import { clampAyatPerLesson, DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
 import {
@@ -12,7 +13,7 @@ import {
   sanitizeRecitation,
 } from "~/engine/recitation/recitation.ts";
 import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
-import { initialProgress, type Progress } from "~/engine/stats/unlock.ts";
+import { initialProgress, type Progress, sanitizeProgress } from "~/engine/stats/unlock.ts";
 
 export type Mode = "adaptive" | "recite" | "custom";
 
@@ -48,7 +49,6 @@ export interface SessionSummary {
 }
 
 export interface Profile {
-  version: number;
   progress: Progress;
   stats: KeyStats;
   settings: Settings;
@@ -56,10 +56,9 @@ export interface Profile {
   recitation: Recitation;
 }
 
-const PROFILE_VERSION = 1;
 const MAX_HISTORY = 50;
 
-export const STORAGE_KEY = "mafatih.profile.v1";
+export const STORAGE_KEY = "mafatih.profile";
 
 export function defaultSettings(): Settings {
   return {
@@ -81,17 +80,12 @@ export function defaultSettings(): Settings {
 
 export function defaultProfile(): Profile {
   return {
-    version: PROFILE_VERSION,
     progress: initialProgress(),
     stats: emptyStats(),
     settings: defaultSettings(),
     history: [],
     recitation: emptyRecitation(),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
 
 export function sanitizeSettings(raw: unknown): Settings {
@@ -126,18 +120,40 @@ export function parseProfile(raw: string | null): Profile {
   } catch {
     return defaultProfile();
   }
-  if (!isRecord(parsed) || parsed.version !== PROFILE_VERSION) {
+  if (!isRecord(parsed)) {
     return defaultProfile();
   }
+  return {
+    progress: sanitizeProgress(parsed.progress),
+    stats: sanitizeStats(parsed.stats),
+    settings: sanitizeSettings(parsed.settings),
+    history: sanitizeHistory(parsed.history),
+    recitation: sanitizeRecitation(parsed.recitation),
+  };
+}
 
-  const fallback = defaultProfile();
-  const progress = isRecord(parsed.progress) ? (parsed.progress as unknown as Progress) : fallback.progress;
-  const stats = sanitizeStats(parsed.stats);
-  const settings = sanitizeSettings(parsed.settings);
-  const history = Array.isArray(parsed.history) ? (parsed.history as SessionSummary[]) : [];
-  const recitation = sanitizeRecitation(parsed.recitation);
+function sanitizeSummary(raw: unknown): SessionSummary | null {
+  if (!isRecord(raw) || !isTier(raw.tier)) {
+    return null;
+  }
+  return {
+    at: nonNegative(raw.at, 0),
+    cpm: nonNegative(raw.cpm, 0),
+    accuracy: Math.min(1, nonNegative(raw.accuracy, 0)),
+    errors: nonNegative(raw.errors, 0),
+    chars: nonNegative(raw.chars, 0),
+    tier: raw.tier,
+  };
+}
 
-  return { version: PROFILE_VERSION, progress, stats, settings, history, recitation };
+export function sanitizeHistory(raw: unknown): SessionSummary[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .map(sanitizeSummary)
+    .filter((entry): entry is SessionSummary => entry !== null)
+    .slice(-MAX_HISTORY);
 }
 
 export function loadProfile(): Profile {

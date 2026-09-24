@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useRef } from "react";
+import { PRIMARY_BUTTON } from "~/components/ui.ts";
 import { surahByNumber, surahs } from "~/engine/corpus/corpus.ts";
 import { formatNumber, formatPercent } from "~/engine/format.ts";
 import type { SurahCompletion } from "~/engine/recitation/recitation.ts";
@@ -149,7 +150,7 @@ export default function SurahComplete({ completion, completedSurahs, onContinue,
               ref={continueRef}
               data-cy="surah-complete-next"
               onClick={onContinue}
-              className="rounded-full bg-stone-900 px-4 py-2 text-xs font-medium text-stone-50 hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300"
+              className={`${PRIMARY_BUTTON} py-2`}
             >
               {next === undefined ? "Continue" : `Continue to ${next.tname} →`}
             </button>

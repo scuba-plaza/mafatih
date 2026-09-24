@@ -1,4 +1,5 @@
 import { AUDIO_DB } from "../../src/storage/audio-cache.ts";
+import { STORAGE_KEY } from "../../src/storage/profile.ts";
 import { visitWith } from "../support/profile.ts";
 
 const CDN = "https://everyayah.com/data/**/*.mp3";
@@ -143,7 +144,7 @@ describe("recitation playback", () => {
     dragVolume(0.25);
     cy.get("[data-cy=recitation-volume]").should("have.value", "0.25");
     cy.window().then((win) => {
-      const raw = win.localStorage.getItem("mafatih.profile.v1") ?? "{}";
+      const raw = win.localStorage.getItem(STORAGE_KEY) ?? "{}";
       expect(JSON.parse(raw).settings.volume).to.equal(0.25);
     });
   });
@@ -153,7 +154,7 @@ describe("recitation playback", () => {
     cy.get("[data-cy=recitation-mute]").click();
     cy.get("[data-cy=recitation-volume]").should("be.disabled").and("have.value", "0");
     cy.window().then((win) => {
-      const raw = win.localStorage.getItem("mafatih.profile.v1") ?? "{}";
+      const raw = win.localStorage.getItem(STORAGE_KEY) ?? "{}";
       expect(JSON.parse(raw).settings.muted).to.equal(true);
     });
     cy.get("[data-cy=recitation-mute]").click();

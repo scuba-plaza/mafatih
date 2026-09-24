@@ -1,4 +1,5 @@
-import type { KeyboardEvent, MouseEvent, SyntheticEvent } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
+import { blurAfter } from "~/components/ui.ts";
 import type { LessonSource } from "~/engine/lessons/lesson.ts";
 import { type AyahRange, ayatCount, progressOf, type Recitation, recordOf } from "~/engine/recitation/recitation.ts";
 
@@ -28,13 +29,6 @@ function Chevron({ path }: { path: string }) {
 
 function percent(ayat: number, total: number): string {
   return `${(ayat / total) * 100}%`;
-}
-
-function blurAfter(run: () => void) {
-  return (event: SyntheticEvent<HTMLElement>) => {
-    run();
-    event.currentTarget.blur();
-  };
 }
 
 export default function PassageBar({ source, recitation, onPrevious, onNext, onJump }: PassageBarProps) {

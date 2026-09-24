@@ -1,4 +1,4 @@
-import { nearestStep } from "~/engine/steps.ts";
+import { nearestStep } from "~/engine/guards.ts";
 
 export type FontId = "naskh" | "scheherazade" | "amiri";
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { letterOrder } from "~/engine/corpus/corpus.ts";
-import { accuracyOf, emptyStats, type KeyStats, recordKeystroke, statFor } from "~/engine/stats/keystats.ts";
+import { emptyStats, type KeyStats, recordKeystroke, statFor } from "~/engine/stats/keystats.ts";
 import {
   advanceProgress,
   DEFAULT_UNLOCK_CONFIG,
@@ -76,7 +76,8 @@ test("a focus letter held back by old mistakes unlocks once recent typing is cle
   };
   assert.equal(shouldUnlockNext(stuck, progress, cfg), false);
   const recovered = drill(stuck, [focus], 15, 300);
-  assert.ok(accuracyOf(statFor(recovered, focus)) < cfg.minAccuracy);
+  const stat = statFor(recovered, focus);
+  assert.ok(stat.hits / (stat.hits + stat.misses) < cfg.minAccuracy);
   assert.equal(shouldUnlockNext(recovered, progress, cfg), true);
 });
 

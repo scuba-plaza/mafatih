@@ -6,7 +6,6 @@ import {
   activeMsBetween,
   applyKey,
   createSession,
-  expectedChar,
   expectedKey,
   isComplete,
   isTypedKey,
@@ -27,7 +26,7 @@ test("a session splits the target into codepoints, marks included", () => {
   const state = createSession("بِ");
   assert.deepEqual(state.chars, ["ب", "ِ"]);
   assert.equal(state.outcomes.length, 2);
-  assert.equal(expectedChar(state), "ب");
+  assert.equal(expectedKey(state), "ب");
 });
 
 test("correct keys advance the cursor", () => {
@@ -45,7 +44,7 @@ test("a wrong key does not advance the cursor", () => {
   assert.equal(state.cursor, 1, "cursor must not move past an error");
   assert.equal(state.errors, 1);
   assert.equal(state.errorAt, 1);
-  assert.equal(expectedChar(state), "ن");
+  assert.equal(expectedKey(state), "ن");
 });
 
 test("typing the right key after an error records it as corrected", () => {
@@ -94,7 +93,7 @@ test("combining marks are their own cursor stops", () => {
   let state = createSession("بِسْمِ");
   assert.equal(state.chars.length, 6);
   state = applyKey(state, "ب", 100);
-  assert.equal(expectedChar(state), "ِ", "the kasra is its own position");
+  assert.equal(expectedKey(state), "ِ", "the kasra is its own position");
   state = applyKey(state, "س", 200);
   assert.equal(state.errors, 1, "skipping the haraka is an error");
   assert.equal(state.cursor, 1);

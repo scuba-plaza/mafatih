@@ -52,7 +52,6 @@ test("missing settings fall back rather than yielding undefined", () => {
 
 test("a profile with only some settings keeps its progress and gains the defaults", () => {
   const before = {
-    version: 1,
     progress: { unlockedCount: 12, tier: "core", focus: null },
     stats: {},
     history: [{ at: 1, cpm: 90, accuracy: 0.97, errors: 2, chars: 180, tier: "core" }],
@@ -99,10 +98,31 @@ test("a font size stored off-step snaps to an offered step", () => {
   assert.equal(sanitizeSettings({ fontSize: 45 }).fontSize, 44);
 });
 
-test("a profile from a future version is discarded", () => {
-  assert.deepEqual(parseProfile(JSON.stringify({ ...defaultProfile(), version: 99 })), defaultProfile());
+test("unreadable storage falls back to a fresh profile", () => {
   assert.deepEqual(parseProfile("{not json"), defaultProfile());
+  assert.deepEqual(parseProfile("[1, 2]"), defaultProfile());
   assert.deepEqual(parseProfile(null), defaultProfile());
+});
+
+test("hand-edited progress and history are repaired", () => {
+  const profile = parseProfile(
+    JSON.stringify({
+      progress: { unlockedCount: 900, tier: "legendary" },
+      history: [
+        { at: 1, cpm: 90, accuracy: 3, errors: 2, chars: 180, tier: "core" },
+        { at: 2, cpm: "fast", accuracy: 0.9, errors: 0, chars: 10, tier: "none" },
+        { at: 3, cpm: 50, tier: "unknown" },
+        "garbage",
+      ],
+    }),
+  );
+  assert.equal(profile.progress.unlockedCount, 36);
+  assert.equal(profile.progress.tier, "none");
+  assert.deepEqual(profile.history, [
+    { at: 1, cpm: 90, accuracy: 1, errors: 2, chars: 180, tier: "core" },
+    { at: 2, cpm: 0, accuracy: 0.9, errors: 0, chars: 10, tier: "none" },
+  ]);
+  assert.equal(parseProfile(JSON.stringify({ progress: { unlockedCount: 2 } })).progress.unlockedCount, 6);
 });
 
 test("the recitation progress survives a round trip", () => {

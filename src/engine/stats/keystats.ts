@@ -1,3 +1,5 @@
+import { isRecord, nonNegative } from "~/engine/guards.ts";
+
 export interface KeyStat {
   char: string;
   samples: number;
@@ -47,11 +49,6 @@ export function recordKeystroke(stats: KeyStats, char: string, latencyMs: number
   return { ...stats, [char]: next };
 }
 
-export function accuracyOf(stat: KeyStat): number {
-  const total = stat.hits + stat.misses;
-  return total === 0 ? 0 : stat.hits / total;
-}
-
 export function recentAccuracyOf(stat: KeyStat): number {
   return attemptsOf(stat) === 0 ? 0 : stat.recentAccuracy;
 }
@@ -66,29 +63,25 @@ export function isMastered(stat: KeyStat, minSamples: number, targetMs: number, 
   );
 }
 
-function finite(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : fallback;
-}
-
 export function sanitizeStat(char: string, raw: unknown): KeyStat {
-  if (typeof raw !== "object" || raw === null) {
+  if (!isRecord(raw)) {
     return statFor({}, char);
   }
-  const record = raw as Record<string, unknown>;
-  const hits = finite(record.hits, 0);
-  const misses = finite(record.misses, 0);
+  const record = raw;
+  const hits = nonNegative(record.hits, 0);
+  const misses = nonNegative(record.misses, 0);
   return {
     char,
-    samples: finite(record.samples, hits),
-    meanMs: finite(record.meanMs, 0),
+    samples: nonNegative(record.samples, hits),
+    meanMs: nonNegative(record.meanMs, 0),
     hits,
     misses,
-    recentAccuracy: Math.min(1, finite(record.recentAccuracy, 1)),
+    recentAccuracy: Math.min(1, nonNegative(record.recentAccuracy, 1)),
   };
 }
 
 export function sanitizeStats(raw: unknown): KeyStats {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+  if (!isRecord(raw)) {
     return emptyStats();
   }
   const out: Record<string, KeyStat> = {};

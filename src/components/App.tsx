@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
-import FocusLetter from "~/components/FocusLetter.tsx";
+import Header from "~/components/Header.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
 import PassageBar from "~/components/PassageBar.tsx";
@@ -14,30 +14,15 @@ import SurahComplete from "~/components/SurahComplete.tsx";
 import SurahMap from "~/components/SurahMap.tsx";
 import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
-import { letterOrder } from "~/engine/corpus/corpus.ts";
 import { fontStack } from "~/engine/fonts.ts";
+import { ayahAt } from "~/engine/lessons/lesson.ts";
 import { completedSurahs, progressOf, type RecitationPosition } from "~/engine/recitation/recitation.ts";
 import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
+import { useDockInset } from "~/hooks/useDockInset.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 import { ROUTE_HASH, type Route, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
-
-const NAV = "text-xs transition-colors";
-const NAV_ON = "text-stone-900 dark:text-stone-100";
-const NAV_OFF = "text-stone-400 hover:text-stone-900 dark:hover:text-stone-100";
-
-function NavLink({ target, current, label }: { target: Route; current: Route; label: string }) {
-  return (
-    <a
-      data-cy={`nav-${target}`}
-      href={ROUTE_HASH[target]}
-      className={`${NAV} ${target === current ? NAV_ON : NAV_OFF}`}
-    >
-      {label}
-    </a>
-  );
-}
 
 export default function App() {
   const route: Route = useRoute();
@@ -48,10 +33,7 @@ export default function App() {
   const live = computeMetrics(session, isComplete(session) ? undefined : performance.now());
   const nextChar = expectedKey(session);
   const audioCache = useAudioCache(modal === "recitation");
-  const startAyah =
-    trainer.reviewing || session.origin === 0
-      ? undefined
-      : lesson.ayat.find((span) => span.start <= session.origin && session.origin < span.end)?.ayah;
+  const startAyah = trainer.reviewing || session.origin === 0 ? undefined : ayahAt(lesson, session.origin);
   const player = useRecitationPlayer({
     lesson,
     settings,
@@ -72,27 +54,7 @@ export default function App() {
   }, [settings.font]);
 
   const dockRef = useRef<HTMLDivElement>(null);
-  const docked = settings.showKeyboard && route === "practice";
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const dock = dockRef.current;
-    if (!docked || dock === null) {
-      root.style.setProperty("--keyboard-dock-inset", "0px");
-      return;
-    }
-    const measure = () => {
-      const offset = Number.parseFloat(getComputedStyle(dock).bottom) || 0;
-      root.style.setProperty("--keyboard-dock-inset", `${dock.offsetHeight + offset}px`);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(dock);
-    return () => {
-      observer.disconnect();
-      root.style.setProperty("--keyboard-dock-inset", "0px");
-    };
-  }, [docked]);
+  useDockInset(dockRef, settings.showKeyboard && route === "practice");
 
   const playFromMap = (position: RecitationPosition) => {
     trainer.goTo(position);
@@ -106,34 +68,13 @@ export default function App() {
       data-route={route}
       data-font={settings.font}
     >
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <a href={ROUTE_HASH.practice} className="flex items-baseline gap-2" aria-label="Mafatih">
-          <span lang="ar" className="font-arabic text-xl leading-none text-stone-900 dark:text-stone-100">
-            مفاتيح
-          </span>
-        </a>
-        <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
-          <span data-cy="progress-summary" className="whitespace-nowrap font-mono text-xs tabular-nums text-stone-400">
-            <span data-cy="unlocked-count">{profile.progress.unlockedCount}</span>
-            {`/${letterOrder.length} · `}
-            <span data-cy="tier">{effectiveTier}</span>
-          </span>
-          <span className="hidden font-mono text-xs tabular-nums text-stone-400 sm:inline">
-            <FocusLetter progress={profile.progress} stats={profile.stats} />
-          </span>
-          <NavLink target="practice" current={route} label="Practice" />
-          <NavLink target="recitation" current={route} label="Recitation" />
-          <NavLink target="stats" current={route} label="Stats" />
-          <button
-            type="button"
-            data-cy="open-settings"
-            onClick={() => setModal("settings")}
-            className={`${NAV} ${NAV_OFF}`}
-          >
-            Settings
-          </button>
-        </nav>
-      </header>
+      <Header
+        route={route}
+        progress={profile.progress}
+        stats={profile.stats}
+        tier={effectiveTier}
+        onOpenSettings={() => setModal("settings")}
+      />
 
       {route === "recitation" ? (
         <main className="flex flex-1 flex-col">

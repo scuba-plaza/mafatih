@@ -1,5 +1,5 @@
 import { surahByNumber } from "~/engine/corpus/corpus.ts";
-import type { LessonSource } from "~/engine/lessons/lesson.ts";
+import { ayahRange, type LessonSource } from "~/engine/lessons/lesson.ts";
 
 export interface AttributionProps {
   source: LessonSource;
@@ -28,14 +28,13 @@ export default function Attribution({ source }: AttributionProps) {
   if (surah === undefined) {
     return null;
   }
-  const range = source.fromAyah === source.toAyah ? `${source.fromAyah}` : `${source.fromAyah}–${source.toAyah}`;
 
   return (
     <p data-cy="attribution" data-kind="recite" data-surah={surah.n} className={CLASS}>
       <span lang="ar" className="font-arabic text-sm text-stone-500">
         {surah.name}
       </span>{" "}
-      · {surah.tname} {surah.n}:{range}
+      · {surah.tname} {surah.n}:{ayahRange(source)}
     </p>
   );
 }

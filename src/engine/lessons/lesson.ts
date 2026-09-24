@@ -1,5 +1,5 @@
 import type { Tier } from "~/engine/corpus/normalize.ts";
-import { nearestStep } from "~/engine/steps.ts";
+import { nearestStep } from "~/engine/guards.ts";
 
 export type LessonKind = "adaptive" | "recite" | "custom";
 
@@ -29,6 +29,14 @@ export interface Lesson {
   ayat: readonly AyahSpan[];
   breaks: readonly number[];
   basmala: BasmalaSpan | null;
+}
+
+export function ayahAt(lesson: Lesson, index: number): number | undefined {
+  return lesson.ayat.find((span) => span.start <= index && index < span.end)?.ayah;
+}
+
+export function ayahRange(source: LessonSource): string {
+  return source.fromAyah === source.toAyah ? `${source.fromAyah}` : `${source.fromAyah}–${source.toAyah}`;
 }
 
 export function countsTowardProgress(source: LessonSource): boolean {

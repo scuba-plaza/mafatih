@@ -1,5 +1,6 @@
 import { letterOrder } from "~/engine/corpus/corpus.ts";
-import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
+import { isTier, TIERS, type Tier } from "~/engine/corpus/normalize.ts";
+import { clampInt, isRecord } from "~/engine/guards.ts";
 import { CORE_HARAKAT, TANWEEN } from "~/engine/layout/ara.ts";
 import { attemptsOf, isMastered, type KeyStats, recentAccuracyOf, statFor } from "~/engine/stats/keystats.ts";
 
@@ -28,6 +29,16 @@ export const STARTING_LETTERS = 6;
 
 export function initialProgress(): Progress {
   return { unlockedCount: STARTING_LETTERS, tier: "none" };
+}
+
+export function sanitizeProgress(raw: unknown): Progress {
+  if (!isRecord(raw)) {
+    return initialProgress();
+  }
+  return {
+    unlockedCount: clampInt(raw.unlockedCount, STARTING_LETTERS, letterOrder.length, STARTING_LETTERS),
+    tier: isTier(raw.tier) ? raw.tier : "none",
+  };
 }
 
 export function unlockedLetters(progress: Progress): string[] {

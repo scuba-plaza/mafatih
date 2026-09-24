@@ -1,32 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Tier } from "~/engine/corpus/normalize.ts";
-import { generateAdaptiveLesson } from "~/engine/lessons/adaptive.ts";
-import { generateCustomLesson } from "~/engine/lessons/custom.ts";
 import { countsTowardProgress, type Lesson } from "~/engine/lessons/lesson.ts";
-import { generateRecitePassage } from "~/engine/lessons/recite.ts";
+import {
+  aggregate,
+  buildLesson,
+  type Checkpoint,
+  finishedAyat,
+  type Start,
+  seedFromQuery,
+  startSession,
+  tierOf,
+} from "~/engine/plan.ts";
 import {
   clampPosition,
   emptyRecitation,
   passageAfter,
   passageBefore,
-  passageStatus,
   type RecitationPosition,
   recordAyat,
   type SurahCompletion,
 } from "~/engine/recitation/recitation.ts";
 import {
-  activeMsBetween,
   applyKey,
   metrics as computeMetrics,
-  createSession,
   isComplete,
-  isTypedKey,
-  type KeystrokeRecord,
   type SessionState,
+  tallySince,
 } from "~/engine/session/session.ts";
-import { type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
-import { advanceProgress, DEFAULT_UNLOCK_CONFIG, focusLetter } from "~/engine/stats/unlock.ts";
+import { advanceProgress, DEFAULT_UNLOCK_CONFIG } from "~/engine/stats/unlock.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
+import { type TypingKeyHandlers, useTypingKeys } from "~/hooks/useTypingKeys.ts";
 import {
   defaultProfile,
   loadProfile,
@@ -37,85 +40,7 @@ import {
   saveProfile,
 } from "~/storage/profile.ts";
 
-const LATIN = /^[A-Za-z]$/;
-
-const PREVENTED_KEYS: readonly string[] = [" ", "Backspace", "Tab"];
-
-const PASSTHROUGH_TAGS: readonly string[] = ["INPUT", "SELECT", "TEXTAREA", "BUTTON"];
-
 const LESSON_SETTINGS: readonly (keyof Settings)[] = ["mode", "tierOverride", "ayatPerLesson", "customText"];
-
-const PASSAGE_KEYS: Readonly<Record<string, 1 | -1>> = { PageDown: 1, PageUp: -1 };
-
-function seedFromLocation(): number | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  const raw = new URLSearchParams(window.location.search).get("seed");
-  if (raw === null) {
-    return null;
-  }
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function tierOf(profile: Profile): Tier {
-  return profile.settings.tierOverride ?? profile.progress.tier;
-}
-
-function buildLesson(profile: Profile, seed: number): Lesson {
-  const { settings } = profile;
-  const tier = tierOf(profile);
-  if (settings.mode === "recite") {
-    const { surah, ayah } = profile.recitation.position;
-    return generateRecitePassage({ surah, fromAyah: ayah, tier, maxAyat: settings.ayatPerLesson });
-  }
-  if (settings.mode === "custom") {
-    return generateCustomLesson({ text: settings.customText, tier });
-  }
-  return generateAdaptiveLesson({
-    unlockedCount: profile.progress.unlockedCount,
-    tier,
-    seed,
-    focusLetter: focusLetter(profile.progress),
-  });
-}
-
-function aggregate(stats: KeyStats, records: readonly KeystrokeRecord[]): KeyStats {
-  return records.reduce(
-    (next, record) => recordKeystroke(next, record.expected, record.latencyMs, record.correct),
-    stats,
-  );
-}
-
-interface Start {
-  session: SessionState;
-  reviewing: boolean;
-}
-
-function startSession(profile: Profile, lesson: Lesson, redo: boolean): Start {
-  const { surah, fromAyah, toAyah, kind } = lesson.source;
-  if (kind !== "recite" || surah === undefined || fromAyah === undefined || toAyah === undefined) {
-    return { session: createSession(lesson.text), reviewing: false };
-  }
-  const status = passageStatus(profile.recitation, surah, fromAyah, toAyah);
-  if (status.done && !redo) {
-    return { session: createSession(lesson.text, lesson.text.length), reviewing: true };
-  }
-  if (status.done) {
-    return { session: createSession(lesson.text), reviewing: false };
-  }
-  const next = lesson.ayat.find((span) => span.ayah === status.typedThrough + 1);
-  return {
-    session: createSession(lesson.text, status.typedThrough >= fromAyah ? (next?.start ?? 0) : 0),
-    reviewing: false,
-  };
-}
-
-interface Checkpoint {
-  cursor: number;
-  record: number;
-}
 
 export interface Trainer {
   profile: Profile;
@@ -143,19 +68,20 @@ export interface TrainerOptions {
   enabled?: boolean;
 }
 
+function randomSeed(): number {
+  const fromQuery = typeof window === "undefined" ? null : seedFromQuery(window.location.search);
+  return fromQuery ?? Math.floor(Math.random() * 1e9);
+}
+
 export function useTrainer(options: TrainerOptions = {}): Trainer {
   const enabled = options.enabled ?? true;
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
-  const lessonCounter = useRef(0);
   const [latinDetected, setLatinDetected] = useState(false);
   const [shiftHeld, setShiftHeld] = useState(false);
   const [lastSummary, setLastSummary] = useState<SessionSummary | null>(null);
   const [completion, setCompletion] = useState<SurahCompletion | null>(null);
-  const baseSeed = useRef(seedFromLocation() ?? Math.floor(Math.random() * 1e9));
-
-  const profileRef = useLatest(profile);
-  const enabledRef = useLatest(enabled);
-  const completionRef = useLatest(completion);
+  const baseSeed = useRef(randomSeed());
+  const lessonCounter = useRef(0);
 
   const [initial] = useState(() => {
     const first = buildLesson(profile, baseSeed.current);
@@ -164,9 +90,21 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   const [lesson, setLesson] = useState<Lesson>(initial.lesson);
   const [session, setSession] = useState<SessionState>(initial.session);
   const [reviewing, setReviewing] = useState(initial.reviewing);
+  const checkpointRef = useRef<Checkpoint>({ cursor: initial.session.origin, record: 0 });
+
+  const profileRef = useLatest(profile);
   const lessonRef = useLatest(lesson);
   const reviewingRef = useLatest(reviewing);
-  const checkpointRef = useRef<Checkpoint>({ cursor: initial.session.origin, record: 0 });
+  const completionRef = useLatest(completion);
+
+  const commit = useCallback(
+    (updated: Profile) => {
+      profileRef.current = updated;
+      saveProfile(updated);
+      setProfile(updated);
+    },
+    [profileRef],
+  );
 
   const begin = useCallback((next: Lesson, started: Start) => {
     checkpointRef.current = { cursor: started.session.origin, record: 0 };
@@ -184,18 +122,19 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     [begin],
   );
 
-  const pendingRecords = useCallback((state: SessionState): KeystrokeRecord[] => {
-    const from = checkpointRef.current.record;
-    return state.records.slice(Math.max(1, from));
-  }, []);
-
-  const commit = useCallback(
-    (updated: Profile) => {
-      profileRef.current = updated;
-      saveProfile(updated);
-      setProfile(updated);
+  const scoreSince = useCallback(
+    (state: SessionState, extra: Partial<Profile> = {}) => {
+      const current = profileRef.current;
+      const stats = aggregate(current.stats, state.records.slice(Math.max(1, checkpointRef.current.record)));
+      checkpointRef.current = { cursor: state.cursor, record: state.records.length };
+      commit({
+        ...current,
+        ...extra,
+        stats,
+        progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
+      });
     },
-    [profileRef],
+    [commit, profileRef],
   );
 
   const finish = useCallback(
@@ -211,69 +150,40 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
         tier: tierOf(current),
       };
       setLastSummary(summary);
-      if (!countsTowardProgress(lessonRef.current.source)) {
-        return;
+      if (countsTowardProgress(lessonRef.current.source)) {
+        scoreSince(finished, { history: pushHistory(current.history, summary) });
       }
-      const stats = aggregate(current.stats, pendingRecords(finished));
-      checkpointRef.current = { cursor: finished.cursor, record: finished.records.length };
-      commit({
-        ...current,
-        stats,
-        progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
-        history: pushHistory(current.history, summary),
-      });
     },
-    [commit, profileRef, lessonRef, pendingRecords],
+    [profileRef, lessonRef, scoreSince],
   );
 
   const checkpoint = useCallback(
     (state: SessionState): SurahCompletion | null => {
-      const { source, ayat } = lessonRef.current;
-      const { surah, fromAyah, toAyah } = source;
-      if (
-        reviewingRef.current ||
-        source.kind !== "recite" ||
-        surah === undefined ||
-        fromAyah === undefined ||
-        toAyah === undefined
-      ) {
+      const current = lessonRef.current;
+      const { surah, fromAyah, toAyah } = current.source;
+      if (reviewingRef.current || surah === undefined || fromAyah === undefined || toAyah === undefined) {
         return null;
       }
       const mark = checkpointRef.current;
-      const finished = ayat.filter((span) => span.end <= state.cursor && span.end > mark.cursor);
+      const finished = finishedAyat(current, mark.cursor, state.cursor);
       const first = finished[0];
       const last = finished[finished.length - 1];
       if (first === undefined || last === undefined) {
         return null;
       }
-      const current = profileRef.current;
-      const records = pendingRecords(state);
-      const stats = aggregate(current.stats, records);
       const update = recordAyat(
-        current.recitation,
+        profileRef.current.recitation,
         { surah, from: first.ayah, to: last.ayah, passageFrom: fromAyah, passageTo: toAyah },
-        {
-          at: Date.now(),
-          chars: state.cursor - mark.cursor,
-          keystrokes: state.records.length - mark.record,
-          errors: state.records.slice(mark.record).filter((record) => !record.correct).length,
-          elapsedMs: activeMsBetween(state, mark.record, state.records.length),
-        },
-        current.settings.surahOrder,
+        { at: Date.now(), ...tallySince(state, mark.cursor, mark.record) },
+        profileRef.current.settings.surahOrder,
       );
-      checkpointRef.current = { cursor: state.cursor, record: state.records.length };
-      commit({
-        ...current,
-        stats,
-        progress: advanceProgress(stats, current.progress, DEFAULT_UNLOCK_CONFIG),
-        recitation: update.recitation,
-      });
+      scoreSince(state, { recitation: update.recitation });
       if (update.completion !== null) {
         setCompletion(update.completion);
       }
       return update.completion;
     },
-    [commit, profileRef, lessonRef, reviewingRef, pendingRecords],
+    [profileRef, lessonRef, reviewingRef, scoreSince],
   );
 
   const settledRef = useRef<SessionState | null>(null);
@@ -306,77 +216,39 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   }, [begin, lessonRef, profileRef]);
 
   const stepPassage = useCallback(
-    (direction: 1 | -1) => {
+    (direction: 1 | -1): boolean => {
       const { source } = lessonRef.current;
       const { settings } = profileRef.current;
       if (source.kind !== "recite" || source.surah === undefined) {
-        return;
+        return false;
       }
-      const target =
+      goTo(
         direction === 1
           ? passageAfter(source.surah, source.toAyah ?? 1, settings.surahOrder)
-          : passageBefore(source.surah, source.fromAyah ?? 1, settings.ayatPerLesson, settings.surahOrder);
-      goTo(target);
+          : passageBefore(source.surah, source.fromAyah ?? 1, settings.ayatPerLesson, settings.surahOrder),
+      );
+      return true;
     },
     [goTo, lessonRef, profileRef],
   );
 
-  const nextPassage = useCallback(() => stepPassage(1), [stepPassage]);
-  const previousPassage = useCallback(() => stepPassage(-1), [stepPassage]);
-  const stepPassageRef = useLatest(stepPassage);
+  const nextPassage = useCallback(() => {
+    stepPassage(1);
+  }, [stepPassage]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!enabledRef.current || completionRef.current !== null || event.ctrlKey || event.altKey || event.metaKey) {
-        return;
-      }
-      const direction = PASSAGE_KEYS[event.key];
-      if (direction !== undefined) {
-        if (lessonRef.current.source.kind === "recite") {
-          event.preventDefault();
-          stepPassageRef.current(direction);
-        }
-        return;
-      }
-      if (event.key === "Shift") {
-        setShiftHeld(true);
-        return;
-      }
-      const target = event.target;
-      if (target instanceof HTMLElement && PASSTHROUGH_TAGS.includes(target.tagName)) {
-        return;
-      }
-      if (reviewingRef.current) {
-        return;
-      }
-      if (LATIN.test(event.key)) {
-        event.preventDefault();
-        setLatinDetected(true);
-        return;
-      }
-      if (PREVENTED_KEYS.includes(event.key)) {
-        event.preventDefault();
-      }
-      if (!isTypedKey(event.key)) {
-        return;
-      }
+  const previousPassage = useCallback(() => {
+    stepPassage(-1);
+  }, [stepPassage]);
 
-      setSession((current) => (isComplete(current) ? current : applyKey(current, event.key, event.timeStamp)));
-    };
-
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key === "Shift") {
-        setShiftHeld(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [enabledRef, completionRef, lessonRef, reviewingRef, stepPassageRef]);
+  const keys = useLatest<TypingKeyHandlers>({
+    listening: enabled && completion === null,
+    typing: !reviewing,
+    onKey: (key, at) => setSession((current) => (isComplete(current) ? current : applyKey(current, key, at))),
+    onStep: stepPassage,
+    onLatin: () => setLatinDetected(true),
+    onShift: setShiftHeld,
+  });
+  useTypingKeys(keys);
 
   const updateSettings = useCallback(
     (patch: Partial<Settings>) => {

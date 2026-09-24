@@ -54,12 +54,3 @@ export function untypeableChars(text: string): string[] {
   }
   return [...bad];
 }
-
-export function isTypeable(text: string): boolean {
-  for (const char of text) {
-    if (!TYPEABLE.has(char)) {
-      return false;
-    }
-  }
-  return true;
-}

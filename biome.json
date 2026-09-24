@@ -16,15 +16,15 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
-        "noUnusedImports": "warn",
-        "noUnusedVariables": "warn",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
         "useExhaustiveDependencies": "off"
       },
       "performance": { "noBarrelFile": "off" },
       "suspicious": { "noArrayIndexKey": "off" },
-      "style": { "useBlockStatements": "warn", "noParameterAssign": "off" }
+      "style": { "useBlockStatements": "error", "noParameterAssign": "off" }
     }
   },
   "formatter": {
