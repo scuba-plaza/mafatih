@@ -324,3 +324,16 @@ describe("lam-alef ligature keys", () => {
     cy.get("[data-cy=letter-stat][data-char=ﻻ]").should("have.attr", "data-attempts", "1");
   });
 });
+
+describe("the privacy policy", () => {
+  it("is linked from every page and has its own address", () => {
+    cy.visit("/?seed=3#/stats");
+    cy.get("[data-cy=nav-privacy]").click();
+    cy.location("hash").should("equal", "#/privacy");
+    cy.get("[data-cy=privacy]").should("contain.text", "Privacy policy").and("contain.text", "everyayah.com");
+    cy.get("[data-cy=typing-area]").should("not.exist");
+    cy.get("[data-cy=nav-practice]").click();
+    cy.get("[data-cy=typing-area]").should("be.visible");
+    cy.get("[data-cy=nav-privacy]").should("be.visible");
+  });
+});

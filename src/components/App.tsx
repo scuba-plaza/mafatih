@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
+import Footer from "~/components/Footer.tsx";
 import Header from "~/components/Header.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
 import PassageBar from "~/components/PassageBar.tsx";
 import PassageDone from "~/components/PassageDone.tsx";
+import Privacy from "~/components/Privacy.tsx";
 import RecitationBar from "~/components/RecitationBar.tsx";
 import RecitationModal from "~/components/RecitationModal.tsx";
 import SettingsModal from "~/components/SettingsModal.tsx";
@@ -86,7 +88,11 @@ export default function App() {
         onOpenSettings={() => setModal("settings")}
       />
 
-      {route.page === "stats" ? (
+      {route.page === "privacy" ? (
+        <main className="flex flex-1 flex-col">
+          <Privacy />
+        </main>
+      ) : route.page === "stats" ? (
         <main className="flex flex-1 flex-col">
           <Stats
             progress={profile.progress}
@@ -180,6 +186,8 @@ export default function App() {
           ) : null}
         </main>
       )}
+
+      <Footer />
 
       <SettingsModal
         open={modal === "settings"}

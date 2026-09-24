@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-export type Page = "practice" | "recitation" | "custom" | "stats";
+export type Page = "practice" | "recitation" | "custom" | "stats" | "privacy";
 
 export type Route =
   | { page: "practice" }
   | { page: "custom" }
   | { page: "stats" }
+  | { page: "privacy" }
   | { page: "recitation"; surah: number | null; ayah: number | null };
 
 export type Target = { mode: "adaptive" } | { mode: "custom" } | { mode: "recite"; surah: number; ayah: number | null };
@@ -15,6 +16,7 @@ export const PAGE_ROUTE: Record<Page, Route> = {
   recitation: { page: "recitation", surah: null, ayah: null },
   custom: { page: "custom" },
   stats: { page: "stats" },
+  privacy: { page: "privacy" },
 };
 
 function positiveInt(raw: string | undefined): number | null {
@@ -27,7 +29,7 @@ function positiveInt(raw: string | undefined): number | null {
 
 export function parseRoute(hash: string): Route {
   const [page, ...rest] = hash.replace(/^#\/?/, "").split("/");
-  if (page === "stats" || page === "custom") {
+  if (page === "stats" || page === "custom" || page === "privacy") {
     return PAGE_ROUTE[page];
   }
   if (page !== "recitation") {

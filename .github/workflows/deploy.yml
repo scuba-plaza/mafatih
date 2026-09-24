@@ -29,6 +29,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm check
+
+      - name: Unit tests
+        run: pnpm test
+
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
