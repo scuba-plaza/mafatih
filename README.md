@@ -8,7 +8,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. Every word 
 real word from the Qur'an, and you can go on to type the Qur'an itself, surah by surah, while
 listening to its recitation.
 
-**Try it: <https://scuba-plaza.github.io/mafatih/>**
+**Try it: <https://mafatih.tasrif.xyz/>**
 
 ## What you can do
 
@@ -34,7 +34,7 @@ softly coloured by the finger that should press them; you can turn the colours o
 ## Your data
 
 There is no account and nothing to sign up for. Your progress stays in your browser, on your own
-device. The [privacy policy](https://scuba-plaza.github.io/mafatih/#/privacy) explains the details.
+device. The [privacy policy](https://mafatih.tasrif.xyz/#/privacy) explains the details.
 
 ## Credits
 

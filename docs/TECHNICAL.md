@@ -510,6 +510,9 @@ else growing past the limit still warns.
 
 ## Production
 
+The site is served from GitHub Pages at <https://mafatih.tasrif.xyz/>, a custom domain set in the
+repository's Pages settings; `scuba-plaza.github.io/mafatih` redirects there.
+
 `pnpm build` writes a static site to `dist/`; any static host serves it. Two environment variables
 shape it: `BASE_PATH` when the site lives under a sub-path, and `SITE_URL` for the canonical URL,
 Open Graph tags, `robots.txt` and `sitemap.xml`. The GitHub Pages workflow sets both.
