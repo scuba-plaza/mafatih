@@ -13,8 +13,8 @@ declare global {
       openSettings(): Chainable<void>;
       openRecitationSettings(): Chainable<void>;
       closeRecitationSettings(): Chainable<void>;
-      openCustomTextSettings(): Chainable<void>;
-      closeCustomTextSettings(): Chainable<void>;
+      openCustomTextEditor(): Chainable<void>;
+      closeCustomTextEditor(): Chainable<void>;
       closeSettings(): Chainable<void>;
       showStats(): Chainable<void>;
       showPractice(): Chainable<void>;

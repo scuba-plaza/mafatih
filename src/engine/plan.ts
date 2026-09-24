@@ -1,7 +1,7 @@
 import type { Tier } from "~/engine/corpus/normalize.ts";
 import { generateAdaptiveLesson } from "~/engine/lessons/adaptive.ts";
 import { generateCustomLesson } from "~/engine/lessons/custom.ts";
-import type { AyahSpan, Lesson } from "~/engine/lessons/lesson.ts";
+import type { AyahSpan, Lesson, LessonKind } from "~/engine/lessons/lesson.ts";
 import { generateRecitePassage } from "~/engine/lessons/recite.ts";
 import { passageStatus } from "~/engine/recitation/recitation.ts";
 import { createSession, type KeystrokeRecord, type SessionState } from "~/engine/session/session.ts";
@@ -32,14 +32,14 @@ export function tierOf(profile: Profile): Tier {
   return profile.settings.tierOverride ?? profile.progress.tier;
 }
 
-export function buildLesson(profile: Profile, seed: number): Lesson {
+export function buildLesson(profile: Profile, mode: LessonKind, seed: number): Lesson {
   const { settings } = profile;
   const tier = tierOf(profile);
-  if (settings.mode === "recite") {
+  if (mode === "recite") {
     const { surah, ayah } = profile.recitation.position;
     return generateRecitePassage({ surah, fromAyah: ayah, tier, maxAyat: settings.ayatPerLesson });
   }
-  if (settings.mode === "custom") {
+  if (mode === "custom") {
     return generateCustomLesson({ text: settings.customText, tier });
   }
   return generateAdaptiveLesson({

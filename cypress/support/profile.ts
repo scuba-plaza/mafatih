@@ -4,6 +4,7 @@ import type { Progress } from "../../src/engine/stats/unlock.ts";
 import { defaultProfile, type Profile, type Settings, STORAGE_KEY } from "../../src/storage/profile.ts";
 
 export interface ProfileSeed {
+  page?: "recite" | "custom";
   settings?: Partial<Settings>;
   progress?: Partial<Progress>;
   stats?: KeyStats;
@@ -40,9 +41,29 @@ export function masteredStats(chars: readonly string[], samples = 40, meanMs = 1
   return stats;
 }
 
+function hashOf(seed: ProfileSeed, profile: Profile): string {
+  if (seed.page === "custom") {
+    return "#/custom";
+  }
+  if (seed.page === "recite") {
+    const { surah, ayah } = profile.recitation.position;
+    return `#/recitation/${surah}/${ayah}`;
+  }
+  return "";
+}
+
+let visits = 0;
+
+function freshUrl(query: string, hash: string): string {
+  visits += 1;
+  const [search = "", given] = query.split("#");
+  const separator = search.includes("?") ? "&" : "?";
+  return `${search}${separator}visit=${visits}${given === undefined ? hash : `#${given}`}`;
+}
+
 export function visitWith(seed: ProfileSeed, query = "?seed=4242"): void {
   const profile = buildProfile(seed);
-  cy.visit(query, {
+  cy.visit(freshUrl(query, hashOf(seed, profile)), {
     onBeforeLoad(win) {
       win.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
     },

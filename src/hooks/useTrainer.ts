@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Tier } from "~/engine/corpus/normalize.ts";
-import { countsTowardProgress, type Lesson } from "~/engine/lessons/lesson.ts";
+import { countsTowardProgress, type Lesson, type LessonKind } from "~/engine/lessons/lesson.ts";
 import {
   aggregate,
   buildLesson,
@@ -16,8 +16,10 @@ import {
   emptyRecitation,
   passageAfter,
   passageBefore,
+  type Recitation,
   type RecitationPosition,
   recordAyat,
+  resumeOf,
   type SurahCompletion,
 } from "~/engine/recitation/recitation.ts";
 import {
@@ -29,6 +31,7 @@ import {
 } from "~/engine/session/session.ts";
 import { advanceProgress, DEFAULT_UNLOCK_CONFIG } from "~/engine/stats/unlock.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
+import type { Target } from "~/hooks/useRoute.ts";
 import { type TypingKeyHandlers, useTypingKeys } from "~/hooks/useTypingKeys.ts";
 import {
   defaultProfile,
@@ -40,7 +43,11 @@ import {
   saveProfile,
 } from "~/storage/profile.ts";
 
-const LESSON_SETTINGS: readonly (keyof Settings)[] = ["mode", "tierOverride", "ayatPerLesson", "customText"];
+const LESSON_SETTINGS: Record<LessonKind, readonly (keyof Settings)[]> = {
+  adaptive: ["tierOverride"],
+  recite: ["tierOverride", "ayatPerLesson"],
+  custom: ["tierOverride", "customText"],
+};
 
 export interface Trainer {
   profile: Profile;
@@ -65,7 +72,17 @@ export interface Trainer {
 }
 
 export interface TrainerOptions {
-  enabled?: boolean;
+  target: Target | null;
+  enabled: boolean;
+}
+
+function positionOf(recitation: Recitation, surah: number, ayah: number | null): RecitationPosition {
+  const clamped = clampPosition({ surah, ayah: 1 }).surah;
+  return clampPosition({ surah: clamped, ayah: ayah ?? resumeOf(recitation, clamped) });
+}
+
+function atPosition(profile: Profile, position: RecitationPosition): Profile {
+  return { ...profile, recitation: { ...profile.recitation, position } };
 }
 
 function randomSeed(): number {
@@ -73,9 +90,13 @@ function randomSeed(): number {
   return fromQuery ?? Math.floor(Math.random() * 1e9);
 }
 
-export function useTrainer(options: TrainerOptions = {}): Trainer {
-  const enabled = options.enabled ?? true;
-  const [profile, setProfile] = useState<Profile>(() => loadProfile());
+export function useTrainer({ target, enabled }: TrainerOptions): Trainer {
+  const [profile, setProfile] = useState<Profile>(() => {
+    const loaded = loadProfile();
+    return target?.mode === "recite"
+      ? atPosition(loaded, positionOf(loaded.recitation, target.surah, target.ayah))
+      : loaded;
+  });
   const [latinDetected, setLatinDetected] = useState(false);
   const [shiftHeld, setShiftHeld] = useState(false);
   const [lastSummary, setLastSummary] = useState<SessionSummary | null>(null);
@@ -84,7 +105,7 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   const lessonCounter = useRef(0);
 
   const [initial] = useState(() => {
-    const first = buildLesson(profile, baseSeed.current);
+    const first = buildLesson(profile, target?.mode ?? "adaptive", baseSeed.current);
     return { lesson: first, ...startSession(profile, first, false) };
   });
   const [lesson, setLesson] = useState<Lesson>(initial.lesson);
@@ -114,9 +135,9 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
   }, []);
 
   const regenerate = useCallback(
-    (source: Profile, redo = false) => {
+    (source: Profile, mode: LessonKind, redo = false) => {
       lessonCounter.current += 1;
-      const next = buildLesson(source, baseSeed.current + lessonCounter.current);
+      const next = buildLesson(source, mode, baseSeed.current + lessonCounter.current);
       begin(next, startSession(source, next, redo));
     },
     [begin],
@@ -194,22 +215,32 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     }
     settledRef.current = session;
     finish(session);
-    regenerate(profileRef.current);
-  }, [session, checkpoint, finish, regenerate, profileRef]);
+    regenerate(profileRef.current, lessonRef.current.source.kind);
+  }, [session, checkpoint, finish, regenerate, profileRef, lessonRef]);
 
   const goTo = useCallback(
     (position: RecitationPosition, redo = false) => {
-      const current = profileRef.current;
-      const updated: Profile = {
-        ...current,
-        settings: current.settings.mode === "recite" ? current.settings : { ...current.settings, mode: "recite" },
-        recitation: { ...current.recitation, position: clampPosition(position) },
-      };
+      const updated = atPosition(profileRef.current, clampPosition(position));
       commit(updated);
-      regenerate(updated, redo);
+      regenerate(updated, "recite", redo);
     },
     [commit, regenerate, profileRef],
   );
+
+  const mode = target?.mode ?? null;
+  const surah = target?.mode === "recite" ? target.surah : null;
+  const ayah = target?.mode === "recite" ? target.ayah : null;
+  useLayoutEffect(() => {
+    const { source } = lessonRef.current;
+    if (mode === "recite" && surah !== null) {
+      const position = positionOf(profileRef.current.recitation, surah, ayah);
+      if (source.kind !== "recite" || source.surah !== position.surah || source.fromAyah !== position.ayah) {
+        goTo(position);
+      }
+    } else if (mode !== null && mode !== source.kind) {
+      regenerate(profileRef.current, mode);
+    }
+  }, [mode, surah, ayah, goTo, regenerate, lessonRef, profileRef]);
 
   const redoPassage = useCallback(() => {
     begin(lessonRef.current, startSession(profileRef.current, lessonRef.current, true));
@@ -255,11 +286,12 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
       const previous = profileRef.current.settings;
       const updated: Profile = { ...profileRef.current, settings: { ...previous, ...patch } };
       commit(updated);
-      if (LESSON_SETTINGS.some((key) => updated.settings[key] !== previous[key])) {
-        regenerate(updated);
+      const { kind } = lessonRef.current.source;
+      if (LESSON_SETTINGS[kind].some((key) => updated.settings[key] !== previous[key])) {
+        regenerate(updated, kind);
       }
     },
-    [commit, regenerate, profileRef],
+    [commit, regenerate, profileRef, lessonRef],
   );
 
   const resetProfile = useCallback(() => {
@@ -267,18 +299,18 @@ export function useTrainer(options: TrainerOptions = {}): Trainer {
     const fresh: Profile = { ...defaultProfile(), settings, recitation };
     commit(fresh);
     setLastSummary(null);
-    regenerate(fresh);
-  }, [commit, regenerate, profileRef]);
+    regenerate(fresh, lessonRef.current.source.kind);
+  }, [commit, regenerate, profileRef, lessonRef]);
 
   const resetRecitation = useCallback(() => {
     const current = profileRef.current;
     const updated: Profile = { ...current, recitation: emptyRecitation(current.settings.surahOrder) };
     commit(updated);
     setCompletion(null);
-    if (current.settings.mode === "recite") {
-      regenerate(updated);
+    if (lessonRef.current.source.kind === "recite") {
+      regenerate(updated, "recite");
     }
-  }, [commit, regenerate, profileRef]);
+  }, [commit, regenerate, profileRef, lessonRef]);
 
   const dismissCompletion = useCallback(() => setCompletion(null), []);
 

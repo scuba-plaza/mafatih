@@ -1,7 +1,7 @@
 import Modal, { CheckboxRow, DoneButton, FIELD, NAME, ROW, SelectRow } from "~/components/Modal.tsx";
 import { TIERS, type Tier } from "~/engine/corpus/normalize.ts";
 import { clampFontSize, FONT_SIZES, FONTS, fontOption, isFontId } from "~/engine/fonts.ts";
-import { isMode, type Settings } from "~/storage/profile.ts";
+import type { Settings } from "~/storage/profile.ts";
 
 export interface SettingsModalProps {
   open: boolean;
@@ -9,7 +9,6 @@ export interface SettingsModalProps {
   autoTier: Tier;
   onChange: (patch: Partial<Settings>) => void;
   onOpenRecitation: () => void;
-  onOpenCustomText: () => void;
   onReset: () => void;
   onClose: () => void;
 }
@@ -36,7 +35,6 @@ export default function SettingsModal({
   autoTier,
   onChange,
   onOpenRecitation,
-  onOpenCustomText,
   onReset,
   onClose,
 }: SettingsModalProps) {
@@ -64,17 +62,6 @@ export default function SettingsModal({
       }
     >
       <SelectRow
-        label="Mode"
-        cy="setting-mode"
-        value={settings.mode}
-        onChange={(value) => onChange(isMode(value) ? { mode: value } : {})}
-      >
-        <option value="adaptive">Practice · adaptive</option>
-        <option value="recite">Recitation · surah by surah</option>
-        <option value="custom">Custom · your own text</option>
-      </SelectRow>
-
-      <SelectRow
         label="Diacritics"
         cy="setting-tier"
         value={settings.tierOverride ?? "auto"}
@@ -89,8 +76,6 @@ export default function SettingsModal({
       </SelectRow>
 
       <SubSettings label="Recitation" cy="open-recitation-settings" onOpen={onOpenRecitation} />
-
-      <SubSettings label="Custom text" cy="open-custom-text-settings" onOpen={onOpenCustomText} />
 
       <CheckboxRow
         label="Show keyboard"

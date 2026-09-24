@@ -16,18 +16,21 @@ import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
 import { fontStack } from "~/engine/fonts.ts";
 import { ayahAt } from "~/engine/lessons/lesson.ts";
-import { completedSurahs, progressOf, type RecitationPosition } from "~/engine/recitation/recitation.ts";
+import { completedSurahs, progressOf } from "~/engine/recitation/recitation.ts";
 import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
 import { useDockInset } from "~/hooks/useDockInset.ts";
+import { useLatest } from "~/hooks/useLatest.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
-import { ROUTE_HASH, type Route, useRoute } from "~/hooks/useRoute.ts";
+import { recitationHref, targetOf, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
 
 export default function App() {
-  const route: Route = useRoute();
+  const { route, replace } = useRoute();
+  const target = targetOf(route);
+  const reciting = target?.mode === "recite";
   const [modal, setModal] = useState<"none" | "settings" | "recitation" | "custom">("none");
-  const trainer = useTrainer({ enabled: route === "practice" && modal === "none" });
+  const trainer = useTrainer({ target, enabled: target !== null && modal === "none" });
   const { profile, lesson, session, effectiveTier, latinDetected, shiftHeld, lastSummary } = trainer;
   const { settings } = profile;
   const live = computeMetrics(session, isComplete(session) ? undefined : performance.now());
@@ -38,15 +41,15 @@ export default function App() {
     lesson,
     settings,
     updateSettings: trainer.updateSettings,
-    active: route === "practice",
+    active: reciting,
     startAyah,
   });
   const playingSpan =
     (player.ayah === null ? lesson.basmala : lesson.ayat.find((span) => span.ayah === player.ayah)) ?? null;
-  const reciting = player.playing || player.progress > 0;
+  const sounding = player.playing || player.progress > 0;
   const highlight = useMemo(
-    () => (playingSpan !== null && reciting ? { start: playingSpan.start, end: playingSpan.end } : null),
-    [playingSpan, reciting],
+    () => (playingSpan !== null && sounding ? { start: playingSpan.start, end: playingSpan.end } : null),
+    [playingSpan, sounding],
   );
 
   useEffect(() => {
@@ -54,39 +57,36 @@ export default function App() {
   }, [settings.font]);
 
   const dockRef = useRef<HTMLDivElement>(null);
-  useDockInset(dockRef, settings.showKeyboard && route === "practice");
+  useDockInset(dockRef, settings.showKeyboard && target !== null);
 
-  const playFromMap = (position: RecitationPosition) => {
-    trainer.goTo(position);
-    window.location.hash = ROUTE_HASH.practice;
-  };
+  const routeRef = useLatest(route);
+  useEffect(() => {
+    const { kind, surah, fromAyah } = lesson.source;
+    const current = routeRef.current;
+    if (kind !== "recite" || surah === undefined || fromAyah === undefined || current.page !== "recitation") {
+      return;
+    }
+    if (current.surah !== null && (current.surah !== surah || current.ayah !== fromAyah)) {
+      replace({ page: "recitation", surah, ayah: fromAyah });
+    }
+  }, [lesson, replace, routeRef]);
 
   return (
     <div
       className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-10 px-6 py-6"
       data-cy="app"
-      data-route={route}
+      data-route={route.page}
       data-font={settings.font}
     >
       <Header
-        route={route}
+        page={route.page}
         progress={profile.progress}
         stats={profile.stats}
         tier={effectiveTier}
         onOpenSettings={() => setModal("settings")}
       />
 
-      {route === "recitation" ? (
-        <main className="flex flex-1 flex-col">
-          <SurahMap
-            recitation={profile.recitation}
-            order={settings.surahOrder}
-            onOrder={(surahOrder) => trainer.updateSettings({ surahOrder })}
-            onPlay={playFromMap}
-            onReset={trainer.resetRecitation}
-          />
-        </main>
-      ) : route === "stats" ? (
+      {route.page === "stats" ? (
         <main className="flex flex-1 flex-col">
           <Stats
             progress={profile.progress}
@@ -95,13 +95,34 @@ export default function App() {
             effectiveTier={effectiveTier}
           />
         </main>
+      ) : target === null ? (
+        <main className="flex flex-1 flex-col">
+          <SurahMap
+            recitation={profile.recitation}
+            order={settings.surahOrder}
+            onOrder={(surahOrder) => trainer.updateSettings({ surahOrder })}
+            onReset={trainer.resetRecitation}
+          />
+        </main>
       ) : (
         <main className="flex flex-1 flex-col justify-center gap-10">
           <LayoutGuard latinDetected={latinDetected} onDismiss={trainer.dismissLatin} />
 
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <Attribution source={lesson.source} />
+              <div className="flex items-baseline justify-between gap-4">
+                <Attribution source={lesson.source} />
+                {lesson.source.kind === "custom" ? (
+                  <button
+                    type="button"
+                    data-cy="edit-custom-text"
+                    onClick={() => setModal("custom")}
+                    className="shrink-0 text-xs text-stone-400 hover:text-stone-900 dark:hover:text-stone-100"
+                  >
+                    Edit text
+                  </button>
+                ) : null}
+              </div>
               <PassageBar
                 source={lesson.source}
                 recitation={profile.recitation}
@@ -166,7 +187,6 @@ export default function App() {
         autoTier={profile.progress.tier}
         onChange={trainer.updateSettings}
         onOpenRecitation={() => setModal("recitation")}
-        onOpenCustomText={() => setModal("custom")}
         onReset={trainer.resetProfile}
         onClose={() => setModal("none")}
       />
@@ -177,7 +197,9 @@ export default function App() {
         recitation={profile.recitation}
         audioCache={audioCache}
         onChange={trainer.updateSettings}
-        onGoTo={trainer.goTo}
+        onGoTo={({ surah, ayah }) => {
+          window.location.hash = recitationHref(surah, ayah);
+        }}
         onBack={() => setModal("settings")}
         onClose={() => setModal("none")}
       />
@@ -193,7 +215,6 @@ export default function App() {
         open={modal === "custom"}
         settings={settings}
         onChange={trainer.updateSettings}
-        onBack={() => setModal("settings")}
         onClose={() => setModal("none")}
       />
     </div>

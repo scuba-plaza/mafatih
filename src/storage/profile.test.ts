@@ -18,7 +18,6 @@ test("every setting survives a round trip through storage", () => {
     ...profile,
     settings: {
       ...profile.settings,
-      mode: "custom" as const,
       tierOverride: "full" as const,
       customText: "الحمد\nلله",
       font: "amiri" as const,
@@ -41,7 +40,6 @@ test("missing settings fall back rather than yielding undefined", () => {
   const settings = parseProfile(JSON.stringify(stored)).settings;
   assert.equal(settings.font, "amiri");
   assert.equal(settings.fontSize, DEFAULT_FONT_SIZE);
-  assert.equal(settings.mode, "adaptive");
   assert.equal(settings.showKeyboard, true);
   assert.equal(settings.reciter, DEFAULT_RECITER);
   assert.equal(settings.volume, DEFAULT_VOLUME);
@@ -55,7 +53,7 @@ test("a profile with only some settings keeps its progress and gains the default
     progress: { unlockedCount: 12, tier: "core", focus: null },
     stats: {},
     history: [{ at: 1, cpm: 90, accuracy: 0.97, errors: 2, chars: 180, tier: "core" }],
-    settings: { mode: "recite", font: "amiri", fontSize: 44, showKeyboard: false },
+    settings: { font: "amiri", fontSize: 44, showKeyboard: false },
   };
   const profile = parseProfile(JSON.stringify(before));
   assert.equal(profile.progress.unlockedCount, 12);
@@ -71,7 +69,6 @@ test("a profile with only some settings keeps its progress and gains the default
 
 test("hand-edited nonsense in storage cannot break a setting", () => {
   const settings = sanitizeSettings({
-    mode: "hyperspeed",
     tierOverride: "extreme",
     font: "comic sans",
     fontSize: "enormous",

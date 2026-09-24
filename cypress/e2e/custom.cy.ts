@@ -5,7 +5,7 @@ const CDN = "https://everyayah.com/data/**/*.mp3";
 const TEXT = "الحمد لله رب العالمين";
 
 function visitCustom(customText = TEXT): void {
-  visitWith({ settings: { mode: "custom", customText, tierOverride: "none", showKeyboard: false } });
+  visitWith({ page: "custom", settings: { customText, tierOverride: "none", showKeyboard: false } });
 }
 
 describe("custom text mode", () => {
@@ -18,26 +18,29 @@ describe("custom text mode", () => {
     cy.get("[data-cy=ayah-mark]").should("not.exist");
   });
 
-  it("offers all three modes and switches between them", () => {
+  it("switches mode with the page, and the header marks the page in use", () => {
     cy.intercept("GET", CDN, { fixture: "ayah.mp3,null", headers: { "content-type": "audio/mpeg" } });
     cy.visit("/?seed=7");
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    cy.get("[data-cy=nav-practice]").should("have.attr", "aria-current", "page");
 
-    cy.openSettings();
-    cy.get("[data-cy=setting-mode]").find("option").should("have.length", 3);
-    cy.get("[data-cy=setting-mode]").select("custom");
-    cy.closeSettings();
+    cy.get("[data-cy=nav-custom]").click();
+    cy.location("hash").should("equal", "#/custom");
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "custom");
+    cy.get("[data-cy=nav-custom]").should("have.attr", "aria-current", "page");
+    cy.get("[data-cy=nav-practice]").should("not.have.attr", "aria-current");
 
-    cy.openSettings();
-    cy.get("[data-cy=setting-mode]").select("recite");
-    cy.closeSettings();
+    cy.get("[data-cy=nav-recitation]").click();
+    cy.get("[data-cy=surah-tile][data-surah=112]").click();
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "recite");
+    cy.get("[data-cy=nav-recitation]").should("have.attr", "aria-current", "page");
+
+    cy.get("[data-cy=nav-practice]").click();
+    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    cy.get("[data-cy=nav-practice]").should("have.attr", "aria-current", "page");
 
     cy.openSettings();
-    cy.get("[data-cy=setting-mode]").select("adaptive");
-    cy.closeSettings();
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    cy.get("[data-cy=setting-mode]").should("not.exist");
   });
 
   it("starts a new line at every line break in the text", () => {
@@ -52,7 +55,8 @@ describe("custom text mode", () => {
     visitWith({
       progress: { unlockedCount: 6, tier: "none" },
       stats: masteredStats(letterOrder.slice(0, 6)),
-      settings: { mode: "custom", customText: TEXT, tierOverride: "none", showKeyboard: false },
+      page: "custom",
+      settings: { customText: TEXT, tierOverride: "none", showKeyboard: false },
     });
     cy.get("[data-cy=unlocked-count]").should("have.text", "6");
 
@@ -69,12 +73,12 @@ describe("custom text mode", () => {
     cy.get("[data-cy=unlocked-count]").should("have.text", "6");
   });
 
-  it("rebuilds the lesson from the text typed into settings", () => {
+  it("rebuilds the lesson from the text typed into the editor", () => {
     visitCustom();
-    cy.openCustomTextSettings();
+    cy.openCustomTextEditor();
     cy.get("[data-cy=setting-custom-text]").should("have.value", TEXT);
     cy.get("[data-cy=setting-custom-text]").clear().type("بسم الله", { delay: 0 });
-    cy.closeCustomTextSettings();
+    cy.closeCustomTextEditor();
     cy.targetText().should("equal", "بسم الله");
 
     cy.reload();
@@ -83,12 +87,12 @@ describe("custom text mode", () => {
 
   it("reports the characters an Arabic keyboard cannot produce", () => {
     visitCustom();
-    cy.openCustomTextSettings();
+    cy.openCustomTextEditor();
     cy.get("[data-cy=custom-text-report]").should("have.attr", "data-dropped", "0");
     cy.get("[data-cy=setting-custom-text]").clear().type("الحمد hello", { delay: 0 });
     cy.get("[data-cy=custom-text-report]").should("have.attr", "data-dropped", "4");
     cy.get("[data-cy=custom-text-report]").should("contain.text", "dropped");
-    cy.closeCustomTextSettings();
+    cy.closeCustomTextEditor();
     cy.targetText().should("equal", "الحمد");
   });
 
@@ -102,7 +106,7 @@ describe("custom text mode", () => {
   });
 
   it("points the virtual keyboard at the key that makes the punctuation", () => {
-    visitWith({ settings: { mode: "custom", customText: "؟", tierOverride: "none", showKeyboard: true } });
+    visitWith({ page: "custom", settings: { customText: "؟", tierOverride: "none", showKeyboard: true } });
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "Slash");
     cy.get("[data-cy=shift-key]").should("have.attr", "data-active", "true");
     cy.typeTarget();
@@ -118,18 +122,19 @@ describe("custom text mode", () => {
     visitCustom("hello world");
     cy.targetText().should("not.equal", "");
     cy.get("[data-cy=typing-area]").invoke("attr", "data-total").should("not.equal", "0");
-    cy.openCustomTextSettings();
+    cy.openCustomTextEditor();
     cy.get("[data-cy=custom-text-report]").should("have.attr", "data-length", "0");
     cy.get("[data-cy=custom-text-report]").should("contain.text", "Nothing typeable yet");
     cy.get("[data-cy=custom-text-sample]").click();
     cy.get("[data-cy=custom-text-report]").should("have.attr", "data-dropped", "0");
-    cy.closeCustomTextSettings();
+    cy.closeCustomTextEditor();
     cy.targetText().should("contain", "الحمد");
   });
 
   it("respects the diacritics tier", () => {
     visitWith({
-      settings: { mode: "custom", customText: "بِسْمِ اللَّهِ", tierOverride: "full", showKeyboard: false },
+      page: "custom",
+      settings: { customText: "بِسْمِ اللَّهِ", tierOverride: "full", showKeyboard: false },
     });
     cy.targetText().should("equal", "بِسْمِ اللَّهِ");
     cy.openSettings();
@@ -140,7 +145,7 @@ describe("custom text mode", () => {
 
   it("keeps an edit that is closed with Escape rather than Done", () => {
     visitCustom();
-    cy.openCustomTextSettings();
+    cy.openCustomTextEditor();
     cy.get("[data-cy=setting-custom-text]").clear().type("رب العالمين", { delay: 0 });
     cy.window().then((win) => {
       cy.get("[data-cy=custom-text-dialog]").then(($dialog) => {
@@ -151,21 +156,21 @@ describe("custom text mode", () => {
     cy.targetText().should("equal", "رب العالمين");
   });
 
-  it("goes back to the main settings without losing an edit", () => {
+  it("edits the text from the custom page rather than from the settings", () => {
     visitCustom();
-    cy.openCustomTextSettings();
-    cy.get("[data-cy=setting-custom-text]").clear().type("رب", { delay: 0 });
-    cy.get("[data-cy=custom-text-back]").click();
-    cy.get("[data-cy=settings]").should("be.visible");
+    cy.openSettings();
+    cy.get("[data-cy=open-custom-text-settings]").should("not.exist");
     cy.closeSettings();
-    cy.targetText().should("equal", "رب");
+    cy.openCustomTextEditor();
+    cy.get("[data-cy=custom-text-back]").should("not.exist");
+    cy.closeCustomTextEditor();
   });
 
   it("keeps the typed text out of the trainer while the editor is open", () => {
     visitCustom();
-    cy.openCustomTextSettings();
+    cy.openCustomTextEditor();
     cy.get("[data-cy=setting-custom-text]").clear().type("رب", { delay: 0 });
-    cy.closeCustomTextSettings();
+    cy.closeCustomTextEditor();
     cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
     cy.targetText().should("equal", "رب");
   });

@@ -6,17 +6,16 @@ import {
   isSurahOrder,
   progressOf,
   type Recitation,
-  type RecitationPosition,
   resumeOf,
   type SurahOrder,
   surahSequence,
 } from "~/engine/recitation/recitation.ts";
+import { recitationHref } from "~/hooks/useRoute.ts";
 
 export interface SurahMapProps {
   recitation: Recitation;
   order: SurahOrder;
   onOrder: (order: SurahOrder) => void;
-  onPlay: (position: RecitationPosition) => void;
   onReset: () => void;
 }
 
@@ -48,15 +47,7 @@ function Ring({ fraction, complete, current }: { fraction: number; complete: boo
   );
 }
 
-function Tile({
-  surah,
-  recitation,
-  onPlay,
-}: {
-  surah: number;
-  recitation: Recitation;
-  onPlay: (position: RecitationPosition) => void;
-}) {
+function Tile({ surah, recitation }: { surah: number; recitation: Recitation }) {
   const meta = surahByNumber(surah);
   if (meta === undefined) {
     return null;
@@ -70,8 +61,8 @@ function Tile({
     : `${progress.covered} of ${progress.total} ayat typed`;
 
   return (
-    <button
-      type="button"
+    <a
+      href={recitationHref(surah, resumeOf(recitation, surah))}
       data-cy="surah-tile"
       data-surah={surah}
       data-covered={progress.covered}
@@ -79,7 +70,6 @@ function Tile({
       data-starred={progress.starred}
       data-current={current}
       aria-label={`${meta.tname}, ${status}`}
-      onClick={() => onPlay({ surah, ayah: resumeOf(recitation, surah) })}
       className={`group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left ring-1 transition-colors hover:bg-white dark:hover:bg-stone-900 ${
         current ? "bg-white ring-sky-500/60 dark:bg-stone-900" : "ring-stone-200 dark:ring-stone-800"
       }`}
@@ -103,11 +93,11 @@ function Tile({
           {progress.completions > 1 ? <span>{`×${progress.completions}`}</span> : null}
         </span>
       </span>
-    </button>
+    </a>
   );
 }
 
-export default function SurahMap({ recitation, order, onOrder, onPlay, onReset }: SurahMapProps) {
+export default function SurahMap({ recitation, order, onOrder, onReset }: SurahMapProps) {
   const done = completedSurahs(recitation);
   const { surah, ayah } = recitation.position;
   const current = surahByNumber(surah);
@@ -142,14 +132,13 @@ export default function SurahMap({ recitation, order, onOrder, onPlay, onReset }
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         {current === undefined ? null : (
-          <button
-            type="button"
+          <a
+            href={recitationHref(surah, ayah)}
             data-cy="recitation-continue"
-            onClick={() => onPlay({ surah, ayah })}
-            className={`${PRIMARY_BUTTON} py-2`}
+            className={`${PRIMARY_BUTTON} inline-block py-2`}
           >
             {`Continue · ${current.tname} ${surah}:${ayah}`}
-          </button>
+          </a>
         )}
         <label className="flex items-center gap-3 text-xs text-stone-400">
           Order
@@ -171,7 +160,7 @@ export default function SurahMap({ recitation, order, onOrder, onPlay, onReset }
 
       <div data-cy="surah-map" className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {surahSequence(order).map((n) => (
-          <Tile key={n} surah={n} recitation={recitation} onPlay={onPlay} />
+          <Tile key={n} surah={n} recitation={recitation} />
         ))}
       </div>
 

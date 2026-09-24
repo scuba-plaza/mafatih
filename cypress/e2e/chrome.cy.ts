@@ -43,7 +43,7 @@ describe("text direction", () => {
   });
 
   it("isolates the Arabic surah name inside otherwise LTR attribution", () => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "none" } });
     cy.get("[data-cy=attribution]").should(($el) => {
       expect(directionOf($el)).to.equal("ltr");
       expect($el.text()).to.contain("112:");
@@ -66,7 +66,7 @@ describe("hiding the virtual keyboard", () => {
   });
 
   it("docks to the bottom of the window, clear of the edge, over a long passage", () => {
-    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "full", ayatPerLesson: 20 } });
+    visitWith({ surah: 2, page: "recite", settings: { tierOverride: "full", ayatPerLesson: 20 } });
     cy.get("[data-cy=keyboard-dock]").should("have.css", "position", "sticky");
     cy.get("[data-cy=keyboard-dock]").should("have.css", "background-color").and("not.equal", "rgba(0, 0, 0, 0)");
 
@@ -124,7 +124,7 @@ describe("hiding the virtual keyboard", () => {
 
 describe("the Arabic (101) keyboard", () => {
   beforeEach(() => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "full" } });
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
@@ -139,7 +139,7 @@ describe("the Arabic (101) keyboard", () => {
   });
 
   it("accepts the lam-alef key the way Windows sends it, as two letters at once", () => {
-    visitWith({ settings: { mode: "custom", customText: "لا", tierOverride: "none" } });
+    visitWith({ page: "custom", settings: { customText: "لا", tierOverride: "none" } });
     cy.targetText().should("equal", "لا");
     cy.typeRawKey("لا", "KeyB");
     cy.get("[data-cy=completion]").should("be.visible");
@@ -285,7 +285,7 @@ describe("search and sharing metadata", () => {
 
 describe("lam-alef ligature keys", () => {
   it("highlights the ligature key, not lam, where lam meets an alef", () => {
-    visitWith({ settings: { mode: "custom", customText: "لا لأ", tierOverride: "none" } });
+    visitWith({ page: "custom", settings: { customText: "لا لأ", tierOverride: "none" } });
     cy.targetText().should("equal", "لا لأ");
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyB");
     cy.get("[data-cy=keycap][data-code=KeyB]").should("have.attr", "data-target", "true");
@@ -299,7 +299,7 @@ describe("lam-alef ligature keys", () => {
   });
 
   it("still takes lam then alef as two keys", () => {
-    visitWith({ settings: { mode: "custom", customText: "لا", tierOverride: "none" } });
+    visitWith({ page: "custom", settings: { customText: "لا", tierOverride: "none" } });
     cy.targetText().should("equal", "لا");
     cy.typeArabic("ل");
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-next-code", "KeyH");
@@ -309,7 +309,7 @@ describe("lam-alef ligature keys", () => {
   });
 
   it("scores a ligature keystroke as its own key", () => {
-    visitWith({ surah: 2, ayah: 2, settings: { mode: "recite", tierOverride: "none", ayatPerLesson: 1 } });
+    visitWith({ surah: 2, ayah: 2, page: "recite", settings: { tierOverride: "none", ayatPerLesson: 1 } });
     cy.targetText().then((text) => {
       const chars = [...text];
       const at = text.indexOf("لا");

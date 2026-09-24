@@ -7,7 +7,6 @@ export interface CustomTextModalProps {
   open: boolean;
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
-  onBack: () => void;
   onClose: () => void;
 }
 
@@ -18,7 +17,7 @@ function summarize(lines: number, length: number): string {
   return `${length} characters · ${lines === 1 ? "1 line" : `${lines} lines`}`;
 }
 
-export default function CustomTextModal({ open, settings, onChange, onBack, onClose }: CustomTextModalProps) {
+export default function CustomTextModal({ open, settings, onChange, onClose }: CustomTextModalProps) {
   const [draft, setDraft] = useState(settings.customText);
   const report = useMemo(() => inspectCustomText(draft), [draft]);
 
@@ -34,9 +33,9 @@ export default function CustomTextModal({ open, settings, onChange, onBack, onCl
     }
   }, [draft, settings.customText, onChange]);
 
-  const leave = (go: () => void) => () => {
+  const close = () => {
     commit();
-    go();
+    onClose();
   };
 
   return (
@@ -44,8 +43,7 @@ export default function CustomTextModal({ open, settings, onChange, onBack, onCl
       open={open}
       cy="custom-text"
       title="Custom text"
-      onBack={leave(onBack)}
-      onClose={leave(onClose)}
+      onClose={close}
       footer={
         <>
           <button
@@ -56,7 +54,7 @@ export default function CustomTextModal({ open, settings, onChange, onBack, onCl
           >
             Use the sample
           </button>
-          <DoneButton cy="custom-text-done" onClick={leave(onClose)} />
+          <DoneButton cy="custom-text-done" onClick={close} />
         </>
       }
     >

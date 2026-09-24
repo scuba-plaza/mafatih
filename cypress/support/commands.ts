@@ -161,14 +161,12 @@ Cypress.Commands.add("closeRecitationSettings", () => {
   cy.get("[data-cy=recitation-settings]").should("not.be.visible");
 });
 
-Cypress.Commands.add("openCustomTextSettings", () => {
-  cy.get("[data-cy=open-settings]").click();
-  cy.get("[data-cy=settings]").should("be.visible");
-  cy.get("[data-cy=open-custom-text-settings]").click();
+Cypress.Commands.add("openCustomTextEditor", () => {
+  cy.get("[data-cy=edit-custom-text]").click();
   cy.get("[data-cy=custom-text]").should("be.visible");
 });
 
-Cypress.Commands.add("closeCustomTextSettings", () => {
+Cypress.Commands.add("closeCustomTextEditor", () => {
   cy.get("[data-cy=custom-text-done]").click();
   cy.get("[data-cy=custom-text]").should("not.be.visible");
 });

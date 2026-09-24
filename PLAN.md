@@ -87,6 +87,9 @@ toward letter statistics.
   progress bar, and Page Up / Page Down shortcuts (Alt+← is the browser's Back on Windows and Linux).
 - `#/recitation` route: a map of 114 surah tiles with progress rings, ✓ for complete, ★ for ≥95%.
   Clicking a tile continues from the furthest ayah in that surah.
+- The page is the mode: `#/` practises adaptively, `#/custom` types your own text, and a level lives at
+  `#/recitation/<surah>/<ayah>`, so the header always highlights the mode in use and there is no mode
+  setting. The address follows the passage with `replaceState`.
 
 ### Celebration
 

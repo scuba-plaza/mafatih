@@ -4,7 +4,7 @@ const HARAKAT = ["َ", "ً", "ُ", "ٌ", "ِ", "ٍ", "ْ", "ّ"];
 
 describe("diacritics on the shift layer", () => {
   it("accepts every haraka as a shifted keystroke", () => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "full" } });
     cy.targetText().then((text) => {
       const chars = [...text];
       const firstHaraka = chars.findIndex((c) => HARAKAT.includes(c));
@@ -22,7 +22,7 @@ describe("diacritics on the shift layer", () => {
   });
 
   it("types a fully diacritised passage end to end without errors", () => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "full" } });
     cy.targetText().then((text) => {
       expect(text, "tier full must include harakat").to.match(/[ً-ْ]/);
     });
@@ -32,10 +32,10 @@ describe("diacritics on the shift layer", () => {
   });
 
   it("each tier exposes the expected marks", () => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "none" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "none" } });
     cy.targetText().then((t) => expect(t).to.not.match(/[ً-ْ]/));
 
-    visitWith({ surah: 2, settings: { mode: "recite", tierOverride: "core" } });
+    visitWith({ surah: 2, page: "recite", settings: { tierOverride: "core" } });
     cy.targetText().then((t) => {
       expect(t).to.match(/[َُِّْ]/, "core must keep the core marks");
       expect(t).to.not.match(/[ًٌٍ]/, "core must drop tanween");
@@ -43,7 +43,7 @@ describe("diacritics on the shift layer", () => {
   });
 
   it("skipping a haraka is an error and the cursor holds", () => {
-    visitWith({ surah: 112, settings: { mode: "recite", tierOverride: "full" } });
+    visitWith({ surah: 112, page: "recite", settings: { tierOverride: "full" } });
     cy.targetText().then((text) => {
       const chars = [...text];
       const i = chars.findIndex((c) => HARAKAT.includes(c));
@@ -60,7 +60,7 @@ describe("the lam-alef key", () => {
   const LIGATURE_INDEX = 23;
 
   beforeEach(() => {
-    visitWith({ surah: 90, settings: { mode: "recite", tierOverride: "none" } });
+    visitWith({ surah: 90, page: "recite", settings: { tierOverride: "none" } });
   });
 
   it("satisfies two cursor positions in a single press", () => {

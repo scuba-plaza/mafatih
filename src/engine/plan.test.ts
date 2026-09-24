@@ -11,7 +11,7 @@ function reciting(surah: number, ayah: number, recitation: Recitation = emptyRec
   const base = defaultProfile();
   return {
     ...base,
-    settings: { ...base.settings, mode: "recite", tierOverride: "none", ayatPerLesson: 4 },
+    settings: { ...base.settings, tierOverride: "none", ayatPerLesson: 4 },
     recitation: { ...recitation, position: { surah, ayah } },
   };
 }
@@ -33,7 +33,7 @@ test("the seed comes from the query string when it is a number", () => {
 
 test("a fresh passage starts at its first character, basmala included", () => {
   const profile = reciting(2, 1);
-  const lesson = buildLesson(profile, 1);
+  const lesson = buildLesson(profile, "recite", 1);
   const start = startSession(profile, lesson, false);
   assert.equal(start.reviewing, false);
   assert.equal(start.session.cursor, 0);
@@ -42,7 +42,7 @@ test("a fresh passage starts at its first character, basmala included", () => {
 
 test("a part-typed passage resumes after its last finished ayah", () => {
   const profile = reciting(2, 1, typed(2, 1, 3, [1, 4]));
-  const lesson = buildLesson(profile, 1);
+  const lesson = buildLesson(profile, "recite", 1);
   const fourth = lesson.ayat.find((span) => span.ayah === 4);
   const start = startSession(profile, lesson, false);
   assert.equal(start.reviewing, false);
@@ -52,7 +52,7 @@ test("a part-typed passage resumes after its last finished ayah", () => {
 
 test("a finished passage opens for review, and types from the start when redone", () => {
   const profile = reciting(2, 1, typed(2, 1, 4, [1, 4]));
-  const lesson = buildLesson(profile, 1);
+  const lesson = buildLesson(profile, "recite", 1);
   const review = startSession(profile, lesson, false);
   assert.equal(review.reviewing, true);
   assert.equal(review.session.cursor, [...lesson.text].length);
@@ -63,7 +63,7 @@ test("a finished passage opens for review, and types from the start when redone"
 
 test("adaptive and custom lessons always start fresh", () => {
   const profile = defaultProfile();
-  const start = startSession(profile, buildLesson(profile, 7), false);
+  const start = startSession(profile, buildLesson(profile, "adaptive", 7), false);
   assert.equal(start.reviewing, false);
   assert.equal(start.session.cursor, 0);
 });

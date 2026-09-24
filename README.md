@@ -164,12 +164,14 @@ the face and the size actually rendered, plus the ayah marks drawn into it — a
 the next one would pass the measured column. A line therefore comes out the same width at every
 diacritic tier, in every face, and at every window width, including the narrow ones where the size
 is itself capped at `8vw`. A resize re-measures and re-chunks. Changing the face or the size does
-not restart the lesson — only mode, diacritic tier and passage do, since only those change the text.
+not restart the lesson — only the page, diacritic tier and passage do, since only those change the text.
 
 ## Interface
 
-Three surfaces, and the practice one is deliberately almost empty: a lesson, a metrics line, and the
-on-screen keyboard.
+The page you are on is the mode you are in. There is no mode setting: the header's **Practice**,
+**Recitation** and **Custom** each open their own kind of lesson, and the highlighted one is always
+the one on screen. The practice page is deliberately almost empty: a lesson, a metrics line, and
+the on-screen keyboard.
 
 A lesson ends the instant its last character lands, and the next one is already on screen — nothing
 to click, nothing to acknowledge. The run that just ended survives as the `last` readout beside the
@@ -177,26 +179,33 @@ live metrics, so the numbers for it are still there while you type on.
 
 | | |
 |---|---|
-| Practice | the lesson itself; `6/36 · none` in the header is the whole progress display |
-| Recitation | its own route at `#/recitation` — the surah map, see *Recitation* below |
-| Stats | its own route at `#/stats` — tiles, the per-character bars, and the last ten lessons |
+| Practice | `#/` — the adaptive lesson; `6/36 · none` in the header is the whole progress display |
+| Recitation | `#/recitation` — the surah map, see *Recitation* below |
+| A recitation level | `#/recitation/36/21` — Ya-Sin from ayah 21; `#/recitation/36` resumes it where it was left |
+| Custom | `#/custom` — your own text, edited in place with **Edit text** |
+| Stats | `#/stats` — tiles, the per-character bars, and the last ten lessons |
 | Settings | a modal `<dialog>`, closed on Escape, on a backdrop click or on **Done** |
-| Recitation | a second `<dialog>` reached from Settings — surah, starting ayah, order, length, reciter, cache |
+| Recitation settings | a second `<dialog>` reached from Settings — surah, starting ayah, order, length, reciter, cache |
 
-Settings holds what applies to every lesson: mode, diacritics, layout, font. Everything that only
-means something in Recite mode lives one step in, behind **Recitation**, which keeps the first
-dialog to seven rows instead of thirteen. Both are the same `Modal` shell, and only one is ever
+Picking a surah, on the map or in the recitation settings, opens its level and stays on the
+recitation page. The address follows the passage as you type on, replacing itself rather than
+piling up history, so a reload reopens the passage on screen, a level can be bookmarked or shared,
+and Back leaves the level for the surah map.
+
+Settings holds what applies to every lesson: diacritics, font, keyboard. Everything that only means
+something in recitation lives one step in, behind **Recitation**, which keeps the first dialog
+short. Both are the same `Modal` shell, and only one is ever
 open — the shell ignores the `close` event the browser fires when a dialog is closed
 programmatically, so handing over from one to the other does not read as a dismissal.
 
-In **Recite** mode a fourth surface appears under the metrics: a player for the passage on screen,
+On a recitation level a player appears under the metrics: a player for the passage on screen,
 recited by **Abdul Basit ʿAbd us-Samad**. See *Recitation* below.
 
-Keystrokes are only scored on the practice route with the dialog closed, so typing at the stats page
+Keystrokes are only scored on a lesson page with the dialog closed, so typing at the stats page
 or while changing a setting cannot pollute your per-character statistics.
 
 Everything in settings is written to `localStorage` on change, under the same
-`mafatih.profile.v1` key as progress and history, and is read back through a whitelist — an unknown
+`mafatih.profile` key as progress and history, and is read back through a whitelist — an unknown
 font, an out-of-range surah or a hand-edited font size falls back to its default rather than
 reaching the app. **Reset progress** clears progress, statistics and history but keeps the settings,
 since they are not progress, and keeps the recitation progress, which has its own **Reset recitation
@@ -222,7 +231,7 @@ keybr must invent pseudo-words for a restricted alphabet. Mafatih never does —
 letters yield 186 real Qur'anic word forms, ten yield 1,237, fifteen yield 4,176. Every lesson is
 built from actual word forms, filtered by a 36-bit letter-skeleton bitmask.
 
-**Recitation** is the second mode: the Qur'an surah by surah, see *Recitation* below.
+**Recitation** is the second kind of lesson: the Qur'an surah by surah, see *Recitation* below.
 
 **How much of a surah a lesson covers is a setting.** It used to be a fixed 180-character budget,
 which is meaningless from the outside: you pick al-Baqara and get however much of it happens to fit.

@@ -15,16 +15,7 @@ import {
 import { emptyStats, type KeyStats, sanitizeStats } from "~/engine/stats/keystats.ts";
 import { initialProgress, type Progress, sanitizeProgress } from "~/engine/stats/unlock.ts";
 
-export type Mode = "adaptive" | "recite" | "custom";
-
-export const MODES: readonly Mode[] = ["adaptive", "recite", "custom"];
-
-export function isMode(value: unknown): value is Mode {
-  return typeof value === "string" && (MODES as readonly string[]).includes(value);
-}
-
 export interface Settings {
-  mode: Mode;
   tierOverride: Tier | null;
   font: FontId;
   fontSize: number;
@@ -62,7 +53,6 @@ export const STORAGE_KEY = "mafatih.profile";
 
 export function defaultSettings(): Settings {
   return {
-    mode: "adaptive",
     tierOverride: null,
     font: DEFAULT_FONT,
     fontSize: DEFAULT_FONT_SIZE,
@@ -94,7 +84,6 @@ export function sanitizeSettings(raw: unknown): Settings {
     return fallback;
   }
   return {
-    mode: isMode(raw.mode) ? raw.mode : fallback.mode,
     tierOverride: isTier(raw.tierOverride) ? raw.tierOverride : null,
     font: isFontId(raw.font) ? raw.font : fallback.font,
     fontSize: clampFontSize(raw.fontSize),
