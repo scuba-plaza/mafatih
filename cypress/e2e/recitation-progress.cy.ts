@@ -312,7 +312,7 @@ describe("the surah map", () => {
   it("resets the recitation without touching the unlocked letters", () => {
     visitWith(
       {
-        progress: { unlockedCount: 12, tier: "core" },
+        progress: { unlockedCount: 12, tier: "none" },
         stats: masteredStats(["ا"]),
         surah: 36,
         ayah: 21,

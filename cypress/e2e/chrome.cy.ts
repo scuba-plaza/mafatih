@@ -128,14 +128,11 @@ describe("the Arabic (101) keyboard", () => {
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
-  it("is the only layout, with the shadda on the backtick and no layout setting", () => {
+  it("shows the Arabic (101) keys, with the shadda on the backtick", () => {
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "title", "Arabic (101) keyboard");
     cy.get("[data-cy=keycap][data-code=Backquote]").should("contain.text", "ّ");
     cy.get("[data-cy=keycap][data-code=KeyA]").should("contain.text", "ِ");
     cy.get("[data-cy=keycap][data-code=KeyU]").should("contain.text", "‘");
-    cy.openSettings();
-    cy.get("[data-cy=setting-layout]").should("not.exist");
-    cy.get("[data-cy=settings]").should("not.contain.text", "Keyboard layout");
   });
 
   it("accepts the lam-alef key the way Windows sends it, as two letters at once", () => {

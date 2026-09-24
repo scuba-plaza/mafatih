@@ -135,7 +135,7 @@ function sanitizeSummary(raw: unknown): SessionSummary | null {
   };
 }
 
-export function sanitizeHistory(raw: unknown): SessionSummary[] {
+function sanitizeHistory(raw: unknown): SessionSummary[] {
   if (!Array.isArray(raw)) {
     return [];
   }

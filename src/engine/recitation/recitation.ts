@@ -3,11 +3,11 @@ import { clampInt, isRecord, nonNegative } from "~/engine/guards.ts";
 
 export type SurahOrder = "mushaf" | "juz-amma";
 
-export const SURAH_ORDERS: readonly SurahOrder[] = ["mushaf", "juz-amma"];
+const SURAH_ORDERS: readonly SurahOrder[] = ["mushaf", "juz-amma"];
 
 export const DEFAULT_SURAH_ORDER: SurahOrder = "mushaf";
 
-export const STAR_ACCURACY = 0.95;
+const STAR_ACCURACY = 0.95;
 
 const JUZ_AMMA_FIRST = 78;
 
@@ -110,11 +110,11 @@ export function clampPosition(position: { surah: unknown; ayah: unknown }): Reci
   return { surah, ayah };
 }
 
-export function emptyRun(): Run {
+function emptyRun(): Run {
   return { typed: [], chars: 0, keystrokes: 0, errors: 0, elapsedMs: 0 };
 }
 
-export function emptyRecord(): SurahRecord {
+function emptyRecord(): SurahRecord {
   return { run: emptyRun(), resume: 1, completions: 0, bestAccuracy: 0, bestCpm: 0, completedAt: null };
 }
 
@@ -155,11 +155,11 @@ export function firstGap(ranges: readonly AyahRange[], total: number): number | 
   return expected <= total ? expected : undefined;
 }
 
-export function accuracyOfTally(tally: Tally): number {
+function accuracyOfTally(tally: Tally): number {
   return tally.keystrokes === 0 ? 0 : (tally.keystrokes - tally.errors) / tally.keystrokes;
 }
 
-export function cpmOfTally(tally: Tally): number {
+function cpmOfTally(tally: Tally): number {
   return tally.elapsedMs <= 0 ? 0 : tally.chars / (tally.elapsedMs / 60_000);
 }
 

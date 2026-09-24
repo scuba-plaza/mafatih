@@ -23,9 +23,19 @@ describe("progression and persistence", () => {
     cy.get("[data-cy=letter-stat]").should("have.length.greaterThan", 6);
   });
 
-  it("advances the tier from none to core after an accurate run", () => {
+  it("keeps the harakat back until every letter is unlocked", () => {
     const first8 = letterOrder.slice(0, 8);
     visitWith({ progress: { unlockedCount: 8, tier: "none" }, stats: masteredStats(first8) });
+    cy.typeTarget();
+    cy.get("[data-cy=completion]").should("be.visible");
+    cy.get("[data-cy=tier]").should("have.text", "none");
+  });
+
+  it("advances the tier from none to core after an accurate run on the whole alphabet", () => {
+    visitWith({
+      progress: { unlockedCount: letterOrder.length, tier: "none" },
+      stats: masteredStats(letterOrder),
+    });
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.typeTarget();
     cy.get("[data-cy=completion]").should("be.visible");
@@ -61,11 +71,11 @@ describe("progression and persistence", () => {
   it("reset returns the profile to its initial state but keeps the settings", () => {
     const first6 = letterOrder.slice(0, 6);
     visitWith({
-      progress: { unlockedCount: 12, tier: "core" },
+      progress: { unlockedCount: letterOrder.length, tier: "core" },
       settings: { font: "amiri", fontSize: 32 },
       stats: masteredStats(first6),
     });
-    cy.get("[data-cy=unlocked-count]").should("have.text", "12");
+    cy.get("[data-cy=unlocked-count]").should("have.text", String(letterOrder.length));
     cy.openSettings();
     cy.get("[data-cy=reset-profile]").click();
     cy.get("[data-cy=settings]").should("not.be.visible");
@@ -111,7 +121,7 @@ describe("earning letters by typing", () => {
     cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
 
     cy.completeLessonsUntilUnlocked(8, { ...TYPING, maxLessons: 4 });
-    cy.get("[data-cy=tier]").should("not.have.text", "none");
+    cy.get("[data-cy=tier]").should("have.text", "none");
     cy.showStats();
     cy.get("[data-cy=letter-stat]").should("have.length.at.least", 8);
   });

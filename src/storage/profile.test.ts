@@ -74,7 +74,6 @@ test("hand-edited nonsense in storage cannot break a setting", () => {
     fontSize: "enormous",
     surahOrder: "alphabetical",
     ayatPerLesson: "all of them",
-    layout: "dvorak",
     showKeyboard: "yes",
     reciter: "abdulbasit",
     volume: "loud",

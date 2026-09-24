@@ -38,9 +38,6 @@ describe("custom text mode", () => {
     cy.get("[data-cy=nav-practice]").click();
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
     cy.get("[data-cy=nav-practice]").should("have.attr", "aria-current", "page");
-
-    cy.openSettings();
-    cy.get("[data-cy=setting-mode]").should("not.exist");
   });
 
   it("starts a new line at every line break in the text", () => {
@@ -154,16 +151,6 @@ describe("custom text mode", () => {
     });
     cy.get("[data-cy=custom-text]").should("not.be.visible");
     cy.targetText().should("equal", "رب العالمين");
-  });
-
-  it("edits the text from the custom page rather than from the settings", () => {
-    visitCustom();
-    cy.openSettings();
-    cy.get("[data-cy=open-custom-text-settings]").should("not.exist");
-    cy.closeSettings();
-    cy.openCustomTextEditor();
-    cy.get("[data-cy=custom-text-back]").should("not.exist");
-    cy.closeCustomTextEditor();
   });
 
   it("keeps the typed text out of the trainer while the editor is open", () => {

@@ -63,7 +63,7 @@ export function isTypedKey(key: string): boolean {
   return key === "Backspace" || [...key].length === 1 || LIGATURE_SEQUENCES.has(key);
 }
 
-export function ligatureAt(chars: readonly string[], index: number): string | undefined {
+function ligatureAt(chars: readonly string[], index: number): string | undefined {
   return LIGATURE_KEYS.get(`${chars[index] ?? ""}${chars[index + 1] ?? ""}`);
 }
 

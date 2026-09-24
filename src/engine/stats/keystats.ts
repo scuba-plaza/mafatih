@@ -17,7 +17,7 @@ export const RECENT_ACCURACY_ALPHA = 0.05;
 
 export const LATENCY_CAP_MS = 3000;
 
-export function isPause(latencyMs: number): boolean {
+function isPause(latencyMs: number): boolean {
   return latencyMs > LATENCY_CAP_MS;
 }
 
@@ -63,7 +63,7 @@ export function isMastered(stat: KeyStat, minSamples: number, targetMs: number, 
   );
 }
 
-export function sanitizeStat(char: string, raw: unknown): KeyStat {
+function sanitizeStat(char: string, raw: unknown): KeyStat {
   if (!isRecord(raw)) {
     return statFor({}, char);
   }

@@ -76,7 +76,14 @@ function tierAfter(tier: Tier): Tier | undefined {
 }
 
 export function shouldAdvanceTier(stats: KeyStats, progress: Progress, config: UnlockConfig): boolean {
-  if (tierAfter(progress.tier) === undefined) {
+  if (tierAfter(progress.tier) === undefined || progress.unlockedCount < letterOrder.length) {
+    return false;
+  }
+  const practised = tierChars(progress.tier).every((char) => {
+    const stat = statFor(stats, char);
+    return attemptsOf(stat) >= config.minSamples && recentAccuracyOf(stat) >= config.tierMinAccuracy;
+  });
+  if (!practised) {
     return false;
   }
   const active = [...unlockedLetters(progress), ...tierChars(progress.tier)];

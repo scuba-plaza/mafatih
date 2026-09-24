@@ -1,6 +1,6 @@
 {
   "name": "mafatih",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Arabic touch-typing trainer with diacritics, built on Quranic text. A keybr for لوحة المفاتيح.",

@@ -27,9 +27,9 @@ interface Practice {
 
 const WRONG_KEY = "#";
 
-function practise(learner: Learner, lessons: number, seed: number): Practice {
+function practise(learner: Learner, lessons: number, seed: number, start = initialProgress()): Practice {
   const rng = createRng(seed);
-  let progress = initialProgress();
+  let progress = start;
   let stats = emptyStats();
   let clock = 0;
   const unlockedAfter: number[] = [];
@@ -63,10 +63,19 @@ function practise(learner: Learner, lessons: number, seed: number): Practice {
 
 const SEEDS = [1, 2, 3];
 
-test("a careful typist climbs through most of the alphabet and all the tiers", () => {
+test("a careful typist climbs through most of the alphabet, with the harakat waiting for the rest", () => {
   for (const seed of SEEDS) {
     const { progress } = practise({ msPerKey: 400, errorRate: () => 0.02 }, 150, seed);
     assert.ok(progress.unlockedCount >= 20, `seed ${seed}: ${progress.unlockedCount} letters`);
+    assert.ok(progress.unlockedCount < letterOrder.length, `seed ${seed}`);
+    assert.equal(progress.tier, "none", `seed ${seed}`);
+  }
+});
+
+test("with the alphabet complete, a careful typist works through both tiers of harakat", () => {
+  const start: Progress = { unlockedCount: letterOrder.length, tier: "none" };
+  for (const seed of SEEDS) {
+    const { progress } = practise({ msPerKey: 400, errorRate: () => 0.02 }, 60, seed, start);
     assert.equal(progress.tier, "full", `seed ${seed}`);
   }
 });

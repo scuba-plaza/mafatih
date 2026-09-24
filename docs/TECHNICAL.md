@@ -50,8 +50,13 @@ every record would add 49 kB of raw JSON that says nothing the file does not alr
 | `core` | `َ ُ ِ ْ ّ` |
 | `full` | `+ ً ٌ ٍ` |
 
-Tiers advance automatically at ≥95% accuracy and can be overridden. Statistics are kept **per
-character, not per keycap**, so `َ` carries its own speed and accuracy independently of `ض` even
+**Letters come first.** On *Auto*, the harakat join only once all 36 letters are unlocked; until
+then lessons are letters only, in practice and in recitation alike. From there each tier advances
+at ≥95% recent accuracy over everything unlocked, **and** only once each mark of the tier in use
+has been typed at least eight times at ≥95% on its own — clean letters can never carry a learner
+past marks they have not practised. The check runs after every ayah and every lesson, so without
+that second rule a clean al-Fatiha alone would jump straight from `none` to `full`. The diacritics
+setting overrides the tier at any time. Statistics are kept **per character, not per keycap**, so `َ` carries its own speed and accuracy independently of `ض` even
 though they share a key. Diacritics are first-class citizens of the unlock ladder.
 
 The accuracy that gates both the tiers and the next letter is **recent**, not lifetime: the exact
@@ -165,7 +170,7 @@ not restart the lesson — only the page, diacritic tier and passage do, since o
 
 ## Interface
 
-The page you are on is the mode you are in. There is no mode setting: the header's **Practice**,
+The page you are on is the mode you are in: the header's **Practice**,
 **Recitation** and **Custom** each open their own kind of lesson, and the highlighted one is always
 the one on screen. The practice page is deliberately almost empty: a lesson, a metrics line, and
 the on-screen keyboard.
@@ -192,8 +197,7 @@ and Back leaves the level for the surah map.
 
 Settings holds what applies to every lesson: diacritics, font, keyboard. Everything that only means
 something in recitation lives one step in, behind **Recitation**, which keeps the first dialog
-short. Both are the same `Modal` shell, and only one is ever
-open — the shell ignores the `close` event the browser fires when a dialog is closed
+short. Both are the same `Modal` shell, and only one is ever open — the shell ignores the `close` event the browser fires when a dialog is closed
 programmatically, so handing over from one to the other does not read as a dismissal.
 
 On a recitation level a player appears under the metrics: a player for the passage on screen,
@@ -233,8 +237,8 @@ built from actual word forms, filtered by a 36-bit letter-skeleton bitmask.
 
 **How much of a surah a lesson covers is a setting**, *Ayat per lesson*, from one ayah up to twenty,
 defaulting to four. It counts ayat rather than characters, since a character budget is meaningless
-from the outside. One ayah at a time is
-the setting for drilling a line until it is clean; twenty is for reading through. The count is of
+from the outside. One ayah at a time is the setting for drilling a line until it is clean; twenty is
+for reading through. The count is of
 **ayat**, so a prepended basmala never eats into it, and a surah shorter than the limit simply ends.
 
 One caveat worth stating: a single long ayah is still long. Al-Baqara 2:282 runs past a thousand
@@ -265,7 +269,8 @@ to any ayah on a click.
 end of the surah sends you back to the first gap. Completing one opens a celebration — the surah's
 name, the ayat, accuracy, speed and time across all of its passages, a short burst that
 `prefers-reduced-motion` turns off — and offers to continue with the next surah or type this one
-again. Typing and the recitation are paused while it is open. Holding 95% accuracy over the whole surah earns a ★.
+again. Typing and the recitation are paused while it is open. Holding 95% accuracy over the whole
+surah earns a ★.
 
 **The surah map** at `#/recitation` shows all 114 surahs as tiles with a progress ring, a ✓ once complete
 and the ★, and continues any of them from where it was left. The order is the mushaf's by default,
@@ -300,13 +305,12 @@ The passage a recitation lesson puts on screen is a bounded ayah range, so it ha
 counterpart. The player under the metrics line plays exactly that range and never runs past it into
 the rest of the surah.
 
-**One ayah on screen is exactly one audio file**, which took a correction to get right. The Tanzil
-Simple text prepends the basmala to ayah 1 of every surah but al-Fatiha, where it *is* ayah 1, and
-at-Tawba, which has none. So 2:1 arrives as `بسم الله الرحمن الرحيم الم` while EveryAyah's
-`002001.mp3` is only `الم` — the file recites less than the ayah claims to be.
+**One ayah on screen is exactly one audio file.** The Tanzil Simple text prepends the basmala to
+ayah 1 of every surah but al-Fatiha, where it *is* ayah 1, and at-Tawba, which has none. So 2:1
+arrives as `بسم الله الرحمن الرحيم الم` while EveryAyah's `002001.mp3` is only `الم`.
 
-The fix is to stop pretending the basmala belongs to ayah 1. The recite generator **lifts it out**
-and emits it as its own unit, so ayah 1 of al-Baqara is `الم` and nothing else, and every ayah span
+So the basmala is not treated as part of ayah 1. The recite generator **lifts it out** and emits it
+as its own unit, so ayah 1 of al-Baqara is `الم` and nothing else, and every ayah span
 in a passage is precisely what its own file recites. The basmala gets its own clip, `001001`, and its
 own line, **centred**, the way a mushaf sets it. The 112 surahs this applies to are derived from the
 corpus rather than hard-coded, and the clip is `001001` for all of them instead of the per-surah
@@ -330,8 +334,8 @@ Rewind and skip move by **ayah**, not by seconds — seconds are meaningless her
 to eight of them. Rewind restarts the current ayah if you are more than two seconds into it, and
 otherwise steps back one. The basmala is a stop of its own, before ayah 1.
 
-The player is **fully independent of typing**: typing never starts or stops the audio, and the audio
-never moves the cursor. The one place the two touch is focus — every control returns focus to the
+Typing never starts the audio, and the audio never moves the cursor. Focus is the other place the
+two touch — every control returns focus to the
 document as you release it, because the trainer ignores keystrokes aimed at a button, and a play
 button that kept focus would silently eat the next space you typed.
 
@@ -342,8 +346,9 @@ cursor resumes at.
 The recitation never runs on while typing is paused. A settings dialog, the surah celebration or a
 finished passage waiting for **Type it again** holds the player, and it plays on by itself once
 you close the dialog or make your choice, if it was playing before. While a finished passage waits,
-the player's controls are disabled too: the recitation only ever plays along with typing. Leaving the recitation page for
-another one pauses it for good: it waits there, in place, for play to be pressed again.
+the player's controls are disabled too: the recitation only ever plays along with typing. Leaving
+the recitation page for another one pauses it for good: it waits there, in place, for play to be
+pressed again.
 
 The strip always names what is playing, or what will play next:
 
@@ -365,7 +370,7 @@ strip says `Recitation unavailable` and the lesson stays fully typeable; nothing
 ### Every ayah is fetched at most once
 
 Each file is fetched **once ever** and then kept on the device, in **IndexedDB** under
-`mafatih.audio.v1`, as a `Blob` keyed by its URL. Playback reads from that store and plays an
+`mafatih.audio`, as a `Blob` keyed by its URL. Playback reads from that store and plays an
 object URL; the network is touched only on a miss. This is deliberate rather than leaning on the
 HTTP cache: the browser is free to evict that whenever it likes, and repeating one ayah twenty
 times while you drill a line should not cost twenty round trips — or any at all on the second day.
@@ -383,8 +388,8 @@ Deleting only throws away files that can be fetched again; it never touches prog
 Where IndexedDB is unavailable the row is hidden and playback still works, straight from the network.
 
 Volume, mute and *play the whole passage* persist to the profile like every other setting; volume
-commits only on pointer release, so dragging the slider does not write `localStorage` on every frame. Where the browser supports it,
-`mediaSession` metadata is published, so lock-screen and headset controls drive the player too.
+commits only on pointer release, so dragging the slider does not write `localStorage` on every
+frame. Where the browser supports it, `mediaSession` metadata is published, so lock-screen and headset controls drive the player too.
 
 ## Commands
 
@@ -435,8 +440,9 @@ src/storage/             profile + settings persistence via localStorage, read b
                          sanitisers; the IndexedDB ayah-audio store
 src/hooks/               trainer state machine, typing keys, recitation player, audio cache,
                          keyboard dock inset, hash route
-src/components/          React — header, practice page, passage bar, surah map, recitation
-                         player, stats page, dialogs; text measuring in measure.ts
+src/components/          React — header, footer, practice page, passage bar, surah map,
+                         recitation player, stats and privacy pages, dialogs, the crash screen;
+                         text measuring in measure.ts
 cypress/e2e/             end-to-end tests
 ```
 
@@ -445,7 +451,7 @@ unit-testable without a DOM, leaving Cypress to cover only what is genuinely vis
 
 ## Testing
 
-**Unit** (`pnpm test`) — normalisation, the Arabic (101) key table and its reach model, the
+**Unit** (`pnpm test`) — routes and addresses, normalisation, the Arabic (101) key table and its reach model, the
 letter order, ligature keys, bitmask filtering, recent accuracy and the pause cap, unlock and tier
 rules, simulated learners typing their way up the alphabet, seeded-RNG reproducibility, line
 chunking, the session machine (ligature strokes, resumed sessions, active time), recitation
@@ -466,30 +472,31 @@ the page following the cursor down a long passage, the dialogs, recitation (pass
 navigation by button, key, picker and progress bar, resuming a level after a reload, finished
 passages asking before a redo, surah completion and its celebration, the surah map, Juz ʿAmma order,
 resets), the recitation player (transport, label, volume, running on through a passage and into the
-next one, holding for dialogs, the celebration and finished passages, pausing on another page, the ayah mark, the audio cache, a CDN failure leaving the lesson
-typeable, controls never swallowing a keystroke), the stats page, search and sharing metadata, and
-text direction — English prose computes as `ltr` with its trailing period intact while the lesson
+next one, holding for dialogs, the celebration and finished passages, pausing on another page, the
+ayah mark, the audio cache, a CDN failure leaving the lesson typeable, controls never swallowing a
+keystroke), the stats and privacy pages, page-driven modes and level addresses, search and sharing
+metadata, and text direction — English prose computes as `ltr` with its trailing period intact while the lesson
 stays `rtl`.
 
 Lesson generation is seeded (`?seed=1234`) so every test is deterministic.
 
 ## What ships
 
-The corpus is 83% of the bytes, so it gets **its own chunk**:
+The corpus is 81% of the bytes, so it gets **its own chunk**:
 
 | | raw | gzip |
 |---|---|---|
-| `index-*.js` — React and the whole app | 271 kB | **85 kB** |
+| `index-*.js` — React and the whole app | 309 kB | **97 kB** |
 | `corpus-*.js` — 6,236 ayat | 1,301 kB | 261 kB |
 
 Splitting them does not move a single byte off the wire; both are statically imported and the module
-graph loads both before first paint, since either mode needs the text to build a lesson. What it buys
+graph loads both before first paint, since every lesson is built from the text. What it buys
 is **cache separation**. The corpus is immutable — it is the Qur'an, asserted at exactly 6,236 ayat —
-while app code changes every deploy. Bundled together, shipping a one-line fix made every returning
-visitor re-download 261 kB of scripture. Split, they re-download 85 kB and keep the rest.
+while app code changes every deploy. Bundled together, a one-line fix would make every returning
+visitor re-download 261 kB of scripture. Split, they re-download 97 kB and keep the rest.
 
 That leaves a chunk far over Vite's 500 kB advice, so the warning limit is raised to 1,400 kB: for
-this app the data *is* the app, it is needed before first paint in either mode, and Rolldown already
+this app the data *is* the app, it is needed before first paint on every lesson page, and Rolldown already
 compiles the JSON to `JSON.parse`, the fast path. The corpus is large because it has to be. Anything
 else growing past the limit still warns.
 

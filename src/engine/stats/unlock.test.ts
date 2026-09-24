@@ -16,6 +16,8 @@ import {
 
 const cfg = DEFAULT_UNLOCK_CONFIG;
 
+const ALPHABET: Progress = { unlockedCount: letterOrder.length, tier: "none" };
+
 function drill(stats: KeyStats, chars: readonly string[], times: number, latencyMs: number, correct = true): KeyStats {
   let next = stats;
   for (let i = 0; i < times; i += 1) {
@@ -81,8 +83,17 @@ test("a focus letter held back by old mistakes unlocks once recent typing is cle
   assert.equal(shouldUnlockNext(recovered, progress, cfg), true);
 });
 
-test("the tier waits for recent accuracy, not a lifetime of clean typing", () => {
+test("the harakat wait until every letter is unlocked", () => {
   const progress = initialProgress();
+  const stats = drill(emptyStats(), unlockedLetters(progress), 50, 200);
+  assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
+  assert.equal(advanceProgress(stats, progress, cfg).tier, "none");
+  const almost: Progress = { unlockedCount: letterOrder.length - 1, tier: "none" };
+  assert.equal(shouldAdvanceTier(drill(emptyStats(), unlockedLetters(almost), 50, 200), almost, cfg), false);
+});
+
+test("the tier waits for recent accuracy, not a lifetime of clean typing", () => {
+  const progress = ALPHABET;
   let stats = drill(emptyStats(), unlockedLetters(progress), 30, 200);
   stats = drill(stats, unlockedLetters(progress), 4, 200, false);
   assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
@@ -100,7 +111,7 @@ test("unlocking stops at the end of the alphabet", () => {
 });
 
 test("tier advances none -> core -> full once accuracy holds", () => {
-  let progress = initialProgress();
+  let progress = ALPHABET;
   let stats = drill(emptyStats(), unlockedLetters(progress), 20, 200);
   assert.equal(shouldAdvanceTier(stats, progress, cfg), true);
   progress = { ...progress, tier: advanceProgress(stats, progress, cfg).tier };
@@ -108,6 +119,21 @@ test("tier advances none -> core -> full once accuracy holds", () => {
 
   stats = drill(stats, [...unlockedLetters(progress), "َ", "ُ", "ِ", "ْ", "ّ"], 20, 200);
   assert.equal(advanceProgress(stats, progress, cfg).tier, "full");
+});
+
+test("clean letters alone never skip the marks of the tier in use", () => {
+  const progress: Progress = { ...ALPHABET, tier: "core" };
+  const stats = drill(emptyStats(), unlockedLetters(progress), 50, 200);
+  assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
+  assert.equal(advanceProgress(stats, progress, cfg).tier, "core");
+});
+
+test("a sloppy mark holds the tier back however clean the letters are", () => {
+  const progress: Progress = { ...ALPHABET, tier: "core" };
+  let stats = drill(emptyStats(), [...unlockedLetters(progress), "َ", "ُ", "ِ", "ْ"], 20, 200);
+  stats = drill(stats, ["ّ"], 10, 200, false);
+  stats = drill(stats, unlockedLetters(progress), 50, 200);
+  assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
 });
 
 test("tier does not advance past full", () => {
@@ -118,7 +144,7 @@ test("tier does not advance past full", () => {
 });
 
 test("tier does not advance on a sloppy run", () => {
-  const progress = initialProgress();
+  const progress = ALPHABET;
   let stats = drill(emptyStats(), unlockedLetters(progress), 10, 200);
   stats = drill(stats, unlockedLetters(progress), 10, 200, false);
   assert.equal(shouldAdvanceTier(stats, progress, cfg), false);
