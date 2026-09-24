@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 
 const basePath = process.env.BASE_PATH ?? "/";
 
-const DEFAULT_SITE_URL = "https://scuba-plaza.github.io/mafatih/";
+const DEFAULT_SITE_URL = "https://mafatih.tasrif.xyz/";
 
 const siteUrl = (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/*$/, "/");
 
