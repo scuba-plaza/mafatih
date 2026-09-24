@@ -63,19 +63,6 @@ export default function Privacy() {
           the right to lodge a complaint with a data protection supervisory authority.
         </p>
       </Section>
-
-      <Section title="Contact">
-        <p>
-          Questions about this policy can be raised on the project's{" "}
-          <a
-            href="https://github.com/scuba-plaza/mafatih/issues"
-            className="underline decoration-stone-300 underline-offset-2 hover:text-stone-900 dark:decoration-stone-700 dark:hover:text-stone-100"
-          >
-            issue tracker
-          </a>
-          .
-        </p>
-      </Section>
     </article>
   );
 }
