@@ -15,6 +15,8 @@ declare global {
       closeRecitationSettings(): Chainable<void>;
       openCustomTextEditor(): Chainable<void>;
       closeCustomTextEditor(): Chainable<void>;
+      openTransferSettings(): Chainable<void>;
+      closeTransferSettings(): Chainable<void>;
       closeSettings(): Chainable<void>;
       showStats(): Chainable<void>;
       showPractice(): Chainable<void>;

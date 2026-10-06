@@ -171,6 +171,18 @@ Cypress.Commands.add("closeCustomTextEditor", () => {
   cy.get("[data-cy=custom-text]").should("not.be.visible");
 });
 
+Cypress.Commands.add("openTransferSettings", () => {
+  cy.get("[data-cy=open-settings]").click();
+  cy.get("[data-cy=settings]").should("be.visible");
+  cy.get("[data-cy=open-transfer-settings]").click();
+  cy.get("[data-cy=transfer]").should("be.visible");
+});
+
+Cypress.Commands.add("closeTransferSettings", () => {
+  cy.get("[data-cy=transfer-done]").click();
+  cy.get("[data-cy=transfer]").should("not.be.visible");
+});
+
 Cypress.Commands.add("closeSettings", () => {
   cy.get("[data-cy=settings-done]").click();
   cy.get("[data-cy=settings]").should("not.be.visible");

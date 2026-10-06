@@ -14,6 +14,7 @@ import SettingsModal from "~/components/SettingsModal.tsx";
 import Stats from "~/components/Stats.tsx";
 import SurahComplete from "~/components/SurahComplete.tsx";
 import SurahMap from "~/components/SurahMap.tsx";
+import TransferModal from "~/components/TransferModal.tsx";
 import TypingArea from "~/components/TypingArea.tsx";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
 import { fontStack } from "~/engine/fonts.ts";
@@ -22,16 +23,18 @@ import { completedSurahs, progressOf } from "~/engine/recitation/recitation.ts";
 import { metrics as computeMetrics, expectedKey, isComplete } from "~/engine/session/session.ts";
 import { useAudioCache } from "~/hooks/useAudioCache.ts";
 import { useDockInset } from "~/hooks/useDockInset.ts";
+import { useImportLink } from "~/hooks/useImportLink.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 import { recitationHref, targetOf, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
 
 export default function App() {
+  useImportLink();
   const { route, replace } = useRoute();
   const target = targetOf(route);
   const reciting = target?.mode === "recite";
-  const [modal, setModal] = useState<"none" | "settings" | "recitation" | "custom">("none");
+  const [modal, setModal] = useState<"none" | "settings" | "recitation" | "custom" | "transfer">("none");
   const trainer = useTrainer({ target, enabled: target !== null && modal === "none" });
   const { profile, lesson, session, effectiveTier, latinDetected, shiftHeld, lastSummary } = trainer;
   const { settings } = profile;
@@ -196,7 +199,15 @@ export default function App() {
         autoTier={profile.progress.tier}
         onChange={trainer.updateSettings}
         onOpenRecitation={() => setModal("recitation")}
+        onOpenTransfer={() => setModal("transfer")}
         onReset={trainer.resetProfile}
+        onClose={() => setModal("none")}
+      />
+
+      <TransferModal
+        open={modal === "transfer"}
+        profile={profile}
+        onBack={() => setModal("settings")}
         onClose={() => setModal("none")}
       />
 

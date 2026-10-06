@@ -7,10 +7,8 @@
   "scripts": {
     "build": "pnpm build:corpus && tsc --noEmit && vite build",
     "build:corpus": "tsx scripts/build-corpus.ts",
-    "check": "pnpm exec biome check ./",
-    "check:nix": "nix-shell -p biome --run \"biome check ./\"",
-    "check:nix:write": "nix-shell -p biome --run \"biome check --write --unsafe ./\"",
-    "check:write": "pnpm exec biome check --write --unsafe ./",
+    "check": "biome check ./",
+    "check:write": "biome check --write --unsafe ./",
     "cypress:nix": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress run --e2e'",
     "cypress:nix:open": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress open'",
     "cypress:open": "cypress open",
@@ -28,7 +26,6 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.14",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
@@ -41,7 +38,6 @@
     "typescript": "^5.9.3",
     "vite": "^8.3.0"
   },
-  "packageManager": "pnpm@12.3.4",
   "engines": {
     "node": ">=24.11.0"
   }

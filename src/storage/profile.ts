@@ -148,6 +148,16 @@ function sanitizeHistory(raw: unknown): SessionSummary[] {
     .slice(-MAX_HISTORY);
 }
 
+export function parseProfileOrNull(raw: string): Profile | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  return isRecord(parsed) ? parseProfile(raw) : null;
+}
+
 export function loadProfile(): Profile {
   if (typeof localStorage === "undefined") {
     return defaultProfile();

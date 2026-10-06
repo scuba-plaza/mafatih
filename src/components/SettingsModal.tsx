@@ -9,6 +9,7 @@ export interface SettingsModalProps {
   autoTier: Tier;
   onChange: (patch: Partial<Settings>) => void;
   onOpenRecitation: () => void;
+  onOpenTransfer: () => void;
   onReset: () => void;
   onClose: () => void;
 }
@@ -35,6 +36,7 @@ export default function SettingsModal({
   autoTier,
   onChange,
   onOpenRecitation,
+  onOpenTransfer,
   onReset,
   onClose,
 }: SettingsModalProps) {
@@ -76,6 +78,8 @@ export default function SettingsModal({
       </SelectRow>
 
       <SubSettings label="Recitation" cy="open-recitation-settings" onOpen={onOpenRecitation} />
+
+      <SubSettings label="Export & import" cy="open-transfer-settings" onOpen={onOpenTransfer} />
 
       <CheckboxRow
         label="Show keyboard"
