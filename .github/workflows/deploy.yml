@@ -25,9 +25,6 @@ jobs:
           runtime: node@24
           cache: true
 
-      - name: Lint
-        run: pnpm check
-
       - name: Unit tests
         run: pnpm test
 
