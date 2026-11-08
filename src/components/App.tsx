@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
-import MobileTypingInput from "~/components/MobileTypingInput.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
 import Footer from "~/components/Footer.tsx";
 import Header from "~/components/Header.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
+import MobileTypingInput from "~/components/MobileTypingInput.tsx";
 import PassageBar from "~/components/PassageBar.tsx";
 import PassageDone from "~/components/PassageDone.tsx";
 import Privacy from "~/components/Privacy.tsx";
