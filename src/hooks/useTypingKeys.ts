@@ -1,7 +1,7 @@
 import { type RefObject, useEffect } from "react";
 import { isTypedKey } from "~/engine/session/session.ts";
 
-const LATIN = /^[A-Za-z]$/;
+export const LATIN = /^[A-Za-z]$/;
 
 const PREVENTED_KEYS: readonly string[] = [" ", "Backspace", "Tab"];
 
@@ -21,7 +21,11 @@ export function capturesKeys(typing: boolean, target: KeyTarget | null): boolean
   if (target === null) {
     return true;
   }
-  return target.typingInput || !PASSTHROUGH_TAGS.includes(target.tag);
+  return !target.typingInput && !PASSTHROUGH_TAGS.includes(target.tag);
+}
+
+export function charsOf(data: string | null | undefined): string[] {
+  return data === null || data === undefined ? [] : [...data];
 }
 
 export interface TypingKeyHandlers {

@@ -60,6 +60,8 @@ export interface Trainer {
   completion: SurahCompletion | null;
   reviewing: boolean;
   dismissLatin: () => void;
+  typeChar: (key: string, at: number) => void;
+  detectLatin: () => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetProfile: () => void;
   goTo: (position: RecitationPosition, redo?: boolean) => void;
@@ -271,12 +273,18 @@ export function useTrainer({ target, enabled }: TrainerOptions): Trainer {
     stepPassage(-1);
   }, [stepPassage]);
 
+  const typeChar = useCallback((key: string, at: number) => {
+    setSession((current) => (isComplete(current) ? current : applyKey(current, key, at)));
+  }, []);
+
+  const detectLatin = useCallback(() => setLatinDetected(true), []);
+
   const keys = useLatest<TypingKeyHandlers>({
     listening: enabled && completion === null,
     typing: !reviewing,
-    onKey: (key, at) => setSession((current) => (isComplete(current) ? current : applyKey(current, key, at))),
+    onKey: typeChar,
     onStep: stepPassage,
-    onLatin: () => setLatinDetected(true),
+    onLatin: detectLatin,
     onShift: setShiftHeld,
   });
   useTypingKeys(keys);
@@ -335,6 +343,8 @@ export function useTrainer({ target, enabled }: TrainerOptions): Trainer {
     completion,
     reviewing,
     dismissLatin,
+    typeChar,
+    detectLatin,
     updateSettings,
     resetProfile,
     goTo,

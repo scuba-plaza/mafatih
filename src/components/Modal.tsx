@@ -120,10 +120,7 @@ export default function Modal({ open, cy, title, onClose, onBack, children, foot
       }}
       className="mx-auto mt-auto mb-0 max-h-[85dvh] w-full rounded-t-2xl bg-white p-0 text-stone-900 shadow-2xl ring-1 ring-stone-200 backdrop:bg-stone-950/40 md:m-auto md:w-[min(28rem,calc(100vw-2rem))] md:rounded-2xl dark:bg-stone-900 dark:text-stone-100 dark:ring-stone-800"
     >
-      <div
-        data-cy={cy}
-        className="flex max-h-[85dvh] flex-col px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:pb-5"
-      >
+      <div data-cy={cy} className="flex flex-col px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:pb-5">
         <header className="flex items-baseline justify-between pb-2">
           <h2 className="flex items-baseline gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
             {onBack === undefined ? null : (
@@ -152,7 +149,9 @@ export default function Modal({ open, cy, title, onClose, onBack, children, foot
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 divide-y divide-stone-200/70 overflow-y-auto dark:divide-stone-800/80">{children}</div>
+        <div className="min-h-0 flex-1 divide-y divide-stone-200/70 overflow-y-auto dark:divide-stone-800/80">
+          {children}
+        </div>
 
         <footer className="flex items-center justify-between pt-4">{footer}</footer>
       </div>
