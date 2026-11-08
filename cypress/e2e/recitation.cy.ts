@@ -67,9 +67,8 @@ describe("recitation playback", () => {
     visitRecite();
     cy.get("[data-cy=recitation]").should("be.visible");
 
-    stubRecitation();
-    visitWith({ settings: { tierOverride: "none" } });
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    visitWith({ page: "custom", settings: { tierOverride: "none" } });
+    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "custom");
     cy.get("[data-cy=recitation]").should("not.exist");
   });
 
@@ -433,8 +432,8 @@ describe("recitation playback", () => {
     visitWith({ surah: 2, page: "recite", settings: { tierOverride: "none" } });
     cy.get("[data-cy=recitation-toggle]").click();
     cy.get("[data-cy=recitation]").should("have.attr", "data-playing", "true");
-    cy.get("[data-cy=nav-practice]").click();
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    cy.get("[data-cy=nav-custom]").click();
+    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "custom");
     cy.get("[data-cy=recitation]").should("not.exist");
     cy.go("back");
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "recite");
@@ -604,8 +603,8 @@ describe("recitation playback", () => {
     });
   });
 
-  it("puts no ayah marks on an adaptive lesson", () => {
-    visitWith({ settings: { tierOverride: "none" } });
+  it("puts no ayah marks on a custom lesson", () => {
+    visitWith({ page: "custom", settings: { tierOverride: "none" } });
     cy.get("[data-cy=typing-area]").should("exist");
     cy.get("[data-cy=ayah-mark]").should("not.exist");
   });

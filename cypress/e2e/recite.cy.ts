@@ -8,16 +8,15 @@ describe("recite mode", () => {
     cy.get("[data-cy=attribution]").should("contain.text", "Al-Ikhlaas");
   });
 
-  it("switches from practice to recite by picking a surah on the recitation page", () => {
+  it("opens a level by picking a surah on the recitation page", () => {
     cy.visit("/?seed=11");
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    cy.get("[data-cy=typing-area]").should("not.exist");
     cy.get("[data-cy=nav-recitation]").click();
     cy.get("[data-cy=surah-tile][data-surah=112]").click();
     cy.location("hash").should("equal", "#/recitation/112/1");
     cy.get("[data-cy=app]").should("have.attr", "data-route", "recitation");
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "recite");
     cy.get("[data-cy=nav-recitation]").should("have.attr", "aria-current", "page");
-    cy.get("[data-cy=nav-practice]").should("not.have.attr", "aria-current");
   });
 
   it("picking a surah in the recitation settings opens it on the recitation page", () => {

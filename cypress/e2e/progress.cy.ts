@@ -14,7 +14,13 @@ describe("progression and persistence", () => {
 
   it("unlocks the next letter once the focus letter is mastered", () => {
     const first6 = letterOrder.slice(0, 6);
-    visitWith({ progress: { unlockedCount: 6, tier: "none" }, stats: masteredStats(first6) });
+    visitWith({
+      surah: 2,
+      page: "recite",
+      progress: { unlockedCount: 6, tier: "none" },
+      stats: masteredStats(first6),
+      settings: { tierOverride: "none" },
+    });
     cy.get("[data-cy=unlocked-count]").should("have.text", "6");
     cy.typeTarget();
     cy.get("[data-cy=completion]").should("be.visible");
@@ -25,7 +31,13 @@ describe("progression and persistence", () => {
 
   it("keeps the harakat back until every letter is unlocked", () => {
     const first8 = letterOrder.slice(0, 8);
-    visitWith({ progress: { unlockedCount: 8, tier: "none" }, stats: masteredStats(first8) });
+    visitWith({
+      surah: 2,
+      page: "recite",
+      progress: { unlockedCount: 8, tier: "none" },
+      stats: masteredStats(first8),
+      settings: { tierOverride: "none" },
+    });
     cy.typeTarget();
     cy.get("[data-cy=completion]").should("be.visible");
     cy.get("[data-cy=tier]").should("have.text", "none");
@@ -33,8 +45,11 @@ describe("progression and persistence", () => {
 
   it("advances the tier from none to core after an accurate run on the whole alphabet", () => {
     visitWith({
+      surah: 2,
+      page: "recite",
       progress: { unlockedCount: letterOrder.length, tier: "none" },
       stats: masteredStats(letterOrder),
+      settings: { tierOverride: "none" },
     });
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.typeTarget();
@@ -44,6 +59,7 @@ describe("progression and persistence", () => {
 
   it("a manual tier override wins over the automatic tier", () => {
     cy.visit("/?seed=7");
+    cy.showLesson(2);
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.openSettings();
     cy.get("[data-cy=setting-tier]").select("full");
@@ -54,7 +70,13 @@ describe("progression and persistence", () => {
 
   it("persists progress and settings across a reload", () => {
     const first6 = letterOrder.slice(0, 6);
-    visitWith({ progress: { unlockedCount: 6, tier: "none" }, stats: masteredStats(first6) });
+    visitWith({
+      surah: 2,
+      page: "recite",
+      progress: { unlockedCount: 6, tier: "none" },
+      stats: masteredStats(first6),
+      settings: { tierOverride: "none" },
+    });
     cy.typeTarget();
     cy.get("[data-cy=unlocked-count]").should("have.text", "7");
     cy.openSettings();
@@ -94,6 +116,7 @@ describe("progression and persistence", () => {
 
   it("records per-letter latency once a lesson is finished", () => {
     cy.visit("/?seed=7");
+    cy.showLesson(2);
     cy.typeTarget({ delay: 10 });
     cy.get("[data-cy=completion]").should("be.visible");
     cy.showStats();
@@ -109,12 +132,12 @@ describe("earning letters by typing", () => {
 
   it("a fresh profile types its way from six letters to eight, surviving a reload", () => {
     cy.visit("/?seed=7");
+    cy.showLesson(2);
     cy.get("[data-cy=unlocked-count]").should("have.text", "6");
     cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", sixth);
 
     cy.completeLessonsUntilUnlocked(7, { ...TYPING, maxLessons: 4 });
     cy.get("[data-cy=focus-letter]").should("have.attr", "data-char", seventh);
-    cy.targetText().should("contain", seventh);
 
     cy.reload();
     cy.get("[data-cy=unlocked-count]").should("have.text", "7");
@@ -128,12 +151,16 @@ describe("earning letters by typing", () => {
 
   it("keeps climbing for a learner who slips on one letter in fifteen", () => {
     cy.visit("/?seed=7");
+    cy.showLesson(2);
     cy.completeLessonsUntilUnlocked(8, { ...TYPING, mistakeEvery: 15, maxLessons: 12 });
   });
 
   it("lets a letter dragged down by early mistakes recover once the typing is clean", () => {
     visitWith({
+      surah: 2,
+      page: "recite",
       progress: { unlockedCount: 6, tier: "none" },
+      settings: { tierOverride: "none" },
       stats: {
         ...masteredStats(first5),
         [sixth]: { char: sixth, samples: 180, meanMs: 300, hits: 180, misses: 20, recentAccuracy: 0.9 },
@@ -148,7 +175,7 @@ describe("earning letters by typing", () => {
 describe("the stats page", () => {
   it("lives on its own route, reachable and leavable from the header", () => {
     cy.visit("/?seed=7");
-    cy.get("[data-cy=app]").should("have.attr", "data-route", "practice");
+    cy.get("[data-cy=app]").should("have.attr", "data-route", "recitation");
     cy.get("[data-cy=stats]").should("not.exist");
 
     cy.showStats();
@@ -156,8 +183,8 @@ describe("the stats page", () => {
     cy.location("hash").should("equal", "#/stats");
     cy.get("[data-cy=typing-area]").should("not.exist");
 
-    cy.showPractice();
-    cy.get("[data-cy=app]").should("have.attr", "data-route", "practice");
+    cy.showLesson(2);
+    cy.get("[data-cy=app]").should("have.attr", "data-route", "recitation");
     cy.get("[data-cy=stats]").should("not.exist");
   });
 
@@ -171,17 +198,19 @@ describe("the stats page", () => {
 
   it("does not score keystrokes while the stats page is open", () => {
     cy.visit("/?seed=7");
+    cy.showLesson(2);
     cy.targetText().then((text) => {
       const chars = [...text];
       cy.showStats();
       cy.typeArabic(chars.slice(0, 3).join(""));
-      cy.showPractice();
+      cy.go("back");
       cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
     });
   });
 
   it("summarises a finished lesson in the tiles and the history table", () => {
     cy.visit("/?seed=7");
+    cy.showLesson(2);
     cy.typeTarget({ delay: 5 });
     cy.get("[data-cy=completion]").should("be.visible");
     cy.showStats();

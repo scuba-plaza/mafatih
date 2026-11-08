@@ -5,6 +5,7 @@ import { visitWith } from "../support/profile.ts";
 describe("the settings dialog", () => {
   beforeEach(() => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
@@ -56,6 +57,7 @@ function travelled(caret: HTMLElement): number {
 describe("font size", () => {
   it("defaults to 48 px and drives the lesson text", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("have.attr", "data-font-size", String(DEFAULT_FONT_SIZE));
     cy.get("[data-cy=typing-area]").should("have.css", "font-size", `${DEFAULT_FONT_SIZE}px`);
     cy.openSettings();
@@ -64,6 +66,7 @@ describe("font size", () => {
 
   it("resizes the lesson text and remembers the choice", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.openSettings();
     cy.get("[data-cy=setting-font-size]").select("32");
     cy.closeSettings();

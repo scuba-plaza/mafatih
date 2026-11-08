@@ -1,11 +1,11 @@
-describe("a practice lesson", () => {
+describe("a recitation lesson", () => {
   beforeEach(() => {
-    cy.visit("/?seed=1234");
+    visitLesson();
   });
 
-  it("renders a right-to-left lesson with attribution on first run", () => {
+  it("renders a right-to-left lesson with surah attribution on first run", () => {
     cy.get("[data-cy=typing-area]").should("have.attr", "dir", "rtl").and("have.attr", "lang", "ar");
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
+    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "recite");
     cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
     cy.targetText().should("have.length.greaterThan", 10);
     cy.get("[data-cy=completion]").should("not.exist");
@@ -14,7 +14,7 @@ describe("a practice lesson", () => {
   it("starts at tier none so a fresh profile types letters only", () => {
     cy.get("[data-cy=tier]").should("have.text", "none");
     cy.targetText().then((text) => {
-      expect(text).to.not.match(/[ً-ْ]/, "a tier-none lesson must carry no harakat");
+      expect(text).to.not.match(/[\u064b-\u0652]/, "a tier-none lesson must carry no harakat");
     });
   });
 
@@ -38,7 +38,7 @@ describe("a practice lesson", () => {
   it("refuses to advance past a wrong key and counts it as an error", () => {
     cy.targetText().then((text) => {
       const first = [...text][0] as string;
-      const wrong = first === "ز" ? "ظ" : "ز";
+      const wrong = first === "\u0632" ? "\u0638" : "\u0632";
       cy.typeArabic(wrong);
       cy.get("[data-cy=typing-area]").should("have.attr", "data-cursor", "0");
       cy.get("[data-cy=typing-area]").should("have.attr", "data-state", "error");
@@ -52,7 +52,7 @@ describe("a practice lesson", () => {
     });
   });
 
-  it("issues a new lesson the moment the old one is solved", () => {
+  it("issues the next passage the moment the old one is solved", () => {
     cy.targetText().then((first) => {
       cy.typeTarget();
       cy.get("[data-cy=completion]").should("be.visible");
@@ -69,10 +69,6 @@ describe("a practice lesson", () => {
       expect(node.childNodes.length, "a text run must be a single text node").to.equal(1);
       expect(node.childNodes[0]?.nodeType, "that node must be a text node").to.equal(3);
     });
-    cy.get("[data-cy=line]").each(($line) => {
-      const runs = [...($line[0] as HTMLElement).querySelectorAll("[data-seg-start]")];
-      expect(runs.length, "an adaptive lesson has no ayat, so no line is ever cut").to.equal(1);
-    });
   });
 
   it("highlights the key for the next character on the virtual keyboard", () => {
@@ -85,3 +81,8 @@ describe("a practice lesson", () => {
     });
   });
 });
+
+function visitLesson(): void {
+  cy.visit("/?seed=1234");
+  cy.showLesson(2);
+}

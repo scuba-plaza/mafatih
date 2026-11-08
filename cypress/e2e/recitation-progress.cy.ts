@@ -60,7 +60,7 @@ describe("recitation mode progression", () => {
   });
 
   it("shows no recitation bar outside recitation", () => {
-    cy.visit("/?seed=3");
+    visitWith({ page: "custom", settings: { tierOverride: "none" } });
     cy.get("[data-cy=typing-area]").should("exist");
     cy.get("[data-cy=passage-bar]").should("not.exist");
   });
@@ -134,7 +134,7 @@ describe("navigating ayat", () => {
   });
 
   it("does not move the passage outside recitation", () => {
-    cy.visit("/?seed=3");
+    visitWith({ page: "custom", settings: { tierOverride: "none" } });
     cy.targetText().then((first) => {
       cy.typeRawKey("PageDown");
       cy.targetText().should("equal", first);
@@ -228,8 +228,7 @@ describe("completing a surah", () => {
 describe("the surah map", () => {
   it("lives on its own route and lists every surah in mushaf order", () => {
     cy.visit("/?seed=3");
-    cy.get("[data-cy=nav-recitation]").click();
-    cy.location("hash").should("equal", "#/recitation");
+    cy.location("hash").should("equal", "#/");
     cy.get("[data-cy=app]").should("have.attr", "data-route", "recitation");
     cy.get("[data-cy=typing-area]").should("not.exist");
     cy.get("[data-cy=surah-tile]").should("have.length", 114);

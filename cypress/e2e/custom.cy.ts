@@ -21,23 +21,19 @@ describe("custom text mode", () => {
   it("switches mode with the page, and the header marks the page in use", () => {
     cy.intercept("GET", CDN, { fixture: "ayah.mp3,null", headers: { "content-type": "audio/mpeg" } });
     cy.visit("/?seed=7");
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
-    cy.get("[data-cy=nav-practice]").should("have.attr", "aria-current", "page");
+    cy.get("[data-cy=app]").should("have.attr", "data-route", "recitation");
+    cy.get("[data-cy=nav-recitation]").should("have.attr", "aria-current", "page");
 
     cy.get("[data-cy=nav-custom]").click();
     cy.location("hash").should("equal", "#/custom");
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "custom");
     cy.get("[data-cy=nav-custom]").should("have.attr", "aria-current", "page");
-    cy.get("[data-cy=nav-practice]").should("not.have.attr", "aria-current");
+    cy.get("[data-cy=nav-recitation]").should("not.have.attr", "aria-current");
 
     cy.get("[data-cy=nav-recitation]").click();
     cy.get("[data-cy=surah-tile][data-surah=112]").click();
     cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "recite");
     cy.get("[data-cy=nav-recitation]").should("have.attr", "aria-current", "page");
-
-    cy.get("[data-cy=nav-practice]").click();
-    cy.get("[data-cy=attribution]").should("have.attr", "data-kind", "adaptive");
-    cy.get("[data-cy=nav-practice]").should("have.attr", "aria-current", "page");
   });
 
   it("starts a new line at every line break in the text", () => {

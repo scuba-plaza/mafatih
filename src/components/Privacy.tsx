@@ -48,7 +48,7 @@ export default function Privacy() {
         <p>
           On the recitation pages, the audio for each ayah is loaded from everyayah.com. Your browser therefore connects
           to their servers, which receive your IP address and the ayah being requested. Nothing else is shared with
-          them. The practice and custom pages make no such requests.
+          them. Every other page makes no such requests.
         </p>
       </Section>
 

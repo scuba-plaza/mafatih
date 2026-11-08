@@ -8,6 +8,7 @@ function hashOfLink(value: string): string {
 describe("the export & import modal", () => {
   it("opens from settings and goes back without losing the dialog", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("exist");
     cy.openTransferSettings();
     cy.get("[data-cy=settings]").should("not.be.visible");

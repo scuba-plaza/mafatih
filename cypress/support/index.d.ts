@@ -19,7 +19,7 @@ declare global {
       closeTransferSettings(): Chainable<void>;
       closeSettings(): Chainable<void>;
       showStats(): Chainable<void>;
-      showPractice(): Chainable<void>;
+      showLesson(surah?: number): Chainable<void>;
     }
   }
 }

@@ -193,7 +193,8 @@ Cypress.Commands.add("showStats", () => {
   cy.get("[data-cy=stats]").should("be.visible");
 });
 
-Cypress.Commands.add("showPractice", () => {
-  cy.get("[data-cy=nav-practice]").click();
+Cypress.Commands.add("showLesson", (surah = 112) => {
+  cy.get("[data-cy=nav-recitation]").click();
+  cy.get(`[data-cy=surah-tile][data-surah=${surah}]`).click();
   cy.get("[data-cy=typing-area]").should("be.visible");
 });
