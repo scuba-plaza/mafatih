@@ -31,9 +31,11 @@ import { useMediaQuery } from "~/hooks/useMediaQuery.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 import { recitationHref, targetOf, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
+import { useVisualViewport } from "~/hooks/useVisualViewport.ts";
 
 export default function App() {
   useImportLink();
+  useVisualViewport();
   const { route, replace } = useRoute();
   const target = targetOf(route);
   const reciting = target?.mode === "recite";
@@ -100,7 +102,7 @@ export default function App() {
 
   return (
     <div
-      className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:gap-10 md:px-6 md:py-6"
+      className="mx-auto flex min-h-[var(--visual-viewport-height,100dvh)] w-full max-w-4xl flex-col gap-6 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:gap-10 md:px-6 md:py-6"
       data-cy="app"
       data-route={route.page}
       data-font={settings.font}
