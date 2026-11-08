@@ -2,7 +2,7 @@
 
 THIS PROJECT IS MOSTLY AI GENERATED. Dont use it if you care about quality code or souls.
 
-**Learn to touch-type Arabic, with the harakat, one letter at a time.**
+**Learn to touch-type Arabic.**
 
 Mafatih ("keys") is a free typing trainer that runs in your browser. Every word you practise is a
 real word from the Qur'an, and you can go on to type the Qur'an itself, surah by surah, while

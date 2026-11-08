@@ -1,7 +1,7 @@
 {
   "name": "Mafatih · مفاتيح",
   "short_name": "Mafatih",
-  "description": "Arabic touch-typing trainer with diacritics, built on the Qur'an.",
+  "ription": "Arabic touch-typing trainer, built on the Qur'an.",
   "lang": "en",
   "start_url": "./",
   "scope": "./",
