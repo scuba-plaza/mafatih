@@ -105,7 +105,7 @@ export default function SurahMap({ recitation, order, onOrder, onReset }: SurahM
   const totalAyat = surahs.reduce((sum, s) => sum + s.ayatCount, 0);
 
   return (
-    <section data-cy="recitation-page" className="flex flex-col gap-8">
+    <section data-cy="recitation-page" className="flex flex-col gap-6 md:gap-8">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Recitation</h1>
@@ -169,7 +169,7 @@ export default function SurahMap({ recitation, order, onOrder, onReset }: SurahM
           type="button"
           data-cy="reset-recitation"
           onClick={onReset}
-          className="text-xs text-stone-400 hover:text-red-600 dark:hover:text-red-400"
+          className="py-2 text-xs text-stone-400 hover:text-red-600 dark:hover:text-red-400"
         >
           Reset recitation progress
         </button>
