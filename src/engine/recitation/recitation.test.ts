@@ -189,9 +189,8 @@ test("the next and previous passages cross surah boundaries", () => {
   assert.deepEqual(passageBefore(113, 1, 4, "juz-amma"), { surah: 114, ayah: 3 });
 });
 
-test("adaptive and custom lessons leave the recitation alone", () => {
+test("custom lessons leave the recitation alone", () => {
   const recitation = emptyRecitation();
-  assert.equal(recordPassage(recitation, { kind: "adaptive" }, CLEAN, "mushaf").recitation, recitation);
   assert.equal(recordPassage(recitation, { kind: "custom" }, CLEAN, "mushaf").recitation, recitation);
 });
 

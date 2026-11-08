@@ -51,7 +51,7 @@ every record would add 49 kB of raw JSON that says nothing the file does not alr
 | `full` | `+ ً ٌ ٍ` |
 
 **Letters come first.** On *Auto*, the harakat join only once all 36 letters are unlocked; until
-then lessons are letters only, in practice and in recitation alike. From there each tier advances
+then lessons are letters only. From there each tier advances
 at ≥95% recent accuracy over everything unlocked, **and** only once each mark of the tier in use
 has been typed at least eight times at ≥95% on its own — clean letters can never carry a learner
 past marks they have not practised. The check runs after every ayah and every lesson, so without
@@ -111,7 +111,7 @@ pnpm dev
 Mafatih supports exactly one layout, **Arabic (101)**: the standard Windows Arabic keyboard
 (`KBDA1`), transcribed from Microsoft's own layout table and checked key by key in the unit tests.
 It is the layout most Arabic typists already have, and supporting one layout means the letter order
-can be tuned to it (see *Adaptive lessons* below). Linux's `ara` layout is a port of it with the same
+can be tuned to it (see *The unlock ladder* below). Linux's `ara` layout is a port of it with the same
 keys for everything a lesson can contain — it differs only in typing ASCII `` ` `` and `'` where
 Windows has `‘` and `’`.
 
@@ -178,10 +178,10 @@ not restart the lesson — only the page, diacritic tier and passage do, since o
 
 ## Interface
 
-The page you are on is the mode you are in: the header's **Practice**,
-**Recitation** and **Custom** each open their own kind of lesson, and the highlighted one is always
-the one on screen. The practice page is deliberately almost empty: a lesson, a metrics line, and
-the on-screen keyboard.
+The page you are on is the mode you are in: the header's **Recitation** and
+**Custom** each open their own kind of lesson, and the highlighted one is always
+the one on screen. Recitation is the home page: its map of surahs is what `#/` shows, and picking a
+surah opens its level.
 
 A lesson ends the instant its last character lands, and the next one is already on screen — nothing
 to click, nothing to acknowledge. The run that just ended survives as the `last` readout beside the
@@ -189,8 +189,7 @@ live metrics, so the numbers for it are still there while you type on.
 
 | | |
 |---|---|
-| Practice | `#/` — the adaptive lesson; `6/36 · none` in the header is the whole progress display |
-| Recitation | `#/recitation` — the surah map, see *Recitation* below |
+| Recitation | `#/` — the surah map, see *Recitation* below; `6/36 · none` in the header is the whole progress display |
 | A recitation level | `#/recitation/36/21` — Ya-Sin from ayah 21; `#/recitation/36` resumes it where it was left |
 | Custom | `#/custom` — your own text, edited in place with **Edit text** |
 | Stats | `#/stats` — tiles, the per-character bars, and the last ten lessons |
@@ -221,7 +220,7 @@ reaching the app. **Reset progress** clears progress, statistics and history but
 since they are not progress, and keeps the recitation progress, which has its own **Reset recitation
 progress** on the surah map.
 
-## Adaptive lessons from real words
+## The unlock ladder
 
 Letters unlock in an order tuned to Arabic (101): each letter's frequency in the corpus, weighted
 by how far its key is from the home position. Every key has a reach cost — 0 for the eight home
@@ -237,11 +236,8 @@ key waits: `ذ`, on the backtick, went from 19th under pure frequency to 33rd, w
 right index finger, moved up from 24th to 20th and the home-row `ش` from 25th to 15th. The order is
 computed by the corpus build from the keyboard table, so it cannot drift from the keys.
 
-keybr must invent pseudo-words for a restricted alphabet. Mafatih never does — even six unlocked
-letters yield 186 real Qur'anic word forms, ten yield 1,237, fifteen yield 4,176. Every lesson is
-built from actual word forms, filtered by a 36-bit letter-skeleton bitmask.
-
-**Recitation** is the second kind of lesson: the Qur'an surah by surah, see *Recitation* below.
+The ladder is climbed on real text: recitation lessons count toward it, and the header's focus
+letter names the next unlock with the accuracy and speed it needs.
 
 **How much of a surah a lesson covers is a setting**, *Ayat per lesson*, from one ayah up to twenty,
 defaulting to four. It counts ayat rather than characters, since a character budget is meaningless
@@ -254,8 +250,7 @@ characters on its own, and no ayah count can make it shorter.
 
 ## Recitation
 
-Adaptive practice is the open world; recitation goes through the Qur'an in order, and every surah is
-a level.
+Recitation goes through the Qur'an in order, and every surah is a level.
 
 **Progress is saved ayah by ayah.** The moment the last letter of an ayah is typed, that ayah is
 recorded — in the surah's progress and in the per-letter statistics — so a reload, or a week away,
@@ -437,7 +432,7 @@ generated/corpus.json    build output (gitignored), its own bundle chunk
 src/engine/              pure TypeScript, zero React
   layout/                Arabic (101) key table from KBDA1, key reach, ligature keys, fingers
   corpus/                whitelist normalisation, tier stripping, corpus loader
-  lessons/               adaptive, recitation and custom generators, seeded PRNG
+  lessons/               recitation and custom generators, seeded PRNG
   stats/                 per-character recent accuracy and latency, unlock and tier rules
   session/               typing state machine, pauses, line chunking
   recitation/            surah progress, passages, completion, surah order
@@ -447,8 +442,8 @@ src/engine/              pure TypeScript, zero React
 src/storage/             profile + settings persistence via localStorage, read back through
                          sanitisers; the IndexedDB ayah-audio store
 src/hooks/               trainer state machine, typing keys, recitation player, audio cache,
-                         keyboard dock inset, hash route
-src/components/          React — header, footer, practice page, passage bar, surah map,
+                         keyboard dock inset, visual viewport height, hash route
+src/components/          React — header, footer, passage bar, surah map,
                          recitation player, stats and privacy pages, dialogs, the crash screen;
                          text measuring in measure.ts
 cypress/e2e/             end-to-end tests

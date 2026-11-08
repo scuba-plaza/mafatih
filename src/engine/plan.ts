@@ -1,12 +1,10 @@
 import type { Tier } from "~/engine/corpus/normalize.ts";
-import { generateAdaptiveLesson } from "~/engine/lessons/adaptive.ts";
 import { generateCustomLesson } from "~/engine/lessons/custom.ts";
 import type { AyahSpan, Lesson, LessonKind } from "~/engine/lessons/lesson.ts";
 import { generateRecitePassage } from "~/engine/lessons/recite.ts";
 import { passageStatus } from "~/engine/recitation/recitation.ts";
 import { createSession, type KeystrokeRecord, type SessionState } from "~/engine/session/session.ts";
 import { type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
-import { focusLetter } from "~/engine/stats/unlock.ts";
 import type { Profile } from "~/storage/profile.ts";
 
 export interface Start {
@@ -19,35 +17,18 @@ export interface Checkpoint {
   record: number;
 }
 
-export function seedFromQuery(search: string): number | null {
-  const raw = new URLSearchParams(search).get("seed");
-  if (raw === null) {
-    return null;
-  }
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 export function tierOf(profile: Profile): Tier {
   return profile.settings.tierOverride ?? profile.progress.tier;
 }
 
-export function buildLesson(profile: Profile, mode: LessonKind, seed: number): Lesson {
+export function buildLesson(profile: Profile, mode: LessonKind): Lesson {
   const { settings } = profile;
   const tier = tierOf(profile);
   if (mode === "recite") {
     const { surah, ayah } = profile.recitation.position;
     return generateRecitePassage({ surah, fromAyah: ayah, tier, maxAyat: settings.ayatPerLesson });
   }
-  if (mode === "custom") {
-    return generateCustomLesson({ text: settings.customText, tier });
-  }
-  return generateAdaptiveLesson({
-    unlockedCount: profile.progress.unlockedCount,
-    tier,
-    seed,
-    focusLetter: focusLetter(profile.progress),
-  });
+  return generateCustomLesson({ text: settings.customText, tier });
 }
 
 export function startSession(profile: Profile, lesson: Lesson, redo: boolean): Start {

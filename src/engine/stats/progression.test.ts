@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { letterOrder } from "~/engine/corpus/corpus.ts";
-import { generateAdaptiveLesson } from "~/engine/lessons/adaptive.ts";
+import { fits, letterOrder, type Mask, maskOfFirst, type WordEntry, words } from "~/engine/corpus/corpus.ts";
+import { skeleton, stripToTier } from "~/engine/corpus/normalize.ts";
 import { createRng } from "~/engine/lessons/rng.ts";
 import { applyKey, createSession } from "~/engine/session/session.ts";
 import { emptyStats, type KeyStats, recordKeystroke } from "~/engine/stats/keystats.ts";
@@ -27,6 +27,46 @@ interface Practice {
 
 const WRONG_KEY = "#";
 
+const TARGET_LENGTH = 38;
+const FOCUS_BOOST = 6;
+
+function sampleLessonText(
+  unlockedCount: number,
+  tier: Progress["tier"],
+  seed: number,
+  focus: string | undefined,
+): string {
+  const unlocked: Mask = maskOfFirst(unlockedCount);
+  const pool: WordEntry[] = words().filter((w) => fits(w, unlocked));
+  const rng = createRng(seed);
+  const weight = (w: WordEntry): number => {
+    const base = 1 + Math.log1p(w.freq);
+    return focus !== undefined && skeleton(w.text).includes(focus) ? base * FOCUS_BOOST : base;
+  };
+  const chosen: string[] = [];
+  const recent: string[] = [];
+  let length = 0;
+  while (length < TARGET_LENGTH && pool.length > 0) {
+    let candidate = rng.weighted(pool, weight);
+    let guard = 0;
+    while (recent.filter((r) => r === candidate.text).length >= 2 && guard < 8) {
+      candidate = rng.weighted(pool, weight);
+      guard += 1;
+    }
+    const rendered = stripToTier(candidate.text, tier);
+    if (rendered.length === 0) {
+      continue;
+    }
+    chosen.push(rendered);
+    recent.push(candidate.text);
+    if (recent.length > 4) {
+      recent.shift();
+    }
+    length += rendered.length + 1;
+  }
+  return chosen.join(" ");
+}
+
 function practise(learner: Learner, lessons: number, seed: number, start = initialProgress()): Practice {
   const rng = createRng(seed);
   let progress = start;
@@ -35,12 +75,7 @@ function practise(learner: Learner, lessons: number, seed: number, start = initi
   const unlockedAfter: number[] = [];
 
   for (let lesson = 0; lesson < lessons; lesson += 1) {
-    const text = generateAdaptiveLesson({
-      unlockedCount: progress.unlockedCount,
-      tier: progress.tier,
-      seed: seed * 10_000 + lesson,
-      focusLetter: focusLetter(progress),
-    }).text;
+    const text = sampleLessonText(progress.unlockedCount, progress.tier, seed * 10_000 + lesson, focusLetter(progress));
     let session = createSession(text);
     for (const char of session.chars) {
       clock += learner.msPerKey * (0.6 + rng.next() * 0.8);

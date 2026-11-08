@@ -1,6 +1,7 @@
 describe("keyboard layout guard", () => {
   beforeEach(() => {
     cy.visit("/?seed=3");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("exist");
   });
 

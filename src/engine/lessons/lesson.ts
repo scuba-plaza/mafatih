@@ -1,7 +1,7 @@
 import type { Tier } from "~/engine/corpus/normalize.ts";
 import { nearestStep } from "~/engine/guards.ts";
 
-export type LessonKind = "adaptive" | "recite" | "custom";
+export type LessonKind = "recite" | "custom";
 
 export interface LessonSource {
   kind: LessonKind;

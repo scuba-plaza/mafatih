@@ -6,12 +6,14 @@ const directionOf = ($el: JQuery<HTMLElement>): string =>
 describe("text direction", () => {
   it("renders the document left-to-right", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("html").should("have.attr", "dir", "ltr");
     cy.get("[data-cy=app]").should(($el) => expect(directionOf($el)).to.equal("ltr"));
   });
 
   it("keeps English prose left-to-right so trailing punctuation stays at the end", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=attribution]").should(($el) => {
       expect(directionOf($el)).to.equal("ltr");
       expect($el.text().trim()).to.match(/\.$/);
@@ -27,6 +29,7 @@ describe("text direction", () => {
 
   it("keeps the layout guard left-to-right with its period at the end", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("exist");
     cy.typeRawKey("h", "KeyH");
     cy.get("[data-cy=layout-guard]").should(($el) => {
@@ -37,6 +40,7 @@ describe("text direction", () => {
 
   it("still renders the lesson itself right-to-left", () => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]")
       .should("have.attr", "dir", "rtl")
       .and(($el) => expect(directionOf($el)).to.equal("rtl"));
@@ -55,6 +59,7 @@ describe("text direction", () => {
 describe("hiding the virtual keyboard", () => {
   beforeEach(() => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
@@ -167,6 +172,7 @@ describe("font selection", () => {
 
   beforeEach(() => {
     cy.visit("/?seed=5");
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("exist");
   });
 
@@ -235,6 +241,7 @@ describe("font selection", () => {
 describe("search and sharing metadata", () => {
   beforeEach(() => {
     cy.visit("/?seed=5");
+    cy.showLesson();
   });
 
   it("describes the page for search engines and link previews", () => {
@@ -329,7 +336,7 @@ describe("the privacy policy", () => {
     cy.location("hash").should("equal", "#/privacy");
     cy.get("[data-cy=privacy]").should("contain.text", "Privacy policy").and("contain.text", "everyayah.com");
     cy.get("[data-cy=typing-area]").should("not.exist");
-    cy.get("[data-cy=nav-practice]").click();
+    cy.showLesson();
     cy.get("[data-cy=typing-area]").should("be.visible");
     cy.get("[data-cy=nav-privacy]").should("be.visible");
   });
@@ -338,6 +345,7 @@ describe("the privacy policy", () => {
 describe("the finger zones", () => {
   it("shade every key by the finger that types it", () => {
     cy.visit("/?seed=3");
+    cy.showLesson();
     cy.get("[data-cy=virtual-keyboard]").should("have.attr", "data-fingers", "true");
     cy.get("[data-cy=keycap][data-code=KeyF]").should("have.attr", "data-finger", "left-index");
     cy.get("[data-cy=keycap][data-code=KeyH]").should("have.attr", "data-finger", "right-index");
@@ -350,6 +358,7 @@ describe("the finger zones", () => {
 
   it("can be switched off in the settings, and stay off", () => {
     cy.visit("/?seed=3");
+    cy.showLesson();
     cy.openSettings();
     cy.get("[data-cy=setting-show-fingers]").should("be.checked").uncheck();
     cy.closeSettings();

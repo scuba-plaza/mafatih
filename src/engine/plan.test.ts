@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { generateRecitePassage } from "~/engine/lessons/recite.ts";
-import { buildLesson, finishedAyat, seedFromQuery, startSession } from "~/engine/plan.ts";
+import { buildLesson, finishedAyat, startSession } from "~/engine/plan.ts";
 import { emptyRecitation, type Recitation, recordAyat } from "~/engine/recitation/recitation.ts";
 import { defaultProfile, type Profile } from "~/storage/profile.ts";
 
@@ -25,15 +25,9 @@ function typed(surah: number, from: number, to: number, passage: [number, number
   ).recitation;
 }
 
-test("the seed comes from the query string when it is a number", () => {
-  assert.equal(seedFromQuery("?seed=42"), 42);
-  assert.equal(seedFromQuery("?seed=abc"), null);
-  assert.equal(seedFromQuery(""), null);
-});
-
 test("a fresh passage starts at its first character, basmala included", () => {
   const profile = reciting(2, 1);
-  const lesson = buildLesson(profile, "recite", 1);
+  const lesson = buildLesson(profile, "recite");
   const start = startSession(profile, lesson, false);
   assert.equal(start.reviewing, false);
   assert.equal(start.session.cursor, 0);
@@ -42,7 +36,7 @@ test("a fresh passage starts at its first character, basmala included", () => {
 
 test("a part-typed passage resumes after its last finished ayah", () => {
   const profile = reciting(2, 1, typed(2, 1, 3, [1, 4]));
-  const lesson = buildLesson(profile, "recite", 1);
+  const lesson = buildLesson(profile, "recite");
   const fourth = lesson.ayat.find((span) => span.ayah === 4);
   const start = startSession(profile, lesson, false);
   assert.equal(start.reviewing, false);
@@ -52,7 +46,7 @@ test("a part-typed passage resumes after its last finished ayah", () => {
 
 test("a finished passage opens for review, and types from the start when redone", () => {
   const profile = reciting(2, 1, typed(2, 1, 4, [1, 4]));
-  const lesson = buildLesson(profile, "recite", 1);
+  const lesson = buildLesson(profile, "recite");
   const review = startSession(profile, lesson, false);
   assert.equal(review.reviewing, true);
   assert.equal(review.session.cursor, [...lesson.text].length);
@@ -61,9 +55,9 @@ test("a finished passage opens for review, and types from the start when redone"
   assert.equal(redo.session.cursor, 0);
 });
 
-test("adaptive and custom lessons always start fresh", () => {
+test("custom lessons always start fresh", () => {
   const profile = defaultProfile();
-  const start = startSession(profile, buildLesson(profile, "adaptive", 7), false);
+  const start = startSession(profile, buildLesson(profile, "custom"), false);
   assert.equal(start.reviewing, false);
   assert.equal(start.session.cursor, 0);
 });
