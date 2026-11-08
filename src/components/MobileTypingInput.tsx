@@ -24,7 +24,7 @@ export default function MobileTypingInput({ inputRef, active }: MobileTypingInpu
       type="text"
       data-typing-input="true"
       data-cy="mobile-typing-input"
-      aria-hidden="true"
+      aria-label="Arabic typing input"
       tabIndex={-1}
       autoCapitalize="none"
       autoCorrect="off"

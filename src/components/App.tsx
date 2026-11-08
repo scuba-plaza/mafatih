@@ -68,7 +68,7 @@ export default function App() {
 
   const dockRef = useRef<HTMLDivElement>(null);
   const compact = useMediaQuery("(max-width: 767px)");
-  useDockInset(dockRef, settings.showKeyboard && target !== null && !compact);
+  useDockInset(dockRef, settings.showKeyboard && target !== null);
 
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const mobileTyping = target !== null && modal === "none" && trainer.completion === null && !trainer.reviewing;
