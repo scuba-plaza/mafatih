@@ -12,13 +12,11 @@ listening to its recitation.
 
 ## What you can do
 
-- **Practice.** Start with six letters on and around the home row. When you type a letter quickly
-  and accurately, the next one unlocks. Once you have all 36 letters, the harakat join in: first
-  fatha, damma, kasra, sukun and shadda, then tanween. You can switch them on sooner in the
-  settings.
 - **Recitation.** Type the Qur'an surah by surah. Each surah is a level; finish it to earn a ✓, and
   keep 95% accuracy to earn a ★. Press play to hear each ayah recited by Abdul Basit ʿAbd
-  us-Samad while you type.
+  us-Samad while you type. Letters unlock as you type them quickly and accurately; once you have
+  all 36, the harakat join in — first fatha, damma, kasra, sukun and shadda, then tanween. You can
+  switch them on sooner in the settings.
 - **Custom.** Paste any Arabic text and practise on that.
 - **Stats.** See your speed and accuracy for every letter and mark.
 
