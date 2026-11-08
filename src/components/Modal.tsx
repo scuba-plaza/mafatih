@@ -36,14 +36,16 @@ export function CheckboxRow({
   cy,
   checked,
   onChange,
+  className = "",
 }: {
   label: string;
   cy: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  className?: string;
 }) {
   return (
-    <label className={ROW}>
+    <label className={`${ROW} ${className}`}>
       <span className={NAME}>{label}</span>
       <input
         type="checkbox"

@@ -84,6 +84,7 @@ export default function SettingsModal({
       <CheckboxRow
         label="Show keyboard"
         cy="setting-show-keyboard"
+        className="hidden md:flex"
         checked={settings.showKeyboard}
         onChange={(showKeyboard) => onChange({ showKeyboard })}
       />
@@ -91,6 +92,7 @@ export default function SettingsModal({
       <CheckboxRow
         label="Show finger zones"
         cy="setting-show-fingers"
+        className="hidden md:flex"
         checked={settings.showFingers}
         onChange={(showFingers) => onChange({ showFingers })}
       />
