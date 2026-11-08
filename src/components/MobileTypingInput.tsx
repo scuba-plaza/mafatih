@@ -1,4 +1,4 @@
-import { type FormEvent, type RefObject, useEffect } from "react";
+import { type RefObject, useEffect } from "react";
 import { isTypedKey } from "~/engine/session/session.ts";
 import { charsOf, LATIN } from "~/hooks/useTypingKeys.ts";
 
@@ -22,17 +22,28 @@ export default function MobileTypingInput({ inputRef, active, onText, onLatin }:
     }
   }, [inputRef, active]);
 
-  const onBeforeInput = (event: FormEvent<HTMLInputElement>) => {
-    const input = event.nativeEvent as InputEvent;
-    event.preventDefault();
-    for (const char of charsOf(input.data)) {
-      if (LATIN.test(char)) {
-        onLatin();
-      } else if (isTypedKey(char)) {
-        onText(char, input.timeStamp);
-      }
+  useEffect(() => {
+    const input = inputRef.current;
+    if (input === null) {
+      return;
     }
-  };
+    const onBeforeInput = (event: InputEvent) => {
+      event.preventDefault();
+      if (event.inputType === "deleteContentBackward") {
+        onText("Backspace", event.timeStamp);
+        return;
+      }
+      for (const char of charsOf(event.data)) {
+        if (LATIN.test(char)) {
+          onLatin();
+        } else if (isTypedKey(char)) {
+          onText(char, event.timeStamp);
+        }
+      }
+    };
+    input.addEventListener("beforeinput", onBeforeInput);
+    return () => input.removeEventListener("beforeinput", onBeforeInput);
+  }, [inputRef, onText, onLatin]);
 
   return (
     <input
@@ -46,7 +57,6 @@ export default function MobileTypingInput({ inputRef, active, onText, onLatin }:
       autoCorrect="off"
       spellCheck={false}
       enterKeyHint="done"
-      onBeforeInput={onBeforeInput}
       className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
       style={{ fontSize: "16px" }}
     />
