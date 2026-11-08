@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 
-export type Page = "practice" | "recitation" | "custom" | "stats" | "privacy";
+export type Page = "recitation" | "custom" | "stats" | "privacy";
 
 export type Route =
-  | { page: "practice" }
   | { page: "custom" }
   | { page: "stats" }
   | { page: "privacy" }
   | { page: "recitation"; surah: number | null; ayah: number | null };
 
-export type Target = { mode: "adaptive" } | { mode: "custom" } | { mode: "recite"; surah: number; ayah: number | null };
+export type Target = { mode: "custom" } | { mode: "recite"; surah: number; ayah: number | null };
 
 export const PAGE_ROUTE: Record<Page, Route> = {
-  practice: { page: "practice" },
   recitation: { page: "recitation", surah: null, ayah: null },
   custom: { page: "custom" },
   stats: { page: "stats" },
@@ -33,20 +31,20 @@ export function parseRoute(hash: string): Route {
     return PAGE_ROUTE[page];
   }
   if (page !== "recitation") {
-    return PAGE_ROUTE.practice;
+    return PAGE_ROUTE.recitation;
   }
   const surah = positiveInt(rest[0]);
   return { page, surah, ayah: surah === null ? null : positiveInt(rest[1]) };
 }
 
 export function hrefOf(route: Route): string {
-  if (route.page === "practice") {
-    return "#/";
+  if (route.page === "recitation") {
+    if (route.surah === null) {
+      return "#/";
+    }
+    return route.ayah === null ? `#/recitation/${route.surah}` : `#/recitation/${route.surah}/${route.ayah}`;
   }
-  if (route.page !== "recitation" || route.surah === null) {
-    return `#/${route.page}`;
-  }
-  return route.ayah === null ? `#/recitation/${route.surah}` : `#/recitation/${route.surah}/${route.ayah}`;
+  return `#/${route.page}`;
 }
 
 export function recitationHref(surah: number, ayah: number): string {
@@ -54,9 +52,6 @@ export function recitationHref(surah: number, ayah: number): string {
 }
 
 export function targetOf(route: Route): Target | null {
-  if (route.page === "practice") {
-    return { mode: "adaptive" };
-  }
   if (route.page === "custom") {
     return { mode: "custom" };
   }
@@ -72,7 +67,7 @@ export interface Router {
 }
 
 function currentRoute(): Route {
-  return typeof window === "undefined" ? PAGE_ROUTE.practice : parseRoute(window.location.hash);
+  return typeof window === "undefined" ? PAGE_ROUTE.recitation : parseRoute(window.location.hash);
 }
 
 export function useRoute(): Router {
