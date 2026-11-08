@@ -33,7 +33,7 @@ function NavLink({ target, current, label }: { target: Page; current: Page; labe
 export default function Header({ page, progress, stats, tier, onOpenSettings }: HeaderProps) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      <a href={hrefOf(PAGE_ROUTE.practice)} className="flex items-baseline gap-2" aria-label="Mafatih">
+      <a href={hrefOf(PAGE_ROUTE.recitation)} className="flex items-baseline gap-2" aria-label="Mafatih">
         <span lang="ar" className="font-arabic text-xl leading-none text-stone-900 dark:text-stone-100">
           مفاتيح
         </span>
@@ -47,7 +47,6 @@ export default function Header({ page, progress, stats, tier, onOpenSettings }: 
         <span className="hidden font-mono text-xs tabular-nums text-stone-400 sm:inline">
           <FocusLetter progress={progress} stats={stats} />
         </span>
-        <NavLink target="practice" current={page} label="Practice" />
         <NavLink target="recitation" current={page} label="Recitation" />
         <NavLink target="custom" current={page} label="Custom" />
         <NavLink target="stats" current={page} label="Stats" />

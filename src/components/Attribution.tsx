@@ -11,15 +11,7 @@ export default function Attribution({ source }: AttributionProps) {
   if (source.kind === "custom") {
     return (
       <p data-cy="attribution" data-kind="custom" className={CLASS}>
-        Your own text. Custom lessons are practice only — they do not change your progress or statistics.
-      </p>
-    );
-  }
-
-  if (source.kind === "adaptive") {
-    return (
-      <p data-cy="attribution" data-kind="adaptive" className={CLASS}>
-        Words from the Qur'an, filtered to the letters you have unlocked.
+        Your own text. Custom lessons do not change your progress or statistics.
       </p>
     );
   }

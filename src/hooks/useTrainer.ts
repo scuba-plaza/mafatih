@@ -7,7 +7,6 @@ import {
   type Checkpoint,
   finishedAyat,
   type Start,
-  seedFromQuery,
   startSession,
   tierOf,
 } from "~/engine/plan.ts";
@@ -44,7 +43,6 @@ import {
 } from "~/storage/profile.ts";
 
 const LESSON_SETTINGS: Record<LessonKind, readonly (keyof Settings)[]> = {
-  adaptive: ["tierOverride"],
   recite: ["tierOverride", "ayatPerLesson"],
   custom: ["tierOverride", "customText"],
 };
@@ -87,11 +85,6 @@ function atPosition(profile: Profile, position: RecitationPosition): Profile {
   return { ...profile, recitation: { ...profile.recitation, position } };
 }
 
-function randomSeed(): number {
-  const fromQuery = typeof window === "undefined" ? null : seedFromQuery(window.location.search);
-  return fromQuery ?? Math.floor(Math.random() * 1e9);
-}
-
 export function useTrainer({ target, enabled }: TrainerOptions): Trainer {
   const [profile, setProfile] = useState<Profile>(() => {
     const loaded = loadProfile();
@@ -103,11 +96,8 @@ export function useTrainer({ target, enabled }: TrainerOptions): Trainer {
   const [shiftHeld, setShiftHeld] = useState(false);
   const [lastSummary, setLastSummary] = useState<SessionSummary | null>(null);
   const [completion, setCompletion] = useState<SurahCompletion | null>(null);
-  const baseSeed = useRef(randomSeed());
-  const lessonCounter = useRef(0);
-
   const [initial] = useState(() => {
-    const first = buildLesson(profile, target?.mode ?? "adaptive", baseSeed.current);
+    const first = buildLesson(profile, target?.mode ?? "recite");
     return { lesson: first, ...startSession(profile, first, false) };
   });
   const [lesson, setLesson] = useState<Lesson>(initial.lesson);
@@ -138,8 +128,7 @@ export function useTrainer({ target, enabled }: TrainerOptions): Trainer {
 
   const regenerate = useCallback(
     (source: Profile, mode: LessonKind, redo = false) => {
-      lessonCounter.current += 1;
-      const next = buildLesson(source, mode, baseSeed.current + lessonCounter.current);
+      const next = buildLesson(source, mode);
       begin(next, startSession(source, next, redo));
     },
     [begin],

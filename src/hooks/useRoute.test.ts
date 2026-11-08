@@ -20,14 +20,7 @@ test("a recitation level is addressed by surah and ayah", () => {
 });
 
 test("addresses round-trip", () => {
-  for (const hash of [
-    "#/",
-    "#/stats",
-    "#/custom",
-    "#/privacy",
-    "#/recitation/36",
-    "#/recitation/36/21",
-  ]) {
+  for (const hash of ["#/", "#/stats", "#/custom", "#/privacy", "#/recitation/36", "#/recitation/36/21"]) {
     assert.equal(hrefOf(parseRoute(hash)), hash);
   }
   assert.equal(hrefOf(parseRoute("#/recitation")), "#/");

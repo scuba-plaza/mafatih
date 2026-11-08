@@ -41,7 +41,6 @@ test("plain Arabic becomes a lesson with no ayah marks", () => {
 
 test("a custom lesson never touches progress", () => {
   assert.equal(countsTowardProgress(generateCustomLesson({ text: "الحمد", tier: "none" }).source), false);
-  assert.equal(countsTowardProgress({ kind: "adaptive" }), true);
   assert.equal(countsTowardProgress({ kind: "recite", surah: 112 }), true);
 });
 
