@@ -102,7 +102,7 @@ export default function App() {
 
   return (
     <div
-      className="mx-auto flex min-h-[var(--visual-viewport-height,100dvh)] w-full max-w-4xl flex-col gap-6 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:gap-10 md:px-6 md:py-6"
+      className="mx-auto flex min-h-[var(--visual-viewport-height,100dvh)] w-full max-w-4xl flex-col gap-4 px-4 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:gap-10 md:px-6 md:py-6"
       data-cy="app"
       data-route={route.page}
       data-font={settings.font}
@@ -138,7 +138,7 @@ export default function App() {
           />
         </main>
       ) : (
-        <main className="flex flex-1 flex-col justify-center gap-6 md:gap-10">
+        <main className="flex flex-1 flex-col justify-center gap-4 md:gap-10">
           <LayoutGuard latinDetected={latinDetected} onDismiss={trainer.dismissLatin} />
           {compact ? (
             <MobileTypingInput
@@ -149,7 +149,7 @@ export default function App() {
             />
           ) : null}
 
-          <section className="flex flex-col gap-6">
+          <section className="flex flex-col gap-4 md:gap-6">
             <div className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-4">
                 <Attribution source={lesson.source} />

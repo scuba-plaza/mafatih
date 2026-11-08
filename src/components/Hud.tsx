@@ -15,11 +15,14 @@ export default function Hud({ metrics }: HudProps) {
   ];
 
   return (
-    <dl data-cy="hud" className="flex flex-wrap items-baseline gap-x-6 gap-y-1 font-mono text-xs tabular-nums">
+    <dl
+      data-cy="hud"
+      className="flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-xs tabular-nums sm:gap-x-6"
+    >
       {items.map((item) => (
         <div key={item.cy} className="flex flex-row-reverse items-baseline gap-1.5">
           <dt className="uppercase tracking-wider text-stone-400">{item.label}</dt>
-          <dd data-cy={`hud-${item.cy}`} className="text-sm text-stone-700 dark:text-stone-300">
+          <dd data-cy={`hud-${item.cy}`} className="text-xs text-stone-700 sm:text-sm dark:text-stone-300">
             {item.value}
           </dd>
         </div>
