@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Attribution from "~/components/Attribution.tsx";
+import MobileTypingInput from "~/components/MobileTypingInput.tsx";
 import CustomTextModal from "~/components/CustomTextModal.tsx";
 import Footer from "~/components/Footer.tsx";
 import Header from "~/components/Header.tsx";
@@ -25,9 +26,12 @@ import { useAudioCache } from "~/hooks/useAudioCache.ts";
 import { useDockInset } from "~/hooks/useDockInset.ts";
 import { useImportLink } from "~/hooks/useImportLink.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
+import { useMediaQuery } from "~/hooks/useMediaQuery.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 import { recitationHref, targetOf, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
+
+const INTERACTIVE_TAGS: readonly string[] = ["A", "BUTTON", "INPUT", "LABEL", "SELECT", "TEXTAREA"];
 
 export default function App() {
   useImportLink();
@@ -63,7 +67,26 @@ export default function App() {
   }, [settings.font]);
 
   const dockRef = useRef<HTMLDivElement>(null);
-  useDockInset(dockRef, settings.showKeyboard && target !== null);
+  const compact = useMediaQuery("(max-width: 767px)");
+  useDockInset(dockRef, settings.showKeyboard && target !== null && !compact);
+
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const mobileTyping = target !== null && modal === "none" && trainer.completion === null && !trainer.reviewing;
+
+  useEffect(() => {
+    if (!mobileTyping) {
+      return;
+    }
+    const onTap = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && INTERACTIVE_TAGS.includes(target.tagName)) {
+        return;
+      }
+      mobileInputRef.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener("click", onTap);
+    return () => document.removeEventListener("click", onTap);
+  }, [mobileTyping]);
 
   const routeRef = useLatest(route);
   useEffect(() => {
@@ -117,6 +140,7 @@ export default function App() {
       ) : (
         <main className="flex flex-1 flex-col justify-center gap-10">
           <LayoutGuard latinDetected={latinDetected} onDismiss={trainer.dismissLatin} />
+          {compact ? <MobileTypingInput inputRef={mobileInputRef} active={mobileTyping} /> : null}
 
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
@@ -179,7 +203,7 @@ export default function App() {
             {lesson.source.kind === "recite" ? <RecitationBar player={player} /> : null}
           </section>
 
-          {settings.showKeyboard ? (
+          {settings.showKeyboard && !compact ? (
             <div
               ref={dockRef}
               data-cy="keyboard-dock"

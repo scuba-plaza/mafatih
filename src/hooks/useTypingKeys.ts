@@ -9,6 +9,21 @@ const PASSTHROUGH_TAGS: readonly string[] = ["INPUT", "SELECT", "TEXTAREA", "BUT
 
 const PASSAGE_KEYS: Readonly<Record<string, 1 | -1>> = { PageDown: 1, PageUp: -1 };
 
+export interface KeyTarget {
+  tag: string;
+  typingInput: boolean;
+}
+
+export function capturesKeys(typing: boolean, target: KeyTarget | null): boolean {
+  if (!typing) {
+    return false;
+  }
+  if (target === null) {
+    return true;
+  }
+  return target.typingInput || !PASSTHROUGH_TAGS.includes(target.tag);
+}
+
 export interface TypingKeyHandlers {
   listening: boolean;
   typing: boolean;
@@ -36,8 +51,11 @@ export function useTypingKeys(handlers: RefObject<TypingKeyHandlers>): void {
         current.onShift(true);
         return;
       }
-      const target = event.target;
-      if (!current.typing || (target instanceof HTMLElement && PASSTHROUGH_TAGS.includes(target.tagName))) {
+      const target =
+        event.target instanceof HTMLElement
+          ? { tag: event.target.tagName, typingInput: event.target.dataset.typingInput === "true" }
+          : null;
+      if (!capturesKeys(current.typing, target)) {
         return;
       }
       if (LATIN.test(event.key)) {
