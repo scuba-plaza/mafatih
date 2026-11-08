@@ -13,7 +13,7 @@ export interface HeaderProps {
   onOpenSettings: () => void;
 }
 
-const NAV = "text-xs transition-colors";
+const NAV = "py-2 text-xs transition-colors md:py-0";
 const NAV_ON = "text-stone-900 dark:text-stone-100";
 const NAV_OFF = "text-stone-400 hover:text-stone-900 dark:hover:text-stone-100";
 
@@ -38,7 +38,7 @@ export default function Header({ page, progress, stats, tier, onOpenSettings }: 
           مفاتيح
         </span>
       </a>
-      <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+      <nav className="flex flex-wrap items-center justify-end gap-x-3 gap-y-0 md:gap-x-4">
         <span data-cy="progress-summary" className="whitespace-nowrap font-mono text-xs tabular-nums text-stone-400">
           <span data-cy="unlocked-count">{progress.unlockedCount}</span>
           {`/${letterOrder.length} · `}

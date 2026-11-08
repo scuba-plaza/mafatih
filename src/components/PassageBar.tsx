@@ -12,7 +12,7 @@ export interface PassageBarProps {
 }
 
 const BUTTON =
-  "flex size-8 shrink-0 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-stone-100";
+  "flex size-10 shrink-0 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-900 md:size-8 dark:hover:bg-stone-800 dark:hover:text-stone-100";
 
 const PATHS = {
   previous: "M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z",

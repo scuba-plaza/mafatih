@@ -17,3 +17,9 @@ export function blurAfter(run: () => void) {
 export function scrollBehavior(): ScrollBehavior {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
+
+const INTERACTIVE_SELECTOR = "a,button,input,label,select,textarea";
+
+export function isInteractive(target: { closest: (selector: string) => unknown } | null): boolean {
+  return target !== null && target.closest(INTERACTIVE_SELECTOR) !== null;
+}

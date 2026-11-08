@@ -5,6 +5,7 @@ import Footer from "~/components/Footer.tsx";
 import Header from "~/components/Header.tsx";
 import Hud from "~/components/Hud.tsx";
 import LayoutGuard from "~/components/LayoutGuard.tsx";
+import MobileTypingInput from "~/components/MobileTypingInput.tsx";
 import PassageBar from "~/components/PassageBar.tsx";
 import PassageDone from "~/components/PassageDone.tsx";
 import Privacy from "~/components/Privacy.tsx";
@@ -16,6 +17,7 @@ import SurahComplete from "~/components/SurahComplete.tsx";
 import SurahMap from "~/components/SurahMap.tsx";
 import TransferModal from "~/components/TransferModal.tsx";
 import TypingArea from "~/components/TypingArea.tsx";
+import { isInteractive } from "~/components/ui.ts";
 import VirtualKeyboard from "~/components/VirtualKeyboard.tsx";
 import { fontStack } from "~/engine/fonts.ts";
 import { ayahAt } from "~/engine/lessons/lesson.ts";
@@ -25,6 +27,7 @@ import { useAudioCache } from "~/hooks/useAudioCache.ts";
 import { useDockInset } from "~/hooks/useDockInset.ts";
 import { useImportLink } from "~/hooks/useImportLink.ts";
 import { useLatest } from "~/hooks/useLatest.ts";
+import { useMediaQuery } from "~/hooks/useMediaQuery.ts";
 import { useRecitationPlayer } from "~/hooks/useRecitationPlayer.ts";
 import { recitationHref, targetOf, useRoute } from "~/hooks/useRoute.ts";
 import { useTrainer } from "~/hooks/useTrainer.ts";
@@ -63,7 +66,25 @@ export default function App() {
   }, [settings.font]);
 
   const dockRef = useRef<HTMLDivElement>(null);
-  useDockInset(dockRef, settings.showKeyboard && target !== null);
+  const compact = useMediaQuery("(max-width: 767px)");
+  useDockInset(dockRef, settings.showKeyboard && target !== null && !compact);
+
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const mobileTyping = target !== null && modal === "none" && trainer.completion === null && !trainer.reviewing;
+
+  useEffect(() => {
+    if (!mobileTyping) {
+      return;
+    }
+    const onTap = (event: MouseEvent) => {
+      if (isInteractive(event.target instanceof Element ? event.target : null)) {
+        return;
+      }
+      mobileInputRef.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener("click", onTap);
+    return () => document.removeEventListener("click", onTap);
+  }, [mobileTyping]);
 
   const routeRef = useLatest(route);
   useEffect(() => {
@@ -79,7 +100,7 @@ export default function App() {
 
   return (
     <div
-      className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-10 px-6 py-6"
+      className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:gap-10 md:px-6 md:py-6"
       data-cy="app"
       data-route={route.page}
       data-font={settings.font}
@@ -115,8 +136,16 @@ export default function App() {
           />
         </main>
       ) : (
-        <main className="flex flex-1 flex-col justify-center gap-10">
+        <main className="flex flex-1 flex-col justify-center gap-6 md:gap-10">
           <LayoutGuard latinDetected={latinDetected} onDismiss={trainer.dismissLatin} />
+          {compact ? (
+            <MobileTypingInput
+              inputRef={mobileInputRef}
+              active={mobileTyping}
+              onText={trainer.typeChar}
+              onLatin={trainer.detectLatin}
+            />
+          ) : null}
 
           <section className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
@@ -179,7 +208,7 @@ export default function App() {
             {lesson.source.kind === "recite" ? <RecitationBar player={player} /> : null}
           </section>
 
-          {settings.showKeyboard ? (
+          {settings.showKeyboard && !compact ? (
             <div
               ref={dockRef}
               data-cy="keyboard-dock"
