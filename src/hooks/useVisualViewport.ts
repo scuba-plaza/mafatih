@@ -7,10 +7,7 @@ interface VisualViewportLike {
   offsetTop: number;
 }
 
-export function visibleViewportHeight(
-  viewport: VisualViewportLike | null,
-  layoutHeight: number,
-): number {
+export function visibleViewportHeight(viewport: VisualViewportLike | null, layoutHeight: number): number {
   if (viewport === null || layoutHeight <= 0) {
     return layoutHeight;
   }
