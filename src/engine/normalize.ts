@@ -1,11 +1,7 @@
-import { CORE_HARAKAT, HARAKAT, TYPEABLE } from "~/engine/layout/ara.ts";
-import { expandLigatures } from "~/engine/layout/ligatures.ts";
+import { CORE_HARAKAT, HARAKAT, LIGATURES, TYPEABLE } from "./layout.ts";
 
 export type Tier = "none" | "core" | "full";
-
 export const TIERS: readonly Tier[] = ["none", "core", "full"];
-
-const NO_HARAKAT: ReadonlySet<string> = new Set();
 
 export function isTier(value: unknown): value is Tier {
   return typeof value === "string" && (TIERS as readonly string[]).includes(value);
@@ -26,7 +22,11 @@ function collapseSpaces(text: string): string {
 }
 
 export function composeText(raw: string): string {
-  return expandLigatures(raw.normalize("NFC"));
+  let out = "";
+  for (const char of raw.normalize("NFC")) {
+    out += LIGATURES.get(char) ?? char;
+  }
+  return out;
 }
 
 export function normalizeText(raw: string): string {
@@ -37,8 +37,8 @@ export function stripToTier(text: string, tier: Tier): string {
   if (tier === "full") {
     return text;
   }
-  const keep = tier === "core" ? CORE_HARAKAT : NO_HARAKAT;
-  return collapseSpaces(keepChars(text, (char) => !HARAKAT.has(char) || keep.has(char)));
+  const keep = tier === "core" ? CORE_HARAKAT : null;
+  return collapseSpaces(keepChars(text, (char) => !HARAKAT.has(char) || (keep !== null && keep.has(char))));
 }
 
 export function skeleton(text: string): string {
@@ -53,4 +53,13 @@ export function untypeableChars(text: string): string[] {
     }
   }
   return [...bad];
+}
+
+export function hasHaraka(text: string): boolean {
+  for (const char of text) {
+    if (HARAKAT.has(char)) {
+      return true;
+    }
+  }
+  return false;
 }

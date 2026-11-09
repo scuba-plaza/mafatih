@@ -1,5 +1,3 @@
-import { expandLigature, LIGATURES } from "~/engine/layout/ligatures.ts";
-
 export interface KeyCap {
   code: string;
   base: string;
@@ -26,7 +24,7 @@ export const WIN101_CAPS: readonly KeyCap[] = [
   { code: "KeyW", base: "ص", shift: "ً", row: 1 },
   { code: "KeyE", base: "ث", shift: "ُ", row: 1 },
   { code: "KeyR", base: "ق", shift: "ٌ", row: 1 },
-  { code: "KeyT", base: "ف", shift: "ﻹ", row: 1 },
+  { code: "KeyT", base: "ف", shift: "ﷻ", row: 1 },
   { code: "KeyY", base: "غ", shift: "إ", row: 1 },
   { code: "KeyU", base: "ع", shift: "‘", row: 1 },
   { code: "KeyI", base: "ه", shift: "÷", row: 1 },
@@ -64,71 +62,29 @@ export const WIN101_CAPS: readonly KeyCap[] = [
 
 export const LAYOUT_NAME = "Arabic (101)";
 
-const KEY_REACH: Readonly<Record<string, number>> = {
-  Backquote: 3,
-  KeyQ: 1.5,
-  KeyW: 1,
-  KeyE: 1,
-  KeyR: 1,
-  KeyT: 1.5,
-  KeyY: 1.5,
-  KeyU: 1,
-  KeyI: 1,
-  KeyO: 1,
-  KeyP: 1.5,
-  BracketLeft: 2,
-  BracketRight: 2.5,
-  KeyA: 0,
-  KeyS: 0,
-  KeyD: 0,
-  KeyF: 0,
-  KeyG: 0.5,
-  KeyH: 0.5,
-  KeyJ: 0,
-  KeyK: 0,
-  KeyL: 0,
-  Semicolon: 0,
-  Quote: 1,
-  KeyZ: 1.5,
-  KeyX: 1,
-  KeyC: 1,
-  KeyV: 1,
-  KeyB: 1.5,
-  KeyN: 1.5,
-  KeyM: 1,
-  Comma: 1,
-  Period: 1,
-  Slash: 1.5,
-  Space: 0,
-};
+export const LIGATURES: ReadonlyMap<string, string> = new Map([
+  ["ﻻ", "لا"],
+  ["ﻼ", "لا"],
+  ["ﻹ", "لإ"],
+  ["ﻺ", "لإ"],
+  ["ﻷ", "لأ"],
+  ["ﻸ", "لأ"],
+  ["ﻵ", "لآ"],
+  ["ﻶ", "لآ"],
+]);
 
-const FAR_REACH = 3;
-const SHIFT_REACH = 1;
+const TATWEEL = "ـ";
+const ARABIC_LETTER = /^[\u0621-\u064a]$/;
 
-const FATHA = "َ";
-const DAMMA = "ُ";
-const KASRA = "ِ";
-const SUKUN = "ْ";
-const SHADDA = "ّ";
-const FATHATAN = "ً";
-const DAMMATAN = "ٌ";
-const KASRATAN = "ٍ";
-
-export const CORE_HARAKAT: ReadonlySet<string> = new Set([FATHA, DAMMA, KASRA, SUKUN, SHADDA]);
-export const TANWEEN: ReadonlySet<string> = new Set([FATHATAN, DAMMATAN, KASRATAN]);
+export const CORE_HARAKAT: ReadonlySet<string> = new Set(["َ", "ُ", "ِ", "ْ", "ّ"]);
+export const TANWEEN: ReadonlySet<string> = new Set(["ً", "ٌ", "ٍ"]);
 export const HARAKAT: ReadonlySet<string> = new Set([...CORE_HARAKAT, ...TANWEEN]);
-
-export const TATWEEL = "ـ";
-
-const ARABIC_LETTER = /^[ء-ي]$/;
-
-const LIGATURE_FORMS: ReadonlySet<string> = new Set(LIGATURES.keys());
 
 function glyphsOf(caps: readonly KeyCap[]): Set<string> {
   const seen = new Set<string>();
   for (const cap of caps) {
     for (const glyph of [cap.base, cap.shift]) {
-      if (glyph !== "" && glyph !== TATWEEL && !LIGATURE_FORMS.has(glyph)) {
+      if (glyph !== "" && glyph !== TATWEEL && !LIGATURES.has(glyph)) {
         seen.add(glyph);
       }
     }
@@ -136,26 +92,26 @@ function glyphsOf(caps: readonly KeyCap[]): Set<string> {
   return seen;
 }
 
-function lettersOf(caps: readonly KeyCap[]): string[] {
-  return [...glyphsOf(caps)].filter((glyph) => ARABIC_LETTER.test(glyph));
-}
-
-export const TYPEABLE_LETTERS: readonly string[] = lettersOf(WIN101_CAPS);
-
-export const TYPEABLE_PUNCTUATION: readonly string[] = [...glyphsOf(WIN101_CAPS)].filter(
+const GLYPHS: readonly string[] = [...glyphsOf(WIN101_CAPS)].sort();
+export const TYPEABLE_LETTERS: readonly string[] = GLYPHS.filter((glyph) => ARABIC_LETTER.test(glyph));
+export const TYPEABLE_PUNCTUATION: readonly string[] = GLYPHS.filter(
   (glyph) => glyph !== " " && !ARABIC_LETTER.test(glyph) && !HARAKAT.has(glyph),
 );
-
-export const TYPEABLE: ReadonlySet<string> = new Set([...TYPEABLE_LETTERS, ...HARAKAT, ...TYPEABLE_PUNCTUATION, " "]);
+export const TYPEABLE: ReadonlySet<string> = new Set([
+  ...TYPEABLE_LETTERS,
+  ...HARAKAT,
+  ...TYPEABLE_PUNCTUATION,
+  " ",
+]);
 
 export interface KeyStroke {
   code: string;
   shift: boolean;
 }
 
-function indexOf(caps: readonly KeyCap[]): ReadonlyMap<string, KeyStroke> {
+const STROKE_INDEX: ReadonlyMap<string, KeyStroke> = (() => {
   const map = new Map<string, KeyStroke>();
-  for (const cap of caps) {
+  for (const cap of WIN101_CAPS) {
     if (cap.base !== "" && !map.has(cap.base)) {
       map.set(cap.base, { code: cap.code, shift: false });
     }
@@ -164,36 +120,12 @@ function indexOf(caps: readonly KeyCap[]): ReadonlyMap<string, KeyStroke> {
     }
   }
   return map;
-}
-
-const STROKE_INDEX: ReadonlyMap<string, KeyStroke> = indexOf(WIN101_CAPS);
+})();
 
 export function strokeFor(char: string): KeyStroke | undefined {
   return STROKE_INDEX.get(char);
 }
 
-export function reachOf(char: string): number {
-  const stroke = strokeFor(char);
-  if (stroke === undefined) {
-    return FAR_REACH + SHIFT_REACH;
-  }
-  return (KEY_REACH[stroke.code] ?? FAR_REACH) + (stroke.shift ? SHIFT_REACH : 0);
-}
-
 export function isHaraka(char: string): boolean {
   return HARAKAT.has(char);
 }
-
-function ligatureKeysOf(caps: readonly KeyCap[]): ReadonlyMap<string, string> {
-  const keys = new Map<string, string>();
-  for (const cap of caps) {
-    for (const glyph of [cap.base, cap.shift]) {
-      if (LIGATURE_FORMS.has(glyph)) {
-        keys.set(expandLigature(glyph), glyph);
-      }
-    }
-  }
-  return keys;
-}
-
-export const LIGATURE_KEYS: ReadonlyMap<string, string> = ligatureKeysOf(WIN101_CAPS);

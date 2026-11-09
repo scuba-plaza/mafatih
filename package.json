@@ -5,17 +5,18 @@
   "type": "module",
   "description": "Arabic touch-typing trainer, built on Quranic text.",
   "scripts": {
-    "build": "pnpm build:corpus && tsc --noEmit && vite build",
+    "build": "pnpm build:corpus && pnpm build:practice && tsc --noEmit && vite build",
     "build:corpus": "tsx scripts/build-corpus.ts",
+    "build:practice": "tsx scripts/build-practice.ts",
     "check": "biome check ./",
     "check:write": "biome check --write --unsafe ./",
     "cypress:nix": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress run --e2e'",
     "cypress:nix:open": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress open'",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run --e2e",
-    "dev": "pnpm build:corpus && vite",
+    "dev": "pnpm build:corpus && pnpm build:practice && vite",
     "preview": "vite preview",
-    "test": "pnpm build:corpus && node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "pnpm build:corpus && pnpm build:practice && node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
