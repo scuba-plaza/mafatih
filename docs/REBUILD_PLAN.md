@@ -14,6 +14,13 @@ mode drills on a separate, secular corpus. Progression is the spine that connect
 - **The `laws-of-simplicity` skill must be used at every stage** — before each task
   (framing), during (REDUCE/ORGANIZE/TIME checkpoints), and at review (simplicity_delta
   scoring, decision matrix). Complexity for marginal gain is cut.
+- **Destructive actions always ask first.** Reset progress, delete-level actions and
+  similar are never one click and done: each opens a confirmation dialog that names
+  exactly what will be lost, cannot be triggered by accident, and follows mufradat's
+  UX language (ask first, say what happens, disable with a reason).
+- **UI/UX inspiration: [mufradat](https://github.com/scuba-plaza/mufradat)** — states
+  shown by borders, spinners that replace icons so nothing moves, disabled controls
+  that name their reason, consistent icon capsules.
 - **Qur'an-respect rules, enforced by build-time tests, not convention:**
   1. Qur'anic text is rendered only in Recitation mode, in canonical order, as complete
      ayaht within their surah context.
