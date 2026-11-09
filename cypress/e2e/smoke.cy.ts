@@ -11,9 +11,18 @@ describe("Mafatih smoke", () => {
     cy.get("[aria-current='page']").should("have.text", "Recitation");
   });
 
-  it("shows the empty state for a fresh profile in Practice", () => {
+  it("gives a fresh profile a letter drill in Practice from the start", () => {
     cy.contains("button", "Practice").click();
-    cy.contains("No drill matches your unlocked letters yet").should("be.visible");
+    cy.contains("Focus letter").should("be.visible");
+    cy.get(".typing-line")
+      .first()
+      .invoke("text")
+      .then((text) => {
+        for (const letter of text.trim().replaceAll(" ", "")) {
+          assert.equal(letter, "ب");
+        }
+      });
+    cy.get("input[aria-label*='Typing area']").should("exist");
   });
 
   it("types the first character of a practice drill once letters are unlocked", () => {
