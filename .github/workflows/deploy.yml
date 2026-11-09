@@ -54,3 +54,26 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/setup@v3
+        with:
+          version: ^12.0.0
+          runtime: node@24
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build:corpus && pnpm build:practice
+
+      - name: Start the dev server
+        run: |
+          pnpm dev &
+          timeout 60 bash -c 'until curl -sf http://localhost:5173/ >/dev/null; do sleep 1; done'
+
+      - run: pnpm exec cypress install
+
+      - run: pnpm exec cypress run --e2e

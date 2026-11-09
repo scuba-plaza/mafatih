@@ -17,10 +17,11 @@ interface PracticeViewProps {
   words: readonly string[];
   progress: Progress;
   tierOverride: "auto" | "none" | "core" | "full";
+  fingerColors: boolean;
   onProgress: (progress: Progress) => void;
 }
 
-export function PracticeView({ words, progress, tierOverride, onProgress }: PracticeViewProps) {
+export function PracticeView({ words, progress, tierOverride, fingerColors, onProgress }: PracticeViewProps) {
   const [drillIndex, setDrillIndex] = useState(0);
   const [lastAccuracy, setLastAccuracy] = useState<number | null>(null);
   const tier = effectiveTier(progress, tierOverride);
@@ -39,7 +40,7 @@ export function PracticeView({ words, progress, tierOverride, onProgress }: Prac
     [words, unlocked, tier, focus, drillIndex],
   );
 
-  const { state, handleKeyDown } = useTyping(drill, (finished) => {
+  const { state, handleKeyDown, typeChar } = useTyping(drill, (finished) => {
     let next = progress;
     for (const attempt of finished.attempts) {
       next = recordAttempt(next, attempt.char, attempt.correct);
@@ -70,10 +71,20 @@ export function PracticeView({ words, progress, tierOverride, onProgress }: Prac
           No drill matches your unlocked letters yet. Type the letters you have in Recitation to unlock more.
         </p>
       ) : (
-        <TypingArea target={drill} typed={state.typed} wrong={state.wrong} onKeyDown={handleKeyDown} />
+        <TypingArea
+          target={drill}
+          typed={state.typed}
+          wrong={state.wrong}
+          onKeyDown={handleKeyDown}
+          onChar={typeChar}
+        />
       )}
 
-      <Keyboard remaining={drill === "" ? "" : drill.slice(state.typed.length)} wrong={state.wrong} />
+      <Keyboard
+        remaining={drill === "" ? "" : drill.slice(state.typed.length)}
+        wrong={state.wrong}
+        colored={fingerColors}
+      />
 
       <p role="status" aria-live="polite" className="min-h-6 text-center text-sm text-stone-600 dark:text-stone-300">
         {state.done

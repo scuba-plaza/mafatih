@@ -56,6 +56,23 @@ export function SettingsView({ profile, onProfile }: SettingsViewProps) {
       </div>
 
       <div>
+        <h2 className="mb-2 font-medium">Keyboard</h2>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={profile.settings.fingerColors}
+            onChange={(event) =>
+              onProfile({
+                ...profile,
+                settings: { ...profile.settings, fingerColors: event.target.checked },
+              })
+            }
+          />
+          Colour the on-screen keys by the finger that presses them
+        </label>
+      </div>
+
+      <div>
         <h2 className="mb-2 font-medium">Your data</h2>
         <p className="mb-3 text-sm text-stone-600 dark:text-stone-300">
           Your progress stays in this browser. Export it to move it to another device.

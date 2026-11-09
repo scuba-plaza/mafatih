@@ -16,20 +16,28 @@ export function useTyping(target: string, onFinish: (state: TypingState) => void
     }
   }, [state]);
 
+  const typeChar = (char: string) => {
+    setState((current) => applyKey(current, char, Date.now()));
+  };
+
+  const backspace = () => {
+    setState((current) => applyKey(current, "\b", Date.now()));
+  };
+
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
     if (event.key === "Backspace") {
       event.preventDefault();
-      setState((current) => applyKey(current, "\b", Date.now()));
+      backspace();
       return;
     }
     if (event.key.length === 1) {
       event.preventDefault();
-      setState((current) => applyKey(current, event.key, Date.now()));
+      typeChar(event.key);
     }
   };
 
-  return { state, handleKeyDown };
+  return { state, typeChar, backspace, handleKeyDown };
 }

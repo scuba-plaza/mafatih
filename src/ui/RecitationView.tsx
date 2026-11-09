@@ -185,6 +185,7 @@ function SurahSession({
       ayahText={stripToTier(surahAyat[ayahIndex] ?? "", tier)}
       ayahNumber={ayahIndex + 1}
       tier={tier}
+      fingerColors={profile.settings.fingerColors}
       completed={saved.done}
       starred={saved.star}
       playing={playing}
@@ -229,6 +230,7 @@ interface SurahTypingProps {
   ayahText: string;
   ayahNumber: number;
   tier: "none" | "core" | "full";
+  fingerColors: boolean;
   completed: boolean;
   starred: boolean;
   playing: boolean;
@@ -250,7 +252,7 @@ function SurahTyping(props: SurahTypingProps) {
   const index = Math.min(lineIndex, Math.max(lines.length - 1, 0));
   const line = lines[index] ?? "";
   const attemptsRef = props.attemptsRef;
-  const { state, handleKeyDown } = useTyping(line, (finished) => {
+  const { state, handleKeyDown, typeChar } = useTyping(line, (finished) => {
     attemptsRef.current = [...attemptsRef.current, ...finished.attempts];
     if (index + 1 < lines.length) {
       setLineIndex(index + 1);
@@ -329,8 +331,8 @@ function SurahTyping(props: SurahTypingProps) {
           Ayah {ayahNumber} of {meta.ayat} · line {index + 1} of {lines.length} · harakat: {tier}
         </p>
       </div>
-      <TypingArea target={line} typed={state.typed} wrong={state.wrong} onKeyDown={handleKeyDown} />
-      <Keyboard remaining={line.slice(state.typed.length)} wrong={state.wrong} />
+      <TypingArea target={line} typed={state.typed} wrong={state.wrong} onKeyDown={handleKeyDown} onChar={typeChar} />
+      <Keyboard remaining={line.slice(state.typed.length)} wrong={state.wrong} colored={props.fingerColors} />
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"

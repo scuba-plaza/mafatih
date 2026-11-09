@@ -5,6 +5,7 @@ export type TierOverride = "auto" | Tier;
 
 export interface Settings {
   tierOverride: TierOverride;
+  fingerColors: boolean;
 }
 
 export interface SurahProgress {
@@ -27,7 +28,7 @@ export function emptyProfile(): Profile {
   return {
     version: 2,
     progress: beginProgress(),
-    settings: { tierOverride: "auto" },
+    settings: { tierOverride: "auto", fingerColors: true },
     recitation: {},
   };
 }

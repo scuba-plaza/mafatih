@@ -11,12 +11,18 @@ describe("Mafatih smoke", () => {
     cy.get("[aria-current='page']").should("have.text", "Recitation");
   });
 
-  it("types a practice drill and unlocks nothing on errors", () => {
+  it("types the first character of a practice drill", () => {
     cy.contains("button", "Practice").click();
     cy.contains("Focus letter").should("be.visible");
-    cy.get("input[aria-label*='Typing area']").click();
-    cy.get("input[aria-label*='Typing area']").type("ب", { delay: 10 });
-    cy.get(".typing-done").should("contain.text", "ب");
+    cy.get(".typing-line")
+      .first()
+      .invoke("text")
+      .then((text) => {
+        const first = text.trim()[0];
+        cy.get("input[aria-label*='Typing area']").click();
+        cy.get("input[aria-label*='Typing area']").type(first, { delay: 10 });
+        cy.get(".typing-done").should("contain.text", first);
+      });
   });
 
   it("shows the confirmation dialog before resetting progress", () => {
@@ -31,5 +37,34 @@ describe("Mafatih smoke", () => {
     cy.contains("button[aria-label*='Al-Faatiha']").click();
     cy.contains("Ayah 1 of 7").should("be.visible");
     cy.get(".typing-line").should("be.visible");
+  });
+});
+
+describe("Mafatih v2 extras", () => {
+  beforeEach(() => {
+    cy.visit("/");
+    cy.clearLocalStorage();
+    cy.visit("/");
+  });
+
+  it("colours keys by finger in Practice", () => {
+    cy.contains("button", "Practice").click();
+    cy.get(".key-cap.finger-0").should("exist");
+  });
+
+  it("opens and closes the privacy dialog", () => {
+    cy.contains("button", "Privacy").click();
+    cy.get("[role='dialog']").should("contain.text", "Privacy");
+    cy.contains("button", "Close").click();
+    cy.get("[role='dialog']").should("not.exist");
+  });
+
+  it("lets settings turn off finger colours", () => {
+    cy.contains("button", "Practice").click();
+    cy.get(".key-cap.finger-0").should("exist");
+    cy.contains("button", "Settings").click();
+    cy.get("input[type='checkbox']").uncheck();
+    cy.contains("button", "Practice").click();
+    cy.get(".key-cap.finger-0").should("not.exist");
   });
 });

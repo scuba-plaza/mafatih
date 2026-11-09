@@ -3,6 +3,7 @@ import type { Progress } from "~/engine/progression.ts";
 import corpus from "~generated/corpus.json";
 import practice from "~generated/practice.json";
 import { PracticeView } from "./PracticeView.tsx";
+import { PrivacyDialog } from "./PrivacyDialog.tsx";
 import { RecitationView, type SurahMeta } from "./RecitationView.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 import { StatsView } from "./StatsView.tsx";
@@ -24,6 +25,7 @@ const MODES: readonly { id: Mode; label: string }[] = [
 export function App() {
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
   const [mode, setMode] = useState<Mode>("recitation");
+  const [privacy, setPrivacy] = useState(false);
 
   useEffect(() => {
     saveProfile(profile);
@@ -67,6 +69,7 @@ export function App() {
             words={WORDS}
             progress={profile.progress}
             tierOverride={profile.settings.tierOverride}
+            fingerColors={profile.settings.fingerColors}
             onProgress={setProgress}
           />
         ) : null}
@@ -84,9 +87,13 @@ export function App() {
           <a className="underline" href="https://everyayah.com" rel="noreferrer" target="_blank">
             EveryAyah
           </a>
-          . Practice words are secular everyday Arabic, authored for Mafatih.
+          . Practice words are secular everyday Arabic, authored for Mafatih.{" "}
+          <button type="button" onClick={() => setPrivacy(true)} className="underline">
+            Privacy
+          </button>
         </p>
       </footer>
+      {privacy ? <PrivacyDialog onClose={() => setPrivacy(false)} /> : null}
     </div>
   );
 }
