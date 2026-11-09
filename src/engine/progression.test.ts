@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { TYPEABLE_LETTERS } from "./layout.ts";
 import {
-  LETTER_ORDER,
-  UNLOCK_ACCURACY,
   advance,
   beginProgress,
   effectiveTier,
   focusLetter,
+  LETTER_ORDER,
   recentAccuracy,
   recordAttempt,
+  UNLOCK_ACCURACY,
 } from "./progression.ts";
-import { TYPEABLE_LETTERS } from "./layout.ts";
 
 test("the letter order covers every typeable letter exactly once", () => {
   assert.equal(LETTER_ORDER.length, TYPEABLE_LETTERS.length);
@@ -71,6 +71,6 @@ test("a steady 10% error rate never unlocks", () => {
   for (let i = 0; i < 1000; i++) {
     progress = advance(recordAttempt(progress, "ب", i % 10 !== 0));
   }
-  assert.ok(recentAccuracy(progress.stats["ب"] ?? { attempts: 0, recent: [] }) < UNLOCK_ACCURACY);
+  assert.ok(recentAccuracy(progress.stats.ب ?? { attempts: 0, recent: [] }) < UNLOCK_ACCURACY);
   assert.equal(focusLetter(progress), "ب");
 });

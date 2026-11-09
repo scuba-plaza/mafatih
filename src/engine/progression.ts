@@ -1,5 +1,5 @@
-import type { Tier } from "./normalize.ts";
 import { CORE_HARAKAT, HARAKAT, TYPEABLE_LETTERS } from "./layout.ts";
+import type { Tier } from "./normalize.ts";
 
 export const LETTER_ORDER: readonly string[] = [
   "ب",
@@ -58,7 +58,7 @@ export interface Progress {
 }
 
 export function beginProgress(): Progress {
-  return { unlocked: [LETTER_ORDER[0]], tier: "none", stats: {} };
+  return { unlocked: [LETTER_ORDER[0] as string], tier: "none", stats: {} };
 }
 
 export function recentAccuracy(stat: CharStat): number {
@@ -80,7 +80,7 @@ export function recordAttempt(progress: Progress, char: string, correct: boolean
 }
 
 export function focusLetter(progress: Progress): string {
-  return progress.unlocked.at(-1) ?? LETTER_ORDER[0];
+  return progress.unlocked.at(-1) ?? (LETTER_ORDER[0] as string);
 }
 
 function tierReady(progress: Progress, marks: ReadonlySet<string>): boolean {

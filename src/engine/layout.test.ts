@@ -1,13 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  CORE_HARAKAT,
-  HARAKAT,
-  LAYOUT_NAME,
-  TYPEABLE,
-  TYPEABLE_LETTERS,
-  strokeFor,
-} from "./layout.ts";
+import { CORE_HARAKAT, HARAKAT, LAYOUT_NAME, strokeFor, TYPEABLE, TYPEABLE_LETTERS } from "./layout.ts";
 
 test("the layout has exactly the 36 letters of Arabic (101)", () => {
   assert.equal(TYPEABLE_LETTERS.length, 36);

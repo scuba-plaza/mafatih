@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@import "@fontsource/noto-naskh-arabic/400.css";
+@import "@fontsource/noto-naskh-arabic/700.css";
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #faf9f7;
+  color: #1c1917;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #171512;
+    color: #f5f4f2;
+  }
+}
+
+.typing-line {
+  font-family: "Noto Naskh Arabic", serif;
+  font-size: 2.25rem;
+  line-height: 2;
+  white-space: pre;
+  direction: rtl;
+}
+
+.typing-done {
+  color: #15803d;
+}
+
+.typing-wrong {
+  color: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .typing-done {
+    color: #4ade80;
+  }
+  .typing-wrong {
+    color: #f87171;
+  }
+}
+
+.key-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.4rem;
+  background: #ffffff;
+  color: #1c1917;
+  font-family: "Noto Naskh Arabic", serif;
+}
+
+.key-cap.next {
+  border-color: #15803d;
+  box-shadow: 0 0 0 2px #15803d;
+}
+
+.key-cap.shift-on {
+  border-color: #b45309;
+  box-shadow: 0 0 0 2px #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+  .key-cap {
+    background: #26231f;
+    border-color: #44403c;
+    color: #f5f4f2;
+  }
+  .key-cap.next {
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px #4ade80;
+  }
+}

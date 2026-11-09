@@ -38,7 +38,7 @@ export function stripToTier(text: string, tier: Tier): string {
     return text;
   }
   const keep = tier === "core" ? CORE_HARAKAT : null;
-  return collapseSpaces(keepChars(text, (char) => !HARAKAT.has(char) || (keep !== null && keep.has(char))));
+  return collapseSpaces(keepChars(text, (char) => !HARAKAT.has(char) || keep?.has(char) === true));
 }
 
 export function skeleton(text: string): string {

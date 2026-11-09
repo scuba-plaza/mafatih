@@ -97,12 +97,7 @@ export const TYPEABLE_LETTERS: readonly string[] = GLYPHS.filter((glyph) => ARAB
 export const TYPEABLE_PUNCTUATION: readonly string[] = GLYPHS.filter(
   (glyph) => glyph !== " " && !ARABIC_LETTER.test(glyph) && !HARAKAT.has(glyph),
 );
-export const TYPEABLE: ReadonlySet<string> = new Set([
-  ...TYPEABLE_LETTERS,
-  ...HARAKAT,
-  ...TYPEABLE_PUNCTUATION,
-  " ",
-]);
+export const TYPEABLE: ReadonlySet<string> = new Set([...TYPEABLE_LETTERS, ...HARAKAT, ...TYPEABLE_PUNCTUATION, " "]);
 
 export interface KeyStroke {
   code: string;
@@ -129,3 +124,7 @@ export function strokeFor(char: string): KeyStroke | undefined {
 export function isHaraka(char: string): boolean {
   return HARAKAT.has(char);
 }
+
+export const LIGATURE_KEYS: ReadonlyMap<string, string> = new Map(
+  [...LIGATURES.entries()].map(([glyph, sequence]) => [sequence, glyph]),
+);

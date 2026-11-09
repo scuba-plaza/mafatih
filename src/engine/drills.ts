@@ -1,5 +1,5 @@
 import { HARAKAT, TANWEEN } from "./layout.ts";
-import { hasHaraka, type Tier, skeleton, stripToTier } from "./normalize.ts";
+import { hasHaraka, skeleton, stripToTier, type Tier } from "./normalize.ts";
 
 export function lettersOf(word: string): string[] {
   return [...new Set([...skeleton(word)])];
@@ -37,13 +37,14 @@ export function composeDrill(options: DrillOptions): string {
     const withFocus = candidates.filter((word) => word.includes(options.focus));
     const pool = i < Math.ceil(options.count * 0.6) && withFocus.length > 0 ? withFocus : candidates;
     const previous = picked.at(-1);
-    let word = pool[Math.floor(options.rand() * pool.length)] ?? candidates[0];
+    const pick = () => pool[Math.floor(options.rand() * pool.length)] ?? (candidates[0] as string);
+    let word = pick();
     if (pool.length > 1) {
       for (let tries = 0; tries < 4 && word === previous; tries++) {
-        word = pool[Math.floor(options.rand() * pool.length)] ?? candidates[0];
+        word = pick();
       }
     }
-    picked.push(word ?? candidates[0]);
+    picked.push(word);
   }
   return picked.join(" ");
 }
