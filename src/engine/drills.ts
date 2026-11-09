@@ -14,24 +14,6 @@ export interface DrillOptions {
   rand: () => number;
 }
 
-function letterDrill(options: DrillOptions): string {
-  const letters = [...options.unlocked];
-  if (letters.length === 0) {
-    return "";
-  }
-  const picked: string[] = [];
-  for (let i = 0; i < options.count; i++) {
-    const pool = i < Math.ceil(options.count * 0.6) ? [options.focus, ...letters] : letters;
-    let word = "";
-    const length = 2 + Math.floor(options.rand() * 2);
-    for (let j = 0; j < length; j++) {
-      word += pool[Math.floor(options.rand() * pool.length)] ?? (letters[0] as string);
-    }
-    picked.push(word);
-  }
-  return picked.join(" ");
-}
-
 export function composeDrill(options: DrillOptions): string {
   const candidates: string[] = [];
   for (const word of options.words) {
@@ -48,7 +30,7 @@ export function composeDrill(options: DrillOptions): string {
     candidates.push(stripped);
   }
   if (candidates.length === 0) {
-    return letterDrill(options);
+    return "";
   }
   const picked: string[] = [];
   for (let i = 0; i < options.count; i++) {

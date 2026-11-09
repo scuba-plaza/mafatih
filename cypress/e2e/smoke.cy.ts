@@ -11,15 +11,16 @@ describe("Mafatih smoke", () => {
     cy.get("[aria-current='page']").should("have.text", "Recitation");
   });
 
-  it("gives a fresh profile a letter drill in Practice from the start", () => {
+  it("gives a fresh profile a word drill in Practice from the start", () => {
     cy.contains("button", "Practice").click();
     cy.contains("Focus letter").should("be.visible");
     cy.get(".typing-line")
       .first()
       .invoke("text")
       .then((text) => {
-        for (const letter of text.trim().replaceAll(" ", "")) {
-          assert.equal(letter, "ب");
+        const letters = new Set(text.trim().replaceAll(" ", ""));
+        for (const letter of letters) {
+          assert.ok(["ب", "ي", "ل", "ا", "ت"].includes(letter), letter);
         }
       });
     cy.get("input[aria-label*='Typing area']").should("exist");

@@ -17,24 +17,25 @@ test("the letter order covers every typeable letter exactly once", () => {
   assert.deepEqual([...LETTER_ORDER].sort(), [...TYPEABLE_LETTERS].sort());
 });
 
-test("a learner unlocks the next letter after 20 clean attempts", () => {
+test("a learner starts on the home row and unlocks the next letter after 20 clean attempts", () => {
   let progress = beginProgress();
-  assert.equal(focusLetter(progress), "ب");
+  assert.equal(progress.unlocked.length, 5);
+  assert.equal(focusLetter(progress), "ت");
   for (let i = 0; i < 20; i++) {
-    progress = advance(recordAttempt(progress, "ب", true));
+    progress = advance(recordAttempt(progress, "ت", true));
   }
-  assert.equal(focusLetter(progress), "ي");
+  assert.equal(focusLetter(progress), "ن");
 });
 
 test("a learner with low recent accuracy stays on the same letter", () => {
   let progress = beginProgress();
   for (let i = 0; i < 10; i++) {
-    progress = advance(recordAttempt(progress, "ب", true));
+    progress = advance(recordAttempt(progress, "ت", true));
   }
   for (let i = 0; i < 10; i++) {
-    progress = advance(recordAttempt(progress, "ب", false));
+    progress = advance(recordAttempt(progress, "ت", false));
   }
-  assert.equal(focusLetter(progress), "ب");
+  assert.equal(focusLetter(progress), "ت");
 });
 
 test("recent accuracy uses the early mean then the moving window", () => {
@@ -69,8 +70,8 @@ test("harakat tiers unlock only after all letters and practised marks", () => {
 test("a steady 10% error rate never unlocks", () => {
   let progress = beginProgress();
   for (let i = 0; i < 1000; i++) {
-    progress = advance(recordAttempt(progress, "ب", i % 10 !== 0));
+    progress = advance(recordAttempt(progress, "ت", i % 10 !== 0));
   }
-  assert.ok(recentAccuracy(progress.stats.ب ?? { attempts: 0, recent: [] }) < UNLOCK_ACCURACY);
-  assert.equal(focusLetter(progress), "ب");
+  assert.ok(recentAccuracy(progress.stats.ت ?? { attempts: 0, recent: [] }) < UNLOCK_ACCURACY);
+  assert.equal(focusLetter(progress), "ت");
 });

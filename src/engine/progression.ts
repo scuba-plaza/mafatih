@@ -57,8 +57,10 @@ export interface Progress {
   stats: Record<string, CharStat>;
 }
 
+export const START_LETTERS: readonly string[] = LETTER_ORDER.slice(0, 5);
+
 export function beginProgress(): Progress {
-  return { unlocked: [LETTER_ORDER[0] as string], tier: "none", stats: {} };
+  return { unlocked: [...START_LETTERS], tier: "none", stats: {} };
 }
 
 export function recentAccuracy(stat: CharStat): number {

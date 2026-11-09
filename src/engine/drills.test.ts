@@ -47,7 +47,7 @@ test("a drill at the full tier keeps tanween, so it differs from core", () => {
   assert.notEqual(full, core);
 });
 
-test("with no matching words the drill falls back to the unlocked letters", () => {
+test("with no matching words the drill is empty", () => {
   const drill = composeDrill({
     words: WORDS,
     unlocked: new Set(["ش"]),
@@ -56,42 +56,16 @@ test("with no matching words the drill falls back to the unlocked letters", () =
     count: 5,
     rand: RAND,
   });
-  assert.equal(drill, "ششش ششش ششش ششش ششش");
+  assert.equal(drill, "");
 });
 
-test("with only one unlocked letter the drill falls back to letter patterns", () => {
-  const drill = composeDrill({
-    words: WORDS,
-    unlocked: new Set(["ب"]),
-    tier: "none",
-    focus: "ب",
-    count: 5,
-    rand: RAND,
-  });
+test("the starting letters already yield real words", () => {
+  const unlocked = new Set(["ب", "ي", "ل", "ا", "ت"]);
+  const drill = composeDrill({ words: WORDS, unlocked, tier: "none", focus: "ت", count: 7, rand: RAND });
   assert.notEqual(drill, "");
-  const parts = drill.split(" ");
-  assert.equal(parts.length, 5);
-  for (const part of parts) {
-    assert.ok(part.length >= 2, part);
-    for (const letter of part) {
-      assert.equal(letter, "ب");
+  for (const word of drill.split(" ")) {
+    for (const letter of lettersOf(word)) {
+      assert.ok(unlocked.has(letter), `${word} needs ${letter}`);
     }
-  }
-});
-
-test("the fallback uses several unlocked letters when available", () => {
-  let n = 0;
-  const drill = composeDrill({
-    words: ["ظَّ", "غَيْنٌ"],
-    unlocked: new Set(["ب", "ت", "ن"]),
-    tier: "none",
-    focus: "ن",
-    count: 6,
-    rand: () => (n++ % 7) / 7,
-  });
-  const letters = new Set(drill.replaceAll(" ", ""));
-  assert.ok(letters.has("ن"));
-  for (const letter of letters) {
-    assert.ok(["ب", "ت", "ن"].includes(letter), letter);
   }
 });
