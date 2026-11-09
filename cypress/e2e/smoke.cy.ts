@@ -11,14 +11,34 @@ describe("Mafatih smoke", () => {
     cy.get("[aria-current='page']").should("have.text", "Recitation");
   });
 
-  it("types the first character of a practice drill", () => {
+  it("shows the empty state for a fresh profile in Practice", () => {
+    cy.contains("button", "Practice").click();
+    cy.contains("No drill matches your unlocked letters yet").should("be.visible");
+  });
+
+  it("types the first character of a practice drill once letters are unlocked", () => {
+    const profile = {
+      version: 2,
+      progress: {
+        unlocked: ["ب", "ي", "ل", "ا", "ت", "ن", "م", "ك", "ش", "س", "ع", "ف", "ه", "د", "ق", "ر"],
+        tier: "none",
+        stats: {},
+      },
+      settings: { tierOverride: "auto", fingerColors: true },
+      recitation: {},
+    };
+    cy.window().then((window) => {
+      window.localStorage.setItem("mafatih.profile.v2", JSON.stringify(profile));
+    });
     cy.contains("button", "Practice").click();
     cy.contains("Focus letter").should("be.visible");
     cy.get(".typing-line")
       .first()
       .invoke("text")
       .then((text) => {
-        const first = text.trim()[0];
+        const trimmed = text.trim();
+        assert.isAbove(trimmed.length, 0);
+        const first = trimmed.charAt(0);
         cy.get("input[aria-label*='Typing area']").click();
         cy.get("input[aria-label*='Typing area']").type(first, { delay: 10 });
         cy.get(".typing-done").should("contain.text", first);
@@ -34,7 +54,7 @@ describe("Mafatih smoke", () => {
   });
 
   it("opens a surah and shows its first ayah in order", () => {
-    cy.contains("button[aria-label*='Al-Faatiha']").click();
+    cy.get("button[aria-label*='Al-Faatiha']").click();
     cy.contains("Ayah 1 of 7").should("be.visible");
     cy.get(".typing-line").should("be.visible");
   });
