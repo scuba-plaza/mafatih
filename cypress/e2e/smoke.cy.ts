@@ -67,6 +67,33 @@ describe("Mafatih smoke", () => {
     cy.get("button[aria-label*='Al-Faatiha']").click();
     cy.contains("Ayah 1 of 7").should("be.visible");
     cy.get(".typing-line").should("be.visible");
+    cy.get("button[aria-label*='Play the recitation']").should("be.visible");
+  });
+
+  it("survives typing a whole ayah and moves to the next one", () => {
+    cy.get("button[aria-label*='Al-Faatiha']").click();
+    const typeCurrentLine = (): void => {
+      cy.get("body").then((body) => {
+        if (body.find(".typing-line").length === 0) {
+          return;
+        }
+        cy.get(".typing-line")
+          .first()
+          .invoke("text")
+          .then((text) => {
+            const line = text.trim();
+            if (line.length > 0) {
+              cy.get("input[aria-label*='Typing area']").type(line, { delay: 5 });
+            }
+          });
+      });
+    };
+    for (let i = 0; i < 12; i++) {
+      typeCurrentLine();
+      cy.wait(100);
+    }
+    cy.contains("Ayah 2 of 7").should("be.visible");
+    cy.get("button[aria-label*='Play the recitation']").should("be.visible");
   });
 });
 

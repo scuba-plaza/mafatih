@@ -13,13 +13,14 @@ export function TypingLine({ target, typed, wrong }: TypingLineProps) {
   useLayoutEffect(() => {
     const element = baseRef.current;
     const textNode = element?.firstChild;
-    if (element === null || element === undefined || !(textNode instanceof Text) || typed.length === 0) {
+    const end = Math.min(typed.length, target.length);
+    if (element === null || element === undefined || !(textNode instanceof Text) || end === 0) {
       setInsetLeft(null);
       return;
     }
     const range = document.createRange();
     range.setStart(textNode, 0);
-    range.setEnd(textNode, typed.length);
+    range.setEnd(textNode, end);
     const boundary = range.getBoundingClientRect().left;
     const box = element.getBoundingClientRect();
     setInsetLeft(Math.max(0, boundary - box.left));

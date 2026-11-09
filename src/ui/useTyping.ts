@@ -6,22 +6,20 @@ export function useTyping(target: string, onFinish: (state: TypingState) => void
   const finishRef = useRef(onFinish);
   finishRef.current = onFinish;
 
-  useEffect(() => {
-    setState(beginTyping(target));
-  }, [target]);
+  const current = state.target === target ? state : beginTyping(target);
 
   useEffect(() => {
-    if (state.done) {
-      finishRef.current(state);
+    if (current.done) {
+      finishRef.current(current);
     }
-  }, [state]);
+  }, [current]);
 
   const typeChar = (char: string) => {
-    setState((current) => applyKey(current, char, Date.now()));
+    setState((latest) => applyKey(latest, char, Date.now()));
   };
 
   const backspace = () => {
-    setState((current) => applyKey(current, "\b", Date.now()));
+    setState((latest) => applyKey(latest, "\b", Date.now()));
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -39,5 +37,5 @@ export function useTyping(target: string, onFinish: (state: TypingState) => void
     }
   };
 
-  return { state, typeChar, backspace, handleKeyDown };
+  return { state: current, typeChar, backspace, handleKeyDown };
 }
