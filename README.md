@@ -1,43 +1,33 @@
 # مفاتيح · Mafatih
 
-THIS PROJECT IS MOSTLY AI GENERATED. Dont use it if you care about quality code or souls.
-
 **Learn to touch-type Arabic.**
 
-Mafatih ("keys") is a free typing trainer that runs in your browser. Every word you practise is a
-real word from the Qur'an, and you can go on to type the Qur'an itself, surah by surah, while
-listening to its recitation.
+Mafatih ("keys") is a free typing trainer that runs in your browser. It is built around one rule the
+first version learned too late: **the Qur'an is sacred text and is never used as drill material.**
 
-**Try it: <https://mafatih.tasrif.xyz/>**
-
-## What you can do
-
-- **Recitation.** Type the Qur'an surah by surah. Each surah is a level; finish it to earn a ✓, and
-  keep 95% accuracy to earn a ★. Press play to hear each ayah recited by Abdul Basit ʿAbd
-  us-Samad while you type. Letters unlock as you type them quickly and accurately; once you have
-  all 36, the harakat join in — first fatha, damma, kasra, sukun and shadda, then tanween. You can
-  switch them on sooner in the settings.
-- **Custom.** Paste any Arabic text and practise on that.
-- **Stats.** See your speed and accuracy for every letter and mark.
+- **Recitation (the default mode).** Type the Qur'an surah by surah, ayah by ayah, in order, with its
+  meaning intact. Press play to hear each ayah recited by Abdul Basit ʿAbd us-Samad while you type.
+  Finish a surah to earn a ✓; keep 95% accuracy to earn a ★.
+- **Practice.** Drills made of everyday, fully vocalized Modern Standard Arabic words — a secular
+  corpus authored for Mafatih, never a scrambled Qur'an word. The progression engine decides what
+  you type: only letters you have unlocked appear, weighted toward your focus letter, and the
+  harakat tier (letters only → core harakat → full vocalization) follows what you have mastered.
+- **Stats.** Recent accuracy and attempt counts for every letter and every haraka.
+- **Your data.** No account, no server: progress stays in your browser, and you can export or
+  import it as a file. Destructive actions — reset, import, retype — always ask first.
 
 ## Before you start
 
-Mafatih uses your computer's **Arabic (101)** keyboard layout, the standard Arabic keyboard on
-Windows. Add it in your system's language settings and switch to it before typing. If you type
-with an English layout by mistake, Mafatih tells you.
-
-An on-screen keyboard shows which key to press next, including when you need Shift. Its keys are
-softly coloured by the finger that should press them; you can turn the colours off in the settings.
-
-## Your data
-
-There is no account and nothing to sign up for. Your progress stays in your browser, on your own
-device. The [privacy policy](https://mafatih.tasrif.xyz/#/privacy) explains the details.
+Mafatih reads the characters your OS produces and is built around the **Arabic (101)** keyboard
+layout, the standard Arabic keyboard on Windows (on Linux: `setxkbmap ara`). An on-screen keyboard
+shows which key to press next, including when you need Shift.
 
 ## Credits
 
-- Qur'an text: [Tanzil Project](https://tanzil.net), used under Creative Commons Attribution 3.0.
+- Qur'an text: [Tanzil Project](https://tanzil.net), used under Creative Commons Attribution 3.0 —
+  shown complete and in order, never as drill material.
 - Recitation: Abdul Basit ʿAbd us-Samad, from the [EveryAyah](https://everyayah.com) archive.
+- Practice words: secular everyday Arabic, authored for Mafatih (CC0).
 
 ## For developers
 
@@ -46,4 +36,5 @@ pnpm install
 pnpm dev
 ```
 
-How it all works, and every command, is in [docs/TECHNICAL.md](docs/TECHNICAL.md).
+How it all works, and every command, is in [docs/REBUILD_PLAN.md](docs/REBUILD_PLAN.md) (the plan
+this rebuild follows) and [docs/TECHNICAL.md](docs/TECHNICAL.md).
