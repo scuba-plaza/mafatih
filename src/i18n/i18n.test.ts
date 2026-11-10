@@ -1,18 +1,33 @@
 import { expect, test } from "vitest";
 import { ar } from "./ar.ts";
 import { en } from "./en.ts";
-import { detectLanguage, directionOf, fillMessage, formatNumber, formatPercent, translate } from "./i18n.ts";
+import {
+  detectLanguage,
+  directionOf,
+  fillMessage,
+  formatNumber,
+  formatPercent,
+  isLanguage,
+  placeholdersOf,
+  translate,
+} from "./i18n.ts";
 
-const PLACEHOLDER = /\{(\w+)\}/g;
+const english: Readonly<Record<string, string>> = en;
+const arabic: Readonly<Record<string, string>> = ar;
 
-function placeholders(message: string): string[] {
-  return [...message.matchAll(PLACEHOLDER)].map((match) => match[1] ?? "").sort();
-}
+test("only English and Arabic are languages", () => {
+  expect(isLanguage("en")).toBe(true);
+  expect(isLanguage("ar")).toBe(true);
+  expect(isLanguage("fr")).toBe(false);
+  expect(isLanguage("toString")).toBe(false);
+  expect(isLanguage(undefined)).toBe(false);
+});
 
 test("the first supported preferred language wins, English is the fallback", () => {
   expect(detectLanguage(["ar-EG", "en"])).toBe("ar");
   expect(detectLanguage(["fr", "en-GB", "ar"])).toBe("en");
   expect(detectLanguage(["fr", "ar"])).toBe("ar");
+  expect(detectLanguage(["AR"])).toBe("ar");
   expect(detectLanguage(["fr"])).toBe("en");
   expect(detectLanguage([])).toBe("en");
 });
@@ -22,46 +37,85 @@ test("Arabic reads right to left, English left to right", () => {
   expect(directionOf("en")).toBe("ltr");
 });
 
-test("numbers use the digits of the interface language", () => {
+test("numbers are rounded to whole numbers in the digits of the interface language", () => {
   expect(formatNumber("en", 1234)).toBe("1,234");
-  expect(formatNumber("ar", 1234)).toBe("١٬٢٣٤");
+  expect(formatNumber("ar", 1234)).toBe("\u0661\u066C\u0662\u0663\u0664");
   expect(formatNumber("en", 512.4)).toBe("512");
+  expect(formatNumber("en", 2.5)).toBe("3");
+  expect(formatNumber("en", -5)).toBe("-5");
 });
 
-test("ratios are shown as whole percentages", () => {
+test("a value that rounds to zero never shows a minus sign", () => {
+  expect(formatNumber("en", -0.2)).toBe("0");
+  expect(formatNumber("ar", -0)).toBe("\u0660");
+});
+
+test("ratios are shown as whole percentages with the language's own percent sign", () => {
   expect(formatPercent("en", 0.953)).toBe("95%");
-  expect(formatPercent("ar", 0.953)).toContain("٩٥");
   expect(formatPercent("en", 1)).toBe("100%");
+  expect(formatPercent("ar", 0.953)).toBe("\u0669\u0665\u066A\u061C");
+});
+
+test("a number that is not finite is an error, never shown to the user", () => {
+  expect(() => formatNumber("en", Number.NaN)).toThrow(RangeError);
+  expect(() => formatNumber("ar", Number.POSITIVE_INFINITY)).toThrow(RangeError);
+  expect(() => formatPercent("ar", Number.NaN)).toThrow(RangeError);
+  expect(() => fillMessage("en", "{n} keys", { n: Number.NaN })).toThrow(RangeError);
+});
+
+test("the placeholders of a message are listed in order", () => {
+  expect(placeholdersOf("{done} of {total}")).toEqual(["done", "total"]);
+  expect(placeholdersOf("{a} and {a}")).toEqual(["a", "a"]);
+  expect(placeholdersOf("none, not {} either")).toEqual([]);
 });
 
 test("both catalogs define exactly the same messages", () => {
-  expect(Object.keys(ar).sort()).toEqual(Object.keys(en).sort());
+  expect(Object.keys(arabic).sort()).toEqual(Object.keys(english).sort());
 });
 
 test("every message uses the same placeholders in both languages", () => {
-  for (const key of Object.keys(en) as (keyof typeof en)[]) {
-    expect(placeholders(ar[key]), key).toEqual(placeholders(en[key]));
+  for (const [key, message] of Object.entries(english)) {
+    expect(placeholdersOf(arabic[key] ?? "").sort(), key).toEqual(placeholdersOf(message).sort());
   }
 });
 
-test("every Arabic message is written in Arabic", () => {
-  for (const [key, message] of Object.entries(ar)) {
-    expect(message, key).toMatch(/[ء-ي]/);
+test("every Arabic message is written in Arabic, with no Latin letters outside its placeholders", () => {
+  for (const [key, message] of Object.entries(arabic)) {
+    const prose = message.replace(/\{\w+\}/g, "");
+    expect(prose, key).toMatch(/[\u0621-\u064A]/);
+    expect(prose, key).not.toMatch(/[A-Za-z]/);
   }
 });
 
 test("a message is looked up in the chosen language", () => {
   expect(translate("en", "app.name")).toBe("Mafatih");
-  expect(translate("ar", "app.name")).toBe("مفاتيح");
+  expect(translate("ar", "app.name")).toBe("\u0645\u0641\u0627\u062A\u064A\u062D");
 });
 
-test("placeholders are filled in, with numbers in the language's digits", () => {
+test("numbers are filled in using the language's digits", () => {
   expect(fillMessage("en", "{done} of {total}", { done: 3, total: 1200 })).toBe("3 of 1,200");
-  expect(fillMessage("ar", "{done} من {total}", { done: 3, total: 1200 })).toBe("٣ من ١٬٢٠٠");
-  expect(fillMessage("en", "Unlocked: {key}", { key: "ك" })).toBe("Unlocked: ك");
+  expect(fillMessage("ar", "{done} \u0645\u0646 {total}", { done: 3, total: 1200 })).toBe(
+    "\u0663 \u0645\u0646 \u0661\u066C\u0662\u0660\u0660",
+  );
+  expect(fillMessage("en", "{n} and {n}", { n: 2 })).toBe("2 and 2");
   expect(fillMessage("en", "No placeholders")).toBe("No placeholders");
+});
+
+test("text values are isolated so that mixed-direction text cannot reorder the sentence", () => {
+  expect(fillMessage("en", "Unlocked: {key}", { key: "\u0643" })).toBe("Unlocked: \u2068\u0643\u2069");
+  expect(fillMessage("ar", "{name}!", { name: "Ya-Sin" })).toBe("\u2068Ya-Sin\u2069!");
+});
+
+test("a text value is inserted literally, whatever characters it holds", () => {
+  expect(fillMessage("en", "[{v}]", { v: "$& $1 {x}" })).toBe("[\u2068$& $1 {x}\u2069]");
 });
 
 test("a missing placeholder value is an error, never shipped as raw braces", () => {
   expect(() => fillMessage("en", "{done} of {total}", { done: 3 })).toThrow(/total/);
+});
+
+test("a placeholder named like a built-in object property is still missing unless it is given", () => {
+  expect(() => fillMessage("en", "{constructor}", {})).toThrow(/constructor/);
+  expect(() => fillMessage("en", "{toString}")).toThrow(/toString/);
+  expect(() => fillMessage("en", "{__proto__}", {})).toThrow(/__proto__/);
 });

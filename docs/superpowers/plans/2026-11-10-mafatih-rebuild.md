@@ -195,16 +195,16 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 ### Task 1: i18n core (English and Arabic)
 
-**Files:** Create `src/i18n/{messages.ts,en.ts,ar.ts,i18n.tsx,format.ts}`, tests beside them.
+**Files:** Create `src/i18n/{en.ts,ar.ts,i18n.ts,i18n.test.ts}` (Task 2 adds `I18nProvider.tsx`).
 
 **Interfaces:**
-- Produces (`src/i18n/i18n.ts`): `type Language = "en" | "ar"`; `isLanguage(value: unknown)`; `type MessageKey = keyof typeof en`; `fillMessage(lang: Language, template: string, params?: Readonly<Record<string, string | number>>): string` (numbers are formatted in the language's digits, a missing value throws); `translate(lang: Language, key: MessageKey, params?): string`; `directionOf(lang: Language): "ltr" | "rtl"`; `detectLanguage(preferred: readonly string[]): Language`; `formatNumber(lang, n: number): string`; `formatPercent(lang, ratio: number): string`. The React side, `<I18nProvider language>` and `useI18n(): { lang, dir, t(key, params?), formatNumber, formatPercent }`, is added by Task 2, its first user.
+- Produces (`src/i18n/i18n.ts`): `type Language = "en" | "ar"`; `isLanguage(value: unknown)`; `type MessageKey = keyof typeof en`; `placeholdersOf(template: string): string[]`; `fillMessage(lang: Language, template: string, params?: Readonly<Record<string, string | number>>): string` (numbers are formatted in the language's digits; text values are wrapped in the bidi isolates U+2068 and U+2069 so mixed-direction values cannot reorder a sentence, which means UI tests match such messages by their parts; a missing value throws, even when the placeholder is named like an `Object.prototype` member); `translate(lang: Language, key: MessageKey, params?): string`; `directionOf(lang: Language): "ltr" | "rtl"`; `detectLanguage(preferred: readonly string[]): Language`; `formatNumber(lang, n: number): string` (whole numbers, never `-0`) and `formatPercent(lang, ratio: number): string`, both of which throw a `RangeError` on a value that is not finite, so callers handle their empty states explicitly. The React side, `<I18nProvider language>` and `useI18n(): { lang, dir, t(key, params?), formatNumber, formatPercent }`, is added by Task 2, its first user.
 
 - [ ] Test: `detectLanguage(["ar-EG","en"])` is `"ar"`, `["fr","en"]` is `"en"`, `[]` is `"en"`.
 - [ ] Test: `directionOf("ar")` is `"rtl"`, `"en"` is `"ltr"`.
 - [ ] Test: `formatNumber("en", 1234)` is `"1,234"`; `formatNumber("ar", 1234)` is `"١٬٢٣٤"`; `formatPercent("en", 0.953)` is `"95%"`.
-- [ ] Test: `Object.keys(en)` equals `Object.keys(ar)`; for every key the sets of `{param}` placeholders are equal; every `ar` value contains an Arabic letter except an explicit allowlist (`"Mafatih"` style brand strings).
-- [ ] Test: `translate("en", key, {n: 3})` substitutes and a missing param throws (a typo must not ship).
+- [ ] Test: `Object.keys(en)` equals `Object.keys(ar)`; for every key the sets of `{param}` placeholders are equal; every `ar` value contains an Arabic letter and no Latin letter outside its placeholders.
+- [ ] Test: `fillMessage` substitutes and a missing param throws (a typo must not ship). The task that adds the first parameterised catalog key also adds a `translate` test for that key with its params in both languages.
 - [ ] Implement the catalog with only the keys used so far; each later task adds its keys in both files (the parity test enforces it). Arabic copy is a first draft the owner reviews in Task 19.
 - [ ] Gate, review, commit.
 
