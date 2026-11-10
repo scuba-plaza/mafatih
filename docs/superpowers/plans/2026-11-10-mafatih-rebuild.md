@@ -198,7 +198,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 **Files:** Create `src/i18n/{messages.ts,en.ts,ar.ts,i18n.tsx,format.ts}`, tests beside them.
 
 **Interfaces:**
-- Produces: `type Language = "en" | "ar"`; `type MessageKey = keyof typeof en`; `translate(lang: Language, key: MessageKey, params?: Readonly<Record<string, string | number>>): string`; `directionOf(lang: Language): "ltr" | "rtl"`; `detectLanguage(preferred: readonly string[]): Language`; `formatNumber(lang, n: number): string`; `formatPercent(lang, ratio: number): string`; `<I18nProvider language>` and `useI18n(): { lang, dir, t(key, params?), formatNumber, formatPercent }`.
+- Produces (`src/i18n/i18n.ts`): `type Language = "en" | "ar"`; `isLanguage(value: unknown)`; `type MessageKey = keyof typeof en`; `fillMessage(lang: Language, template: string, params?: Readonly<Record<string, string | number>>): string` (numbers are formatted in the language's digits, a missing value throws); `translate(lang: Language, key: MessageKey, params?): string`; `directionOf(lang: Language): "ltr" | "rtl"`; `detectLanguage(preferred: readonly string[]): Language`; `formatNumber(lang, n: number): string`; `formatPercent(lang, ratio: number): string`. The React side, `<I18nProvider language>` and `useI18n(): { lang, dir, t(key, params?), formatNumber, formatPercent }`, is added by Task 2, its first user.
 
 - [ ] Test: `detectLanguage(["ar-EG","en"])` is `"ar"`, `["fr","en"]` is `"en"`, `[]` is `"en"`.
 - [ ] Test: `directionOf("ar")` is `"rtl"`, `"en"` is `"ltr"`.
