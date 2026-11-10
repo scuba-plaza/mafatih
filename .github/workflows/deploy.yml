@@ -25,8 +25,11 @@ jobs:
           runtime: node@24
           cache: true
 
-      - name: Unit tests
-        run: pnpm test
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify
+        run: pnpm verify
 
       - name: Configure Pages
         id: pages

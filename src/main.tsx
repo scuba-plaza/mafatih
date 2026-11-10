@@ -1,18 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "~/components/App.tsx";
-import ErrorBoundary from "~/components/ErrorBoundary.tsx";
 import "~/styles/globals.css";
 
 const root = document.getElementById("root");
-if (!root) {
+if (root === null) {
   throw new Error("missing #root");
 }
 
 createRoot(root).render(
   <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <main>
+      <h1>Mafatih</h1>
+    </main>
   </StrictMode>,
 );

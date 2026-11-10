@@ -1,44 +1,49 @@
 {
   "name": "mafatih",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Arabic touch-typing trainer, built on Quranic text.",
+  "description": "Arabic touch-typing trainer: type the Qur'an in Recitation, drill everyday words in Practice.",
   "scripts": {
-    "build": "pnpm build:corpus && tsc --noEmit && vite build",
-    "build:corpus": "tsx scripts/build-corpus.ts",
-    "check": "biome check ./",
-    "check:write": "biome check --write --unsafe ./",
-    "cypress:nix": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress run --e2e'",
-    "cypress:nix:open": "nix-shell -p cypress --run 'CYPRESS_RUN_BINARY=$(command -v Cypress) pnpm exec cypress open'",
-    "cypress:open": "cypress open",
-    "cypress:run": "cypress run --e2e",
-    "dev": "pnpm build:corpus && vite",
+    "dev": "pnpm build:data && vite",
+    "build": "pnpm build:data && vite build",
+    "build:data": "tsx scripts/build-data.ts",
     "preview": "vite preview",
-    "test": "pnpm build:corpus && node --import tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "check": "biome check ./",
+    "check:write": "biome check --write ./",
+    "check:style": "tsx scripts/check-style.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "verify": "pnpm check && pnpm check:style && pnpm build:data && pnpm typecheck && pnpm test && pnpm e2e --project=chromium-desktop --project=chromium-mobile"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "@fontsource/amiri": "^5.3.0",
     "@fontsource/noto-naskh-arabic": "^5.3.0",
     "@fontsource/scheherazade-new": "^5.3.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.6.2",
+    "@axe-core/playwright": "^4.14.0",
+    "@biomejs/biome": "^2.6.6",
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
-    "cypress": "14.5.4",
-    "cypress-vite": "^1.10.2",
-    "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
-    "vite": "^8.3.0"
-  },
-  "engines": {
-    "node": ">=24.11.0"
+    "@vitejs/plugin-react": "^6.3.0",
+    "jsdom": "^31.0.0",
+    "oxc-parser": "^0.158.0",
+    "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.7",
+    "vitest": "^5.1.0"
   }
 }

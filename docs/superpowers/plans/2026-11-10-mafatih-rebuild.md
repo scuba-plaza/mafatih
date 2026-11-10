@@ -71,7 +71,7 @@ pnpm build:data
 
 ## Global Constraints
 
-- **Code style (user preference):** no comments anywhere in code (`check:style` fails the build on any comment), and the TypeScript `any` type is never used (`noExplicitAny` is an error in Biome; use `unknown` plus type guards and `satisfies`).
+- **Code style (user preference):** no comments anywhere in code (`check:style` fails the build on any comment, found with `oxc-parser` because TypeScript 7 ships no scanner API), and the TypeScript `any` type is never used (`noExplicitAny` is an error in Biome, which is the single place that enforces it; use `unknown` plus type guards and `satisfies`).
 - Node `>=22.12`, pnpm 10, ES2022, `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`. Biome with 2-space indent, 120 columns, `useBlockStatements` error.
 - Dependencies: React 19, Vite, Tailwind 4, Vitest, Playwright, `@axe-core/playwright`, `@fontsource/{noto-naskh-arabic,scheherazade-new,amiri}`. Nothing else without a reason recorded in the review. Latest stable versions at install time, recorded in Task 0's commit.
 - Keyboard layout: **Arabic (101)** (Microsoft `KBDA1`) is the only layout. Port the key table from `git show origin/main:src/engine/layout/ara.ts` (plus `ligatures.ts`, `fingers.ts`).
@@ -181,7 +181,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 **Interfaces:**
 - Produces: `pnpm verify`, `pnpm test`, `pnpm e2e`, `pnpm check`, `pnpm check:style`, `pnpm typecheck`, `pnpm build:data`, `pnpm build`, `pnpm dev`; path aliases `~/*` and `~generated/*`; Playwright projects `chromium-desktop` and `chromium-mobile` (Pixel 7) always, plus `firefox`, `webkit`, `webkit-mobile` (iPhone) when `PW_FULL=1`; `PW_CHROMIUM_PATH` sets `executablePath` (cloud sandbox: `/opt/pw-browsers/chromium`, NixOS: the nixpkgs build).
-- `check-style` exits non-zero on any comment trivia (including `///` directives and `biome-ignore`) or any `any` keyword type in `src/`, `scripts/`, `e2e/`, using the TypeScript compiler API.
+- `check-style` exits non-zero on any comment (including `///` directives, JSX comments and `biome-ignore`) in `src/`, `scripts/`, `e2e/` and the root config files, using `oxc-parser`. `any` is enforced by Biome alone. CI is the existing `.github/workflows/deploy.yml`, which now runs `pnpm verify` before it builds (no second workflow file).
 
 - [ ] **Step 1: Failing test** `scripts/check-style.test.ts`: `findViolations("const a = 1 // x")` reports one comment; `"/* x */"` one; `'const u = "https://x.y"'` none; `"let a: any"` one `any`; `"function f(a: Array<any>) {}"` one; clean source none.
 - [ ] **Step 2: Run** `pnpm test scripts/check-style.test.ts`, expect FAIL (module missing).

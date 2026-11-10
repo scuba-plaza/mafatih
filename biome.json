@@ -5,39 +5,32 @@
     "includes": [
       "./src/**",
       "./scripts/**",
-      "./cypress/**",
+      "./e2e/**",
+      "./index.html",
       "./biome.json",
-      "./cypress.config.mjs",
       "./package.json",
       "./tsconfig.json",
-      "./vite.config.ts"
+      "./vite.config.ts",
+      "./vitest.config.ts",
+      "./playwright.config.ts"
     ]
   },
   "linter": {
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "correctness": {
-        "noUnusedImports": "error",
-        "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "off"
-      },
-      "performance": { "noBarrelFile": "off" },
-      "suspicious": { "noArrayIndexKey": "off" },
-      "style": { "useBlockStatements": "error", "noParameterAssign": "off" }
+      "correctness": { "noUnusedImports": "error", "noUnusedVariables": "error" },
+      "suspicious": { "noExplicitAny": "error" },
+      "style": { "useBlockStatements": "error" }
     }
   },
   "formatter": {
     "enabled": true,
-    "formatWithErrors": false,
     "indentWidth": 2,
     "indentStyle": "space",
     "lineEnding": "lf",
     "lineWidth": 120
   },
-  "assist": {
-    "enabled": true,
-    "actions": { "source": { "organizeImports": "on" } }
-  },
+  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
   "css": { "parser": { "tailwindDirectives": true } }
 }
