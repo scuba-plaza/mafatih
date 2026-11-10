@@ -42,7 +42,7 @@ Approving this plan is the user's confirmation of these seams. A new seam needs 
 
 1. Invoke `tdd` and `laws-of-simplicity`. Read the task, its Interfaces and Acceptance.
 2. Implement slice by slice: red, green, commit. Run the task's tests after each slice.
-3. Run the gate: `pnpm verify` (Biome, `check:style`, typecheck, unit tests, `build:data`, build, e2e on chromium desktop and mobile). It must be green. Fix the root cause of every failure; never skip or loosen a test.
+3. Run the gate: `pnpm verify` (Biome, `check:style`, one build including `build:data`, typecheck, unit tests, then Playwright on chromium desktop and mobile against `vite preview`; `pnpm e2e` alone builds first). It must be green. Fix the root cause of every failure; never skip or loosen a test.
 4. **Review sub-agent.** Spawn a fresh `general-purpose` sub-agent with the brief below. **Every sub-agent created for this plan, for reviews or any other purpose, must use model Sonnet 5.5 (`sonnet`) at effort level Medium (`effort: "medium"`).** If the environment does not allow sub-agents, run the same brief yourself as an adversarial reviewer: re-read the whole diff cold and try to break it.
 5. The reviewer reports findings only (it does not edit) and hands them back to the main agent in the format `[severity] file:line - finding - how to reproduce - suggested fix`, severities `blocker`, `major`, `minor`, `nit`.
 6. **The main agent fixes every finding, including minor and nit ones**, test-first when the finding is a behaviour. If a finding is factually wrong, prove it with evidence in the commit message and leave the code. Re-run the gate. Commit as `Address review of task N` with the `simplicity_delta` footer.
@@ -72,8 +72,8 @@ pnpm build:data
 ## Global Constraints
 
 - **Code style (user preference):** no comments anywhere in code (`check:style` fails the build on any comment, found with `oxc-parser` because TypeScript 7 ships no scanner API), and the TypeScript `any` type is never used (`noExplicitAny` is an error in Biome, which is the single place that enforces it; use `unknown` plus type guards and `satisfies`).
-- Node `>=22.12`, pnpm 10, ES2022, `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`. Biome with 2-space indent, 120 columns, `useBlockStatements` error.
-- Dependencies: React 19, Vite, Tailwind 4, Vitest, Playwright, `@axe-core/playwright`, `@fontsource/{noto-naskh-arabic,scheherazade-new,amiri}`. Nothing else without a reason recorded in the review. Latest stable versions at install time, recorded in Task 0's commit.
+- Node `>=22.12`, pnpm (the deploy workflow pins `^12`, the sandbox has 10.28; both use lockfile format 9.0 and no `packageManager` field is set), ES2022, `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`. Biome with 2-space indent, 120 columns, `useBlockStatements` error.
+- Dependencies: React 19, Vite, Tailwind 4, Vitest, Playwright, `oxc-parser` (comment check), and, each installed by the task that first uses it: `@axe-core/playwright` (Task 2), `@testing-library/react` with `jsdom` (Task 2, seam S4), `@fontsource/{noto-naskh-arabic,scheherazade-new,amiri}` (Task 8). Nothing else without a reason recorded in the review. Latest stable versions at install time, recorded in Task 0's commit.
 - Keyboard layout: **Arabic (101)** (Microsoft `KBDA1`) is the only layout. Port the key table from `git show origin/main:src/engine/layout/ara.ts` (plus `ligatures.ts`, `fingers.ts`).
 - Text rules: `shown` text is always the verbatim source; **units** (what must be typed) are derived from it. Marks inside one letter's cluster are canonically ordered **shadda first, then vowel or tanween, then sukun, then dagger alef**. Never use `String.prototype.normalize("NFC")` on Arabic text (it moves the shadda after the vowel; the Tanzil text already has shadda first on all 23,016 occurrences).
 - Marks: `ً ٌ ٍ َ ُ ِ ّ ْ` are the 8 typeable marks. Dagger alef `ٰ` (U+0670, 3,330 occurrences in the Qur'an text), the end-of-ayah sign `۝` and Arabic-Indic digits are shown and skipped, never typed.
@@ -175,20 +175,20 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 ### Task 0: Scaffold and tooling
 
 **Files:**
-- Create: `package.json`, `pnpm-workspace.yaml`, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `playwright.config.ts`, `vite.config.ts`, `index.html`, `src/main.tsx`, `scripts/check-style.ts`, `scripts/check-style.test.ts`, `e2e/smoke.spec.ts`, `.github/workflows/ci.yml`
+- Create: `package.json`, `pnpm-workspace.yaml`, `tsconfig.json`, `tsconfig.node.json` (scripts and configs, no DOM types), `biome.json`, `playwright.config.ts`, `vite.config.ts` (also holds the Vitest `test` block), `index.html`, `src/main.tsx`, `scripts/check-style.ts`, `scripts/lib/comments.ts`, `scripts/check-style.test.ts`, `e2e/smoke.spec.ts`
 - Delete: old `src/`, `cypress/`, `cypress.config.mjs`, `scripts/build-corpus.ts`, `docs/TECHNICAL.md` (all remain in git history and on `main`)
 - Keep: `data/`, `public/`, `.github/workflows/deploy.yml` (adapted in Task 18)
 
 **Interfaces:**
-- Produces: `pnpm verify`, `pnpm test`, `pnpm e2e`, `pnpm check`, `pnpm check:style`, `pnpm typecheck`, `pnpm build:data`, `pnpm build`, `pnpm dev`; path aliases `~/*` and `~generated/*`; Playwright projects `chromium-desktop` and `chromium-mobile` (Pixel 7) always, plus `firefox`, `webkit`, `webkit-mobile` (iPhone) when `PW_FULL=1`; `PW_CHROMIUM_PATH` sets `executablePath` (cloud sandbox: `/opt/pw-browsers/chromium`, NixOS: the nixpkgs build).
-- `check-style` exits non-zero on any comment (including `///` directives, JSX comments and `biome-ignore`) in `src/`, `scripts/`, `e2e/` and the root config files, using `oxc-parser`. `any` is enforced by Biome alone. CI is the existing `.github/workflows/deploy.yml`, which now runs `pnpm verify` before it builds (no second workflow file).
+- Produces: `pnpm verify`, `pnpm test`, `pnpm e2e`, `pnpm check`, `pnpm check:style`, `pnpm typecheck`, `pnpm build:data`, `pnpm build`, `pnpm dev`; path aliases `~/*` and `~generated/*`; Playwright projects `chromium-desktop` and `chromium-mobile` (Pixel 7); the other engines (`firefox`, `webkit`, `webkit-mobile`) and a CI step for them are added in Task 19, when they are first run; `PW_CHROMIUM_PATH` sets `executablePath` (cloud sandbox: `/opt/pw-browsers/chromium`, NixOS: the nixpkgs build).
+- `check-style` exits non-zero on any comment (including `///` directives, JSX comments, hashbangs and `biome-ignore`) in every `.ts/.tsx/.js/.mjs/.cjs`, `.css`, `.html` and `.json` file under `src/`, `scripts/`, `e2e/` and at the repository root, using `oxc-parser` for scripts (a file that does not parse is an error). `any` is enforced by Biome alone. CI is the existing `.github/workflows/deploy.yml`, which now runs `pnpm verify` before it builds (no second workflow file).
 
 - [ ] **Step 1: Failing test** `scripts/check-style.test.ts`: `findViolations("const a = 1 // x")` reports one comment; `"/* x */"` one; `'const u = "https://x.y"'` none; `"let a: any"` one `any`; `"function f(a: Array<any>) {}"` one; clean source none.
 - [ ] **Step 2: Run** `pnpm test scripts/check-style.test.ts`, expect FAIL (module missing).
 - [ ] **Step 3: Implement** `findViolations(source: string): readonly { line: number; kind: "comment" | "any" }[]` by scanning with `ts.createScanner` for comment tokens and walking the AST for `SyntaxKind.AnyKeyword`; the CLI walks the three directories.
 - [ ] **Step 4: Run** the test, expect PASS.
 - [ ] **Step 5: Failing e2e** `e2e/smoke.spec.ts`: the page `/` has `<title>` "Mafatih", `html[lang]` set, and a `main` landmark. Run `pnpm e2e --project=chromium-desktop`, expect FAIL.
-- [ ] **Step 6: Implement** the minimal React entry, configs and the CI workflow (`pnpm verify` on Node 24 with Playwright browsers installed and `PW_FULL=1`). Run the e2e, expect PASS.
+- [ ] **Step 6: Implement** the minimal React entry and configs; the deploy workflow installs Chromium and runs `pnpm verify`, and only its deploy job holds the Pages write permissions. Run the e2e, expect PASS.
 - [ ] **Step 7: Gate and review** per the Task loop; commit `Scaffold the rebuild`.
 
 **Acceptance:** `pnpm verify` green on an almost empty app; `biome.json` has `noExplicitAny: error`; the old code is gone from the tree.
@@ -460,7 +460,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 - [ ] Test (S5): axe on every route and dialog across language, scheme and viewport; a Tab-only walk of every page asserts reachable controls, visible focus and no trap; ARIA snapshots (`toMatchAriaSnapshot`) for every page in `en` and `ar` are committed as regression baselines; reduced motion disables the caret scroll animation; 200% zoom and 320 px lose nothing.
 - [ ] Test (S2): `check-size` fails the build when the entry chunk exceeds 130 KB gzip, any surah chunk exceeds 80 KB gzip, or the practice list exceeds 100 KB gzip, and checks that Practice words are not in the entry chunk.
-- [ ] Run the full browser matrix (`PW_FULL=1`: chromium, firefox, webkit, Pixel 7, iPhone) and fix engine differences, especially CSS Highlight rendering and Arabic shaping.
+- [ ] Add the `firefox`, `webkit` and `webkit-mobile` (iPhone) Playwright projects behind `PW_FULL=1` plus a CI step that installs them and runs the matrix; fix engine differences, especially CSS Highlight rendering and Arabic shaping.
 - [ ] Whole-codebase `laws-of-simplicity` pass: remove dead code, collapse anything speculative, compare line counts with `origin/main`, record the deltas in the commit message.
 - [ ] Arabic copy review: the owner reviews `src/i18n/ar.ts` as a native reader; record corrections.
 - [ ] `docs/QA-DEVICES.md` is the manual checklist the owner runs on physical devices before cut-over: iOS Safari (Arabic keyboard, Backspace on empty, harakat by long-press, keyboard open in portrait and landscape), Android Chrome with Gboard (composition, swipe typing ignored), iPad with a hardware keyboard, Windows Arabic (101) including the lam-alef key, Linux `setxkbmap ara`, and each result recorded.

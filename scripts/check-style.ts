@@ -1,23 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findComments } from "./lib/comments.ts";
+import { findComments, sourceFiles } from "./lib/comments.ts";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const ROOTS = ["src", "scripts", "e2e"];
-const ROOT_FILES = ["vite.config.ts", "vitest.config.ts", "playwright.config.ts"];
-const SOURCE = /\.(ts|tsx)$/;
 
-function sourcesUnder(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true, recursive: true })
-    .filter((entry) => entry.isFile() && SOURCE.test(entry.name))
-    .map((entry) => join(entry.parentPath, entry.name));
-}
-
-const files = [
-  ...ROOTS.flatMap((root) => sourcesUnder(join(ROOT, root))),
-  ...ROOT_FILES.map((file) => join(ROOT, file)),
-];
+const files = sourceFiles(ROOT);
 const findings = files.flatMap((file) =>
   findComments(file, readFileSync(file, "utf8")).map(({ line }) => `${relative(ROOT, file)}:${line}`),
 );

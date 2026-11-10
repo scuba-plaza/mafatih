@@ -12,33 +12,26 @@
     "check": "biome check ./",
     "check:write": "biome check --write ./",
     "check:style": "tsx scripts/check-style.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
-    "e2e": "playwright test",
-    "verify": "pnpm check && pnpm check:style && pnpm build:data && pnpm typecheck && pnpm test && pnpm e2e --project=chromium-desktop --project=chromium-mobile"
+    "e2e": "pnpm build && playwright test",
+    "verify": "pnpm check && pnpm check:style && pnpm build && pnpm typecheck && pnpm test && playwright test"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "@fontsource/amiri": "^5.3.0",
-    "@fontsource/noto-naskh-arabic": "^5.3.0",
-    "@fontsource/scheherazade-new": "^5.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "^2.6.6",
     "@playwright/test": "^1.65.0",
     "@tailwindcss/vite": "^4.3.5",
-    "@testing-library/dom": "^10.4.2",
-    "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
-    "jsdom": "^31.0.0",
     "oxc-parser": "^0.158.0",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",

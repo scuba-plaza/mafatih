@@ -11,17 +11,24 @@
       "./package.json",
       "./tsconfig.json",
       "./vite.config.ts",
-      "./vitest.config.ts",
-      "./playwright.config.ts"
+      "./playwright.config.ts",
+      "./tsconfig.node.json"
     ]
   },
   "linter": {
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "correctness": { "noUnusedImports": "error", "noUnusedVariables": "error" },
-      "suspicious": { "noExplicitAny": "error" },
-      "style": { "useBlockStatements": "error" }
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
+      },
+      "style": {
+        "useBlockStatements": "error"
+      }
     }
   },
   "formatter": {
@@ -31,6 +38,17 @@
     "lineEnding": "lf",
     "lineWidth": 120
   },
-  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
-  "css": { "parser": { "tailwindDirectives": true } }
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }

@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "lib": ["ES2023"], "types": ["node"] },
+  "include": ["scripts", "vite.config.ts", "playwright.config.ts"]
+}
