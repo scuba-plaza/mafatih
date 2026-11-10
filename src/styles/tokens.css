@@ -1,0 +1,31 @@
+@theme {
+  --color-*: initial;
+  --color-page: #fafaf9;
+  --color-surface: #ffffff;
+  --color-ink: #1c1917;
+  --color-muted: #57534e;
+  --color-line: #78716c;
+  --color-accent: #0f766e;
+  --color-on-accent: #ffffff;
+  --color-danger: #b91c1c;
+  --color-focus: #1d4ed8;
+
+  --breakpoint-*: initial;
+  --breakpoint-sm: 30rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-page: #1c1917;
+    --color-surface: #292524;
+    --color-ink: #fafaf9;
+    --color-muted: #d6d3d1;
+    --color-line: #a8a29e;
+    --color-accent: #5eead4;
+    --color-on-accent: #1c1917;
+    --color-danger: #fca5a5;
+    --color-focus: #93c5fd;
+  }
+}

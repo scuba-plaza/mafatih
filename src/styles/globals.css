@@ -1,1 +1,22 @@
 @import "tailwindcss";
+@import "./tokens.css";
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: system-ui, "Segoe UI", "Noto Sans Arabic", "Geeza Pro", Tahoma, sans-serif;
+}
+
+a,
+button {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
