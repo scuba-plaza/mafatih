@@ -43,7 +43,7 @@ Approving this plan is the user's confirmation of these seams. A new seam needs 
 1. Invoke `tdd` and `laws-of-simplicity`. Read the task, its Interfaces and Acceptance.
 2. Implement slice by slice: red, green, commit. Run the task's tests after each slice.
 3. Run the gate: `pnpm verify` (Biome, `check:style`, typecheck, unit tests, `build:data`, build, e2e on chromium desktop and mobile). It must be green. Fix the root cause of every failure; never skip or loosen a test.
-4. **Review sub-agent.** Spawn a fresh `general-purpose` sub-agent with the brief below. If the environment does not allow sub-agents, run the same brief yourself as an adversarial reviewer: re-read the whole diff cold and try to break it.
+4. **Review sub-agent.** Spawn a fresh `general-purpose` sub-agent with the brief below. **Every sub-agent created for this plan, for reviews or any other purpose, must use model Sonnet 5.5 (`sonnet`) at effort level Medium (`effort: "medium"`).** If the environment does not allow sub-agents, run the same brief yourself as an adversarial reviewer: re-read the whole diff cold and try to break it.
 5. The reviewer reports findings only (it does not edit) and hands them back to the main agent in the format `[severity] file:line - finding - how to reproduce - suggested fix`, severities `blocker`, `major`, `minor`, `nit`.
 6. **The main agent fixes every finding, including minor and nit ones**, test-first when the finding is a behaviour. If a finding is factually wrong, prove it with evidence in the commit message and leave the code. Re-run the gate. Commit as `Address review of task N` with the `simplicity_delta` footer.
 7. Move to the next task. Do not start it with a red gate.
