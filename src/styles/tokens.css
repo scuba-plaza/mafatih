@@ -9,6 +9,10 @@
   --color-on-accent: #ffffff;
   --color-danger: #b91c1c;
   --color-focus: #1d4ed8;
+  --color-finger-pinky: #fbcfe8;
+  --color-finger-ring: #fef9c3;
+  --color-finger-middle: #bbf7d0;
+  --color-finger-index: #e0f2fe;
 
   --breakpoint-*: initial;
   --breakpoint-sm: 30rem;
@@ -27,5 +31,9 @@
     --color-on-accent: #1c1917;
     --color-danger: #fca5a5;
     --color-focus: #93c5fd;
+    --color-finger-pinky: #4a1d34;
+    --color-finger-ring: #453a0b;
+    --color-finger-middle: #14391f;
+    --color-finger-index: #172f54;
   }
 }

@@ -172,6 +172,14 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 ---
 
+## Who does what
+
+The remaining work is split in two. **Part A** holds the tasks where judgement is expensive (the corpus, the ladder and lesson generator, the Qur'an data, the surface for Qur'an text); it is done first, on Fable 5.2. **Part B** holds assembly on top of that tested core (dialogs, pages, audio, backup, deployment, QA, documents); it can be done on Sonnet 5.5. Tasks 0 to 8 are done and stay below as the record of what exists. Three tasks were cut in two along that line: 9 (9a logic, 9b interface), 12 (12a generator, 12b page) and 14 (14a typing slice, 14b navigation).
+
+---
+
+## Done: Tasks 0 to 8
+
 ### Task 0: Scaffold and tooling
 
 **Files:**
@@ -338,18 +346,30 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 - [x] Test (S1): `wordAt`; `danger` on `page` contrast. Test (S5, review): the start control never overlaps the text and the text can be clicked; start, leave, continue and finish with the keyboard alone, the field disabled afterwards; the next word is the field's description and changes once per word; every text size differs at 320 px and 72 with ten mistakes has no sideways scroll, 72 is exactly 72 px on a wide screen; the caret shows in forced colours; axe is clean in the dark scheme with a mistake flagged; the wrong-layout message clears on leaving the field; the form's error clears when the text changes; another tab's text never replaces the lesson on screen.
 - [x] Gate, review, commit.
 
-### Task 9: Settings dialog and guide keyboard
+## Part A: the difficult core (Fable 5.2)
 
-**Files:** Create `src/settings/SettingsDialog.tsx`, `src/keyboard/GuideKeyboard.tsx`, `e2e/settings.spec.ts`.
+Part A is everything where a wrong decision is expensive or hard to see: the word corpus and what it must never contain, the unlock ladder and the lesson generator that make Practice mean something, the Qur'an data and its integrity rules, and the changes to the typing surface that the Qur'an text needs. It is executed first, by the main agent on Fable 5.2, in the order below. Every task ends with engine functions and data that are tested at seams S1 to S3 (and S5 for 14a), so that Part B can build on them without re-deciding anything.
+
+| Task | What | State |
+|---|---|---|
+| 0 to 8 | Tooling, i18n, shell, keyboard model, text model, session engine, input pipeline, storage, typing surface and Custom mode | done |
+| 9a | Guide logic, the two guide settings, finger tint tokens, acceptance specs for the Settings dialog and the guide | done |
+| 10 | Practice corpus pipeline and review gate | to do |
+| 11 | Key stats and the unlock ladder | to do |
+| 12a | Practice lesson generator and the lesson outcome (pure) | to do |
+| 13 | Qur'an data and the recitation domain | to do |
+| 14a | Passage typing slice: the surface for Qur'an text, checkpoints, the passage view | to do |
+
+### Task 9a: Guide logic, guide settings and acceptance specs (done)
+
+**Files:** `src/keyboard/{guide.ts,guide.test.ts}`, `src/settings/settings.ts`, `src/styles/tokens.css`, `e2e/{settings.pending.ts,guide.pending.ts}`.
 
 **Interfaces:**
-- Consumes: `Dialog`, `SegmentedControl`, `Switch` (Task 2), `useProfile` (Task 7), `strokeFor`, `fingerOf` (Task 3).
-- Produces: `<SettingsDialog open onClose onOpenTransfer />`; `<GuideKeyboard next: string | undefined shiftHeld: boolean fingerColours: boolean />`.
+- Produces: `guideFor(next: string | undefined, deleting: boolean): { keys: ReadonlySet<string>; shifted: boolean; finger: Finger | undefined }` (the key codes to point at: the key of the next character, plus the Shift key of the **other** hand when the character is on the shifted layer; the lam-alef key for a two-letter lam-alef unit; `Backspace` alone while `deleting`; nothing at the end of the text or for a character the layout lacks); settings `showKeyboard` and `fingerGuide` (both default `true`, off only for a real `false`); exported `VOCALIZATIONS`; colour tokens `finger-pinky`, `finger-ring`, `finger-middle`, `finger-index` in both schemes, with `ink` (4.5:1), `line` and `accent` (3:1) checked on each.
+- `e2e/settings.pending.ts` and `e2e/guide.pending.ts` are the acceptance specs of Task 9b. They are type-checked and linted but Playwright does not run them until they are renamed to `*.spec.ts`.
 
-- [ ] Test (S4): the dialog is named "Settings"; groups are `fieldset`/`legend`: Language (English, العربية with their own `lang`), Vocalization (Auto, Letters only, Harakat, Full, each with a one-line description via `aria-describedby`), "Correct mistakes with Backspace" switch (on by default), Font (each option previews a vocalized sample), Font size (range with `aria-valuetext`), Show keyboard guide, Finger colours, Backup and restore, Reset progress (confirm step).
-- [ ] Test (S5): changing language flips `html[lang][dir]` without resetting the current session; changing vocalization or the Backspace setting starts a fresh lesson of the same prompt; all settings survive a reload; font choice applies only to the lesson text.
-- [ ] Test (S1/S4): `GuideKeyboard` highlights the key for the next unit, adds the Shift key when `strokeFor(next).shift`, highlights the ligature key for a `"لا"` unit, is `aria-hidden`, always `dir="ltr"`, and is absent below `md` or on coarse pointers (assumption A3).
-- [ ] Implement as a bottom sheet below `md`. Gate, review, commit.
+- [x] Test (S1): `guideFor`; the two settings' defaults and sanitizers; the tint contrast pairs.
+- [x] Implement. Gate, commit.
 
 ### Task 10: Practice corpus pipeline and review gate
 
@@ -365,7 +385,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 - [ ] Test (S1): the blocklist removes `الله`, `رب`, `قرآن`, `آية`, `سورة`, `نبي`, `رسول` and a prophet's name in **every** vocalization, matching by skeleton.
 - [ ] Test (S2, against the real committed data via `build:data`): every word `isFullyVocalized`, typeable, shadda-first; no blocklisted skeleton; at most 12,000 words and at most 300 KB raw; for the ten starter letters at least 60 distinct letters-only skeletons and at least 60 distinct vocalized words, each starter letter in at least 8 words; each of the 8 marks occurs in at least 50 words; **every word has at least one typeable mark, so the Full level always differs from Letters only**.
 - [ ] Run the extraction once; print a report: counts per step, the first 400 words reachable with the ten starter letters, 100 random other words, the blocklist hits.
-- [ ] **Human gate:** the owner (a native reader) reviews the report and `blocklist.txt`, adds entries to `reject.txt` and `blocklist.txt`, and confirms the Share-Alike consequence of the committed word list. Do not start Task 12 until the owner has signed off.
+- [ ] **Human gate:** the owner (a native reader) reviews the report and `blocklist.txt`, adds entries to `reject.txt` and `blocklist.txt`, and confirms the Share-Alike consequence of the committed word list. The pure generator (Task 12a) may be built before the sign-off; the Practice page (Task 12b) and the cut-over may not ship until the owner has signed off.
 - [ ] Gate, review, commit.
 
 ### Task 11: Key stats and the unlock ladder (pure)
@@ -383,22 +403,21 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 - [ ] Test (S2, in `build:data`, real data): with the real ladder built from the committed word list, for every letter rung at least 10 distinct skeletons contain that letter and only letters of earlier rungs, so every rung can be drilled.
 - [ ] Implement; extend the profile with `ladder` and `stats: Record<Mode, KeyStats>` plus their round-trip tests (Task 7 contract). Gate, review, commit.
 
-### Task 12: Practice lessons and the Practice page
+### Task 12a: Practice lesson generator and lesson outcome (pure)
 
-**Files:** Create `src/practice/{lesson.ts,PracticePage.tsx,Hud.tsx}`, `e2e/practice.spec.ts`, `src/practice/boundary.test.ts`.
+**Files:** Create `src/practice/{lesson.ts,outcome.ts,boundary.test.ts}` and tests.
 
 **Interfaces:**
-- Consumes: `WordList` (Task 10), `Ladder`, `LadderProgress` and helpers (Task 11), `buildPrompt`, `requiredMarks` (Task 4), `useTrainer` (Task 8).
-- Produces: `interface PracticeOptions { words: WordList; ladder: Ladder; progress: LadderProgress; vocalization: Vocalization; seed: number; targetChars?: number }`; `buildPracticeLesson(options: PracticeOptions): Prompt`; `createRng(seed: number)` with `next(): number` and `weighted<T>(items: readonly T[], weight: (t: T) => number): T`.
+- Consumes: `WordList` (Task 10), `Ladder`, `LadderProgress` and helpers (Task 11), `buildPrompt`, `requiredMarks` (Task 4), the session engine (Task 5).
+- Produces: `interface PracticeOptions { words: WordList; ladder: Ladder; progress: LadderProgress; vocalization: Vocalization; seed: number; targetChars?: number }`; `buildPracticeLesson(options: PracticeOptions): Prompt`; `createRng(seed: number)` with `next(): number` and `weighted<T>(items: readonly T[], weight: (t: T) => number): T`; `applyPracticeLesson(state: { stats: KeyStats; progress: LadderProgress }, samples: readonly Sample[], ladder: Ladder, config?: UnlockConfig): { stats: KeyStats; progress: LadderProgress; unlocked: Rung | null }` (the one place where a finished Practice lesson changes the profile; the page only calls it and saves the result).
 - Selection rule: choose a skeleton by weight `1 + ln(1 + frequencyScore)`, multiplied by 6 when it contains the focus letter (or when the focus rung is a mark and the word contains it), then pick one vocalized form of that skeleton uniformly; never the same typed string more than twice per lesson or twice in a row; target 38 typed characters.
 
 - [ ] Test (S1): for 200 seeds and several progress values, every word's skeleton letters are a subset of `unlockedLetters`; `buildPracticeLesson` for `initialProgress` never throws and its typed text uses only home-row letters (**a fresh user can practise immediately**).
 - [ ] Test: same seed gives the same lesson; over 500 seeds at least 40% of lessons contain the focus letter; with `letters` vocalization the typed text of a lesson differs from its `full` typed text and every shown word is `isFullyVocalized` (marks are drawn but not typed); with `auto` and only fatha unlocked, exactly fatha is typed.
-- [ ] Test (S1): simulated learners through the real generator, session and `advance`: a seeded learner with 3% errors and 500 ms latency climbs to at least 20 rungs within 300 lessons; one with 20% errors does not leave the starter set within 100 lessons.
+- [ ] Test (S1): `applyPracticeLesson` records every sample, unlocks at most one rung and reports it, and returns the same progress when the focus rung is not yet mastered.
+- [ ] Test (S1): simulated learners through the real generator, session and `applyPracticeLesson`: a seeded learner with 3% errors and 500 ms latency climbs to at least 20 rungs within 300 lessons; one with 20% errors does not leave the starter set within 100 lessons.
 - [ ] Test (boundary): no file under `src/practice/` imports from `src/recitation/` or `generated/quran` (read the sources and assert), enforcing Q2.
-- [ ] Test (S5): on a cleared profile, Practice shows a lesson at once with at least 3 words, all home-row letters, marks visible; typing it correctly completes it and the next lesson is already on screen with a `last` readout; with a profile seeded one sample short of mastery, one clean lesson unlocks the next rung, announced once in the polite status ("Unlocked: ك"), no animation burst; the HUD shows `unlocked 11 / 44`, the focus rung with its accuracy and latency; Practice typing never changes `stats.recitation`; at `unlocked === 44` the HUD says all keys are unlocked.
-- [ ] Test (S5): after a Practice lesson, stats go into `stats.practice` and `advance` runs; after a Recitation lesson (Task 14) `ladder` is unchanged.
-- [ ] Implement; the page subtitle says Practice uses everyday words, not the Qur'an. A11y and mobile per the contracts (compact HUD below `sm`). Gate, review, commit.
+- [ ] Implement. Gate, review, commit.
 
 ### Task 13: Qur'an data and the recitation domain (pure)
 
@@ -413,21 +432,97 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 - [ ] Test (S1): `recordAyat` is idempotent per ayah, emits a completion exactly once when every ayah is typed, the position resumes after the last typed ayah, `passageBefore` crosses into the previous surah, `surahOrder("juz-amma")` starts `[114, 113, ... 78, 1, 2, ...]` and has 114 unique entries.
 - [ ] Extend the profile with `recitation` and its round-trip test. Gate, review, commit.
 
-### Task 14: Recitation page (the default mode)
+### Task 14a: Passage typing slice (surface, checkpoints, passage view)
 
-**Files:** Create `src/recitation/{RecitationPage.tsx,SurahMap.tsx,PassageBar.tsx,RecitationSettings.tsx,useRecitation.ts}`, `e2e/recitation.spec.ts`.
+**Files:** Create `src/recitation/{RecitationPage.tsx,useRecitation.ts,outcome.ts}`, `src/ui/LessonSummary.tsx`, `e2e/recitation.spec.ts`; extend `TypingSurface`, `useTrainer`, `Settings` (`ayatPerLesson`, default 4).
 
 **Interfaces:**
-- Consumes: Tasks 8, 9, 13, 7.
-- Produces: `<RecitationPage route />`; at `#/` the surah map, at `#/recitation/36/21` that passage (Ya-Sin from ayah 21, `#/recitation/36` resumes).
+- Consumes: Tasks 8, 13, 7.
+- Produces: `<RecitationPage route />` showing one passage: `#/recitation/36/21` is Ya-Sin from ayah 21, `#/recitation/36` resumes that surah, and `#/` resumes the saved position (Task 14b turns `#/` into the surah map); `useTrainer` gains `onCheckpoint` (called once for each ayah as its last unit is typed); `applyRecitationAyah(state, ...)` in `outcome.ts`, the one place where a typed ayah changes the profile (`stats.recitation` and `recitation` progress, never `ladder`); `<LessonSummary>` (the finished heading described by its figures, extracted from Custom) with its action buttons passed in.
+- Surface contract for Qur'an text: the basmala is a centred block of its own; ayah end signs are part of `shown`, never typed, and tinted with a second CSS highlight (`mafatih-apparatus`, `muted`), so no span ever splits the text; every character of the source, dagger alef included, is on screen at every vocalization level (Q1).
 
-- [ ] Test (S5): `#/` shows 114 surah links in a list; each has an accessible name such as "Ya-Sin, 12 of 83 ayat typed" and a visible progress ring plus a text mark for done (not colour alone, A6); the order setting switches Mushaf and Juz ʿAmma; in the Arabic UI only Arabic names show.
 - [ ] Test (S5): a fresh user opens a surah and types it; progress is saved ayah by ayah (reload resumes after the last finished ayah); the address follows the passage with `replaceState`; the basmala is a centred block of its own; ayah signs are tinted by the apparatus highlight and never typed; the full text, dagger alef included, is on screen at every vocalization level (Q1); typing `letters` only completes the surah.
-- [ ] Test (S5): a finished passage shows an inline "Completed" region with Type again and Next passage, and keystrokes are ignored until one is chosen; previous and next buttons and PageUp/PageDown cross surah boundaries; "Go to ayah" is a labelled number field plus a `<progress>` with text "12 of 83".
-- [ ] Test (S5): completing a surah moves focus to a quiet panel (`tabindex="-1"` heading) with name, ayat, accuracy, speed, time and Next surah or Type again; no confetti, no sound, no modal (Q3).
+- [ ] Test (S5): a finished passage shows the summary with Type again and Next passage, keystrokes are ignored until one is chosen, and Next passage crosses into the next surah; completion is quiet (Q3).
 - [ ] Test (S5, Review Focus 4): `2:282` with `ayatPerLesson = 1` renders, scrolls the caret line into view and completes; the median keystroke-to-paint time stays under 50 ms with 4x CPU throttling on `chromium-mobile`.
 - [ ] Test (S5): recitation typing writes `stats.recitation` and leaves `ladder` unchanged (D4); all letters are typeable regardless of unlocks.
-- [ ] Implement with the Recitation settings dialog (ayat per passage 1, 2, 3, 4, 5, 6, 8, 10, 15, 20; map order). Gate, review, commit.
+- [ ] Implement. Gate, review, commit.
+
+---
+
+## Part B: assembly on the tested core (Sonnet 5.5)
+
+Part B is interface assembly and well-trodden work on top of Part A: dialogs, pages, the audio player, backup, deployment, the QA matrix and the documents. Every rule it needs is already decided in this plan or enforced by Part A's tests. It is executed after Part A by an agent on Sonnet 5.5, with the same Task loop (the review sub-agents stay on Sonnet 5.5 at effort Medium). Run the tasks in the order below.
+
+| Task | What | Builds on |
+|---|---|---|
+| 9b | Settings dialog and guide keyboard | 9a |
+| 12b | Practice page and HUD | 10, 11, 12a |
+| 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a |
+| 15 | Recitation audio | 14b |
+| 16 | Stats page | 11 |
+| 17 | Backup and restore | 7, 11, 13 |
+| 18 | About, SEO, security headers and deploy | all pages |
+| 19 | Hardening and the QA matrix | everything |
+| 20 | Documentation and cut-over | everything |
+
+### Notes for whoever executes Part B
+
+Read these before the first task; each one cost time to learn.
+
+- **Environment.** Playwright needs `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium` exported, or every browser test fails at once. Never run `playwright install`. `pnpm verify` is the gate; chain it with `&&` before `git commit`, never with `;`.
+- **Escapes.** The file tools and shell heredocs turn `\uXXXX` in what you write into the character itself, invisible characters included. In sources, write Arabic and marks as literal characters where they are readable; for invisible or combining characters use `String.fromCodePoint(0x64e)` in tests and check constants with `grep` after writing them.
+- **No comments, no `any`.** `pnpm check:style` fails the gate on any comment in any source file, tests and CSS included. Biome forbids `any`.
+- **Tests.** Only at the seams. Browser tests locate by role and accessible name; `data-*` hooks exist only where no role can find a thing (`data-lesson-text`, `data-mistakes`, `data-caret`, `data-key`, `data-due`). Typing in tests goes through `typeKeys` (`e2e/helpers/typing.ts`), which uses `insertText`, because that is the path every keyboard and IME takes. `page.goto` to the address the page is already on does not reload: seed with `seedSettings` and then `page.reload()`. `seedSettings` re-seeds on every load of that page, so tests that check persistence across a reload must set values through the interface.
+- **The typing surface is delicate.** The lesson text is one text node per block; colour comes only from CSS highlights (`mafatih-done`, `mafatih-apparatus`), never from wrapping letters in elements, because any element inside a word breaks Arabic joining. The font tests in `e2e/typing.spec.ts` prove it; keep them green and do not add spans to the text.
+- **Feedback rules.** Nothing is announced per keystroke (A9); status text is derived from state, not set by timers; a live region is always in the DOM and only its text changes. A message must never be colour alone and must never move the layout when it appears: reserve its row.
+- **Focus.** After a page change the page's `h1` takes focus; after a lesson ends the summary heading does. A dialog gives focus back to its opener (the native `<dialog>` does this). The typing field is never a tab stop; its start button is.
+- **Arabic copy.** Both catalogs must hold the same keys and placeholders (a unit test checks it) and Arabic messages may hold no Latin letters. Proper names shown in another language than the page get their own `lang`.
+- **A reviewer finding that is wrong** is answered with evidence in the commit message, not with a code change.
+
+### Task 9b: Settings dialog and guide keyboard
+
+**Files:** Create `src/ui/{Dialog.tsx,RadioGroup.tsx,Switch.tsx}`, `src/settings/SettingsDialog.tsx`, `src/keyboard/GuideKeyboard.tsx`; rename `e2e/settings.pending.ts` and `e2e/guide.pending.ts` to `*.spec.ts`; modify `Shell`, `App`, `TypingSurface`, `CustomPage`, `useTrainer`, both catalogs.
+
+**Interfaces:**
+- Consumes: `guideFor`, `WIN101_CAPS`, `fingerOf` (Tasks 3 and 9a), `useProfile().update` (Task 8), `FONTS`, `FONT_SIZES`, `VOCALIZATIONS`.
+- Produces: `<Dialog open title closeLabel onClose>` (native `<dialog>` opened with `showModal()`, named by its `h2`, a sticky header row holding the title and the one close button, `closedby="any"` for a click outside, children mounted only while open; centred from `md` up, a full-width sheet on the bottom edge below it, at most `90dvh` tall and scrolling inside itself with `overscroll-contain`, bottom padding `max(1rem, env(safe-area-inset-bottom))`); `<RadioGroup legend value options onChange>` (a `fieldset` with native radios; each radio is named by its label through `aria-labelledby` and described by its hint through `aria-describedby`, so the hint is not part of the name; an option may carry `lang` and a `preview` node); `<Switch label hint? checked onChange>` (`<input type="checkbox" role="switch">`, drawn as a track and thumb whose position shows the state, falling back to the native checkbox in forced colours); `<SettingsDialog open onClose />`; `<GuideKeyboard session options fingerGuide />`; `Shell` gains an `actions` slot in the header; `<TypingSurface trainer settings />` (it takes the whole `Settings` and draws the guide under the surface when `settings.showKeyboard`).
+- The Settings button: a gear icon below `sm` and the word "Settings" from `sm` up (the pattern of the Stats link), at least 44 by 44 px, in the same header row as the navigation at 320 px.
+- Dialog contents, in this order: Language (radios `English` with `lang="en"` and `العربية` with `lang="ar"`, names held as constants, not catalog entries); Vocalization (four radios with hints); the switch "Correct mistakes with Backspace" with its hint; Lesson font (three radios, each with an `aria-hidden` `data-font-sample` preview `الخَطُّ العَرَبِيُّ` in its own face with `lang="ar"`; opening the dialog loads all three faces); Lesson text size (a native range over the nine steps with `aria-valuetext` and a visible value); Keyboard guide (a `fieldset` with the switches "Show the keyboard" and "Show which finger to use", hidden with `hidden md:pointer-fine:block` because the guide only exists there). Every change is saved at once through `update`. Backup and restore joins the dialog in Task 17, Reset progress in Task 12b.
+- Behaviour: a language change must not reset the lesson; a vocalization change builds a new prompt and so a fresh lesson; the Backspace switch keeps the lesson and applies from the next key (the engine already drops stale mistakes). `CustomPage` stops keeping a `result` state: the summary is shown while `isComplete(trainer.session)` with `metricsOf(trainer.session)`, so it disappears by itself when the lesson changes; `onComplete` becomes optional.
+- Guide keyboard: `aria-hidden="true"`, `dir="ltr"`, `data-guide-keyboard`, `hidden md:pointer-fine:flex`; five rows from `WIN101_CAPS` with a fixed key size (44 px) and the row offsets of a real keyboard (row 1 starts 1.5 keys in, row 2 1.75, row 3 after a 2.25-key left Shift), a 2-key Backspace ending row 0, a right Shift filling row 3 and a centred space bar; every key carries `data-key="<code>"` and the due ones `data-due`, drawn with a thick outline and bold legend (not colour alone). The legends show the base layer, or the shifted layer whenever the next character needs Shift; a mark is drawn on a tatweel so it can be seen. With `fingerGuide` the keys are tinted by `fingerOf(code).digit` and a caption line of fixed height under the keyboard names the finger for the next key (nine catalog entries, for example "Left index finger"); the tints are an aid, the caption carries the information (A6). `next` is `expectedText(session)`; `deleting` is `options.requireBackspace` with mistakes pending.
+- Messages to add (English, Arabic): Settings, الإعدادات; Done, تم; Language, اللغة; Vocalization, التشكيل; Auto, تلقائي; "Asks only for the marks you have unlocked in Practice.", يطلب فقط الحركات التي فتحتها في التمرين.; Letters only, الحروف فقط; "Marks are shown but not typed.", تظهر الحركات ولا تُكتب.; Harakat, الحركات; "Type fatha, damma, kasra, shadda and sukun.", اكتب الفتحة والضمة والكسرة والشدة والسكون.; Full, تشكيل كامل; "Type every mark, tanween included.", اكتب كل الحركات مع التنوين.; "Correct mistakes with Backspace", تصحيح الأخطاء بمفتاح الحذف; "Wrong keys are shown until you delete them. When off, they are blocked instead.", تظهر المفاتيح الخاطئة إلى أن تحذفها. عند الإيقاف تُمنع ولا تظهر.; Lesson font, خط الدرس; Lesson text size, حجم نص الدرس; Keyboard guide, دليل لوحة المفاتيح; "Show the keyboard", إظهار لوحة المفاتيح; "Show which finger to use", إظهار الإصبع المناسب لكل مفتاح; the fingers: Left little finger, الخنصر الأيسر; Left ring finger, البنصر الأيسر; Left middle finger, الوسطى اليسرى; Left index finger, السبابة اليسرى; Right index finger, السبابة اليمنى; Right middle finger, الوسطى اليمنى; Right ring finger, البنصر الأيمن; Right little finger, الخنصر الأيمن; Thumb, الإبهام.
+
+- [ ] Rename the two pending specs to `*.spec.ts` and see them fail. They were written before the interface and have never been green: where a spec contradicts this section, the section wins; fix the spec and say so in the commit.
+- [ ] Test (S5): `e2e/settings.spec.ts` (named groups and hints, three ways to close with focus back on the opener, no Tab escape, language change keeps the lesson, vocalization change restarts it and clears a finished summary, Backspace switch applies from the next key, every setting survives a reload, fonts preview themselves and change the lesson text only, the slider from the keyboard, sheet on a phone, 320 px, centred on a wide screen, Arabic and dark).
+- [ ] Test (S5): `e2e/guide.spec.ts` (due keys for letters, space, lam-alef, Shift of the other hand, Backspace while mistakes are pending, tints and caption, both switches, constant height, absent below `md` and on a phone, fits at 768 px).
+- [ ] Implement. Gate, review, commit.
+
+### Task 12b: Practice page and HUD
+
+**Files:** Create `src/practice/{PracticePage.tsx,Hud.tsx}`, `e2e/practice.spec.ts`; add Reset progress to the Settings dialog.
+
+**Interfaces:**
+- Consumes: `loadWords` (Task 10), the ladder helpers (Task 11), `buildPracticeLesson`, `applyPracticeLesson` (Task 12a), `useTrainer`, `TypingSurface`, `LessonSummary` (Task 14a).
+- Produces: `<PracticePage />`. A finished lesson is passed to `applyPracticeLesson` and the result saved with `update`; the next lesson is built from the new progress with a new seed. The page decides nothing about unlocking itself.
+- Requires the owner's sign-off of Task 10's human gate before it ships.
+
+- [ ] Test (S5): on a cleared profile, Practice shows a lesson at once with at least 3 words, all home-row letters, marks visible; typing it correctly completes it and the next lesson is already on screen with a `last` readout; with a profile seeded one sample short of mastery, one clean lesson unlocks the next rung, announced once in the polite status ("Unlocked: ك"), no animation burst; the HUD shows `unlocked 11 / 44`, the focus rung with its accuracy and latency; Practice typing never changes `stats.recitation`; at `unlocked === 44` the HUD says all keys are unlocked.
+- [ ] Test (S5): after a Practice lesson, stats go into `stats.practice` and the ladder may advance; after a Recitation lesson `ladder` is unchanged.
+- [ ] Test (S5): Reset progress in Settings asks for confirmation, then clears `stats` and `ladder` (not the settings, not the recitation position) and Practice shows a starter lesson again.
+- [ ] Implement; the page subtitle says Practice uses everyday words, not the Qur'an. A11y and mobile per the contracts (compact HUD below `sm`). Gate, review, commit.
+
+### Task 14b: Surah map, passage bar, surah completion and recitation settings
+
+**Files:** Create `src/recitation/{SurahMap.tsx,PassageBar.tsx,RecitationSettings.tsx}`; extend `RecitationPage`, `e2e/recitation.spec.ts`, `Settings` (`surahOrder`).
+
+**Interfaces:**
+- Consumes: Tasks 13 and 14a (`surahMeta`, `surahOrder`, `passageAfter`, `passageBefore`, `completedSurahs`, `resumeOf`, the passage view).
+- Produces: at `#/` the surah map (it replaces 14a's resume-at-`#/`; each surah link resumes that surah); the passage bar; the surah completion panel; the recitation settings.
+
+- [ ] Test (S5): `#/` shows 114 surah links in a list; each has an accessible name such as "Ya-Sin, 12 of 83 ayat typed" and a visible progress ring plus a text mark for done (not colour alone, A6); the order setting switches Mushaf and Juz ʿAmma; in the Arabic UI only Arabic names show.
+- [ ] Test (S5): previous and next buttons and PageUp/PageDown cross surah boundaries; "Go to ayah" is a labelled number field plus a `<progress>` with text "12 of 83".
+- [ ] Test (S5): completing a surah moves focus to a quiet panel (`tabindex="-1"` heading) with name, ayat, accuracy, speed, time and Next surah or Type again; no confetti, no sound, no modal (Q3).
+- [ ] Implement with the recitation settings (ayat per passage 1, 2, 3, 4, 5, 6, 8, 10, 15, 20; map order) as a group in the Settings dialog. Gate, review, commit.
 
 ### Task 15: Recitation audio
 
@@ -500,5 +595,5 @@ PWA and offline use, an in-app touch keyboard for phones, more reciters, a manua
 ## Open items for the owner
 
 1. Confirm assumptions A1 to A13 (especially A1 starter set, A3 phone keyboard approach, A5 no confetti).
-2. Task 10 needs your native-reader sign-off on `blocklist.txt` and the starter words, and your decision on the Share-Alike licence of the word list.
+2. Task 10 needs your native-reader sign-off on `blocklist.txt` and the starter words, and your decision on the Share-Alike licence of the word list. Part A goes on without it; Task 12b (the Practice page) and the cut-over wait for it.
 3. Task 19 needs you to review the Arabic UI copy and run the device checklist.

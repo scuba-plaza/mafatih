@@ -8,6 +8,8 @@ const OTHER_DEFAULTS = {
   fontSize: 40,
   vocalization: "auto",
   requireBackspace: true,
+  showKeyboard: true,
+  fingerGuide: true,
   customText: "",
 } as const;
 const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en", ...OTHER_DEFAULTS } };
@@ -73,6 +75,8 @@ test("a saved profile is read back as it was, whatever the browser's language is
       fontSize: 40,
       vocalization: "auto",
       requireBackspace: true,
+      showKeyboard: true,
+      fingerGuide: true,
       customText: "",
     },
   });
@@ -139,7 +143,16 @@ test("unknown and dangerous keys in saved data are never copied into the profile
   expect(profile).toEqual(ARABIC_PROFILE);
   expect(Object.keys(profile)).toEqual(["schema", "settings"]);
   expect(Object.keys(profile.settings).sort()).toEqual(
-    ["customText", "font", "fontSize", "language", "requireBackspace", "vocalization"].sort(),
+    [
+      "customText",
+      "fingerGuide",
+      "font",
+      "fontSize",
+      "language",
+      "requireBackspace",
+      "showKeyboard",
+      "vocalization",
+    ].sort(),
   );
   expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
 });
@@ -191,6 +204,8 @@ test("every setting survives being saved and opened again", () => {
       fontSize: 56,
       vocalization: "full",
       requireBackspace: false,
+      showKeyboard: false,
+      fingerGuide: false,
       customText: "بسم الله",
     },
   };

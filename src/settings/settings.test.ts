@@ -10,6 +10,8 @@ const DEFAULTS = {
   fontSize: 40,
   vocalization: "auto",
   requireBackspace: true,
+  showKeyboard: true,
+  fingerGuide: true,
   customText: "",
 };
 
@@ -26,6 +28,8 @@ test("valid saved settings are kept", () => {
     fontSize: 56,
     vocalization: "full",
     requireBackspace: false,
+    showKeyboard: false,
+    fingerGuide: false,
     customText: "بسم الله",
   };
   expect(sanitizeSettings(saved, ENGLISH)).toEqual(saved);
@@ -73,4 +77,17 @@ test("saved custom text is prepared again, so it can never be over the limit or 
   expect(sanitizeSettings({ customText: `ب${FATHA}${SHADDA}` }, ENGLISH).customText).toBe(`ب${SHADDA}${FATHA}`);
   expect(sanitizeSettings({ customText: "ب".repeat(9000) }, ENGLISH).customText).toHaveLength(5000);
   expect(sanitizeSettings({ customText: 5 }, ENGLISH).customText).toBe("");
+});
+
+test("the keyboard guide and its finger guide stay on unless they were really turned off", () => {
+  expect(sanitizeSettings({ showKeyboard: false, fingerGuide: false }, ENGLISH)).toMatchObject({
+    showKeyboard: false,
+    fingerGuide: false,
+  });
+  for (const junk of ["false", 0, null, {}]) {
+    expect(sanitizeSettings({ showKeyboard: junk, fingerGuide: junk }, ENGLISH), String(junk)).toMatchObject({
+      showKeyboard: true,
+      fingerGuide: true,
+    });
+  }
 });

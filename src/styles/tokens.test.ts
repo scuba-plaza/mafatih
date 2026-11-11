@@ -18,6 +18,18 @@ const PAIRS: readonly (readonly [string, string, number])[] = [
   ["line", "surface", UI],
   ["focus", "page", UI],
   ["focus", "surface", UI],
+  ["ink", "finger-pinky", TEXT],
+  ["ink", "finger-ring", TEXT],
+  ["ink", "finger-middle", TEXT],
+  ["ink", "finger-index", TEXT],
+  ["line", "finger-pinky", UI],
+  ["line", "finger-ring", UI],
+  ["line", "finger-middle", UI],
+  ["line", "finger-index", UI],
+  ["accent", "finger-pinky", UI],
+  ["accent", "finger-ring", UI],
+  ["accent", "finger-middle", UI],
+  ["accent", "finger-index", UI],
 ];
 
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
