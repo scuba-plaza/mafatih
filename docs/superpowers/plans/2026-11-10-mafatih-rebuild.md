@@ -355,7 +355,7 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 | 0 to 8 | Tooling, i18n, shell, keyboard model, text model, session engine, input pipeline, storage, typing surface and Custom mode | done |
 | 9a | Guide logic, the two guide settings, finger tint tokens, acceptance specs for the Settings dialog and the guide | done |
 | 10 | Practice corpus pipeline and review gate | to do |
-| 11 | Key stats and the unlock ladder | to do |
+| 11 | Key stats and the unlock ladder | in review |
 | 12a | Practice lesson generator and the lesson outcome (pure) | to do |
 | 13 | Qur'an data and the recitation domain | to do |
 | 14a | Passage typing slice: the surface for Qur'an text, checkpoints, the passage view | to do |
@@ -390,18 +390,21 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 
 ### Task 11: Key stats and the unlock ladder (pure)
 
-**Files:** Create `src/stats/keystats.ts`, `src/practice/ladder.ts`, tests. Read `git show origin/main:src/engine/stats/{keystats,unlock}.ts` and their tests as a behavioural reference.
+**Files:** `src/stats/{keystats.ts,keystats.test.ts}`, `src/practice/{ladder.ts,ladder.test.ts}`, `src/storage/{profile.ts,profile.test.ts}`, `scripts/build-data.ts`.
 
 **Interfaces:**
-- Consumes: `Sample` (Task 5), `HOME_ROW_LETTERS`, `reachOf`, `TYPEABLE_LETTERS`, `MARKS` (Task 3).
-- Produces: `interface KeyStat { char: string; attempts: number; hits: number; timed: number; meanMs: number; recentAccuracy: number }`; `type KeyStats = Readonly<Record<string, KeyStat>>` (null-prototype safe); `recordSample(stats: KeyStats, sample: Sample): KeyStats`; `sanitizeStats(raw: unknown): KeyStats` (at most 200 keys, keys are one character or one ligature pair); `type Rung = { kind: "letter" | "mark"; char: string }`; `interface Ladder { rungs: readonly Rung[]; starter: number }`; `buildLadder(wordFreq: ReadonlyMap<string, number>): Ladder`; `interface LadderProgress { unlocked: number }`; `initialProgress(ladder: Ladder): LadderProgress`; `unlockedLetters(ladder, progress): ReadonlySet<string>`; `unlockedMarks(ladder, progress): ReadonlySet<string>`; `focusRung(ladder, progress): Rung | undefined`; `interface UnlockConfig { minSamples: number; letterMs: number; markMs: number; minAccuracy: number }`; `DEFAULT_UNLOCK_CONFIG` (8, 700, 1000, 0.95); `advance(stats: KeyStats, ladder: Ladder, progress: LadderProgress, config: UnlockConfig): LadderProgress`; `sanitizeProgress(raw: unknown, ladder: Ladder): LadderProgress`.
+- Consumes: `Sample` (Task 5), `isMark` (Task 4), the committed word list (Task 10, in `build:data` only).
+- Produces (stats): `interface KeyStat { attempts: number; hits: number; timed: number; meanMs: number; recentAccuracy: number }`; `type KeyStats = Readonly<Record<string, KeyStat>>` keyed by the expected unit (one character or a lam-alef pair); `statOf(stats, key): KeyStat` (own keys only; a never-typed key has zero counts and accuracy 1); `recordSample(stats: KeyStats, sample: Sample): KeyStats`; `sanitizeStats(raw: unknown): KeyStats` (at most 200 keys, keys of one or two code points, whole non-negative counts).
+- Produces (ladder): `type Rung = { kind: "letter" | "mark"; char: string }`; `LADDER: { rungs: readonly Rung[]; starter: number }`, **a committed constant**: the ten starter letters `ا ي م ل ب ت ن س ك ش`, then the other 26 letters, then the eight marks (fatha, kasra, damma, sukun, shadda, fathatan, kasratan, dammatan). The letter order was derived once from the word list (spelling frequency times `e^(-reach)`) and is fixed, so that every mode can know the unlocked marks without loading the word list and a regenerated list never reshuffles a learner's progress. `interface LadderProgress { unlocked: number }`; `initialProgress(): LadderProgress`; `unlockedLetters(progress)`, `unlockedMarks(progress): ReadonlySet<string>`; `focusRung(progress): Rung | undefined` (the newest unlocked rung); `interface UnlockConfig { minSamples; letterMs; markMs; minAccuracy }`; `DEFAULT_UNLOCK_CONFIG` (8, 700, 1000, 0.95); `advance(stats, progress, config = DEFAULT_UNLOCK_CONFIG): LadderProgress`; `sanitizeProgress(raw: unknown): LadderProgress`.
+- Produces (profile): `type Mode = "practice" | "recitation" | "custom"`; `Profile` gains `ladder: LadderProgress` and `stats: Readonly<Record<Mode, KeyStats>>`. Each part is sanitized on its own, so a broken ladder or one broken stat never discards the settings or the rest.
 
-- [ ] Test: a first-try hit adds a timed latency sample; a miss adds an attempt and no latency; `recentAccuracy` is the exact mean over the first 20 attempts then a moving average with rate `max(0.05, 1/(attempts+1))`.
-- [ ] Test: `buildLadder` has 44 rungs (36 letters then 8 marks); the first 10 are exactly `HOME_ROW_LETTERS` ordered by frequency; `ط` is not among them; letters after the starter are sorted by `frequency x e^(-reach)`; marks end the ladder in the order fatha, kasra, damma, sukun, shadda, fathatan, kasratan, dammatan; `starter === 10`.
-- [ ] Test: `initialProgress` unlocks the 10 starter letters and no marks; `focusRung` is the newest unlocked rung; `advance` unlocks one rung only when the focus rung has `minSamples` timed samples, mean at most its threshold (700 ms letters, 1000 ms marks) and recent accuracy at least 0.95; it never advances twice in one call and never past the last rung.
-- [ ] Test: `sanitizeProgress` clamps to `[starter, rungs.length]`; `sanitizeStats` drops a `__proto__` key and entries with negative counts.
-- [ ] Test (S2, in `build:data`, real data): with the real ladder built from the committed word list, for every letter rung at least 10 distinct skeletons contain that letter and only letters of earlier rungs, so every rung can be drilled.
-- [ ] Implement; extend the profile with `ladder` and `stats: Record<Mode, KeyStats>` plus their round-trip tests (Task 7 contract). Gate, review, commit.
+- [x] Test (S1): a first-try hit adds a timed latency sample; a miss adds an attempt and no latency; `recentAccuracy` is the exact mean over the first 20 attempts, then a moving average with rate `max(0.05, 1/(attempts+1))`; the mean latency is a moving average with rate 0.25.
+- [x] Test (S1): the ladder has 44 rungs (36 letters, then 8 marks), starts with the ten home-row starter letters, holds every typeable letter and mark exactly once, and ends with the marks in the order above.
+- [x] Test (S1): `initialProgress` unlocks the 10 starter letters and no marks; `focusRung` is the newest unlocked rung; `advance` unlocks one rung only when the focus rung has `minSamples` timed samples, a mean at most its threshold (700 ms letters, 1000 ms marks) and recent accuracy of at least 0.95 (19 of 20 counts); it never advances twice in one call and never past the last rung.
+- [x] Test (S1): `sanitizeProgress` clamps to `[10, 44]`; `sanitizeStats` drops a `__proto__` key, entries with negative or fractional counts and keys that are not one unit.
+- [x] Test (S2, in `build:data`, real data): for every letter rung at least 10 distinct spellings contain that letter and only letters unlocked by then, so every rung can be drilled when it unlocks.
+- [x] Test (S3): a fresh profile holds `initialProgress()` and empty stats for the three modes; ladder and stats survive a save and reopen; broken parts fall back on their own.
+- [ ] Gate, review, commit.
 
 ### Task 12a: Practice lesson generator and lesson outcome (pure)
 

@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
+import { LADDER } from "~/practice/ladder.ts";
 import { parseWordList } from "~/practice/words.ts";
+import { skeleton } from "~/text/arabic.ts";
 import { coverageOf, parseList, type Rules, violationsOf } from "./lib/practice-rules.ts";
 
 const PRACTICE = resolve(fileURLToPath(new URL("../data/practice", import.meta.url)));
@@ -12,6 +14,7 @@ const MIN_STARTER_WORDS = 60;
 const MIN_STARTER_SPELLINGS = 60;
 const MIN_WORDS_PER_STARTER_LETTER = 8;
 const MIN_WORDS_PER_MARK = 50;
+const MIN_SPELLINGS_PER_RUNG = 10;
 
 function read(name: string): string {
   return readFileSync(resolve(PRACTICE, name), "utf8");
@@ -44,6 +47,16 @@ function practiceProblems(): string[] {
     require(count >= MIN_WORDS_PER_MARK, `only ${count} words contain the mark U+${mark.codePointAt(0)?.toString(16)}`);
   }
   require(coverage.wordsWithoutMarks === 0, `${coverage.wordsWithoutMarks} words have no mark to type`);
+  const spellings = [...new Set(rows.map((row) => skeleton(row.word)))];
+  LADDER.rungs.forEach((rung, index) => {
+    const reached = LADDER.rungs.slice(0, Math.max(index + 1, LADDER.starter)).map((earlier) => earlier.char);
+    const drills = spellings.filter(
+      (spelling) => spelling.includes(rung.char) && [...spelling].every((letter) => reached.includes(letter)),
+    );
+    require(rung.kind === "mark" ||
+      drills.length >=
+        MIN_SPELLINGS_PER_RUNG, `only ${drills.length} spellings can drill ${rung.char} when it unlocks`);
+  });
   console.log(
     `practice words: ${rows.length}, ${coverage.starterWords} from the starter letters (${coverage.starterSpellings} spellings)`,
   );

@@ -1,4 +1,6 @@
-import { defaultSettings, type Settings, sanitizeSettings } from "~/settings/settings.ts";
+import { type LadderProgress, sanitizeProgress } from "~/practice/ladder.ts";
+import { type Settings, sanitizeSettings } from "~/settings/settings.ts";
+import { type KeyStats, sanitizeStats } from "~/stats/keystats.ts";
 import { isRecord } from "./guards.ts";
 
 export interface KeyValueStore {
@@ -6,9 +8,13 @@ export interface KeyValueStore {
   setItem(key: string, value: string): void;
 }
 
+export type Mode = "practice" | "recitation" | "custom";
+
 export interface Profile {
   readonly schema: 2;
   readonly settings: Settings;
+  readonly ladder: LadderProgress;
+  readonly stats: Readonly<Record<Mode, KeyStats>>;
 }
 
 export type StorageNotice = "unavailable" | "reset" | "newer" | null;
@@ -23,6 +29,20 @@ export const STORAGE_KEY = "mafatih:profile:2";
 export const UNREADABLE_KEY = "mafatih:profile:2:unreadable";
 
 const SCHEMA = 2;
+
+function sanitizeProfile(raw: Readonly<Record<string, unknown>>, preferredLanguages: readonly string[]): Profile {
+  const stats = isRecord(raw.stats) ? raw.stats : {};
+  return {
+    schema: SCHEMA,
+    settings: sanitizeSettings(raw.settings, preferredLanguages),
+    ladder: sanitizeProgress(raw.ladder),
+    stats: {
+      practice: sanitizeStats(stats.practice),
+      recitation: sanitizeStats(stats.recitation),
+      custom: sanitizeStats(stats.custom),
+    },
+  };
+}
 
 function parse(text: string): unknown {
   try {
@@ -50,7 +70,7 @@ function read(store: KeyValueStore): { readonly stored: unknown } | undefined {
 }
 
 export function openProfile(store: KeyValueStore | null, preferredLanguages: readonly string[]): OpenedProfile {
-  const fresh: Profile = { schema: SCHEMA, settings: defaultSettings(preferredLanguages) };
+  const fresh = sanitizeProfile({}, preferredLanguages);
   const found = store === null ? undefined : read(store);
   if (store === null || found === undefined) {
     return { profile: fresh, notice: "unavailable", save: () => "unavailable" };
@@ -70,9 +90,5 @@ export function openProfile(store: KeyValueStore | null, preferredLanguages: rea
     }
     return { profile: fresh, notice: "reset", save };
   }
-  return {
-    profile: { schema: SCHEMA, settings: sanitizeSettings(raw.settings, preferredLanguages) },
-    notice: null,
-    save,
-  };
+  return { profile: sanitizeProfile(raw, preferredLanguages), notice: null, save };
 }

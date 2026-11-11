@@ -12,8 +12,9 @@ const OTHER_DEFAULTS = {
   fingerGuide: true,
   customText: "",
 } as const;
-const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en", ...OTHER_DEFAULTS } };
-const ARABIC_PROFILE: Profile = { schema: 2, settings: { language: "ar", ...OTHER_DEFAULTS } };
+const NO_PROGRESS = { ladder: { unlocked: 10 }, stats: { practice: {}, recitation: {}, custom: {} } } as const;
+const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en", ...OTHER_DEFAULTS }, ...NO_PROGRESS };
+const ARABIC_PROFILE: Profile = { schema: 2, settings: { language: "ar", ...OTHER_DEFAULTS }, ...NO_PROGRESS };
 
 interface MemoryStore extends KeyValueStore {
   readonly data: Map<string, string>;
@@ -79,6 +80,8 @@ test("a saved profile is read back as it was, whatever the browser's language is
       fingerGuide: true,
       customText: "",
     },
+    ladder: { unlocked: 10 },
+    stats: { practice: {}, recitation: {}, custom: {} },
   });
   const reopened = openProfile(store, ENGLISH);
   expect(reopened.profile).toEqual(ARABIC_PROFILE);
@@ -141,7 +144,7 @@ test("unknown and dangerous keys in saved data are never copied into the profile
     '"settings":{"language":"ar","__proto__":{"language":"en"},"constructor":1,"prototype":2,"x":1}}';
   const { profile } = openProfile(holding(stored), ENGLISH);
   expect(profile).toEqual(ARABIC_PROFILE);
-  expect(Object.keys(profile)).toEqual(["schema", "settings"]);
+  expect(Object.keys(profile)).toEqual(["schema", "settings", "ladder", "stats"]);
   expect(Object.keys(profile.settings).sort()).toEqual(
     [
       "customText",
@@ -194,7 +197,7 @@ test("when saving fails the visitor is told, and nothing is thrown", () => {
   expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBe("unavailable");
 });
 
-test("every setting survives being saved and opened again", () => {
+test("every setting, the ladder and the key stats survive being saved and opened again", () => {
   const store = memoryStore();
   const changed: Profile = {
     schema: 2,
@@ -208,7 +211,33 @@ test("every setting survives being saved and opened again", () => {
       fingerGuide: false,
       customText: "بسم الله",
     },
+    ladder: { unlocked: 12 },
+    stats: {
+      practice: { ش: { attempts: 9, hits: 8, timed: 8, meanMs: 512.5, recentAccuracy: 0.9 } },
+      recitation: { لا: { attempts: 1, hits: 1, timed: 0, meanMs: 0, recentAccuracy: 1 } },
+      custom: {},
+    },
   };
   openProfile(store, ENGLISH).save(changed);
   expect(openProfile(store, ENGLISH).profile).toEqual(changed);
+});
+
+test("broken progress falls back on its own: the settings and the rest of the progress are kept", () => {
+  const stat = { attempts: 2, hits: 2, timed: 2, meanMs: 400, recentAccuracy: 1 };
+  const stored = JSON.stringify({
+    schema: 2,
+    settings: { language: "ar" },
+    ladder: { unlocked: "many" },
+    stats: { practice: { ب: stat, ت: "broken" }, recitation: 5, extra: { ب: stat } },
+  });
+  const { profile, notice } = openProfile(holding(stored), ENGLISH);
+  expect(notice).toBeNull();
+  expect(profile).toEqual({
+    ...ARABIC_PROFILE,
+    stats: { practice: { ب: stat }, recitation: {}, custom: {} },
+  });
+  expect(openProfile(holding('{"schema":2,"ladder":{"unlocked":99},"stats":[]}'), ENGLISH).profile).toEqual({
+    ...ENGLISH_DEFAULTS,
+    ladder: { unlocked: 44 },
+  });
 });
