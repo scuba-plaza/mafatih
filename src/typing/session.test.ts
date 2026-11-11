@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { FATHA, SHADDA } from "~/text/arabic.ts";
+import { FATHA, KASRA, SHADDA } from "~/text/arabic.ts";
 import { buildPrompt } from "~/text/prompt.ts";
 import {
   applyKey,
@@ -17,7 +17,7 @@ import {
 } from "./session.ts";
 
 const LETTERS: ReadonlySet<string> = new Set();
-const WITH_MARKS: ReadonlySet<string> = new Set([FATHA, SHADDA]);
+const WITH_MARKS: ReadonlySet<string> = new Set([FATHA, KASRA, SHADDA]);
 const STRICT: SessionOptions = { requireBackspace: true };
 const LENIENT: SessionOptions = { requireBackspace: false };
 const BACKSPACE: Key = { kind: "backspace" };
@@ -324,5 +324,169 @@ test("applying a key never changes the session it was given", () => {
   const snapshot = structuredClone(before);
   press(before, "ش", 100);
   applyKey(before, BACKSPACE, 200, STRICT);
+  expect(before).toEqual(snapshot);
+});
+
+test("pausing after the last key does not add to the typing time", () => {
+  const done = typeAll(start("بت"), ["ب", "ت"], 0, 1000);
+  expect(metricsOf(pause(done, 3000)).elapsedMs).toBe(1000);
+  expect(pause(done, 3000)).toEqual(done);
+});
+
+test("Backspace with nothing to delete is not typing: it neither starts nor keeps the clock running", () => {
+  const fresh = start("بت");
+  expect(applyKey(fresh, BACKSPACE, 5000, STRICT)).toBe(fresh);
+  let session = press(fresh, "ب", 0);
+  session = applyKey(session, BACKSPACE, 2000, STRICT);
+  session = press(session, "ت", 4000);
+  expect(metricsOf(session).elapsedMs).toBe(LATENCY_CAP_MS);
+  expect(session.samples.at(-1)?.latencyMs).toBeNull();
+});
+
+test("Backspace that removes a mistake is typing time", () => {
+  let session = typeAll(start("بت"), ["ب", "س"], 0, 1000);
+  session = applyKey(session, BACKSPACE, 2000, STRICT);
+  session = press(session, "ت", 3000);
+  expect(metricsOf(session).elapsedMs).toBe(3000);
+});
+
+test("every character of a key is its own mistake, also when mistakes are already pending", () => {
+  let session = press(press(start("بت"), "س", 0), "لا", 100);
+  expect(session.mistakes).toEqual(["س", "ل", "ا"]);
+  expect(session.errors).toBe(3);
+  session = typeAll(
+    start("بت"),
+    Array.from({ length: 9 }, () => "س"),
+    0,
+    10,
+  );
+  session = press(session, "شش", 200);
+  expect(session.mistakes).toHaveLength(10);
+  expect(session.errors).toBe(11);
+});
+
+test("a miss is recorded against the key that then fixes the position", () => {
+  let session = typeAll(start("بلا"), ["ب", "س"], 0, 100);
+  session = applyKey(session, BACKSPACE, 200, STRICT);
+  session = typeAll(session, ["ل", "ا"], 300, 100);
+  expect(session.samples).toEqual([
+    { expected: "ب", correct: true, latencyMs: null },
+    { expected: "ل", correct: false, latencyMs: null },
+    { expected: "ا", correct: true, latencyMs: 100 },
+  ]);
+  const marks = typeAll(start(`ب${SHADDA}${FATHA}`, WITH_MARKS), ["ب", "س", FATHA, SHADDA], 0, 100, LENIENT);
+  expect(marks.samples).toEqual([
+    { expected: "ب", correct: true, latencyMs: null },
+    { expected: FATHA, correct: false, latencyMs: null },
+    { expected: SHADDA, correct: true, latencyMs: 100 },
+  ]);
+});
+
+test("three marks on one letter are accepted in any order", () => {
+  const shown = `ب${SHADDA}${FATHA}${KASRA}`;
+  for (const order of [
+    [SHADDA, FATHA, KASRA],
+    [KASRA, FATHA, SHADDA],
+    [FATHA, KASRA, SHADDA],
+    [KASRA, SHADDA, FATHA],
+  ]) {
+    const session = typeAll(start(shown, WITH_MARKS), ["ب", ...order], 0, 100);
+    expect(isComplete(session), order.join(" ")).toBe(true);
+    expect(session.errors).toBe(0);
+  }
+});
+
+test("a mark already typed is not accepted a second time", () => {
+  const session = typeAll(start(`ب${SHADDA}${FATHA}`, WITH_MARKS), ["ب", FATHA, FATHA], 0, 100);
+  expect(session.cursor).toBe(2);
+  expect(session.mistakes).toEqual([FATHA]);
+});
+
+test("the cursor always counts the prompt's own units, so a session can be resumed from it", () => {
+  const prompt = buildPrompt("ب لا ت", LETTERS);
+  let session = typeAll(createSession(prompt), ["ب", " ", "ل"], 0, 100);
+  expect(session.cursor).toBe(2);
+  expect(expectedText(session)).toBe("ا");
+  session = press(session, "ا", 400);
+  expect(session.cursor).toBe(3);
+  const resumed = typeAll(createSession(prompt, session.cursor), [" ", "ت"], 0, 100);
+  expect(isComplete(resumed)).toBe(true);
+  expect(metricsOf(resumed).typedChars).toBe(2);
+});
+
+test("the units keep the prompt's places in the text, whatever order and way they are typed in", () => {
+  const prompt = buildPrompt(`لا ب${SHADDA}${FATHA}`, WITH_MARKS);
+  const session = typeAll(createSession(prompt), ["ل", "ا", " ", "ب", FATHA, SHADDA], 0, 100);
+  expect(isComplete(session)).toBe(true);
+  expect(session.units.map(({ start: from, end }) => [from, end])).toEqual(
+    prompt.units.map(({ start: from, end }) => [from, end]),
+  );
+});
+
+test("letters of a lam-alef typed one by one count as typed characters as they go", () => {
+  const session = typeAll(start("لا"), ["ل"], 0, 100);
+  expect(metricsOf(session).typedChars).toBe(1);
+});
+
+test("a key of several ordinary characters types them in turn", () => {
+  const session = press(start("بتن"), "بتن", 0);
+  expect(isComplete(session)).toBe(true);
+  expect(session.samples.map((sample) => sample.expected)).toEqual(["ب", "ت", "ن"]);
+});
+
+test("an empty key is nothing at all", () => {
+  const session = start("لا");
+  expect(press(session, "", 0)).toBe(session);
+});
+
+test("a key with an impossible time is still a key, placed at the last known time", () => {
+  let session = press(start("بتن"), "ب", 1000);
+  session = press(session, "ت", Number.NaN);
+  expect(session.cursor).toBe(2);
+  expect(session.samples.at(-1)).toEqual({ expected: "ت", correct: true, latencyMs: null });
+  session = press(session, "ن", 1400);
+  expect(session.samples.at(-1)?.latencyMs).toBe(400);
+  expect(metricsOf(session).elapsedMs).toBe(400);
+  expect(metricsOf(start("ب"), Number.NaN).elapsedMs).toBe(0);
+});
+
+test("time never runs backwards: an earlier timestamp is treated as the latest one seen", () => {
+  let session = press(start("بتن"), "ب", 1000);
+  session = press(session, "ت", 400);
+  expect(session.samples.at(-1)?.latencyMs).toBeNull();
+  session = press(session, "ن", 1300);
+  expect(session.samples.at(-1)?.latencyMs).toBe(300);
+  expect(metricsOf(session).elapsedMs).toBe(300);
+  expect(metricsOf(press(start("بت"), "ب", 1000), 200).elapsedMs).toBe(0);
+});
+
+test("a session that starts with nothing left to type is complete without ever having been finished", () => {
+  expect(start("بت", LETTERS, 2).finishedAt).toBeNull();
+  expect(start("بت", LETTERS, Number.NaN).cursor).toBe(0);
+});
+
+test("turning the Backspace setting off drops mistakes that were pending, so nobody is stuck on hidden ones", () => {
+  let session = press(start("بت"), "س", 0, STRICT);
+  expect(session.mistakes).toEqual(["س"]);
+  session = press(session, "ب", 100, LENIENT);
+  expect(session.mistakes).toEqual([]);
+  expect(session.cursor).toBe(1);
+  const cleared = applyKey(press(start("بت"), "س", 0, STRICT), BACKSPACE, 100, LENIENT);
+  expect(view(cleared)).toEqual({ doneUntil: 0, mistakes: "" });
+});
+
+test("turning the Backspace setting on after a hidden mistake lets the right key through", () => {
+  let session = press(start("بت"), "س", 0, LENIENT);
+  session = press(session, "ب", 100, STRICT);
+  expect(session.cursor).toBe(1);
+  expect(session.samples).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
+});
+
+test("pausing and lenient typing never change the session they were given", () => {
+  const before = typeAll(start("بتن"), ["ب", "س"], 0, 100, LENIENT);
+  const snapshot = structuredClone(before);
+  press(before, "ت", 200, LENIENT);
+  applyKey(before, BACKSPACE, 300, LENIENT);
+  pause(before, 400);
   expect(before).toEqual(snapshot);
 });

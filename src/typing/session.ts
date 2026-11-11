@@ -18,6 +18,7 @@ export interface Session {
   readonly units: readonly Unit[];
   readonly origin: number;
   readonly cursor: number;
+  readonly within: number;
   readonly mistakes: readonly string[];
   readonly missed: boolean;
   readonly errors: number;
@@ -28,6 +29,11 @@ export interface Session {
   readonly activeMs: number;
   readonly lastKeyAt: number | null;
   readonly lastCorrectAt: number | null;
+}
+
+export interface SessionView {
+  readonly doneUntil: number;
+  readonly mistakes: string;
 }
 
 export interface Metrics {
@@ -45,12 +51,13 @@ export const MAX_PENDING_MISTAKES = 10;
 const CHARS_PER_WORD = 5;
 
 export function createSession(prompt: Prompt, origin = 0): Session {
-  const start = Math.max(0, Math.min(Math.trunc(origin), prompt.units.length));
+  const start = Number.isFinite(origin) ? Math.max(0, Math.min(Math.trunc(origin), prompt.units.length)) : 0;
   return {
     prompt,
     units: prompt.units,
     origin: start,
     cursor: start,
+    within: 0,
     mistakes: [],
     missed: false,
     errors: 0,
@@ -69,59 +76,71 @@ export function isComplete(session: Session): boolean {
 }
 
 export function expectedText(session: Session): string | undefined {
-  return session.units[session.cursor]?.text;
+  return session.units[session.cursor]?.text.slice(session.within);
 }
 
-export function view(session: Session): { doneUntil: number; mistakes: string } {
-  return {
-    doneUntil: session.units[session.cursor]?.start ?? session.prompt.shown.length,
-    mistakes: session.mistakes.join(""),
-  };
+export function view(session: Session): SessionView {
+  const unit = session.units[session.cursor];
+  const remaining = unit === undefined ? 0 : unit.text.length - session.within;
+  const doneUntil =
+    unit === undefined ? session.prompt.shown.length : session.within > 0 ? unit.end - remaining : unit.start;
+  return { doneUntil, mistakes: session.mistakes.join("") };
 }
 
-function activeSince(session: Session, at: number): number {
-  return session.lastKeyAt === null ? 0 : Math.min(Math.max(0, at - session.lastKeyAt), LATENCY_CAP_MS);
+function timeOf(session: Session, at: number): number {
+  const latest = session.lastKeyAt ?? 0;
+  return Number.isFinite(at) ? Math.max(at, latest) : latest;
 }
 
-function touched(session: Session, at: number): Session {
+function activeSince(session: Session, time: number): number {
+  return session.lastKeyAt === null ? 0 : Math.min(Math.max(0, time - session.lastKeyAt), LATENCY_CAP_MS);
+}
+
+function touched(session: Session, time: number): Session {
   return {
     ...session,
-    startedAt: session.startedAt ?? at,
-    activeMs: session.activeMs + activeSince(session, at),
-    lastKeyAt: at,
+    startedAt: session.startedAt ?? time,
+    activeMs: session.activeMs + activeSince(session, time),
+    lastKeyAt: time,
   };
 }
 
 export function pause(session: Session, at: number): Session {
-  if (session.lastKeyAt === null) {
+  if (session.lastKeyAt === null || isComplete(session)) {
     return session;
   }
-  return { ...session, activeMs: session.activeMs + activeSince(session, at), lastKeyAt: null, lastCorrectAt: null };
+  const time = timeOf(session, at);
+  return { ...session, activeMs: session.activeMs + activeSince(session, time), lastKeyAt: null, lastCorrectAt: null };
 }
 
-function latencyAt(session: Session, at: number): number | null {
+function latencyAt(session: Session, time: number): number | null {
   if (session.lastCorrectAt === null) {
     return null;
   }
-  const gap = at - session.lastCorrectAt;
+  const gap = time - session.lastCorrectAt;
   return gap > 0 && gap <= LATENCY_CAP_MS ? gap : null;
 }
 
-function advance(session: Session, unit: Unit, at: number): Session {
-  const cursor = session.cursor + 1;
-  const sample: Sample = { expected: unit.text, correct: true, latencyMs: latencyAt(session, at) };
+function accept(session: Session, unit: Unit, typed: string, time: number): Session {
+  const within = session.within + typed.length;
+  const finishesUnit = within >= unit.text.length;
+  const cursor = finishesUnit ? session.cursor + 1 : session.cursor;
+  const sample: Sample = session.missed
+    ? { expected: typed, correct: false, latencyMs: null }
+    : { expected: typed, correct: true, latencyMs: latencyAt(session, time) };
   return {
     ...session,
     cursor,
+    within: finishesUnit ? 0 : within,
     missed: false,
-    samples: session.missed ? session.samples : [...session.samples, sample],
-    lastCorrectAt: at,
-    finishedAt: cursor >= session.units.length ? at : null,
+    samples: [...session.samples.slice(0, session.missed ? -1 : undefined), sample],
+    lastCorrectAt: time,
+    finishedAt: cursor >= session.units.length ? time : null,
   };
 }
 
-function wrong(session: Session, unit: Unit, char: string, at: number, options: SessionOptions): Session {
-  const miss: Sample = { expected: unit.text, correct: false, latencyMs: null };
+function reject(session: Session, expected: string, char: string, time: number, options: SessionOptions): Session {
+  const miss: Sample = { expected, correct: false, latencyMs: null };
   const shown = options.requireBackspace && session.mistakes.length < MAX_PENDING_MISTAKES;
   return {
     ...session,
@@ -129,100 +148,79 @@ function wrong(session: Session, unit: Unit, char: string, at: number, options: 
     errors: session.errors + 1,
     samples: session.missed ? session.samples : [...session.samples, miss],
     mistakes: shown ? [...session.mistakes, char] : session.mistakes,
-    lastError: { at, char },
+    lastError: { at: time, char },
   };
 }
 
-function withUnits(session: Session, replaced: number, units: readonly Unit[]): Session {
-  return {
-    ...session,
-    units: [...session.units.slice(0, session.cursor), ...units, ...session.units.slice(session.cursor + replaced)],
-  };
-}
-
-function splitLamAlef(session: Session, unit: Unit): Session {
-  const [lam = "", alef = ""] = [...unit.text];
-  return withUnits(session, 1, [
-    { text: lam, start: unit.start, end: unit.start + lam.length },
-    { text: alef, start: unit.end - alef.length, end: unit.end },
-  ]);
-}
-
-function laterMarkOfSameLetter(session: Session, char: string): number {
+function withLaterMarkBroughtForward(session: Session, unit: Unit, mark: string): Session | undefined {
   for (let index = session.cursor + 1; index < session.units.length; index += 1) {
-    const unit = session.units[index];
-    const before = session.units[index - 1];
-    if (unit === undefined || before === undefined || !isMark(unit.text) || unit.start !== before.end) {
-      return -1;
+    const later = session.units[index];
+    if (later === undefined || !isMark(later.text) || later.start !== session.units[index - 1]?.end) {
+      return undefined;
     }
-    if (unit.text === char) {
-      return index;
+    if (later.text === mark) {
+      const units = [...session.units];
+      units[session.cursor] = { ...unit, text: mark };
+      units[index] = { ...later, text: unit.text };
+      return { ...session, units };
     }
   }
-  return -1;
+  return undefined;
 }
 
-function swapMarks(session: Session, unit: Unit, laterIndex: number): Session {
-  const later = session.units[laterIndex];
-  if (later === undefined) {
+function typeChar(session: Session, char: string, time: number, options: SessionOptions): Session {
+  const unit = session.units[session.cursor];
+  if (unit === undefined) {
     return session;
   }
-  const units = [...session.units];
-  units[session.cursor] = { ...unit, text: later.text };
-  units[laterIndex] = { ...later, text: unit.text };
-  return { ...session, units };
+  const expected = unit.text.slice(session.within);
+  if (session.mistakes.length > 0) {
+    return reject(session, expected, char, time, options);
+  }
+  if (expected.startsWith(char)) {
+    return accept(session, unit, char, time);
+  }
+  const reordered = isMark(expected) && isMark(char) ? withLaterMarkBroughtForward(session, unit, char) : undefined;
+  return reordered === undefined ? reject(session, expected, char, time, options) : accept(reordered, unit, char, time);
 }
 
 function untimed(session: Session): Session {
   return { ...session, lastCorrectAt: null };
 }
 
-function typeChar(session: Session, char: string, at: number, options: SessionOptions): Session {
-  const unit = session.units[session.cursor];
-  if (unit === undefined) {
-    return session;
+function typeKey(session: Session, text: string, time: number, options: SessionOptions): Session {
+  if (session.mistakes.length === 0 && text === expectedText(session)) {
+    return typeChar(session, text, time, options);
   }
-  if (session.mistakes.length > 0) {
-    return wrong(session, unit, char, at, options);
+  const [first = "", ...rest] = [...text];
+  let state = typeChar(session, first, time, options);
+  for (const char of rest) {
+    state = typeChar(untimed(state), char, time, options);
   }
-  if (char === unit.text) {
-    return advance(session, unit, at);
-  }
-  const [first = "", ...rest] = [...char];
-  if (rest.length > 0) {
-    let state = typeChar(session, first, at, options);
-    for (const next of rest) {
-      state = typeChar(untimed(state), next, at, options);
-    }
-    return state;
-  }
-  if ([...unit.text].length > 1 && unit.text.startsWith(char)) {
-    return typeChar(splitLamAlef(session, unit), char, at, options);
-  }
-  const laterIndex = isMark(unit.text) && isMark(char) ? laterMarkOfSameLetter(session, char) : -1;
-  if (laterIndex >= 0) {
-    return typeChar(swapMarks(session, unit, laterIndex), char, at, options);
-  }
-  return wrong(session, unit, char, at, options);
+  return state;
 }
 
 export function applyKey(session: Session, key: Key, at: number, options: SessionOptions): Session {
-  if (isComplete(session)) {
+  if (isComplete(session) || (key.kind === "char" && key.char === "")) {
     return session;
   }
-  const active = touched(session, at);
-  if (key.kind === "backspace") {
-    return { ...active, mistakes: active.mistakes.slice(0, -1) };
+  const visible = options.requireBackspace || session.mistakes.length === 0 ? session : { ...session, mistakes: [] };
+  if (key.kind === "backspace" && visible.mistakes.length === 0) {
+    return visible;
   }
-  return typeChar(active, key.char, at, options);
+  const time = timeOf(visible, at);
+  const active = touched(visible, time);
+  return key.kind === "backspace"
+    ? { ...active, mistakes: active.mistakes.slice(0, -1) }
+    : typeKey(active, key.char, time, options);
 }
 
 export function metricsOf(session: Session, now?: number): Metrics {
-  const live = now === undefined || isComplete(session) ? 0 : activeSince(session, now);
+  const live = now === undefined || isComplete(session) ? 0 : activeSince(session, timeOf(session, now));
   const elapsedMs = session.activeMs + live;
   const typedChars = session.units
     .slice(session.origin, session.cursor)
-    .reduce((count, unit) => count + [...unit.text].length, 0);
+    .reduce((count, unit) => count + unit.text.length, session.within);
   const cpm = elapsedMs > 0 ? typedChars / (elapsedMs / 60_000) : 0;
   const firstTry = session.samples.filter((sample) => sample.correct).length;
   return {
