@@ -242,11 +242,11 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 ### Task 4: Arabic text model and prompts
 
-**Files:** Create `src/text/{arabic.ts,vocalization.ts,prompt.ts,collapse.ts}` and tests.
+**Files:** Create `src/text/{arabic.ts,vocalization.ts,prompt.ts}` and tests.
 
 **Interfaces:**
 - Consumes: `isTypeable`, `MARKS`, `LIGATURE_KEYS` (Task 3).
-- Produces: `canonicalizeMarks(text: string): string`; `skeleton(text: string): string` (letters only, all marks removed); `isFullyVocalized(word: string): boolean`; `type Vocalization = "auto" | "letters" | "harakat" | "full"`; `requiredMarks(v: Vocalization, unlocked: ReadonlySet<string>): ReadonlySet<string>` (`letters` empty, `harakat` the five basic marks, `full` all eight, `auto` exactly `unlocked`); `buildPrompt(shown: string, required: ReadonlySet<string>, breaks?: readonly number[]): Prompt`; `collapseWhitespace(text: string): string`; `describeText(shown: string, required: ReadonlySet<string>): { units: number; skipped: number }`.
+- Produces: `canonicalizeMarks(text: string): string`; `skeleton(text: string): string` (letters only, all marks removed); `isFullyVocalized(word: string): boolean`; `type Vocalization = "auto" | "letters" | "harakat" | "full"`; `requiredMarks(v: Vocalization, unlocked: ReadonlySet<string>): ReadonlySet<string>` (`letters` empty, `harakat` the five basic marks, `full` all eight, `auto` exactly `unlocked`); `buildPrompt(shown: string, required: ReadonlySet<string>, breaks?: readonly number[]): Prompt`, where a unit's `start` and `end` are UTF-16 offsets into `shown` (the same offsets a DOM `Range` uses); the mark constants (`FATHA` ... `DAGGER_ALEF`), `HARAKAT`, `TANWEEN` and `isMark(char)`. Whitespace collapsing and the expansion of pasted lam-alef presentation forms belong to Task 8, their only user; a text has nothing to type when `buildPrompt(...).units` is empty.
 - `src/text/arabic.ts` defines the basic harakat (fatha, damma, kasra, sukun, shadda) and the tanween (fathatan, dammatan, kasratan) once; a test proves the two sets partition Task 3's `MARKS`.
 - A unit is one typeable character, except that a lam directly followed (in unit order) by an alef-family letter merges into one two-character unit whose `start`/`end` span any skipped marks between them.
 
@@ -256,7 +256,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 - [ ] Test: `buildPrompt("كِتَابٌ", ∅)` typed text (units joined) is `"كتاب"` and `shown` is unchanged; with all eight marks it is `"كِتَابٌ"`; with the five basic marks the tanween is shown but not a unit.
 - [ ] Test: `buildPrompt("هَٰذَا", full)` never makes the dagger alef a unit and `shown` keeps it.
 - [ ] Test: `buildPrompt("لا", ∅)` has one unit `"لا"`; `buildPrompt("لَا", ∅)` has one unit `"لا"` spanning `start 0, end 3`; `buildPrompt("لَا", full)` has three units (no merge across a required mark).
-- [ ] Test: `requiredMarks("auto", new Set(["َ"]))` is exactly that set; `collapseWhitespace(" a\n\n b ")` is `"a b"`; `describeText("hello", ∅)` is `{ units: 0, skipped: 5 }` (feeds Task 8's empty message).
+- [ ] Test: `requiredMarks("auto", new Set(["َ"]))` is exactly that set; `buildPrompt("hello", full).units` is empty (feeds Task 8's empty message).
 - [ ] Implement, deriving "marks" and "letters" from Task 3's tables. Gate, review, commit.
 
 ### Task 5: Typing session engine
@@ -314,7 +314,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 - Produces: `useTrainer(config: { prompt: Prompt | null; origin?: number; options: SessionOptions; active: boolean; onCheckpoint?(samples: readonly Sample[], cursor: number): void; onComplete(result: { metrics: ReturnType<typeof metricsOf>; samples: readonly Sample[] }): void }): { session: Session | null; focused: boolean; latinDetected: boolean; surfaceProps: ...; restart(): void }`; `<TypingSurface session paused lang font fontSize onActivate />`; `typeText(page, text, opts?: { mistakesAt?: Record<number, string>; delayMs?: number })` e2e helper that dispatches `insertText` per unit.
 - DOM contract: the surface is a labelled `section` (`lang="ar" dir="rtl"`) with one `<p>` per block (`prompt.breaks`), a single text node per block while no mistakes are pending; mistakes render in an `aria-hidden` `inline-block` span (`unicode-bidi: isolate; white-space: pre`, a space shown as `␣`); highlights `mafatih-done`, `mafatih-mistake`, `mafatih-apparatus` (skipped untypeable characters) are `Range`s registered on `CSS.highlights`; the caret is an `aria-hidden` 2 px bar placed from the start edge of a `Range` over the next display character and scrolled into view (instantly under reduced motion).
 
-- [ ] Test (S1): `describeText` drives the Custom empty states: empty, whitespace only, Latin only and marks only all produce the inline message "There is nothing to type in this text" (en and ar keys), never an empty lesson (Review Focus 4); more than 5,000 characters is truncated at a word boundary with a notice.
+- [ ] Test (S1): `prepareCustomText(raw: string): string` (in `src/custom/text.ts`) collapses whitespace (`" a\n\n b "` gives `"a b"`), expands lam-alef presentation forms and puts marks in canonical order; an empty `buildPrompt(...).units` drives the Custom empty states: empty, whitespace only, Latin only and marks only all produce the inline message "There is nothing to type in this text" (en and ar keys), never an empty lesson (Review Focus 4); more than 5,000 characters is truncated at a word boundary with a notice.
 - [ ] Test (S5): pasting `بِسْمِ` with vocalization `letters` shows the full text (marks drawn), the caret skips the marks, and typing the four letters completes it; with `full`, marks are required; typing shadda and vowel in either order is accepted.
 - [ ] Test (S5): requireBackspace ON: typing `س` where `ب` is expected shows `س` at the cursor, the expected text is still fully visible after it, three wrong keys then three Backspaces restore the original `textContent`; completed text cannot be deleted. OFF: the wrong key shows nothing, the surface gets `data-error` for 300 ms and the status region says "Mistake" once.
 - [ ] Test (S5, Review Focus 2 and 5): Latin keys show the layout banner (`role="alert"`) and insert nothing; blurring the input shows a "Tap to continue typing" `<button>` and pauses; a 10-minute blur does not affect speed.
