@@ -1,42 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 
 const KEY = "mafatih:profile:2";
+const NOT_SAVED = "Your progress can't be saved in this browser.";
+const STARTED_FRESH = "Your saved progress could not be read, so Mafatih started fresh.";
+const NEWER =
+  "This browser holds progress saved by a newer version of Mafatih. It is left untouched, so nothing new will be saved.";
 
-test("the saved interface language wins over the browser's language", async ({ page }) => {
-  await page.addInitScript((key) => localStorage.setItem(key, '{"schema":2,"settings":{"language":"ar"}}'), KEY);
-  await page.goto("/");
-  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("التلاوة");
-  await expect(page.getByRole("status")).toHaveCount(0);
-});
+async function store(page: Page, key: string, value: string): Promise<void> {
+  await page.addInitScript(([k, v]) => localStorage.setItem(k, v), [key, value] as const);
+}
 
-test("a first visit shows no storage notice", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
-  await expect(page.getByRole("status")).toHaveCount(0);
-});
-
-test("unreadable saved data starts the app fresh and says so", async ({ page }) => {
-  await page.addInitScript((key) => localStorage.setItem(key, "{not json"), KEY);
-  await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
-  await expect(page.getByRole("status")).toHaveText("Your saved progress could not be read, so Mafatih started fresh.");
-  await expectNoAxeViolations(page);
-});
-
-test.describe("Arabic", () => {
-  test.use({ locale: "ar-EG", colorScheme: "dark" });
-
-  test("the notice is shown in the interface language", async ({ page }) => {
-    await page.addInitScript((key) => localStorage.setItem(key, '{"schema":7}'), KEY);
-    await page.goto("/");
-    await expect(page.getByRole("status")).toHaveText("تعذّرت قراءة تقدّمك المحفوظ، فبدأ مفاتيح من جديد.");
-    await expectNoAxeViolations(page);
-  });
-});
-
-test("when the browser blocks storage the app still works and says progress cannot be saved", async ({ page }) => {
+async function blockStorage(page: Page): Promise<void> {
   await page.addInitScript(() => {
     Object.defineProperty(window, "localStorage", {
       get() {
@@ -44,17 +19,129 @@ test("when the browser blocks storage the app still works and says progress cann
       },
     });
   });
+}
+
+test("the saved interface language wins over the browser's language", async ({ page }) => {
+  await store(page, KEY, '{"schema":2,"settings":{"language":"ar"}}');
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("التلاوة");
+  await expect(page.getByRole("status")).toBeEmpty();
+});
+
+test("a first visit has an empty notice area, ready to announce", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
+  await expect(page.getByRole("status")).toHaveCount(1);
+  await expect(page.getByRole("status")).toBeEmpty();
+});
+
+test("unreadable saved data starts the app fresh, says so, and keeps a copy of what was there", async ({ page }) => {
+  await store(page, KEY, "{not json");
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
+  await expect(page.getByRole("status").getByText(STARTED_FRESH)).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("mafatih:profile:2:unreadable"))).toBe("{not json");
+  await expectNoAxeViolations(page);
+});
+
+test("progress saved by a newer version is reported and left untouched", async ({ page }) => {
+  const newer = '{"schema":3,"settings":{"language":"ar"}}';
+  await store(page, KEY, newer);
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("status").getByText(NEWER)).toBeVisible();
+  expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBe(newer);
+});
+
+test("when the browser blocks storage the app still works and says progress cannot be saved", async ({ page }) => {
+  await blockStorage(page);
   await page.goto("/#/practice");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Practice");
-  await expect(page.getByRole("status")).toHaveText("Your progress can't be saved in this browser.");
+  await expect(page.getByRole("status").getByText(NOT_SAVED)).toBeVisible();
+  await expectNoAxeViolations(page);
   await page.setViewportSize({ width: 320, height: 568 });
+  await expect(page.getByRole("status").getByText(NOT_SAVED)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 });
 
+test("storage that fails on every read is reported the same way", async ({ page }) => {
+  await page.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new DOMException("denied", "SecurityError");
+    };
+  });
+  await page.goto("/");
+  await expect(page.getByRole("status").getByText(NOT_SAVED)).toBeVisible();
+});
+
+test("the notice sits above the page content, outside it, and is announced after the page has loaded", async ({
+  page,
+}) => {
+  await blockStorage(page);
+  await page.goto("/");
+  const notice = page.getByRole("status").getByText(NOT_SAVED);
+  await expect(notice).toBeVisible();
+  await expect(page.getByRole("main").getByRole("status")).toHaveCount(0);
+  const noticeBox = await notice.boundingBox();
+  const headingBox = await page.getByRole("heading", { level: 1 }).boundingBox();
+  expect((noticeBox?.y ?? 0) + (noticeBox?.height ?? 0)).toBeLessThanOrEqual(headingBox?.y ?? 0);
+  const html = await (await page.request.get("/")).text();
+  expect(html).not.toContain(NOT_SAVED);
+});
+
+test("the notice stays while moving between pages until it is dismissed, and then stays away", async ({
+  page,
+  isMobile,
+}) => {
+  await blockStorage(page);
+  await page.goto("/");
+  await page.getByRole("link", { name: "Practice" }).click();
+  await expect(page.getByRole("status").getByText(NOT_SAVED)).toBeVisible();
+  const dismiss = page.getByRole("status").getByRole("button", { name: "Dismiss" });
+  if (isMobile) {
+    const box = await dismiss.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+  await dismiss.click();
+  await expect(page.getByRole("status")).toBeEmpty();
+  await expect(page.getByRole("main")).toBeFocused();
+  await page.getByRole("link", { name: "Custom" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Custom");
+  await expect(page.getByRole("status")).toBeEmpty();
+});
+
+test.describe("Arabic", () => {
+  test.use({ locale: "ar-EG", colorScheme: "dark" });
+
+  test("the notices are shown in the interface language", async ({ page }) => {
+    await store(page, KEY, '{"schema":7,"settings":{}}');
+    await page.goto("/");
+    await expect(
+      page
+        .getByRole("status")
+        .getByText("في هذا المتصفح تقدّم حفظه إصدار أحدث من مفاتيح. سيبقى كما هو، ولن يُحفظ أي جديد."),
+    ).toBeVisible();
+    await expect(page.getByRole("status").getByRole("button", { name: "إخفاء" })).toBeVisible();
+    await expectNoAxeViolations(page);
+  });
+
+  test("unreadable data and blocked storage have Arabic notices too", async ({ page, context }) => {
+    await store(page, KEY, "[]");
+    await page.goto("/");
+    await expect(page.getByRole("status").getByText("تعذّرت قراءة تقدّمك المحفوظ، فبدأ مفاتيح من جديد.")).toBeVisible();
+    const blocked = await context.newPage();
+    await blockStorage(blocked);
+    await blocked.goto("/");
+    await expect(blocked.getByRole("status").getByText("تعذّر حفظ تقدّمك في هذا المتصفح.")).toBeVisible();
+  });
+});
+
 test("data left by the old version is neither used nor touched", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("mafatih.profile", '{"settings":{"language":"ar"}}'));
+  await store(page, "mafatih.profile", '{"settings":{"language":"ar"}}');
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("status")).toBeEmpty();
   expect(await page.evaluate(() => localStorage.getItem("mafatih.profile"))).toBe('{"settings":{"language":"ar"}}');
 });

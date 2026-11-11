@@ -1,7 +1,9 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
-import { type KeyValueStore, type LoadedProfile, loadProfile } from "./profile.ts";
+import { type KeyValueStore, type OpenedProfile, openProfile } from "./profile.ts";
 
-const ProfileContext = createContext<LoadedProfile | null>(null);
+type ProfileState = Pick<OpenedProfile, "profile" | "notice">;
+
+const ProfileContext = createContext<ProfileState | null>(null);
 
 function browserStore(): KeyValueStore | null {
   try {
@@ -12,11 +14,11 @@ function browserStore(): KeyValueStore | null {
 }
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [loaded] = useState(() => loadProfile(browserStore(), navigator.languages));
-  return <ProfileContext value={loaded}>{children}</ProfileContext>;
+  const [opened] = useState(() => openProfile(browserStore(), navigator.languages ?? [navigator.language]));
+  return <ProfileContext value={opened}>{children}</ProfileContext>;
 }
 
-export function useProfile(): LoadedProfile {
+export function useProfile(): ProfileState {
   const value = useContext(ProfileContext);
   if (value === null) {
     throw new Error("useProfile needs a ProfileProvider above it");

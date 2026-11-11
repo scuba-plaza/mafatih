@@ -11,14 +11,16 @@ export interface Profile {
   readonly settings: Settings;
 }
 
-export type StorageNotice = "unavailable" | "reset" | null;
+export type StorageNotice = "unavailable" | "reset" | "newer" | null;
 
-export interface LoadedProfile {
+export interface OpenedProfile {
   readonly profile: Profile;
   readonly notice: StorageNotice;
+  readonly save: (profile: Profile) => StorageNotice;
 }
 
 export const STORAGE_KEY = "mafatih:profile:2";
+export const UNREADABLE_KEY = "mafatih:profile:2:unreadable";
 
 const SCHEMA = 2;
 
@@ -30,32 +32,47 @@ function parse(text: string): unknown {
   }
 }
 
-export function loadProfile(store: KeyValueStore | null, preferredLanguages: readonly string[]): LoadedProfile {
-  const fresh: Profile = { schema: SCHEMA, settings: defaultSettings(preferredLanguages) };
-  if (store === null) {
-    return { profile: fresh, notice: "unavailable" };
-  }
-  let stored: string | null;
+function write(store: KeyValueStore, key: string, text: string): StorageNotice {
   try {
-    stored = store.getItem(STORAGE_KEY);
-  } catch {
-    return { profile: fresh, notice: "unavailable" };
-  }
-  if (stored === null) {
-    return { profile: fresh, notice: null };
-  }
-  const raw = parse(stored);
-  if (!isRecord(raw) || raw.schema !== SCHEMA) {
-    return { profile: fresh, notice: "reset" };
-  }
-  return { profile: { schema: SCHEMA, settings: sanitizeSettings(raw.settings, preferredLanguages) }, notice: null };
-}
-
-export function saveProfile(store: KeyValueStore | null, profile: Profile): StorageNotice {
-  try {
-    store?.setItem(STORAGE_KEY, JSON.stringify(profile));
+    store.setItem(key, text);
   } catch {
     return "unavailable";
   }
-  return store === null ? "unavailable" : null;
+  return null;
+}
+
+function read(store: KeyValueStore): { readonly stored: unknown } | undefined {
+  try {
+    return { stored: store.getItem(STORAGE_KEY) };
+  } catch {
+    return undefined;
+  }
+}
+
+export function openProfile(store: KeyValueStore | null, preferredLanguages: readonly string[]): OpenedProfile {
+  const fresh: Profile = { schema: SCHEMA, settings: defaultSettings(preferredLanguages) };
+  const found = store === null ? undefined : read(store);
+  if (store === null || found === undefined) {
+    return { profile: fresh, notice: "unavailable", save: () => "unavailable" };
+  }
+  const save = (profile: Profile): StorageNotice => write(store, STORAGE_KEY, JSON.stringify(profile));
+  const { stored } = found;
+  if (stored === null || stored === undefined) {
+    return { profile: fresh, notice: null, save };
+  }
+  const raw = typeof stored === "string" ? parse(stored) : undefined;
+  if (isRecord(raw) && typeof raw.schema === "number" && raw.schema > SCHEMA) {
+    return { profile: fresh, notice: "newer", save: () => "newer" };
+  }
+  if (!isRecord(raw) || raw.schema !== SCHEMA) {
+    if (typeof stored === "string") {
+      write(store, UNREADABLE_KEY, stored);
+    }
+    return { profile: fresh, notice: "reset", save };
+  }
+  return {
+    profile: { schema: SCHEMA, settings: sanitizeSettings(raw.settings, preferredLanguages) },
+    notice: null,
+    save,
+  };
 }
