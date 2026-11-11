@@ -10,6 +10,7 @@ import {
   FATHATAN,
   HARAKAT,
   isFullyVocalized,
+  isMark,
   KASRA,
   KASRATAN,
   SHADDA,
@@ -29,10 +30,25 @@ test("the marks have their Unicode code points", () => {
   ).toEqual([0x64b, 0x64c, 0x64d, 0x64e, 0x64f, 0x650, 0x651, 0x652, 0x670]);
 });
 
-test("the five basic harakat and the three tanween are together exactly the marks the keyboard types", () => {
-  expect(HARAKAT).toEqual([FATHA, DAMMA, KASRA, SUKUN, SHADDA]);
-  expect(TANWEEN).toEqual([FATHATAN, DAMMATAN, KASRATAN]);
+function marks(...codePoints: number[]): string[] {
+  return codePoints.map((codePoint) => String.fromCodePoint(codePoint));
+}
+
+test("the five basic harakat are fatha, damma, kasra, sukun and shadda; the tanween are the three doubled vowels", () => {
+  expect(HARAKAT).toEqual(marks(0x64e, 0x64f, 0x650, 0x652, 0x651));
+  expect(TANWEEN).toEqual(marks(0x64b, 0x64c, 0x64d));
+});
+
+test("the harakat and the tanween are together exactly the marks the keyboard types", () => {
   expect([...HARAKAT, ...TANWEEN].sort()).toEqual([...MARKS].sort());
+});
+
+test("a string is a mark only when it is one single mark", () => {
+  expect(isMark(FATHA)).toBe(true);
+  expect(isMark(DAGGER_ALEF)).toBe(true);
+  expect(isMark("ب")).toBe(false);
+  expect(isMark(`ب${FATHA}`)).toBe(false);
+  expect(isMark("")).toBe(false);
 });
 
 test("a shadda comes before the vowel it carries, whichever way the text was stored", () => {
@@ -79,6 +95,44 @@ test("a word with a bare letter, a lone shadda or no marks at all is not fully v
     expect(isFullyVocalized(word), word).toBe(false);
   }
   expect(isFullyVocalized(`مَن${SHADDA}`)).toBe(false);
+});
+
+test("a letter carries at most one shadda and exactly one vowel, tanween or sukun, shadda first", () => {
+  expect(isFullyVocalized(`ب${FATHA}${SUKUN}`)).toBe(false);
+  expect(isFullyVocalized(`ب${FATHA}${DAMMA}`)).toBe(false);
+  expect(isFullyVocalized(`ب${FATHA}${FATHA}`)).toBe(false);
+  expect(isFullyVocalized(`ب${FATHATAN}${FATHATAN}`)).toBe(false);
+  expect(isFullyVocalized(`مَن${SHADDA}${SHADDA}${FATHA}`)).toBe(false);
+  expect(isFullyVocalized(`مَن${FATHA}${SHADDA}`)).toBe(false);
+  expect(isFullyVocalized(`مَن${SHADDA}${FATHA}`)).toBe(true);
+});
+
+test("a word starts with a letter that carries a vowel, not with a mark, a sukun or a shadda", () => {
+  expect(isFullyVocalized(`${SUKUN}بَ`)).toBe(false);
+  expect(isFullyVocalized(`${SHADDA}${FATHA}بَ`)).toBe(false);
+  expect(isFullyVocalized(`ب${SUKUN}نَ`)).toBe(false);
+  expect(isFullyVocalized(`ب${SHADDA}${FATHA}نَ`)).toBe(false);
+});
+
+test("tanween only ends a word, optionally followed by its silent alef or alef maksura", () => {
+  expect(isFullyVocalized("بًبَ")).toBe(false);
+  expect(isFullyVocalized("بٌبَا")).toBe(false);
+  expect(isFullyVocalized("كِتَابًا")).toBe(true);
+  expect(isFullyVocalized("هُدًى")).toBe(true);
+  expect(isFullyVocalized("كِتَابٍ")).toBe(true);
+});
+
+test("a teh marbuta only ends a word and an alef madda carries no mark", () => {
+  expect(isFullyVocalized("مَدْرَسَةٌ")).toBe(true);
+  expect(isFullyVocalized("ةٌ")).toBe(false);
+  expect(isFullyVocalized("مَةَبٌ")).toBe(false);
+  expect(isFullyVocalized(`آ${FATHA}مَنَ`)).toBe(false);
+});
+
+test("forms outside the practice word list's scope are rejected rather than guessed at", () => {
+  for (const word of ["كَتَبُوا", "الْكِتَابُ", "الشَّمْسُ", "عَمْرٌو", "مِائَةٌ"]) {
+    expect(isFullyVocalized(word), word).toBe(false);
+  }
 });
 
 test("a long vowel letter only counts after the vowel it lengthens", () => {

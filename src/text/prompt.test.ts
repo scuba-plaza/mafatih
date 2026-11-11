@@ -1,11 +1,15 @@
 import { expect, test } from "vitest";
-import { DAGGER_ALEF, DAMMATAN, FATHA, HARAKAT, KASRA, SHADDA, TANWEEN } from "./arabic.ts";
+import { DAGGER_ALEF, DAMMATAN, FATHA, KASRA, SHADDA } from "./arabic.ts";
 import { buildPrompt, type Prompt } from "./prompt.ts";
 import { requiredMarks } from "./vocalization.ts";
 
 const NONE: ReadonlySet<string> = new Set();
-const BASIC: ReadonlySet<string> = new Set(HARAKAT);
-const ALL: ReadonlySet<string> = new Set([...HARAKAT, ...TANWEEN]);
+const BASIC: ReadonlySet<string> = new Set(
+  [0x64e, 0x64f, 0x650, 0x651, 0x652].map((code) => String.fromCodePoint(code)),
+);
+const ALL: ReadonlySet<string> = new Set(
+  [0x64b, 0x64c, 0x64d, 0x64e, 0x64f, 0x650, 0x651, 0x652].map((code) => String.fromCodePoint(code)),
+);
 
 function typed(prompt: Prompt): string {
   return prompt.units.map((unit) => unit.text).join("");
@@ -21,6 +25,13 @@ test("letters only asks for no marks, harakat for the five basic ones, full for 
 test("auto asks for exactly the marks unlocked so far", () => {
   expect(requiredMarks("auto", new Set())).toEqual(NONE);
   expect(requiredMarks("auto", new Set([FATHA, KASRA]))).toEqual(new Set([FATHA, KASRA]));
+});
+
+test("the marks asked for are a fresh set each time, so no caller can change another's", () => {
+  const unlocked = new Set([FATHA]);
+  expect(requiredMarks("auto", unlocked)).not.toBe(unlocked);
+  expect(requiredMarks("full", unlocked)).not.toBe(requiredMarks("full", unlocked));
+  expect(requiredMarks("letters", unlocked)).not.toBe(requiredMarks("letters", unlocked));
 });
 
 test("the text shown is never changed, whatever must be typed", () => {
@@ -57,6 +68,11 @@ test("each unit records where its character sits in the text shown", () => {
 test("a dagger alef is shown and never typed, even with every mark required", () => {
   const prompt = buildPrompt(`هَ${DAGGER_ALEF}ذَا`, ALL);
   expect(prompt.shown).toBe(`هَ${DAGGER_ALEF}ذَا`);
+  expect(typed(prompt)).toBe("هَذَا");
+});
+
+test("a mark the keyboard cannot type is never a unit, even when it is asked for", () => {
+  const prompt = buildPrompt(`هَ${DAGGER_ALEF}ذَا`, new Set([DAGGER_ALEF, FATHA]));
   expect(typed(prompt)).toBe("هَذَا");
 });
 
@@ -99,7 +115,21 @@ test("a lam before any other letter stays a unit of its own", () => {
   expect(buildPrompt("لم ل", NONE).units.map((unit) => unit.text)).toEqual(["ل", "م", " ", "ل"]);
 });
 
-test("hard line breaks are kept with the prompt", () => {
+test("a lam and an alef on either side of a hard line break stay two units", () => {
+  expect(buildPrompt("لَا ب", NONE, [1]).units.map((unit) => unit.text)).toEqual(["ل", "ا", " ", "ب"]);
+  expect(buildPrompt("لا", NONE, [1]).units.map((unit) => unit.text)).toEqual(["ل", "ا"]);
+  expect(buildPrompt("ب لا", NONE, [2]).units.map((unit) => unit.text)).toEqual(["ب", " ", "لا"]);
+});
+
+test("hard line breaks are kept in order, once each, and only inside the text", () => {
   expect(buildPrompt("ب ت", NONE).breaks).toEqual([]);
-  expect(buildPrompt("ب ت", NONE, [2]).breaks).toEqual([2]);
+  expect(buildPrompt("ب ت ث", NONE, [4, 2, 2]).breaks).toEqual([2, 4]);
+  expect(buildPrompt("ب ت", NONE, [0, 3, -1, 99, 1.5]).breaks).toEqual([]);
+});
+
+test("the prompt keeps its own copy of the line breaks", () => {
+  const breaks = [2];
+  const prompt = buildPrompt("ب ت", NONE, breaks);
+  breaks.push(1);
+  expect(prompt.breaks).toEqual([2]);
 });

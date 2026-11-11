@@ -19,7 +19,7 @@ function singleUnits(shown: string, required: ReadonlySet<string>): Unit[] {
   let start = 0;
   for (const char of shown) {
     const end = start + char.length;
-    if (isMark(char) ? required.has(char) : isTypeable(char)) {
+    if (isTypeable(char) && (!isMark(char) || required.has(char))) {
       units.push({ text: char, start, end });
     }
     start = end;
@@ -27,11 +27,14 @@ function singleUnits(shown: string, required: ReadonlySet<string>): Unit[] {
   return units;
 }
 
-function mergeLamAlef(units: readonly Unit[]): Unit[] {
+function mergeLamAlef(units: readonly Unit[], breaks: readonly number[]): Unit[] {
   const merged: Unit[] = [];
   for (const unit of units) {
     const previous = merged.at(-1);
-    if (previous !== undefined && LIGATURE_KEYS.has(previous.text + unit.text)) {
+    const splitByBreak = breaks.some(
+      (offset) => previous !== undefined && previous.start < offset && offset <= unit.start,
+    );
+    if (previous !== undefined && !splitByBreak && LIGATURE_KEYS.has(previous.text + unit.text)) {
       merged[merged.length - 1] = { text: previous.text + unit.text, start: previous.start, end: unit.end };
     } else {
       merged.push(unit);
@@ -40,6 +43,12 @@ function mergeLamAlef(units: readonly Unit[]): Unit[] {
   return merged;
 }
 
+function breaksWithin(shown: string, breaks: readonly number[]): number[] {
+  const inside = breaks.filter((offset) => Number.isInteger(offset) && offset > 0 && offset < shown.length);
+  return [...new Set(inside)].sort((a, b) => a - b);
+}
+
 export function buildPrompt(shown: string, required: ReadonlySet<string>, breaks: readonly number[] = []): Prompt {
-  return { shown, units: mergeLamAlef(singleUnits(shown, required)), breaks };
+  const kept = breaksWithin(shown, breaks);
+  return { shown, units: mergeLamAlef(singleUnits(shown, required), kept), breaks: kept };
 }
