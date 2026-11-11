@@ -48,19 +48,22 @@ function TextForm({ initial, focusField, toPrompt, onStart }: TextFormProps) {
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-3">
       <label htmlFor={fieldId} className="text-sm font-medium">
-        {t("custom.textLabel")}
+        {t("typing.text")}
       </label>
       <textarea
         ref={field}
         id={fieldId}
         value={draft}
-        onChange={(event) => setDraft(event.target.value)}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          setInvalid(false);
+        }}
         aria-describedby={invalid ? `${hintId} ${errorId}` : hintId}
         aria-invalid={invalid ? true : undefined}
         lang="ar"
         dir="auto"
         rows={6}
-        className="rounded-md border border-line bg-surface p-3 text-lg leading-loose"
+        className="rounded-md border border-line bg-surface p-3 text-lg leading-loose aria-invalid:border-danger"
       />
       <p id={hintId} className="text-sm text-muted">
         {t("custom.textHint")}
@@ -91,7 +94,7 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
   const { settings } = useProfile().profile;
   const [result, setResult] = useState<TrainerResult | null>(null);
   const summaryHeading = useRef<HTMLHeadingElement>(null);
-  const headingId = useId();
+  const figuresId = useId();
   const trainer = useTrainer({
     prompt,
     options: { requireBackspace: settings.requireBackspace },
@@ -111,18 +114,10 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
     }
   }, [result]);
 
-  const announcement =
-    result === null
-      ? undefined
-      : t("result.announce", {
-          speed: formatNumber(result.metrics.cpm),
-          accuracy: formatPercent(result.metrics.accuracy),
-        });
-
   return (
     <div className="flex flex-col gap-3">
       {shortened && <p className="text-sm text-muted">{t("custom.shortened", { limit: CUSTOM_TEXT_LIMIT })}</p>}
-      <TypingSurface trainer={trainer} font={settings.font} fontSize={settings.fontSize} announcement={announcement} />
+      <TypingSurface trainer={trainer} font={settings.font} fontSize={settings.fontSize} />
       {result === null ? (
         <div>
           <button type="button" onClick={onEdit} className={BUTTON}>
@@ -130,11 +125,11 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
           </button>
         </div>
       ) : (
-        <section aria-labelledby={headingId} className="flex flex-col gap-3">
-          <h2 ref={summaryHeading} id={headingId} tabIndex={-1} className="text-lg font-semibold">
+        <div className="flex flex-col gap-3">
+          <h2 ref={summaryHeading} tabIndex={-1} aria-describedby={figuresId} className="text-lg font-semibold">
             {t("result.title")}
           </h2>
-          <dl className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-1 text-sm">
+          <dl id={figuresId} className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-1 text-sm">
             <dt className="text-muted">{t("result.speed")}</dt>
             <dd>{formatNumber(result.metrics.cpm)}</dd>
             <dt className="text-muted">{t("result.accuracy")}</dt>
@@ -157,7 +152,7 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
               {t("custom.edit")}
             </button>
           </div>
-        </section>
+        </div>
       )}
     </div>
   );
@@ -167,10 +162,11 @@ export function CustomPage() {
   const { t } = useI18n();
   const { profile, update } = useProfile();
   const { customText, vocalization } = profile.settings;
+  const [text, setText] = useState(customText);
   const [mode, setMode] = useState<"saved" | "editing" | "started">("saved");
   const [shortened, setShortened] = useState(false);
   const required = useMemo(() => requiredMarks(vocalization, NO_MARKS_UNLOCKED), [vocalization]);
-  const prompt = useMemo(() => buildPrompt(customText, required), [customText, required]);
+  const prompt = useMemo(() => buildPrompt(text, required), [text, required]);
   const editing = mode === "editing" || !hasSomethingToType(prompt);
 
   return (
@@ -180,9 +176,10 @@ export function CustomPage() {
         <TextForm
           initial={customText}
           focusField={mode === "editing"}
-          toPrompt={(text) => buildPrompt(text, required)}
-          onStart={(text, wasShortened) => {
-            update((current) => ({ ...current, settings: { ...current.settings, customText: text } }));
+          toPrompt={(draft) => buildPrompt(draft, required)}
+          onStart={(prepared, wasShortened) => {
+            update((current) => ({ ...current, settings: { ...current.settings, customText: prepared } }));
+            setText(prepared);
             setShortened(wasShortened);
             setMode("started");
           }}

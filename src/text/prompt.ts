@@ -52,3 +52,23 @@ export function buildPrompt(shown: string, required: ReadonlySet<string>, breaks
   const kept = breaksWithin(shown, breaks);
   return { shown, units: mergeLamAlef(singleUnits(shown, required), kept), breaks: kept };
 }
+
+export function wordAt(prompt: Prompt, offset: number): string {
+  const { shown, breaks } = prompt;
+  const isSpace = (index: number) => shown.charAt(index) === " ";
+  let start = Math.max(0, offset);
+  while (start < shown.length && isSpace(start)) {
+    start += 1;
+  }
+  if (start >= shown.length) {
+    return "";
+  }
+  while (start > 0 && !isSpace(start - 1) && !breaks.includes(start)) {
+    start -= 1;
+  }
+  let end = start + 1;
+  while (end < shown.length && !isSpace(end) && !breaks.includes(end)) {
+    end += 1;
+  }
+  return shown.slice(start, end);
+}

@@ -1,4 +1,5 @@
 import { type InputHTMLAttributes, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { Prompt } from "~/text/prompt.ts";
 import {
   applyKey,
@@ -64,6 +65,7 @@ export function useTrainer({ prompt, options, onComplete }: TrainerConfig): Trai
   useEffect(() => {
     if (!focused) {
       setSession((current) => pause(current, performance.now()));
+      setWrongLayout(false);
     }
   }, [focused]);
 
@@ -87,7 +89,7 @@ export function useTrainer({ prompt, options, onComplete }: TrainerConfig): Trai
   const focus = useCallback(() => inputRef.current?.focus(), [inputRef]);
 
   const restart = useCallback(() => {
-    setSession((current) => createSession(current.prompt));
+    flushSync(() => setSession((current) => createSession(current.prompt)));
     inputRef.current?.focus();
   }, [inputRef]);
 

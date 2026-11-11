@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { DAGGER_ALEF, DAMMATAN, FATHA, KASRA, SHADDA } from "./arabic.ts";
-import { buildPrompt, type Prompt } from "./prompt.ts";
+import { buildPrompt, type Prompt, wordAt } from "./prompt.ts";
 import { requiredMarks } from "./vocalization.ts";
 
 const NONE: ReadonlySet<string> = new Set();
@@ -132,4 +132,36 @@ test("the prompt keeps its own copy of the line breaks", () => {
   const prompt = buildPrompt("ب ت", NONE, breaks);
   breaks.push(1);
   expect(prompt.breaks).toEqual([2]);
+});
+
+test("the word at an offset is the whole word the offset stands in, marks included", () => {
+  const prompt = buildPrompt(`\u0628${KASRA}\u0633\u0645 \u0643\u062A\u0628`, NONE);
+  expect(wordAt(prompt, 0)).toBe(`\u0628${KASRA}\u0633\u0645`);
+  expect(wordAt(prompt, 1)).toBe(`\u0628${KASRA}\u0633\u0645`);
+  expect(wordAt(prompt, 3)).toBe(`\u0628${KASRA}\u0633\u0645`);
+  expect(wordAt(prompt, 5)).toBe("\u0643\u062A\u0628");
+  expect(wordAt(prompt, 7)).toBe("\u0643\u062A\u0628");
+});
+
+test("at the space after a word, the word to come is the next one", () => {
+  const prompt = buildPrompt("\u0628\u062A  \u0646\u0645", NONE);
+  expect(wordAt(prompt, 2)).toBe("\u0646\u0645");
+  expect(wordAt(prompt, 3)).toBe("\u0646\u0645");
+});
+
+test("a break ends a word even where no space stands", () => {
+  const prompt = buildPrompt("\u0628\u062A\u0646\u0645", NONE, [2]);
+  expect(wordAt(prompt, 0)).toBe("\u0628\u062A");
+  expect(wordAt(prompt, 1)).toBe("\u0628\u062A");
+  expect(wordAt(prompt, 2)).toBe("\u0646\u0645");
+  expect(wordAt(prompt, 3)).toBe("\u0646\u0645");
+});
+
+test("there is no word at the end of the text, after trailing spaces or outside it", () => {
+  const prompt = buildPrompt("\u0628\u062A ", NONE);
+  expect(wordAt(prompt, 2)).toBe("");
+  expect(wordAt(prompt, 3)).toBe("");
+  expect(wordAt(prompt, 99)).toBe("");
+  expect(wordAt(prompt, -4)).toBe("\u0628\u062A");
+  expect(wordAt(buildPrompt("", NONE), 0)).toBe("");
 });

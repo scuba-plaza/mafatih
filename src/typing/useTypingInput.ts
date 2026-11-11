@@ -78,7 +78,7 @@ export function useTypingInput({ onKey, onWrongLayout }: TypingInputOptions): Ty
       autoCorrect: "off",
       autoCapitalize: "off",
       spellCheck: false,
-      inputMode: "text",
+      enterKeyHint: "done",
       lang: "ar",
       dir: "rtl",
     },

@@ -58,16 +58,57 @@ test("the finished summary gives speed, accuracy and mistakes, and offers to typ
   await page.goto("/#/custom");
   await page.getByRole("button", { name: "Start typing" }).click();
   await typeKeys(page, ["ب", "س", "Backspace", "ت"]);
-  const summary = page.getByRole("region", { name: "Finished" });
-  await expect(summary.getByRole("term")).toHaveText(["Speed (characters per minute)", "Accuracy", "Mistakes"]);
-  await expect(summary.getByRole("definition").nth(1)).toHaveText("50%");
-  await expect(summary.getByRole("definition").nth(2)).toHaveText("1");
-  await expect(page.getByRole("status").filter({ hasText: "Finished. Speed:" })).toHaveCount(1);
-  await expectNoAxeViolations(page);
-  await summary.getByRole("button", { name: "Type again" }).click();
+  const heading = page.getByRole("heading", { level: 2, name: "Finished" });
+  await expect(heading).toBeFocused();
+  await expect(heading).toHaveAccessibleDescription(/Speed.+Accuracy\s*50%\s*Mistakes\s*1/);
+  await expect(page.getByRole("term")).toHaveText(["Speed (characters per minute)", "Accuracy", "Mistakes"]);
+  await expect(page.getByRole("definition").nth(1)).toHaveText("50%");
+  await expect(page.getByRole("definition").nth(2)).toHaveText("1");
+  await expect(page.getByRole("status").filter({ hasText: "Finished" })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Finished" })).toHaveCount(0);
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Type again" }).click();
+  await expect(heading).toHaveCount(0);
   await typeKeys(page, ["ب", "ت"]);
-  await expect(page.getByRole("region", { name: "Finished" }).getByRole("definition").nth(1)).toHaveText("100%");
+  await expect(page.getByRole("definition").nth(1)).toHaveText("100%");
+});
+
+test("the message about a refused text goes away as soon as the text is changed", async ({ page }) => {
+  await page.goto("/#/custom");
+  const field = page.getByRole("textbox", { name: "Text to type" });
+  const calm = await field.evaluate((element) => getComputedStyle(element).borderColor);
+  await field.fill("abc");
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(field).not.toHaveCSS("border-color", calm);
+  await field.press("End");
+  await page.keyboard.insertText("ب");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(field).not.toHaveAttribute("aria-invalid");
+  await expect(field).toHaveCSS("border-color", calm);
+  await expect(field).toHaveAccessibleDescription("Paste or write any Arabic text.");
+});
+
+test("a text saved in another tab never replaces the lesson being typed", async ({ page, context }) => {
+  await seedSettings(page, { customText: "بتن" });
+  await page.goto("/#/custom");
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await typeKeys(page, ["ب", "ت"]);
+  const other = await context.newPage();
+  await other.goto("/#/custom");
+  await other.getByRole("button", { name: "Edit text" }).click();
+  await other.getByRole("textbox", { name: "Text to type" }).fill("كل");
+  await other.getByRole("button", { name: "Start typing" }).click();
+  await expect(surface(other)).toContainText("كل");
+  await expect.poll(async () => (await savedSettings(page)).customText).toBe("كل");
+  await page.bringToFront();
+  await expect(surface(page).locator("[data-lesson-text]")).toHaveText("بتن");
+  await page.getByRole("textbox", { name: "Type the text shown" }).focus();
+  await typeKeys(page, ["ن"]);
+  await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toBeFocused();
+  await expect(page.getByRole("definition").nth(2)).toHaveText("0");
+  await page.getByRole("button", { name: "Edit text" }).click();
+  await expect(page.getByRole("textbox", { name: "Text to type" })).toHaveValue("كل");
 });
 
 test("a saved text is offered again after a reload, and waits for the typist to start", async ({ page }) => {
@@ -110,11 +151,11 @@ test.describe("Arabic", () => {
     await page.goto("/#/custom");
     await page.getByRole("button", { name: "ابدأ الكتابة" }).click();
     await expect(page.getByRole("alert")).toHaveText("لا يوجد في هذا النص ما يمكن كتابته.");
-    await page.getByRole("textbox", { name: "النص المراد كتابته" }).fill("بت");
+    await page.getByRole("textbox", { name: "النص المطلوب كتابته" }).fill("بت");
     await page.getByRole("button", { name: "ابدأ الكتابة" }).click();
     await typeKeys(page, ["ب", "ت"]);
     await expect(page.getByRole("heading", { level: 2, name: "اكتمل" })).toBeFocused();
-    await expect(page.getByRole("region", { name: "اكتمل" }).getByRole("definition").nth(1)).toHaveText("١٠٠٪؜");
+    await expect(page.getByRole("definition").nth(1)).toHaveText("١٠٠٪؜");
     await expectNoAxeViolations(page);
   });
 });

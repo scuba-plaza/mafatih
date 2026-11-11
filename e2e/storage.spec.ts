@@ -154,6 +154,9 @@ test("a second tab adopts what the first one saved instead of overwriting it lat
   await expect(second.getByRole("textbox", { name: "Text to type" })).toBeVisible();
   await first.getByRole("textbox", { name: "Text to type" }).fill("بتن");
   await first.getByRole("button", { name: "Start typing" }).click();
+  await expect(first.getByRole("region", { name: "Text to type" })).toContainText("بتن");
+  await second.getByRole("link", { name: "Practice" }).click();
+  await second.getByRole("link", { name: "Custom" }).click();
   await expect(second.getByRole("region", { name: "Text to type" })).toContainText("بتن");
 });
 

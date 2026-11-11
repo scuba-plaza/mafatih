@@ -20,11 +20,27 @@ async function open(page: Page, settings: Record<string, unknown>): Promise<void
 async function start(page: Page, settings: Record<string, unknown>): Promise<void> {
   await open(page, settings);
   await page.getByRole("button", { name: "Start typing" }).click();
-  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  await expect(field(page)).toBeFocused();
 }
 
 function finished(page: Page) {
-  return page.getByRole("region", { name: "Finished" });
+  return page.getByRole("heading", { level: 2, name: "Finished" });
+}
+
+function mistakeCount(page: Page) {
+  return page.getByRole("definition").nth(2);
+}
+
+function field(page: Page) {
+  return page.getByRole("textbox", { name: "Type the text shown" });
+}
+
+function flag(page: Page) {
+  return surface(page).getByRole("status").filter({ hasText: "Mistake" });
+}
+
+function lessonText(page: Page) {
+  return surface(page).locator("[data-lesson-text]");
 }
 
 async function caretBox(page: Page): Promise<{ x: number; y: number; height: number }> {
@@ -39,7 +55,7 @@ test("with letters only, the marks stay on screen but only the letters are typed
   expect(await doneText(page)).toBe(`ب${KASRA}`);
   expect(await shownText(page)).toBe(BISMI);
   await typeKeys(page, ["س", "م"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
+  await expect(mistakeCount(page)).toHaveText("0");
   expect(await doneText(page)).toBe(BISMI);
 });
 
@@ -49,17 +65,17 @@ test("with full vocalization every mark has to be typed", async ({ page }) => {
   expect(await doneText(page)).toBe("ب");
   expect(await shownText(page)).toBe(`بس${KASRA}س${SUKUN}م${KASRA}`);
   await typeKeys(page, ["Backspace", KASRA, "س", SUKUN, "م", KASRA]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("1");
+  await expect(mistakeCount(page)).toHaveText("1");
 });
 
 test("a shadda and its vowel are accepted in either order", async ({ page }) => {
   const text = `رب${SHADDA}${FATHA}`;
   await start(page, { customText: text, vocalization: "full" });
   await typeKeys(page, ["ر", "ب", FATHA, SHADDA]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
-  await finished(page).getByRole("button", { name: "Type again" }).click();
+  await expect(mistakeCount(page)).toHaveText("0");
+  await page.getByRole("button", { name: "Type again" }).click();
   await typeKeys(page, ["ر", "ب", SHADDA, FATHA]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
+  await expect(mistakeCount(page)).toHaveText("0");
 });
 
 test("a wrong key appears at the cursor, in order, with the expected text still whole after it", async ({ page }) => {
@@ -81,7 +97,7 @@ test("the right key is also a mistake until the wrong ones are deleted with Back
   expect(await shownText(page)).toBe("بتن");
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
   await typeKeys(page, ["ت", "ن"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("2");
+  await expect(mistakeCount(page)).toHaveText("2");
 });
 
 test("Backspace never removes text that was typed correctly", async ({ page }) => {
@@ -97,22 +113,110 @@ test("a mistyped space is shown as a visible mark", async ({ page }) => {
   await expect(surface(page).locator("[data-mistakes]")).toHaveText("␣");
 });
 
-test("a mistake is announced once, with what to do about it", async ({ page }) => {
+test("a mistake is flagged in words once, until the wrong keys are deleted", async ({ page }) => {
   await start(page, { customText: "بتن" });
+  await expect(flag(page)).toHaveCount(0);
   await typeKeys(page, ["س"]);
-  await expect(surface(page).getByRole("status")).toHaveText(/^Mistake\. Press Backspace\.\s?$/);
+  await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
+  await expect(flag(page)).toBeVisible();
+  await expect(surface(page)).toHaveAttribute("data-error", "");
+  await typeKeys(page, ["ش", "Backspace"]);
+  await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
+  await typeKeys(page, ["Backspace"]);
+  await expect(flag(page)).toHaveCount(0);
+  await expect(surface(page)).not.toHaveAttribute("data-error");
 });
 
-test("without the Backspace setting a wrong key is flagged and announced but never shown", async ({ page }) => {
+test("without the Backspace setting a wrong key is blocked, and flagged in words until the right key is typed", async ({
+  page,
+}) => {
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["ب", "س"]);
+  await expect(flag(page)).toHaveText("Mistake.");
+  await expect(flag(page)).toBeVisible();
   await expect(surface(page)).toHaveAttribute("data-error", "");
-  await expect(surface(page).getByRole("status")).toHaveText(/^Mistake\.\s?$/);
   expect(await shownText(page)).toBe("بتن");
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
+  await typeKeys(page, ["Backspace"]);
+  await expect(flag(page)).toHaveText("Mistake.");
+  await typeKeys(page, ["ت"]);
+  await expect(flag(page)).toHaveCount(0);
   await expect(surface(page)).not.toHaveAttribute("data-error");
-  await typeKeys(page, ["Backspace", "ت", "ن"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("1");
+  await typeKeys(page, ["ن"]);
+  await expect(mistakeCount(page)).toHaveText("1");
+});
+
+test("typing again starts clean: nothing of the last attempt is flagged or announced", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await typeKeys(page, ["س", "Backspace", "ب", "ت", "ن"]);
+  await expect(finished(page)).toBeFocused();
+  await page.getByRole("button", { name: "Type again" }).click();
+  await expect(field(page)).toBeFocused();
+  await expect(surface(page).getByText(/Mistake|Finished/)).toHaveCount(0);
+  await expect(surface(page)).not.toHaveAttribute("data-error");
+  expect(await doneText(page)).toBe("");
+});
+
+test("a digit or sign typed by mistake is shown like any other wrong key", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await typeKeys(page, ["5", "!"]);
+  await expect(surface(page).locator("[data-mistakes]")).toHaveText("5!");
+});
+
+test("a mark typed by mistake with no letter to sit on is drawn on a tatweel, so it can be seen", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  const mistakes = surface(page).locator("[data-mistakes]");
+  await typeKeys(page, [FATHA]);
+  await expect(mistakes).toHaveText(`ــ${FATHA}`);
+  expect((await mistakes.boundingBox())?.width).toBeGreaterThan(6);
+  await typeKeys(page, ["Backspace", "ب", " ", FATHA, "س", KASRA]);
+  await expect(mistakes).toHaveText(`␣ــ${FATHA}س${KASRA}`);
+});
+
+test("a screen reader hears the word to type next: on entering the field and after each word", async ({ page }) => {
+  await start(page, { customText: "بت نم كل" });
+  const next = surface(page).locator('[role="status"][lang="ar"]');
+  await expect(field(page)).toHaveAccessibleDescription("بت");
+  await expect(next).toHaveText("بت");
+  await typeKeys(page, ["ب"]);
+  await expect(next).toHaveText("بت");
+  await typeKeys(page, ["ت"]);
+  await expect(next).toHaveText("نم");
+  await typeKeys(page, [" ", "ن", "م", " "]);
+  await expect(field(page)).toHaveAccessibleDescription("كل");
+  await typeKeys(page, ["ك", "ل"]);
+  await expect(next).toHaveText("");
+});
+
+test("the start control never covers the text, and clicking the text starts typing too", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await open(page, { customText: "بسم الله الرحمن الرحيم" });
+  const control = await page.getByRole("button", { name: "Start typing" }).boundingBox();
+  const text = await lessonText(page).boundingBox();
+  expect(control?.y).toBeGreaterThanOrEqual((text?.y ?? 0) + (text?.height ?? 0));
+  await page.mouse.click((text?.x ?? 0) + (text?.width ?? 0) / 2, (text?.y ?? 0) + (text?.height ?? 0) / 2);
+  await expect(field(page)).toBeFocused();
+});
+
+test("the lesson can be started, left, continued and finished from the keyboard alone", async ({ page }) => {
+  await open(page, { customText: "بتن" });
+  await page.getByRole("heading", { level: 1 }).focus();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Start typing" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(field(page)).toBeFocused();
+  await typeKeys(page, ["ب"]);
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("button", { name: "Continue typing" })).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(field(page)).toBeFocused();
+  await typeKeys(page, ["ت", "ن"]);
+  await expect(finished(page)).toBeFocused();
+  await expect(field(page)).toBeDisabled();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Type again" })).toBeFocused();
 });
 
 test("typing on a Latin layout is explained instead of being counted as mistakes", async ({ page }) => {
@@ -126,7 +230,15 @@ test("typing on a Latin layout is explained instead of being counted as mistakes
   await typeKeys(page, ["ب"]);
   await expect(surface(page).getByRole("alert")).toHaveCount(0);
   await typeKeys(page, ["ت", "ن"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
+  await expect(mistakeCount(page)).toHaveText("0");
+});
+
+test("the wrong-layout message goes away when the field is left", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await typeKeys(page, ["a"]);
+  await expect(surface(page).getByRole("alert")).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(surface(page).getByRole("alert")).toHaveCount(0);
 });
 
 test("pasted or swiped text is not typing", async ({ page }) => {
@@ -140,7 +252,7 @@ test("pasted or swiped text is not typing", async ({ page }) => {
 test("Backspace as the very first key is harmless", async ({ page }) => {
   await start(page, { customText: "بتن" });
   await typeKeys(page, ["Backspace", "Backspace", "ب", "ت", "ن"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
+  await expect(mistakeCount(page)).toHaveText("0");
 });
 
 test("a keyboard that builds each word as a composition types one key per letter", async ({ page }) => {
@@ -153,7 +265,7 @@ test("a keyboard that builds each word as a composition types one key per letter
   await session.send("Input.insertText", { text: "بت" });
   expect(await doneText(page)).toBe("بت");
   await typeKeys(page, ["ن"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
+  await expect(mistakeCount(page)).toHaveText("0");
 });
 
 test("leaving the text pauses typing and offers to continue where it stopped", async ({ page }) => {
@@ -170,7 +282,7 @@ test("leaving the text pauses typing and offers to continue where it stopped", a
   await resume.click();
   await expect(resume).toHaveCount(0);
   await typeKeys(page, ["ت", "ن"]);
-  await expect(finished(page).getByRole("definition").nth(2)).toHaveText("0");
+  await expect(mistakeCount(page)).toHaveText("0");
 });
 
 test("the text is one uninterrupted run, split only where mistakes are shown", async ({ page }) => {
@@ -233,6 +345,61 @@ test("the typing page has no accessibility violations while typing, with mistake
   await expectNoAxeViolations(page);
 });
 
+test("on a phone every text size is a different size, and the largest still fits with mistakes shown", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  const sizes: number[] = [];
+  await page.goto("/#/custom");
+  for (const fontSize of [28, 40, 72]) {
+    await seedSettings(page, { customText: "استراتيجيات كتب من بيت", fontSize });
+    await page.reload();
+    sizes.push(await lessonText(page).evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)));
+  }
+  const [small = 0, normal = 0, large = 0] = sizes;
+  expect(small).toBeGreaterThanOrEqual(16);
+  expect(normal).toBeGreaterThan(small + 4);
+  expect(large).toBeGreaterThan(normal + 12);
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await typeKeys(page, [..."سسسسسسسسسسسس"]);
+  await expect(surface(page).locator("[data-mistakes]")).toHaveText("سسسسسسسسسس");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  expect(await lessonText(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(
+    0,
+  );
+});
+
+test("on a wide screen the text is drawn at exactly the chosen size", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page, { customText: "بتن", fontSize: 72 });
+  await expect(lessonText(page)).toHaveCSS("font-size", "72px");
+});
+
+test("in forced colours the caret is still drawn", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await start(page, { customText: "بتن" });
+  const [caret, canvas] = await surface(page).evaluate((section) => {
+    const mark = section.querySelector("[data-caret]");
+    return [mark === null ? "" : getComputedStyle(mark).backgroundColor, getComputedStyle(section).backgroundColor];
+  });
+  expect(caret).not.toBe(canvas);
+  expect(caret).not.toBe("rgba(0, 0, 0, 0)");
+  expect((await caretBox(page)).height).toBeGreaterThan(20);
+});
+
+test.describe("dark", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("the typing page has no accessibility violations in the dark scheme, with a mistake flagged", async ({
+    page,
+  }) => {
+    await start(page, { customText: "بتن كتب" });
+    await typeKeys(page, ["ب", "س"]);
+    await expect(flag(page)).toBeVisible();
+    await expectNoAxeViolations(page);
+  });
+});
+
 for (const [font, family] of [
   ["noto-naskh", "Noto Naskh Arabic"],
   ["scheherazade", "Scheherazade New"],
@@ -247,7 +414,7 @@ for (const [font, family] of [
     expect(await doneText(page)).not.toBe("");
     await page.evaluate((name) => document.fonts.load(`40px "${name}"`), family);
     expect(await page.evaluate((name) => document.fonts.check(`40px "${name}"`), family)).toBe(true);
-    const text = surface(page).locator("[data-lesson-text]");
+    const text = lessonText(page);
     await expect(text).toHaveCSS("font-family", new RegExp(family));
     const marked = await text.screenshot();
     await page.evaluate(() => CSS.highlights.clear());
