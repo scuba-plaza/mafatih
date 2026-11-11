@@ -1,5 +1,7 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import type { StorageNotice } from "~/storage/profile.ts";
 import { PAGE_TITLES, type Page } from "./pages.ts";
 import { formatRoute, type Route } from "./routes.ts";
 
@@ -35,7 +37,12 @@ function StatsIcon() {
   );
 }
 
-export function Shell({ page, children }: { page: Page; children: ReactNode }) {
+const NOTICES: Record<Exclude<StorageNotice, null>, MessageKey> = {
+  unavailable: "storage.unavailable",
+  reset: "storage.reset",
+};
+
+export function Shell({ page, notice, children }: { page: Page; notice: StorageNotice; children: ReactNode }) {
   const { t } = useI18n();
   const mainRef = useRef<HTMLElement>(null);
   const shownPage = useRef(page);
@@ -85,7 +92,14 @@ export function Shell({ page, children }: { page: Page; children: ReactNode }) {
         </div>
       </header>
       <main ref={mainRef} tabIndex={-1} className={`${GUTTER} py-4`}>
-        <div className={COLUMN}>{children}</div>
+        <div className={COLUMN}>
+          {notice !== null && (
+            <p role="status" className="mb-4 rounded-md border border-line bg-surface px-3 py-2 text-sm">
+              {t(NOTICES[notice])}
+            </p>
+          )}
+          {children}
+        </div>
       </main>
       <footer className={`${GUTTER} border-t border-line pb-[env(safe-area-inset-bottom)]`}>
         <div className={`${COLUMN} flex justify-end`}>

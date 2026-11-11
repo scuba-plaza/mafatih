@@ -9,4 +9,6 @@ export const ar: Record<MessageKey, string> = {
   "nav.custom": "نص مخصص",
   "nav.stats": "الإحصاءات",
   "nav.about": "حول التطبيق",
+  "storage.unavailable": "تعذّر حفظ تقدّمك في هذا المتصفح.",
+  "storage.reset": "تعذّرت قراءة تقدّمك المحفوظ، فبدأ مفاتيح من جديد.",
 };

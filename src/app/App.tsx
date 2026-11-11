@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { I18nProvider, useI18n } from "~/i18n/I18nProvider.tsx";
-import { detectLanguage } from "~/i18n/i18n.ts";
+import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { PAGE_TITLES, type Page } from "./pages.ts";
 import { Shell } from "./Shell.tsx";
@@ -11,14 +10,22 @@ function Placeholder({ page }: { page: Page }) {
   return <PageHeading>{t(PAGE_TITLES[page])}</PageHeading>;
 }
 
-export function App() {
+function Pages() {
   const route = useRoute();
-  const [language] = useState(() => detectLanguage(navigator.languages));
+  const { profile, notice } = useProfile();
   return (
-    <I18nProvider language={language}>
-      <Shell page={route.page}>
+    <I18nProvider language={profile.settings.language}>
+      <Shell page={route.page} notice={notice}>
         <Placeholder page={route.page} />
       </Shell>
     </I18nProvider>
+  );
+}
+
+export function App() {
+  return (
+    <ProfileProvider>
+      <Pages />
+    </ProfileProvider>
   );
 }
