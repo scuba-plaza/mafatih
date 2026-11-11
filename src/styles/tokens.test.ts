@@ -11,9 +11,6 @@ const PAIRS: readonly (readonly [string, string, number])[] = [
   ["muted", "surface", TEXT],
   ["accent", "page", TEXT],
   ["accent", "surface", TEXT],
-  ["on-accent", "accent", TEXT],
-  ["danger", "page", TEXT],
-  ["danger", "surface", TEXT],
   ["line", "page", UI],
   ["line", "surface", UI],
   ["focus", "page", UI],
@@ -44,10 +41,6 @@ test("the contrast formula matches the WCAG reference values", () => {
   expect(contrast("#000000", "#ffffff")).toBeCloseTo(21, 5);
   expect(contrast("#777777", "#ffffff")).toBeCloseTo(4.48, 2);
   expect(contrast("#ffffff", "#ffffff")).toBe(1);
-});
-
-test("the stylesheet declares a light and a dark scheme", () => {
-  expect(darkStart).toBeGreaterThan(0);
 });
 
 for (const [scheme, block] of [

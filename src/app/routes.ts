@@ -6,22 +6,20 @@ export type Route =
   | { page: "about" };
 
 const SURAHS = 114;
-const WHOLE = /^[1-9]\d*$/;
+const LONGEST_SURAH = 286;
+const WHOLE = /^[1-9]\d{0,2}$/;
 const HOME: Route = { page: "recitation", surah: null, ayah: null };
 
-function whole(text: string | undefined): number | null {
-  return text !== undefined && WHOLE.test(text) ? Number(text) : null;
+function whole(text: string | undefined, most: number): number | null {
+  return text !== undefined && WHOLE.test(text) && Number(text) <= most ? Number(text) : null;
 }
 
 function recitation(parts: readonly string[]): Route {
   if (parts.length > 2) {
     return HOME;
   }
-  const surah = whole(parts[0]);
-  if (surah === null || surah > SURAHS) {
-    return HOME;
-  }
-  return { page: "recitation", surah, ayah: whole(parts[1]) };
+  const surah = whole(parts[0], SURAHS);
+  return surah === null ? HOME : { page: "recitation", surah, ayah: whole(parts[1], LONGEST_SURAH) };
 }
 
 export function parseRoute(hash: string): Route {

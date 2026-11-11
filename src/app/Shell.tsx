@@ -1,17 +1,7 @@
 import { type ReactNode, useEffect, useRef } from "react";
-import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { PAGE_TITLES, type Page } from "./pages.ts";
 import { formatRoute, type Route } from "./routes.ts";
-
-type Page = Route["page"];
-
-const TITLES: Record<Page, MessageKey> = {
-  recitation: "nav.recitation",
-  practice: "nav.practice",
-  custom: "nav.custom",
-  stats: "nav.stats",
-  about: "nav.about",
-};
 
 const MODES: readonly Route[] = [
   { page: "recitation", surah: null, ayah: null },
@@ -22,10 +12,10 @@ const MODES: readonly Route[] = [
 const STATS: Route = { page: "stats" };
 const ABOUT: Route = { page: "about" };
 
-const TARGET = "inline-flex min-h-11 min-w-11 items-center justify-center px-2";
-const GUTTER = "ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))]";
+const TARGET = "flex min-h-11 min-w-11 items-center justify-center px-1 whitespace-nowrap sm:px-2";
+const GUTTER = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
 const COLUMN = "mx-auto w-full max-w-4xl";
-const NAV_LINK = `${TARGET} border-b-2 border-transparent text-sm text-muted aria-[current=page]:border-accent aria-[current=page]:font-semibold aria-[current=page]:text-ink`;
+const NAV_LINK = `${TARGET} flex-1 border-b-2 border-transparent text-sm font-medium text-muted aria-[current=page]:border-accent aria-[current=page]:text-ink`;
 
 function NavLink({ to, current, children }: { to: Route; current: Page; children: ReactNode }) {
   return (
@@ -45,12 +35,11 @@ function StatsIcon() {
   );
 }
 
-export function Shell({ page, children }: { page: Page; children?: ReactNode }) {
+export function Shell({ page, children }: { page: Page; children: ReactNode }) {
   const { t } = useI18n();
   const mainRef = useRef<HTMLElement>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
   const shownPage = useRef(page);
-  const title = t(TITLES[page]);
+  const title = t(PAGE_TITLES[page]);
   const appName = t("app.name");
 
   useEffect(() => {
@@ -60,52 +49,50 @@ export function Shell({ page, children }: { page: Page; children?: ReactNode }) 
   useEffect(() => {
     if (shownPage.current !== page) {
       shownPage.current = page;
-      headingRef.current?.focus();
+      mainRef.current?.querySelector("h1")?.focus();
     }
   }, [page]);
 
   return (
     <div className="grid min-h-dvh grid-rows-[auto_1fr_auto]">
-      <button
-        type="button"
-        onClick={() => mainRef.current?.focus()}
-        className={`${TARGET} sr-only rounded-md bg-surface text-ink focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-10`}
-      >
-        {t("app.skipToContent")}
-      </button>
       <header className={`${GUTTER} border-b border-line pt-[env(safe-area-inset-top)]`}>
-        <div className={`${COLUMN} flex items-center gap-2`}>
+        <button
+          type="button"
+          onClick={() => mainRef.current?.focus()}
+          className="sr-only focus:not-sr-only focus:flex focus:min-h-11 focus:w-full focus:items-center focus:px-4 focus:font-medium focus:underline"
+        >
+          {t("app.skipToContent")}
+        </button>
+        <div className={`${COLUMN} flex flex-wrap items-center gap-x-2`}>
           <span className="hidden font-semibold sm:inline">{appName}</span>
-          <nav aria-label={t("nav.label")} className="flex flex-1 items-center sm:justify-end sm:gap-2">
-            {MODES.map((mode) => (
-              <span key={mode.page} className="flex flex-1 justify-center sm:flex-none">
-                <NavLink to={mode} current={page}>
-                  {t(TITLES[mode.page])}
+          <nav aria-label={t("nav.label")} className="min-w-0 flex-1">
+            <ul className="flex flex-wrap sm:justify-end sm:gap-2">
+              {MODES.map((mode) => (
+                <li key={mode.page} className="flex flex-1 sm:flex-none">
+                  <NavLink to={mode} current={page}>
+                    {t(PAGE_TITLES[mode.page])}
+                  </NavLink>
+                </li>
+              ))}
+              <li className="flex">
+                <NavLink to={STATS} current={page}>
+                  <StatsIcon />
+                  <span className="sr-only sm:not-sr-only">{t("nav.stats")}</span>
                 </NavLink>
-              </span>
-            ))}
-            <NavLink to={STATS} current={page}>
-              <StatsIcon />
-              <span className="sr-only sm:not-sr-only">{t("nav.stats")}</span>
-            </NavLink>
+              </li>
+            </ul>
           </nav>
         </div>
       </header>
-      <main ref={mainRef} id="main" tabIndex={-1} className={`${GUTTER} py-4`}>
-        <div className={COLUMN}>
-          <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold">
-            {title}
-          </h1>
-          {children}
-        </div>
+      <main ref={mainRef} tabIndex={-1} className={`${GUTTER} py-4`}>
+        <div className={COLUMN}>{children}</div>
       </main>
       <footer className={`${GUTTER} border-t border-line pb-[env(safe-area-inset-bottom)]`}>
-        <div className={`${COLUMN} flex items-center justify-between text-sm text-muted`}>
-          <span>{appName}</span>
+        <div className={`${COLUMN} flex justify-end`}>
           <a
             href={formatRoute(ABOUT)}
             aria-current={page === "about" ? "page" : undefined}
-            className={`${TARGET} underline`}
+            className={`${TARGET} text-sm text-muted underline aria-[current=page]:text-ink aria-[current=page]:decoration-2`}
           >
             {t("nav.about")}
           </a>

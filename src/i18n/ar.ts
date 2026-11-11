@@ -6,7 +6,7 @@ export const ar: Record<MessageKey, string> = {
   "nav.label": "التنقل الرئيسي",
   "nav.recitation": "التلاوة",
   "nav.practice": "التمرين",
-  "nav.custom": "نص خاص",
+  "nav.custom": "نص مخصص",
   "nav.stats": "الإحصاءات",
-  "nav.about": "حول",
+  "nav.about": "حول التطبيق",
 };

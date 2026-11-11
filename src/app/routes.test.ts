@@ -29,6 +29,27 @@ test("an ayah that is not a positive whole number is dropped, the surah is kept"
   expect(parseRoute("#/recitation/36/-2")).toEqual({ page: "recitation", surah: 36, ayah: null });
 });
 
+test("an ayah beyond the longest surah is dropped, so a route always survives being written and read back", () => {
+  expect(parseRoute("#/recitation/2/286")).toEqual({ page: "recitation", surah: 2, ayah: 286 });
+  expect(parseRoute("#/recitation/2/287")).toEqual({ page: "recitation", surah: 2, ayah: null });
+  expect(parseRoute("#/recitation/1/99999999999999999999999")).toEqual({ page: "recitation", surah: 1, ayah: null });
+  expect(parseRoute("#/recitation/036")).toEqual(HOME);
+});
+
+test("a misspelled address is read leniently and written back in its one true form", () => {
+  for (const [given, canonical] of [
+    ["#//recitation/36", "#/recitation/36"],
+    ["#/recitation/36//21", "#/recitation/36/21"],
+    ["#recitation/5", "#/recitation/5"],
+    ["#/practice/", "#/practice"],
+    ["#/recitation/36/999", "#/recitation/36"],
+    ["#/nowhere", "#/"],
+  ] as const) {
+    expect(formatRoute(parseRoute(given)), given).toBe(canonical);
+    expect(parseRoute(canonical), canonical).toEqual(parseRoute(given));
+  }
+});
+
 test("the other pages have one address each", () => {
   expect(parseRoute("#/practice")).toEqual({ page: "practice" });
   expect(parseRoute("#/custom")).toEqual({ page: "custom" });

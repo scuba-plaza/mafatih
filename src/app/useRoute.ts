@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from "react";
-import { parseRoute, type Route } from "./routes.ts";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { formatRoute, parseRoute, type Route } from "./routes.ts";
 
 function subscribe(onChange: () => void): () => void {
   window.addEventListener("hashchange", onChange);
@@ -11,5 +11,15 @@ function currentHash(): string {
 }
 
 export function useRoute(): Route {
-  return parseRoute(useSyncExternalStore(subscribe, currentHash));
+  const hash = useSyncExternalStore(subscribe, currentHash);
+  const route = useMemo(() => parseRoute(hash), [hash]);
+
+  useEffect(() => {
+    const canonical = formatRoute(route);
+    if (hash !== "" && hash !== canonical) {
+      window.history.replaceState(null, "", canonical);
+    }
+  }, [hash, route]);
+
+  return route;
 }
