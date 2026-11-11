@@ -1,10 +1,8 @@
-import { isLigatureForm } from "./ligatures.ts";
-
 export interface KeyCap {
-  code: string;
-  base: string;
-  shift: string;
-  row: number;
+  readonly code: string;
+  readonly base: string;
+  readonly shift: string;
+  readonly row: number;
 }
 
 export const WIN101_CAPS: readonly KeyCap[] = [
@@ -104,8 +102,8 @@ const FAR_REACH = 3;
 const SHIFT_REACH = 1;
 
 export interface KeyStroke {
-  code: string;
-  shift: boolean;
+  readonly code: string;
+  readonly shift: boolean;
 }
 
 const HOME_ROW_CODES = ["KeyA", "KeyS", "KeyD", "KeyF", "KeyG", "KeyH", "KeyJ", "KeyK", "KeyL", "Semicolon"];
@@ -140,9 +138,3 @@ export function reachOf(char: string): number {
   }
   return (KEY_REACH[stroke.code] ?? FAR_REACH) + (stroke.shift ? SHIFT_REACH : 0);
 }
-
-export const TATWEEL = "ـ";
-
-export const KEY_GLYPHS: readonly string[] = [...new Set(WIN101_CAPS.flatMap((cap) => [cap.base, cap.shift]))].filter(
-  (glyph) => glyph !== TATWEEL && !isLigatureForm(glyph),
-);

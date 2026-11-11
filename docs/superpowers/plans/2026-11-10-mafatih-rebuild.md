@@ -231,12 +231,12 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 **Files:** Create `src/keyboard/{layout101.ts,ligatures.ts,fingers.ts,typeable.ts}` and tests. Port data from `git show origin/main:src/engine/layout/{ara,ligatures,fingers}.ts` and read the old `ara.test.ts`, `fingers.test.ts` as the spec.
 
 **Interfaces:**
-- Produces: `WIN101_CAPS`; `interface KeyStroke { code: string; shift: boolean }`; `strokeFor(char: string): KeyStroke | undefined`; `reachOf(char: string): number` (0 home keys, 0.5 for `ل ا`, plus 1 for Shift); `type Finger`; `fingerOf(code: string): Finger`; `TYPEABLE_LETTERS` (36); `MARKS` (the 8); `isTypeable(char: string): boolean`; `HOME_ROW_LETTERS: readonly string[]` (the ten keys A S D F G H J K L Semicolon); `LIGATURE_KEYS: ReadonlyMap<string, string>`; `expandLigature(form: string): string`; `isLigatureForm(char: string): boolean`.
+- Produces: `WIN101_CAPS`; `interface KeyStroke { code: string; shift: boolean }`; `strokeFor(char: string): KeyStroke | undefined`; `reachOf(char: string): number` (0 home keys, 0.5 for `ل ا`, plus 1 for Shift); `type Finger`; `fingerOf(code: string): Finger | undefined` (undefined for a key that is not on the layout); `TYPEABLE_LETTERS` (36); `MARKS` (the 8, in layout order); `TYPEABLE_PUNCTUATION` (45); `isTypeable(char: string): boolean`; `HOME_ROW_LETTERS: readonly string[]` (the ten keys A S D F G H J K L Semicolon); `LIGATURE_KEYS: ReadonlyMap<string, string>`; `expandLigature(form: string): string`; `isLigatureForm(char: string): boolean`.
 
 - [ ] Test: `strokeFor("ض")` is `{code:"KeyQ",shift:false}`; `strokeFor("َ")` is `{code:"KeyQ",shift:true}`; `strokeFor("أ")` is Shift+`KeyH`; `strokeFor("ء")` is `KeyX`; `ﻻ` is on `KeyB`, `ﻷ ﻹ ﻵ` on Shift+`KeyG`, Shift+`KeyT`, Shift+`KeyB`.
 - [ ] Test: `TYPEABLE_LETTERS.length` is 36; `HOME_ROW_LETTERS` equals the set `{ش س ي ب ل ا ت ن م ك}`; `isTypeable("ٰ")` (dagger alef) and `isTypeable("۝")` are false; `isTypeable(" ")` true.
 - [ ] Test: `reachOf("ش")` is 0, `reachOf("ل")` is 0.5, `reachOf("َ")` is 2.5 (KeyQ 1.5 plus Shift 1), `reachOf("ذ")` is 3.
-- [ ] Test: every cap has a finger; each of the eight home keys maps to a different finger; both index fingers share one tint.
+- [ ] Test: every key code is assigned to the finger touch typing gives it (a literal table of all 47 keys). The shared tint of the two index fingers is a Task 9 test, where the tints exist.
 - [ ] Test: `expandLigature("ﻻ")` is `"لا"` and `expandLigature("ب")` is `"ب"`.
 - [ ] Implement by porting the tables; no logic is re-derived. Gate, review, commit.
 
@@ -247,6 +247,7 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 **Interfaces:**
 - Consumes: `isTypeable`, `MARKS`, `LIGATURE_KEYS` (Task 3).
 - Produces: `canonicalizeMarks(text: string): string`; `skeleton(text: string): string` (letters only, all marks removed); `isFullyVocalized(word: string): boolean`; `type Vocalization = "auto" | "letters" | "harakat" | "full"`; `requiredMarks(v: Vocalization, unlocked: ReadonlySet<string>): ReadonlySet<string>` (`letters` empty, `harakat` the five basic marks, `full` all eight, `auto` exactly `unlocked`); `buildPrompt(shown: string, required: ReadonlySet<string>, breaks?: readonly number[]): Prompt`; `collapseWhitespace(text: string): string`; `describeText(shown: string, required: ReadonlySet<string>): { units: number; skipped: number }`.
+- `src/text/arabic.ts` defines the basic harakat (fatha, damma, kasra, sukun, shadda) and the tanween (fathatan, dammatan, kasratan) once; a test proves the two sets partition Task 3's `MARKS`.
 - A unit is one typeable character, except that a lam directly followed (in unit order) by an alef-family letter merges into one two-character unit whose `start`/`end` span any skipped marks between them.
 
 - [ ] Test (S1, Q1): over every ayah in `data/quran-simple.txt` (read from disk), `canonicalizeMarks(ayah) === ayah`, proving the Qur'an text needs no re-ordering and is never altered.

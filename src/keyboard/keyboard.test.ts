@@ -7,6 +7,18 @@ import { isTypeable, MARKS, TYPEABLE_LETTERS, TYPEABLE_PUNCTUATION } from "./typ
 test("the table matches Microsoft's KBDA1 layout key by key", () => {
   const expected: Record<string, [string, string]> = {
     Backquote: ["ذ", "ّ"],
+    Digit1: ["1", "!"],
+    Digit2: ["2", "@"],
+    Digit3: ["3", "#"],
+    Digit4: ["4", "$"],
+    Digit5: ["5", "%"],
+    Digit6: ["6", "^"],
+    Digit7: ["7", "&"],
+    Digit8: ["8", "*"],
+    Digit9: ["9", ")"],
+    Digit0: ["0", "("],
+    Minus: ["-", "_"],
+    Equal: ["=", "+"],
     KeyQ: ["ض", "َ"],
     KeyW: ["ص", "ً"],
     KeyE: ["ث", "ُ"],
@@ -30,6 +42,7 @@ test("the table matches Microsoft's KBDA1 layout key by key", () => {
     KeyL: ["م", "/"],
     Semicolon: ["ك", ":"],
     Quote: ["ط", '"'],
+    Backslash: ["\\", "|"],
     KeyZ: ["ئ", "~"],
     KeyX: ["ء", "ْ"],
     KeyC: ["ؤ", "}"],
@@ -40,7 +53,9 @@ test("the table matches Microsoft's KBDA1 layout key by key", () => {
     Comma: ["و", ","],
     Period: ["ز", "."],
     Slash: ["ظ", "؟"],
+    Space: [" ", " "],
   };
+  expect(WIN101_CAPS.map((cap) => cap.code).sort()).toEqual(Object.keys(expected).sort());
   for (const [code, [base, shift]] of Object.entries(expected)) {
     const cap = WIN101_CAPS.find((candidate) => candidate.code === code);
     expect([cap?.base, cap?.shift], code).toEqual([base, shift]);
@@ -59,19 +74,33 @@ test("a character is found on its key, with Shift when it needs it", () => {
   expect(strokeFor("أ")).toEqual({ code: "KeyH", shift: true });
   expect(strokeFor("ء")).toEqual({ code: "KeyX", shift: false });
   expect(strokeFor(" ")).toEqual({ code: "Space", shift: false });
+  expect(strokeFor("1")).toEqual({ code: "Digit1", shift: false });
+  expect(strokeFor("(")).toEqual({ code: "Digit0", shift: true });
+  expect(strokeFor(")")).toEqual({ code: "Digit9", shift: true });
+  expect(strokeFor("|")).toEqual({ code: "Backslash", shift: true });
   expect(strokeFor("h")).toBeUndefined();
+  expect(strokeFor("")).toBeUndefined();
 });
 
-test("the layout types 36 letters, 8 marks, 45 other characters and the space", () => {
-  expect(TYPEABLE_LETTERS).toHaveLength(36);
-  expect(new Set(TYPEABLE_LETTERS).size).toBe(36);
+const LETTERS = "ء آ أ ؤ إ ئ ا ب ة ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ى ي".split(" ");
+const OTHER = [..."1234567890-=!@#$%^&*)(_+", ..."‘÷×؛<>", ...'][،/:"\\|', ..."~}{’,.؟"];
+
+test("the layout types exactly the 36 Arabic letters", () => {
+  expect(LETTERS).toHaveLength(36);
+  expect([...TYPEABLE_LETTERS].sort()).toEqual([...LETTERS].sort());
+});
+
+test("the layout types exactly the 8 marks", () => {
   expect([...MARKS].sort()).toEqual(["ً", "ٌ", "ٍ", "َ", "ُ", "ِ", "ّ", "ْ"]);
-  expect(TYPEABLE_PUNCTUATION).toHaveLength(45);
-  expect(isTypeable(" ")).toBe(true);
 });
 
-test("every typeable character has a key", () => {
-  for (const char of [...TYPEABLE_LETTERS, ...MARKS, ...TYPEABLE_PUNCTUATION, " "]) {
+test("the layout types exactly 45 digits, punctuation marks and symbols", () => {
+  expect(OTHER).toHaveLength(45);
+  expect([...TYPEABLE_PUNCTUATION].sort()).toEqual([...OTHER].sort());
+});
+
+test("letters, marks, the other characters and the space are what can be asked for", () => {
+  for (const char of [...LETTERS, ...OTHER, "َ", "ّ", "ٍ", " "]) {
     expect(isTypeable(char), char).toBe(true);
     expect(strokeFor(char), char).toBeDefined();
   }
@@ -141,8 +170,11 @@ test("a lam-alef presentation form expands to its two letters, anything else sta
   expect(isLigatureForm("ل")).toBe(false);
 });
 
-test("the home row holds ten letters", () => {
+test("the home row holds ten letters, and they are exactly the letters within half a key of rest", () => {
   expect([...HOME_ROW_LETTERS].sort()).toEqual(["ا", "ب", "ت", "س", "ش", "ك", "ل", "م", "ن", "ي"]);
+  for (const letter of LETTERS) {
+    expect(reachOf(letter) <= 0.5, letter).toBe(HOME_ROW_LETTERS.includes(letter));
+  }
 });
 
 test("reach is zero on the home keys and grows with every stretch, row and Shift", () => {
@@ -156,30 +188,39 @@ test("reach is zero on the home keys and grows with every stretch, row and Shift
   expect(reachOf("أ")).toBe(1.5);
   expect(reachOf("َ")).toBe(2.5);
   expect(reachOf("ذ")).toBe(3);
-  for (const letter of TYPEABLE_LETTERS) {
+  expect(reachOf("1")).toBe(3);
+  for (const letter of LETTERS) {
     expect(reachOf(letter), letter).toBeLessThanOrEqual(3);
   }
 });
 
-test("every key belongs to a finger", () => {
-  for (const cap of WIN101_CAPS) {
-    expect(fingerOf(cap.code), cap.code).toBeDefined();
+test("a character with no key is farther than any key", () => {
+  expect(reachOf("h")).toBe(4);
+  expect(reachOf("ٰ")).toBe(4);
+});
+
+test("every key belongs to the finger that touch typing assigns it", () => {
+  const zones: Record<string, string> = {
+    "left pinky": "Backquote Digit1 KeyQ KeyA KeyZ",
+    "left ring": "Digit2 KeyW KeyS KeyX",
+    "left middle": "Digit3 KeyE KeyD KeyC",
+    "left index": "Digit4 Digit5 KeyR KeyT KeyF KeyG KeyV KeyB",
+    "right index": "Digit6 Digit7 KeyY KeyU KeyH KeyJ KeyN KeyM",
+    "right middle": "Digit8 KeyI KeyK Comma",
+    "right ring": "Digit9 KeyO KeyL Period",
+    "right pinky": "Digit0 Minus Equal KeyP BracketLeft BracketRight Semicolon Quote Backslash Slash",
+    "both thumb": "Space",
+  };
+  const assigned = Object.values(zones).flatMap((codes) => codes.split(" "));
+  expect(assigned.sort()).toEqual(WIN101_CAPS.map((cap) => cap.code).sort());
+  for (const [finger, codes] of Object.entries(zones)) {
+    const [hand, digit] = finger.split(" ");
+    for (const code of codes.split(" ")) {
+      expect(fingerOf(code), code).toEqual({ hand, digit });
+    }
   }
+});
+
+test("a key that is not on the layout has no finger", () => {
   expect(fingerOf("F13")).toBeUndefined();
-});
-
-test("each of the eight fingers rests on its own home key", () => {
-  const resting = ["KeyA", "KeyS", "KeyD", "KeyF", "KeyJ", "KeyK", "KeyL", "Semicolon"].map((code) => {
-    const finger = fingerOf(code);
-    return `${finger?.hand} ${finger?.digit}`;
-  });
-  expect(new Set(resting).size).toBe(8);
-  expect(resting.every((name) => !name.includes("thumb") && !name.includes("undefined"))).toBe(true);
-});
-
-test("the index fingers take the two inner columns, the thumbs the space bar", () => {
-  expect(fingerOf("KeyG")).toEqual({ hand: "left", digit: "index" });
-  expect(fingerOf("KeyH")).toEqual({ hand: "right", digit: "index" });
-  expect(fingerOf("Quote")).toEqual({ hand: "right", digit: "pinky" });
-  expect(fingerOf("Space")).toEqual({ hand: "both", digit: "thumb" });
 });

@@ -1,3 +1,5 @@
+import { WIN101_CAPS } from "./layout101.ts";
+
 const FORMS: ReadonlyMap<string, string> = new Map([
   ["ﻻ", "لا"],
   ["ﻼ", "لا"],
@@ -9,8 +11,6 @@ const FORMS: ReadonlyMap<string, string> = new Map([
   ["ﻶ", "لآ"],
 ]);
 
-const KEY_FORMS = ["ﻻ", "ﻷ", "ﻹ", "ﻵ"];
-
 export function isLigatureForm(char: string): boolean {
   return FORMS.has(char);
 }
@@ -20,5 +20,7 @@ export function expandLigature(char: string): string {
 }
 
 export const LIGATURE_KEYS: ReadonlyMap<string, string> = new Map(
-  KEY_FORMS.map((form) => [expandLigature(form), form]),
+  WIN101_CAPS.flatMap((cap) => [cap.base, cap.shift])
+    .filter(isLigatureForm)
+    .map((form) => [expandLigature(form), form]),
 );

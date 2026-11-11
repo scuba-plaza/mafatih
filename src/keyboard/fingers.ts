@@ -3,8 +3,8 @@ export type Hand = "left" | "right";
 export type Digit = "pinky" | "ring" | "middle" | "index" | "thumb";
 
 export interface Finger {
-  hand: Hand | "both";
-  digit: Digit;
+  readonly hand: Hand | "both";
+  readonly digit: Digit;
 }
 
 const ZONES: readonly (Finger & { codes: readonly string[] })[] = [
