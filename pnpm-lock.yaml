@@ -8,6 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/amiri':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/noto-naskh-arabic':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/scheherazade-new':
+        specifier: ^5.3.0
+        version: 5.3.0
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -295,6 +304,15 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource/amiri@5.3.0':
+    resolution: {integrity: sha512-i4SWJnVIphj8556EdVzNrEG/Qu82k6JXjXTtSUIohx3tHmo2GHw1Kv60TWo+xjk7Yf1Etb2Gskh0lUFclTKyUw==}
+
+  '@fontsource/noto-naskh-arabic@5.3.0':
+    resolution: {integrity: sha512-S/GDgQ6mh/PKo4mz5+eXNYbEarvpI7yh6eCdOz8tTVbeM7+OUiacIEscaYEibr/+egDtGbO2ZB00sjy1bJC1kQ==}
+
+  '@fontsource/scheherazade-new@5.3.0':
+    resolution: {integrity: sha512-ITPWHoj0LLfikl6X4XS4nEQpP9p6iByRoUypqlAyO4NvgLbYpHTVdo7K199Alc+Uhm3xAnYtXvqRcuVAz2zBBw==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -1332,6 +1350,12 @@ snapshots:
 
   '@exodus/bytes@1.16.0':
     optional: true
+
+  '@fontsource/amiri@5.3.0': {}
+
+  '@fontsource/noto-naskh-arabic@5.3.0': {}
+
+  '@fontsource/scheherazade-new@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

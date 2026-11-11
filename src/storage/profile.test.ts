@@ -3,8 +3,15 @@ import { type KeyValueStore, openProfile, type Profile, STORAGE_KEY, UNREADABLE_
 
 const ENGLISH = ["en-US"];
 const ARABIC = ["ar-EG", "en"];
-const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en" } };
-const ARABIC_PROFILE: Profile = { schema: 2, settings: { language: "ar" } };
+const OTHER_DEFAULTS = {
+  font: "noto-naskh",
+  fontSize: 40,
+  vocalization: "auto",
+  requireBackspace: true,
+  customText: "",
+} as const;
+const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en", ...OTHER_DEFAULTS } };
+const ARABIC_PROFILE: Profile = { schema: 2, settings: { language: "ar", ...OTHER_DEFAULTS } };
 
 interface MemoryStore extends KeyValueStore {
   readonly data: Map<string, string>;
@@ -58,7 +65,17 @@ test("the visitor's languages may be missing or nonsense: English is the fallbac
 test("a saved profile is read back as it was, whatever the browser's language is now", () => {
   const store = memoryStore();
   expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBeNull();
-  expect(JSON.parse(store.data.get("mafatih:profile:2") ?? "")).toEqual({ schema: 2, settings: { language: "ar" } });
+  expect(JSON.parse(store.data.get("mafatih:profile:2") ?? "")).toEqual({
+    schema: 2,
+    settings: {
+      language: "ar",
+      font: "noto-naskh",
+      fontSize: 40,
+      vocalization: "auto",
+      requireBackspace: true,
+      customText: "",
+    },
+  });
   const reopened = openProfile(store, ENGLISH);
   expect(reopened.profile).toEqual(ARABIC_PROFILE);
   expect(reopened.notice).toBeNull();
@@ -121,7 +138,9 @@ test("unknown and dangerous keys in saved data are never copied into the profile
   const { profile } = openProfile(holding(stored), ENGLISH);
   expect(profile).toEqual(ARABIC_PROFILE);
   expect(Object.keys(profile)).toEqual(["schema", "settings"]);
-  expect(Object.keys(profile.settings)).toEqual(["language"]);
+  expect(Object.keys(profile.settings).sort()).toEqual(
+    ["customText", "font", "fontSize", "language", "requireBackspace", "vocalization"].sort(),
+  );
   expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
 });
 
@@ -160,4 +179,21 @@ test("when saving fails the visitor is told, and nothing is thrown", () => {
     setItem: failing(new DOMException("full", "QuotaExceededError")),
   };
   expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBe("unavailable");
+});
+
+test("every setting survives being saved and opened again", () => {
+  const store = memoryStore();
+  const changed: Profile = {
+    schema: 2,
+    settings: {
+      language: "ar",
+      font: "amiri",
+      fontSize: 56,
+      vocalization: "full",
+      requireBackspace: false,
+      customText: "بسم الله",
+    },
+  };
+  openProfile(store, ENGLISH).save(changed);
+  expect(openProfile(store, ENGLISH).profile).toEqual(changed);
 });
