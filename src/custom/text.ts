@@ -1,5 +1,6 @@
 import { expandLigature } from "~/keyboard/ligatures.ts";
 import { canonicalizeMarks, isMark } from "~/text/arabic.ts";
+import type { Prompt } from "~/text/prompt.ts";
 
 export interface PreparedText {
   readonly text: string;
@@ -32,4 +33,8 @@ export function prepareCustomText(raw: string): PreparedText {
   const expanded = [...raw].map(expandLigature).join("");
   const text = canonicalizeMarks(expanded).replace(/\s+/g, " ").trim();
   return text.length > CUSTOM_TEXT_LIMIT ? { text: cutToLimit(text), truncated: true } : { text, truncated: false };
+}
+
+export function hasSomethingToType(prompt: Prompt): boolean {
+  return prompt.units.some((unit) => unit.text !== " ");
 }

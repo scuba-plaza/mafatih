@@ -6,6 +6,8 @@
   --color-muted: #57534e;
   --color-line: #78716c;
   --color-accent: #0f766e;
+  --color-on-accent: #ffffff;
+  --color-danger: #b91c1c;
   --color-focus: #1d4ed8;
 
   --breakpoint-*: initial;
@@ -22,6 +24,8 @@
     --color-muted: #d6d3d1;
     --color-line: #a8a29e;
     --color-accent: #5eead4;
+    --color-on-accent: #1c1917;
+    --color-danger: #fca5a5;
     --color-focus: #93c5fd;
   }
 }

@@ -156,7 +156,7 @@ for (const language of ["en", "ar"] as const) {
         const skip = page.getByRole("button", { name: copy.skip });
         await skip.focus();
         const controls = page.locator("a:visible, button:visible");
-        expect(await controls.count()).toBe(6);
+        expect(await controls.count()).toBeGreaterThanOrEqual(6);
         for (const control of await controls.all()) {
           const box = await control.boundingBox();
           const name = `${entry.hash} ${(await control.getAttribute("href")) ?? "skip"}`;

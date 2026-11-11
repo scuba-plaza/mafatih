@@ -145,3 +145,30 @@ test("data left by the old version is neither used nor touched", async ({ page }
   await expect(page.getByRole("status")).toBeEmpty();
   expect(await page.evaluate(() => localStorage.getItem("mafatih.profile"))).toBe('{"settings":{"language":"ar"}}');
 });
+
+test("a second tab adopts what the first one saved instead of overwriting it later", async ({ context }) => {
+  const first = await context.newPage();
+  const second = await context.newPage();
+  await first.goto("/#/custom");
+  await second.goto("/#/custom");
+  await expect(second.getByRole("textbox", { name: "Text to type" })).toBeVisible();
+  await first.getByRole("textbox", { name: "Text to type" }).fill("بتن");
+  await first.getByRole("button", { name: "Start typing" }).click();
+  await expect(second.getByRole("region", { name: "Text to type" })).toContainText("بتن");
+});
+
+test("when saving fails after a change the visitor is told, and the change still applies for this visit", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+  });
+  await page.goto("/#/custom");
+  await expect(page.getByRole("status").first()).toBeEmpty();
+  await page.getByRole("textbox", { name: "Text to type" }).fill("بتن");
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await expect(page.getByRole("region", { name: "Text to type" })).toContainText("بتن");
+  await expect(page.getByText("Your progress can't be saved in this browser.")).toBeVisible();
+});

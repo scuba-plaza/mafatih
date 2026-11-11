@@ -1,3 +1,4 @@
+import { CustomPage } from "~/custom/CustomPage.tsx";
 import { I18nProvider, useI18n } from "~/i18n/I18nProvider.tsx";
 import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
 import { StorageNotice } from "~/storage/StorageNotice.tsx";
@@ -17,7 +18,7 @@ function Pages() {
   return (
     <I18nProvider language={profile.settings.language}>
       <Shell page={route.page} banner={<StorageNotice />}>
-        <Placeholder page={route.page} />
+        {route.page === "custom" ? <CustomPage /> : <Placeholder page={route.page} />}
       </Shell>
     </I18nProvider>
   );

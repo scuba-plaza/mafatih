@@ -49,6 +49,7 @@ export function Shell({ page, banner, children }: { page: Page; banner: ReactNod
   useEffect(() => {
     if (shownPage.current !== page) {
       shownPage.current = page;
+      window.scrollTo(0, 0);
       mainRef.current?.querySelector("h1")?.focus();
     }
   }, [page]);

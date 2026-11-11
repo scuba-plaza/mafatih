@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { FATHA, SHADDA } from "~/text/arabic.ts";
-import { CUSTOM_TEXT_LIMIT, prepareCustomText } from "./text.ts";
+import { buildPrompt } from "~/text/prompt.ts";
+import { CUSTOM_TEXT_LIMIT, hasSomethingToType, prepareCustomText } from "./text.ts";
 
 test("whitespace of any kind becomes single spaces, with none at the ends", () => {
   expect(prepareCustomText("  بسم \n\n\t الله  ")).toEqual({ text: "بسم الله", truncated: false });
@@ -50,4 +51,14 @@ test("a cut never splits a letter from its marks or a character in two", () => {
   expect(prepared.text).toBe(cluster.repeat(1666));
   const emoji = prepareCustomText("😀".repeat(3000));
   expect(emoji.text).toBe("😀".repeat(2500));
+});
+
+test("a text has something to type when it asks for more than spaces", () => {
+  const none: ReadonlySet<string> = new Set();
+  expect(hasSomethingToType(buildPrompt("بسم الله", none))).toBe(true);
+  expect(hasSomethingToType(buildPrompt("hello 5 world", none))).toBe(true);
+  expect(hasSomethingToType(buildPrompt("hello world", none))).toBe(false);
+  expect(hasSomethingToType(buildPrompt("", none))).toBe(false);
+  expect(hasSomethingToType(buildPrompt(`${FATHA}${SHADDA}`, none))).toBe(false);
+  expect(hasSomethingToType(buildPrompt(`${FATHA}${SHADDA}`, new Set([FATHA])))).toBe(true);
 });

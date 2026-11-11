@@ -11,6 +11,8 @@ const PAIRS: readonly (readonly [string, string, number])[] = [
   ["muted", "surface", TEXT],
   ["accent", "page", TEXT],
   ["accent", "surface", TEXT],
+  ["danger", "surface", TEXT],
+  ["on-accent", "accent", TEXT],
   ["line", "page", UI],
   ["line", "surface", UI],
   ["focus", "page", UI],

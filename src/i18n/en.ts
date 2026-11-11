@@ -12,6 +12,24 @@ export const en = {
   "notice.newerVersion":
     "This browser holds progress saved by a newer version of Mafatih. It is left untouched, so nothing new will be saved.",
   "notice.dismiss": "Dismiss",
+  "typing.surfaceLabel": "Text to type",
+  "typing.inputLabel": "Type the text shown",
+  "typing.start": "Start typing",
+  "typing.continue": "Continue typing",
+  "typing.mistake": "Mistake.",
+  "typing.mistakeBackspace": "Mistake. Press Backspace.",
+  "typing.wrongLayout": "Your keyboard is not typing Arabic. Switch it to the Arabic layout.",
+  "custom.textLabel": "Text to type",
+  "custom.textHint": "Paste or write any Arabic text.",
+  "custom.edit": "Edit text",
+  "custom.nothingToType": "There is nothing to type in this text.",
+  "custom.shortened": "The text was shortened to {limit} characters.",
+  "result.title": "Finished",
+  "result.speed": "Speed (characters per minute)",
+  "result.accuracy": "Accuracy",
+  "result.mistakes": "Mistakes",
+  "result.again": "Type again",
+  "result.announce": "Finished. Speed: {speed}. Accuracy: {accuracy}.",
 };
 
 export type MessageKey = keyof typeof en;
