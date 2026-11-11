@@ -1,17 +1,21 @@
-import { expandLigature } from "~/keyboard/ligatures.ts";
+import { expandLigature, LIGATURE_KEYS } from "~/keyboard/ligatures.ts";
 import type { Key } from "./session.ts";
 
-export type InputAction =
-  | { readonly kind: "key"; readonly key: Key }
-  | { readonly kind: "latin" }
-  | { readonly kind: "ignored" };
+export interface InputChange {
+  readonly keys: readonly Key[];
+  readonly wrongLayout: boolean;
+}
 
 export const INPUT_SENTINEL = "\u200B";
 
-const MOST_CHARACTERS_PER_KEY = 2;
-const LATIN_LETTER = /[A-Za-z]/;
-const LINE_BREAK = /[\n\r]/;
-const BACKSPACE: InputAction = { kind: "key", key: { kind: "backspace" } };
+const NO_BREAK_SPACE = /\u00A0/g;
+const LETTER_OF_ANOTHER_SCRIPT = /(?!\p{Script=Arabic})\p{L}/u;
+const NOT_A_KEY = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u;
+const BACKSPACE: Key = { kind: "backspace" };
+
+function visible(value: string): string[] {
+  return [...value.replaceAll(INPUT_SENTINEL, "").replace(NO_BREAK_SPACE, " ")];
+}
 
 function sharedPrefix(a: readonly string[], b: readonly string[]): number {
   let length = 0;
@@ -21,27 +25,21 @@ function sharedPrefix(a: readonly string[], b: readonly string[]): number {
   return length;
 }
 
-function added(text: readonly string[]): InputAction[] {
-  if (text.length === 0) {
-    return [];
-  }
-  if (text.some((char) => LATIN_LETTER.test(char))) {
-    return [{ kind: "latin" }];
-  }
-  const char = text.map(expandLigature).join("");
-  if ([...char].length > MOST_CHARACTERS_PER_KEY || LINE_BREAK.test(char)) {
-    return [{ kind: "ignored" }];
-  }
-  return [{ kind: "key", key: { kind: "char", char } }];
+function isOneKey(text: string): boolean {
+  return !NOT_A_KEY.test(text) && ([...text].length === 1 || LIGATURE_KEYS.has(text));
 }
 
-export function diffInput(previous: string, current: string): readonly InputAction[] {
-  const before = [...previous];
-  const after = [...current];
-  const kept = sharedPrefix(before, after);
-  const typed = added(after.slice(kept));
-  if (typed.some((action) => action.kind !== "key")) {
-    return typed;
+export function diffInput(previous: string, current: string): InputChange {
+  const before = visible(previous);
+  const after = visible(current);
+  if (before.length === 0 && after.length === 0) {
+    const placeholderDeleted = previous.includes(INPUT_SENTINEL) && !current.includes(INPUT_SENTINEL);
+    return { keys: placeholderDeleted ? [BACKSPACE] : [], wrongLayout: false };
   }
-  return [...before.slice(kept).map(() => BACKSPACE), ...typed];
+  const kept = sharedPrefix(before, after);
+  const deleted = before.slice(kept).map(() => BACKSPACE);
+  const added = after.slice(kept).map(expandLigature).join("");
+  const wrongLayout = LETTER_OF_ANOTHER_SCRIPT.test(added);
+  const typed: Key[] = !wrongLayout && isOneKey(added) ? [{ kind: "char", char: added }] : [];
+  return { keys: [...deleted, ...typed], wrongLayout };
 }
