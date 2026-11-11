@@ -280,17 +280,17 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 ### Task 6: Input pipeline
 
-**Files:** Create `src/typing/{input.ts,useTypingInput.ts}`, `e2e/input.spec.ts`.
+**Files:** Create `src/typing/{input.ts,input.test.ts}`. The hook `useTypingInput` and its browser tests are built in Task 8 together with the typing surface, its first user.
 
 **Interfaces:**
-- Consumes: `Key` (Task 5), `expandLigature`, `isLigatureForm` (Task 3).
-- Produces: `interface InputEventLike { inputType: string; data: string | null; isComposing: boolean }`; `type InputAction = { kind: "key"; key: Key } | { kind: "latin" } | { kind: "ignored" }`; `normalizeInput(e: InputEventLike): readonly InputAction[]`; `INPUT_SENTINEL = "​"`; `useTypingInput(options: { active: boolean; onKey(key: Key, at: number): void; onLatin(): void; onNavigate(direction: 1 | -1): void }): { inputProps: React.InputHTMLAttributes<HTMLInputElement> & { ref: React.RefObject<HTMLInputElement> }; focus(): void; focused: boolean; shiftHeld: boolean }`.
+- Consumes: `Key` (Task 5), `expandLigature` (Task 3).
+- Produces: `INPUT_SENTINEL = "\u200b"` (the one invisible character the field always holds, so Backspace has something to delete); `type InputAction = { kind: "key"; key: Key } | { kind: "latin" } | { kind: "ignored" }`; `diffInput(previous: string, current: string): readonly InputAction[]`, which compares the field's value before and after an `input` event. Working from the value instead of from `beforeinput` data covers desktop keyboards, phone keyboards that build a word in a composition, and Backspace with one rule.
 
-- [ ] Test (S1): `insertText "ب"` is one char key; `data "لا"` (Windows) is one key with char `"لا"`; `data "ﻻ"` (xkb) is the same key `"لا"`; `"ﻷ"` gives `"لأ"`.
-- [ ] Test: `deleteContentBackward` is `{ kind: "backspace" }`; `insertFromPaste`, `insertFromDrop`, `insertReplacementText`, and any `data` of more than two characters are `ignored` (A8); `"a"`, `"Q"` are `latin` and never keys.
-- [ ] Test (S5, chromium): `page.keyboard.insertText("ب")` and `press("Backspace")` on the surface reach the engine (including Backspace right after load, thanks to the sentinel); a CDP `Input.imeSetComposition` plus commit of one letter yields exactly one key; Tab leaves the input (A3).
-- [ ] Implement: the input carries `autocomplete=off autocorrect=off autocapitalize=off spellcheck=false inputmode=text lang=ar dir=rtl`, 16 px font (M6), an accessible name from a prop; its value is reset to the sentinel after every event and `selectionchange` resets the caret to the end; Shift tracking and PageUp/PageDown use `keydown` on the window while the input is focused. Timestamps use `event.timeStamp`.
-- [ ] Gate, review, commit.
+- [x] Test (S1): one added character is one char key; nothing changed is no action; the sentinel deleted is a Backspace.
+- [x] Test: the Windows lam-alef key (`"لا"` added at once) is one key with char `"لا"`; the xkb forms `ﻻ ﻷ ﻹ ﻵ` give the same keys.
+- [x] Test: two characters arriving together are passed on as one key (the session applies them in turn); more than two after expanding ligature forms, and any line break, are `ignored` (A8: paste, drop, swipe, suggestions); any Latin letter is `latin` and never a key.
+- [x] Test (Review Focus 2): a composition that grows (`"ب"` to `"بت"`) yields only the newest letter; one that shrinks yields a Backspace per removed character; a replaced letter is a Backspace then the letter; a suggestion that rewrites the word is `ignored`.
+- [x] Implement. Gate, review, commit.
 
 ### Task 7: Settings and profile storage
 
@@ -312,12 +312,14 @@ type Vocalization = "auto" | "letters" | "harakat" | "full"
 
 **Interfaces:**
 - Consumes: Tasks 4 to 7.
+- Produces: `useTypingInput(options: { active: boolean; label: string; onKey(key: Key, at: number): void; onLatin(): void; onNavigate?(direction: 1 | -1): void }): { inputProps; focus(): void; focused: boolean; shiftHeld: boolean }`, which keeps the field's value at the sentinel, feeds `diffInput` on every `input` event (holding the value still during a composition and resetting it at `compositionend`), resets the caret on `selectionchange`, and tracks Shift and PageUp/PageDown with `keydown`; the field carries `autocomplete=off autocorrect=off autocapitalize=off spellcheck=false inputmode=text lang=ar dir=rtl` and a 16 px font (M6).
 - Produces: `useTrainer(config: { prompt: Prompt | null; origin?: number; options: SessionOptions; active: boolean; onCheckpoint?(samples: readonly Sample[], cursor: number): void; onComplete(result: { metrics: ReturnType<typeof metricsOf>; samples: readonly Sample[] }): void }): { session: Session | null; focused: boolean; latinDetected: boolean; surfaceProps: ...; restart(): void }`; `<TypingSurface session paused lang font fontSize onActivate />`; `typeText(page, text, opts?: { mistakesAt?: Record<number, string>; delayMs?: number })` e2e helper that dispatches `insertText` per unit.
 - DOM contract: the surface is a labelled `section` (`lang="ar" dir="rtl"`) with one `<p>` per block (`prompt.breaks`), a single text node per block while no mistakes are pending; mistakes render in an `aria-hidden` `inline-block` span (`unicode-bidi: isolate; white-space: pre`, a space shown as `␣`); highlights `mafatih-done`, `mafatih-mistake`, `mafatih-apparatus` (skipped untypeable characters) are `Range`s registered on `CSS.highlights`; the caret is an `aria-hidden` 2 px bar placed from the start edge of a `Range` over the next display character and scrolled into view (instantly under reduced motion).
 
 - [ ] Test (S1): `prepareCustomText(raw: string): string` (in `src/custom/text.ts`) collapses whitespace (`" a\n\n b "` gives `"a b"`), expands lam-alef presentation forms and puts marks in canonical order; an empty `buildPrompt(...).units` drives the Custom empty states: empty, whitespace only, Latin only and marks only all produce the inline message "There is nothing to type in this text" (en and ar keys), never an empty lesson (Review Focus 4); more than 5,000 characters is truncated at a word boundary with a notice.
 - [ ] Test (S5): pasting `بِسْمِ` with vocalization `letters` shows the full text (marks drawn), the caret skips the marks, and typing the four letters completes it; with `full`, marks are required; typing shadda and vowel in either order is accepted.
 - [ ] Test (S5): requireBackspace ON: typing `س` where `ب` is expected shows `س` at the cursor, the expected text is still fully visible after it, three wrong keys then three Backspaces restore the original `textContent`; completed text cannot be deleted. OFF: the wrong key shows nothing, the surface gets `data-error` for 300 ms and the status region says "Mistake" once.
+- [ ] Test (S5, chromium, Review Focus 2): `page.keyboard.insertText("ب")` and `press("Backspace")` reach the engine (including Backspace right after load, thanks to the sentinel); a CDP `Input.imeSetComposition` that builds a word letter by letter yields exactly one key per letter; pasting a sentence types nothing; Tab leaves the input (A3).
 - [ ] Test (S5, Review Focus 2 and 5): Latin keys show the layout banner (`role="alert"`) and insert nothing; blurring the input shows a "Tap to continue typing" `<button>` and pauses; a 10-minute blur does not affect speed.
 - [ ] Test (S5, shaping, Q1): for each of the three fonts, a screenshot of the surface with the cursor mid-word is pixel-identical (zero diff) to a reference rendering of the same text with `CSS.highlights` cleared; if this fails the fallback is per-segment spans (done, rest) and the plan is amended before continuing.
 - [ ] Test (S5): at 320 px and with the viewport height cut to 300 px (keyboard open) the caret line is visible and there is no horizontal scroll (M3, M8); axe clean; in a browser without `CSS.highlights` (delete it in an init script) typing, caret and mistakes still work.
