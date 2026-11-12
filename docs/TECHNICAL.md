@@ -80,7 +80,7 @@ Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", s
 ## Bundle and security
 
 - Limits (`scripts/check-size.ts`, gzip): entry chunk 130 KB, a surah chunk 80 KB, the Practice list 100 KB; the words must not be in the entry; there are 114 surah chunks. Fonts load on demand (one at first, the others when Settings opens).
-- The built page carries a content security policy as a meta tag (GitHub Pages cannot send headers): `default-src 'self'`, `script-src 'self'`, `media-src 'self' blob: https://everyayah.com`, `connect-src 'self' https://everyayah.com`, `object-src 'none'`, `base-uri 'self'`, `form-action 'none'`, plus a strict referrer policy. Consequences: no inline scripts or styles (use CSSOM or adopted stylesheets, also in tests) and no data-URL images.
+- The built page carries a content security policy as a meta tag (GitHub Pages cannot send headers): `default-src 'self'`, `script-src 'self'`, `media-src 'self' blob:`, `connect-src 'self' https://everyayah.com`, `object-src 'none'`, `base-uri 'self'`, `form-action 'none'`, plus a strict referrer policy. Consequences: no inline scripts or styles (use CSSOM or adopted stylesheets, also in tests) and no data-URL images.
 - `robots.txt` and `sitemap.xml` are emitted by the build from `SITE_URL`; `BASE_PATH` sets the base for project pages.
 
 ## Deploy

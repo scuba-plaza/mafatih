@@ -33,6 +33,7 @@ test("a page that throws is replaced by a screen with the problem, Reload and St
   await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start over" })).toBeVisible();
   await expect(page.getByRole("main")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
   await expectNoAxeViolations(page);
 });
 
@@ -50,6 +51,7 @@ test("Start over asks first, and Keep my progress leaves the saved progress alon
   await page.getByRole("button", { name: "Start over" }).click();
   const question = page.getByRole("group", { name: "Erase your progress and settings?" });
   await expect(question).toBeVisible();
+  await expect(question).toContainText("This deletes your progress and settings from this browser and starts again.");
   await expect(question.getByRole("button", { name: "Keep my progress" })).toBeFocused();
   await question.getByRole("button", { name: "Keep my progress" }).click();
   await expect(question).toHaveCount(0);

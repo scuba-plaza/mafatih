@@ -13,11 +13,11 @@ import {
 const INDEX = readFileSync("index.html", "utf8");
 const MANIFEST: unknown = JSON.parse(readFileSync("public/site.webmanifest", "utf8"));
 
-test("the policy allows the page's own files, and audio and its fetch only from EveryAyah", () => {
+test("the policy allows the page's own files, played audio only from blob URLs, and fetches only from EveryAyah", () => {
   expect(CONTENT_SECURITY_POLICY.split("; ")).toEqual([
     "default-src 'self'",
     "script-src 'self'",
-    "media-src 'self' blob: https://everyayah.com",
+    "media-src 'self' blob:",
     "connect-src 'self' https://everyayah.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -39,6 +39,21 @@ test("the site address always ends in one slash and falls back to the default", 
   expect(siteUrlFrom("")).toBe(DEFAULT_SITE_URL);
   expect(siteUrlFrom("https://example.test")).toBe("https://example.test/");
   expect(siteUrlFrom("https://example.test/app///")).toBe("https://example.test/app/");
+});
+
+test("the site address is checked: a plain http or https address, with nothing that could break the page", () => {
+  expect(siteUrlFrom("HTTP://Example.test/App")).toBe("http://example.test/App/");
+  expect(siteUrlFrom('https://example.test/a"b<c')).toBe("https://example.test/a%22b%3Cc/");
+  for (const wrong of [
+    "javascript:alert(1)",
+    "ftp://example.test/",
+    "example.test",
+    "https://user:secret@example.test/",
+    "https://example.test/?a=1",
+    "https://example.test/#top",
+  ]) {
+    expect(() => siteUrlFrom(wrong), wrong).toThrow(/SITE_URL/);
+  }
 });
 
 test("every placeholder of the site address in the page is replaced", () => {

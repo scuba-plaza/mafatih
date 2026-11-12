@@ -6,7 +6,7 @@ const CLIP = readFileSync(new URL("./fixtures/ayah.mp3", import.meta.url));
 const POLICY = [
   "default-src 'self'",
   "script-src 'self'",
-  "media-src 'self' blob: https://everyayah.com",
+  "media-src 'self' blob:",
   "connect-src 'self' https://everyayah.com",
   "object-src 'none'",
   "base-uri 'self'",

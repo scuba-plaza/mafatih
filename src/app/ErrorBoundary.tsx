@@ -13,7 +13,12 @@ function ErrorScreen() {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
+  const screen = useRef<HTMLElement>(null);
   const restoreFocus = useRef(false);
+
+  useEffect(() => {
+    screen.current?.querySelector("h1")?.focus();
+  }, []);
 
   useEffect(() => {
     if (!confirming && restoreFocus.current) {
@@ -33,7 +38,7 @@ function ErrorScreen() {
   };
 
   return (
-    <main className="mx-auto flex max-w-prose flex-col items-start gap-4 p-4">
+    <main ref={screen} className="mx-auto flex max-w-prose flex-col items-start gap-4 p-4">
       <PageHeading>{t("error.title")}</PageHeading>
       <p role="alert">{t("error.body")}</p>
       {confirming ? (

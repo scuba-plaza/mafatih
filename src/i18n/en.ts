@@ -17,7 +17,7 @@ export const en = {
   "error.startOver": "Start over",
   "error.question": "Erase your progress and settings?",
   "error.warning":
-    "This deletes what Mafatih saved in this browser and starts again. Restore a backup afterwards if you have one.",
+    "This deletes your progress and settings from this browser and starts again. Restore a backup afterwards if you have one.",
   "error.erase": "Erase",
   "about.contentHeading": "What you type",
   "about.intro":
@@ -26,7 +26,7 @@ export const en = {
     "The Qur'an is only ever shown whole and in order, and only in Recitation, from the Tanzil text without changes. Practice never uses it: its words are everyday vocabulary.",
   "about.privacyHeading": "Privacy",
   "about.privacy":
-    "Mafatih has no accounts, cookies or analytics. Your progress and settings stay in this browser, in local storage. Recitation audio you have played is kept in the browser's IndexedDB so that it plays again without downloading. The only request to another site is for that audio, from EveryAyah. Nothing about you is sent anywhere. Backup and restore in Settings makes a file that you keep yourself.",
+    "Mafatih has no accounts, cookies or analytics. Your progress and settings stay in this browser, in local storage. Recitation audio you have played, or that is about to play, is kept in the browser's IndexedDB so that it plays again without downloading. The only request to another site is for that audio, from EveryAyah, which sees your address as any site you visit does. Mafatih sends nothing else about you. Backup and restore in Settings makes a file that you keep yourself.",
   "about.creditsHeading": "Credits",
   "about.quranLabel": "Qur'an text",
   "about.quranNote":
@@ -35,7 +35,7 @@ export const en = {
   "about.audioNote": "Abdul Basit ʿAbd us-Samad, Murattal and Mujawwad.",
   "about.wordsLabel": "Practice words",
   "about.wordsNote":
-    "Made from the English Wiktionary (extract built {date}) and from a list of word frequencies. Both are under Creative Commons Attribution-ShareAlike 4.0, so the word list is too.",
+    "Made from the English Wiktionary (extract built {date}), under Creative Commons Attribution-ShareAlike 4.0 and the GNU Free Documentation License, and from a list of word frequencies, under Creative Commons Attribution-ShareAlike 4.0.",
   "about.fontsLabel": "Fonts",
   "about.fontsNote": "Noto Naskh Arabic, Amiri and Scheherazade New, under the SIL Open Font License.",
   "about.layoutLabel": "Keyboard layout",

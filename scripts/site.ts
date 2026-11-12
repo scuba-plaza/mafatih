@@ -9,15 +9,37 @@ const PLACEHOLDER = "%SITE_URL%";
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
-  `media-src 'self' blob: ${AUDIO_ORIGIN}`,
+  "media-src 'self' blob:",
   `connect-src 'self' ${AUDIO_ORIGIN}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'none'",
 ].join("; ");
 
+function parseUrl(value: string): URL | undefined {
+  try {
+    return new URL(value);
+  } catch {
+    return undefined;
+  }
+}
+
 export function siteUrlFrom(value: string | undefined): string {
-  return (value === undefined || value === "" ? DEFAULT_SITE_URL : value).replace(/\/*$/, "/");
+  if (value === undefined || value === "") {
+    return DEFAULT_SITE_URL;
+  }
+  const url = parseUrl(value);
+  const plain =
+    url !== undefined &&
+    (url.protocol === "http:" || url.protocol === "https:") &&
+    url.username === "" &&
+    url.password === "" &&
+    url.search === "" &&
+    url.hash === "";
+  if (!plain) {
+    throw new Error(`SITE_URL must be a plain http or https address without credentials, query or fragment: ${value}`);
+  }
+  return `${url.origin}${url.pathname.replace(/\/*$/, "/")}`;
 }
 
 export function withSiteUrl(html: string, siteUrl: string): string {

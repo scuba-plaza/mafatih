@@ -28,6 +28,9 @@ test("Privacy says there are no accounts, cookies or analytics, where progress i
   await expect(privacy).toContainText("local storage");
   await expect(privacy).toContainText("IndexedDB");
   await expect(privacy).toContainText("The only request to another site is for that audio, from EveryAyah");
+  await expect(privacy).toContainText("audio you have played, or that is about to play");
+  await expect(privacy).toContainText("sees your address as any site you visit does");
+  await expect(privacy).toContainText("sends nothing else about you");
 });
 
 test("Credits name every source with its link and licence", async ({ page }) => {
@@ -46,6 +49,7 @@ test("Credits name every source with its link and licence", async ({ page }) => 
   await expect(link("Source code on GitHub")).toHaveAttribute("href", "https://github.com/scuba-plaza/mafatih");
   await expect(list).toContainText("Creative Commons Attribution 3.0");
   await expect(list).toContainText("Creative Commons Attribution-ShareAlike 4.0");
+  await expect(list).toContainText("GNU Free Documentation License");
   await expect(list).toContainText("Oct 30, 2026");
   await expect(list).toContainText("Abdul Basit");
   await expect(list).toContainText("SIL Open Font License");
