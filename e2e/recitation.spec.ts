@@ -56,10 +56,11 @@ async function start(page: Page): Promise<void> {
 }
 
 const finished = (page: Page) => page.getByRole("heading", { level: 2, name: "Finished" });
+const completed = (page: Page) => page.getByRole("heading", { level: 2, name: /^Completed: / });
 
-test("a first visit opens the first surah at once, ready to type", async ({ page }) => {
+test("a surah opens at once, ready to type, with its first passage", async ({ page }) => {
   const fatiha = surah(1);
-  await page.goto("/");
+  await page.goto("/#/recitation/1");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Faatiha الفاتحة");
   await expect(page.getByText("Ayat 1 to 4 of 7")).toBeVisible();
   await expect(surface(page).locator("[data-block]")).toHaveCount(1);
@@ -131,7 +132,7 @@ test("the ayah signs are tinted as apparatus, never typed, and typing letters on
   await expect(surface(page).locator("[data-mistakes]")).toBeVisible();
   expect(await apparatus(page)).toEqual([sign(1), sign(2), sign(3), sign(4)]);
   await typeKeys(page, ["Backspace", ...keys.slice(30)]);
-  await expect(finished(page)).toBeFocused();
+  await expect(completed(page)).toBeFocused();
   const profile = await savedProfile(page);
   expect(profile.recitation).toEqual({
     position: { surah: 113, ayah: 1 },
@@ -159,7 +160,7 @@ test("progress is saved ayah by ayah, into recitation only, and a reload resumes
   page,
 }) => {
   const fatiha = surah(1);
-  await page.goto("/");
+  await page.goto("/#/recitation/1");
   await start(page);
   await typeKeys(page, [...lettersOf(fatiha, 1, 2), " ", ...lettersOf(fatiha, 3, 3).slice(0, 4)]);
   const profile = await savedProfile(page);
@@ -190,9 +191,10 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
   await typeKeys(page, lettersOf(fatiha, 1, 4));
   await expect(finished(page)).toBeFocused();
   await expect(finished(page)).toHaveAccessibleDescription(/Speed.*Accuracy.*100%.*Mistakes.*0/);
-  const next = page.getByRole("button", { name: "Next passage" });
+  const summary = finished(page).locator("xpath=..");
+  const next = summary.getByRole("button", { name: "Next passage" });
   await expect(next).toBeVisible();
-  await expect(page.getByRole("button", { name: "Type again" })).toBeVisible();
+  await expect(summary.getByRole("button", { name: "Type again" })).toBeVisible();
   await expectNoAxeViolations(page);
   const whenFinished = await savedProfile(page);
   await page.keyboard.insertText("ب");
@@ -216,13 +218,13 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
     `Al-Faatiha الفاتحة Ayat 5 to 7 of 7 ${fatiha.ayat[4]?.split(" ")[0]}`,
   );
   await typeKeys(page, lettersOf(fatiha, 5, 7));
-  await expect(finished(page)).toBeFocused();
+  await expect(completed(page)).toBeFocused();
   expect((await savedProfile(page)).recitation).toEqual({
     position: { surah: 2, ayah: 1 },
     surahs: { 1: { typed: [], completions: 1 } },
   });
 
-  await page.getByRole("button", { name: "Next passage" }).click();
+  await page.getByRole("button", { name: "Next surah" }).click();
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara البقرة");
   await expect(surface(page).locator("[data-block]")).toHaveCount(2);
@@ -240,7 +242,7 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
 test("a lesson in progress survives another tab saving the profile", async ({ context }) => {
   const fatiha = surah(1);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/#/recitation/1");
   await start(page);
   await typeKeys(page, [...lettersOf(fatiha, 1, 1), " ", ...lettersOf(fatiha, 2, 2).slice(0, 6)]);
   const typed = await doneText(page);
@@ -299,14 +301,14 @@ test("Type again starts the same passage over", async ({ page }) => {
   await start(page);
   const keys = lettersOf(kawthar, 1, 3, true);
   await typeKeys(page, ["ض", ...keys]);
-  await expect(finished(page)).toHaveAccessibleDescription(/Mistakes.*1/);
+  await expect(completed(page)).toHaveAccessibleDescription(/Mistakes.*1/);
   await page.getByRole("button", { name: "Type again" }).click();
-  await expect(finished(page)).toHaveCount(0);
+  await expect(completed(page)).toHaveCount(0);
   await expect(page).toHaveURL(/#\/recitation\/108$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
   expect(await doneText(page)).toBe("");
   await typeKeys(page, keys);
-  await expect(finished(page)).toHaveAccessibleDescription(/Mistakes.*0/);
+  await expect(completed(page)).toHaveAccessibleDescription(/Mistakes.*0/);
   const profile = await savedProfile(page);
   expect(profile.recitation).toMatchObject({ surahs: { 108: { typed: [], completions: 2 } } });
   expect(profile.history).toHaveLength(2);
@@ -394,4 +396,20 @@ test("the longest ayah renders, keeps the caret line in view, stays fast to type
   await typeKeys(page, keys.slice(450));
   await expect(finished(page)).toBeFocused();
   expect((await savedProfile(page)).recitation).toMatchObject({ surahs: { 2: { typed: [[282, 282]] } } });
+});
+
+test("a passage too long for its box can be scrolled from the keyboard, a short one adds no tab stop", async ({
+  page,
+}) => {
+  await seedSettings(page, { ayatPerLesson: 1, fontSize: 72 });
+  await page.goto("/#/recitation/2/282");
+  const text = surface(page).locator("[data-lesson-text]");
+  await expect(text).toBeVisible();
+  const overflows = await text.evaluate((element) => element.scrollHeight > element.clientHeight);
+  expect(overflows).toBe(true);
+  await expect(text).toHaveAttribute("tabindex", "0");
+  await expectNoAxeViolations(page);
+  await page.goto("/#/recitation/112");
+  await expect(surface(page).locator("[data-lesson-text]")).toBeVisible();
+  await expect(surface(page).locator("[data-lesson-text]")).not.toHaveAttribute("tabindex", /.*/);
 });

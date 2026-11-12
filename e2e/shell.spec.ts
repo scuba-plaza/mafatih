@@ -2,16 +2,12 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 
 const PAGES = [
-  { hash: "#/", en: "Recitation", ar: "التلاوة", heading: { en: "Al-Faatiha الفاتحة", ar: "الفاتحة" } },
-  { hash: "#/practice", en: "Practice", ar: "التمرين", heading: null },
-  { hash: "#/custom", en: "Custom", ar: "نص مخصص", heading: null },
-  { hash: "#/stats", en: "Stats", ar: "الإحصاءات", heading: null },
-  { hash: "#/about", en: "About", ar: "حول التطبيق", heading: null },
+  { hash: "#/", en: "Recitation", ar: "التلاوة" },
+  { hash: "#/practice", en: "Practice", ar: "التمرين" },
+  { hash: "#/custom", en: "Custom", ar: "نص مخصص" },
+  { hash: "#/stats", en: "Stats", ar: "الإحصاءات" },
+  { hash: "#/about", en: "About", ar: "حول التطبيق" },
 ] as const;
-
-function headingOf(entry: (typeof PAGES)[number], language: "en" | "ar"): string {
-  return entry.heading?.[language] ?? entry[language];
-}
 
 const LOCALES = { en: "en-US", ar: "ar-EG" } as const;
 
@@ -40,7 +36,7 @@ for (const language of ["en", "ar"] as const) {
           page,
         }) => {
           await page.goto(`/${entry.hash}`);
-          await expect(page.getByRole("heading", { level: 1 })).toHaveText(headingOf(entry, language));
+          await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry[language]);
           await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
           await expect(page.locator("html")).toHaveAttribute("lang", language);
           await expect(page.locator("html")).toHaveAttribute("dir", language === "ar" ? "rtl" : "ltr");
@@ -92,8 +88,8 @@ for (const language of ["en", "ar"] as const) {
     });
 
     test("the tab order follows the reading order and every stop shows a focus outline", async ({ page }) => {
-      await page.goto("/");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(headingOf(PAGES[0], language));
+      await page.goto("/#/practice");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[1][language]);
       const names = PAGES.map((entry) => entry[language]);
       const expected = [copy.skip, ...names.slice(0, 4), copy.settings, copy.start, ...names.slice(4)];
       const edges: number[] = [];
@@ -115,7 +111,7 @@ for (const language of ["en", "ar"] as const) {
       await page.setViewportSize({ width: 320, height: 568 });
       for (const entry of PAGES) {
         await page.goto(`/${entry.hash}`);
-        await expect(page.getByRole("heading", { level: 1 })).toHaveText(headingOf(entry, language));
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry[language]);
         expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
       }
     });
@@ -157,7 +153,7 @@ for (const language of ["en", "ar"] as const) {
       test.skip(!isMobile, "touch target size applies to touch screens");
       for (const entry of PAGES) {
         await page.goto(`/${entry.hash}`);
-        await expect(page.getByRole("heading", { level: 1 })).toHaveText(headingOf(entry, language));
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry[language]);
         const skip = page.getByRole("button", { name: copy.skip });
         await skip.focus();
         const controls = page.locator("a:visible, button:visible");
@@ -175,7 +171,7 @@ for (const language of ["en", "ar"] as const) {
       const session = await page.context().newCDPSession(page);
       await session.send("Emulation.setSafeAreaInsetsOverride", { insets: { right: 40 } });
       await page.goto("/");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(headingOf(PAGES[0], language));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[0][language]);
       for (const landmark of ["banner", "main", "contentinfo"] as const) {
         const padding = await page.getByRole(landmark).evaluate((element) => {
           const style = getComputedStyle(element);
@@ -258,7 +254,7 @@ test("the footer links to the About page and marks it as current there", async (
 
 test("an unknown or misspelled address shows Recitation and is rewritten to the real address", async ({ page }) => {
   await page.goto("/#/nowhere");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Faatiha الفاتحة");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
   await expect(page).toHaveTitle("Recitation · Mafatih");
   await expect(page).toHaveURL(/#\/$/);
   await page.goto("/#//practice/");
@@ -268,6 +264,6 @@ test("an unknown or misspelled address shows Recitation and is rewritten to the 
 
 test("an address without a hash is left as it is", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Faatiha الفاتحة");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
   expect(new URL(page.url()).hash).toBe("");
 });

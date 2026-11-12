@@ -7,7 +7,7 @@ const STARTED_FRESH = "Your saved progress could not be read, so Mafatih started
 const NEWER =
   "This browser holds progress saved by a newer version of Mafatih. It is left untouched, so nothing new will be saved.";
 
-const FIRST_SURAH = "Al-Faatiha الفاتحة";
+const HOME = "Recitation";
 
 function noticeArea(page: Page): Locator {
   return page.locator("[role=status]:not(main *)");
@@ -31,13 +31,13 @@ test("the saved interface language wins over the browser's language", async ({ p
   await store(page, KEY, '{"schema":2,"settings":{"language":"ar"}}');
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("الفاتحة");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("التلاوة");
   await expect(noticeArea(page)).toBeEmpty();
 });
 
 test("a first visit has an empty notice area, ready to announce", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(FIRST_SURAH);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(HOME);
   await expect(noticeArea(page)).toHaveCount(1);
   await expect(noticeArea(page)).toBeEmpty();
 });
@@ -45,7 +45,7 @@ test("a first visit has an empty notice area, ready to announce", async ({ page 
 test("unreadable saved data starts the app fresh, says so, and keeps a copy of what was there", async ({ page }) => {
   await store(page, KEY, "{not json");
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(FIRST_SURAH);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(HOME);
   await expect(noticeArea(page).getByText(STARTED_FRESH)).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("mafatih:profile:2:unreadable"))).toBe("{not json");
   await expectNoAxeViolations(page);

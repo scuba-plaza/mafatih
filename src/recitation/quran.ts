@@ -1,3 +1,4 @@
+import type { Language } from "~/i18n/i18n.ts";
 import metadata from "../../data/surahs.json";
 
 export interface SurahMeta {
@@ -20,6 +21,18 @@ const SURAHS: readonly SurahMeta[] = metadata;
 export const SURAH_COUNT = SURAHS.length;
 
 const files = import.meta.glob<{ readonly default: Surah }>("../../generated/quran/*.json");
+
+export function requireSurahMeta(number: number): SurahMeta {
+  const meta = surahMeta(number);
+  if (meta === undefined) {
+    throw new RangeError(`there is no surah ${number}`);
+  }
+  return meta;
+}
+
+export function surahName(meta: SurahMeta, language: Language): string {
+  return language === "ar" ? meta.name : meta.tname;
+}
 
 export function surahMeta(number: number): SurahMeta | undefined {
   return SURAHS[number - 1];

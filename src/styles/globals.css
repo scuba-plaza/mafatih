@@ -39,3 +39,28 @@ button {
     color: GrayText;
   }
 }
+
+progress {
+  appearance: none;
+  border-radius: 9999px;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--color-line) 35%, transparent);
+}
+
+progress::-webkit-progress-bar {
+  background-color: transparent;
+}
+
+progress::-webkit-progress-value {
+  background-color: var(--color-accent);
+}
+
+progress::-moz-progress-bar {
+  background-color: var(--color-accent);
+}
+
+@media (forced-colors: active) {
+  progress {
+    appearance: auto;
+  }
+}

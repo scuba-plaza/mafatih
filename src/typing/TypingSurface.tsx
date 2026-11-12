@@ -195,6 +195,11 @@ export function TypingSurface(props: TypingSurfaceProps) {
       }
       paintDone(paragraphs, current, doneUntil - block.start);
       paintApparatus(paragraphs, blocks, apparatus);
+      if (container.scrollHeight > container.clientHeight) {
+        container.tabIndex = 0;
+      } else {
+        container.removeAttribute("tabindex");
+      }
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = rect === undefined;
       if (rect === undefined) {

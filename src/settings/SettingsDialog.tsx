@@ -1,6 +1,7 @@
 import { useEffect, useId } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Language } from "~/i18n/i18n.ts";
+import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { Dialog } from "~/ui/Dialog.tsx";
 import { RadioGroup } from "~/ui/RadioGroup.tsx";
@@ -121,6 +122,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           onChange={(fingerGuide) => change({ fingerGuide })}
         />
       </fieldset>
+      <RecitationSettings settings={settings} change={change} />
       <ResetProgress />
     </Dialog>
   );

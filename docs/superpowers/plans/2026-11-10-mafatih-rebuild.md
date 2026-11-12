@@ -486,7 +486,7 @@ Part B is interface assembly and well-trodden work on top of Part A: dialogs, pa
 |---|---|---|---|
 | 9b | Settings dialog and guide keyboard | 9a | done |
 | 12b | Practice page and HUD | 10, 11, 12a | done |
-| 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | to do |
+| 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | in review |
 | 15 | Recitation audio | 14b | to do |
 | 16 | Stats page | 11 | to do |
 | 17 | Backup and restore | 7, 11, 13 | to do |
@@ -549,18 +549,25 @@ Read these before the first task; each one cost time to learn.
 
 ### Task 14b: Surah map, passage bar, surah completion and recitation settings
 
-**Files:** Create `src/recitation/{SurahMap.tsx,PassageBar.tsx,RecitationSettings.tsx}`; extend `RecitationPage`, `e2e/recitation.spec.ts`, `Settings` (`surahOrder`).
+**Files:** Create `src/recitation/{SurahMap.tsx,PassageBar.tsx,RecitationSettings.tsx}`, `e2e/recitation-map.spec.ts`; extend `RecitationPage`, `useRecitation`, `LessonSummary`, `SettingsDialog`, `Settings` (`ayatPerLesson` as a list of sizes), the i18n context (`formatDuration`), `progress.ts` (`endsOrder`), `quran.ts` (`surahName`, `requireSurahMeta`), `TypingSurface` (a scroll region that overflows is a tab stop), `globals.css` (the progress bar).
 
-**Interfaces:**
-- Consumes: Tasks 13 and 14a (`surahMeta`, `surahOrder`, `positionAfter`, `passageBefore`, `typedAyat`, `completionsOf`, `resumeOf`, the passage view). A completed surah starts over, so its `typedAyat` is 0 again: the map must show `completionsOf` ("completed twice") next to the ring, or a finished surah looks untouched. `recordAyah` moves the saved position past the run just typed even when earlier ayat of the surah are missing; the surah link uses `resumeOf`, which goes back to the first gap.
-- Produces: at `#/` the surah map (it replaces 14a's resume-at-`#/`; each surah link resumes that surah); the passage bar; the surah completion panel; the recitation settings.
+**What exists:**
+- `#/` is the surah map: an `h1` "Recitation", one prominent link ("Start with Al-Faatiha" for a fresh learner, "Continue with Yaseen, ayah 13" otherwise, to `startOf`), and a list named "Surahs" of 114 links in the chosen order (a grid from `sm`). Each link holds a progress ring (`aria-hidden`, no arc at all for an untouched surah, full for a completed one), the number, the transliterated and Arabic names (the Arabic name alone in the Arabic interface) and the progress in words ("12 of 83 ayat typed", else "83 ayat"; "Completed: 2" when finished, because a completed surah starts over and its typed count is 0 again). A link goes to `#/recitation/:surah`, which resumes at the first gap.
+- `#/recitation/:surah[/:ayah]` is the passage view of 14a plus: a one-line hint (what is typed and what is not: letters only when no mark is asked for, "the marks your settings ask for" otherwise), derived from the settings so it never moves the layout; and the passage bar below the lesson, a `fieldset` named "Passage" holding the typed count in words with a `<progress>`, Previous and Next passage buttons (cyclic across surahs and the order, by `passageBefore` and `positionAfter`), a labelled "Go to ayah" number field with a Go button (the form has no native validation: a number outside the surah is brought into it), and Page Up and Page Down on the bar (not on the typing field: a stray key must not throw away a half-typed ayah). The bar sits under the lesson so that the typing area stays first on a phone.
+- The summary of a passage that finished a surah is the quiet completion panel: its heading "Completed: Al-Kawthar" takes focus, its figures are the surah's ayat, the times it was completed, the time of the last passage and that passage's speed, accuracy and mistakes (the app keeps no per-surah figures), and its buttons are "Next surah" and "Type again". It is derived, not stored: the surah's completion count is compared with the count when the address was opened (`Type again` takes a new baseline). No dialog, alert or sound (Q3).
+- When the passage ends the order (`endsOrder`: the last ayah of the last surah of the chosen order, or a completed surah that is the last of it), the summary says "This was the last surah in this order. Next, it starts again." and its button says "Start again".
+- Settings has a "Recitation" group: "Ayat per passage" (a native select of 1, 2, 3, 4, 5, 6, 8, 10, 15, 20; a saved number snaps to the nearest) and "Surah order" (radios: Mushaf order, Juz ʿAmma first, with hints).
+- `applyRecitationAyah` no longer returns a `completion`: nothing reads it.
+- Found on the way, fixed in the surface: a scroll region that overflows its box and holds nothing focusable cannot be scrolled from the keyboard (axe `scrollable-region-focusable`; only a long passage on a small screen shows it), so it becomes a tab stop while it overflows and none otherwise.
 
-- [ ] Test (S5): `#/` shows 114 surah links in a list; each has an accessible name such as "Ya-Sin, 12 of 83 ayat typed" and a visible progress ring plus a text mark for done (not colour alone, A6); the order setting switches Mushaf and Juz ʿAmma; in the Arabic UI only Arabic names show.
-- [ ] Test (S5): previous and next buttons and PageUp/PageDown cross surah boundaries; "Go to ayah" is a labelled number field plus a `<progress>` with text "12 of 83".
-- [ ] Test (S5): the passage view tells a first-time visitor in one line what is typed and what is not (at `letters`, and on `auto` before any mark is unlocked: the marks and the ayah numbers are shown and not typed), without moving the layout.
-- [ ] Test (S5): after the last surah of the order the completion panel says that the order starts again, and its button says so too, instead of a plain Next passage.
-- [ ] Test (S5): completing a surah moves focus to a quiet panel (`tabindex="-1"` heading) with name, ayat, accuracy, speed, time and Next surah or Type again; no confetti, no sound, no modal (Q3).
-- [ ] Implement with the recitation settings (ayat per passage 1, 2, 3, 4, 5, 6, 8, 10, 15, 20; map order) as a group in the Settings dialog. Gate, review, commit.
+- [x] Test (S5): `#/` shows 114 surah links in a list; each says how much of it is typed in words, with a ring and a text mark for completed; Continue resumes; the order setting switches Mushaf and Juz ʿAmma; in the Arabic UI only Arabic names show.
+- [x] Test (S5): previous and next buttons and Page Up and Page Down cross surah boundaries; "Go to ayah" is a labelled number field plus a `<progress>` with text "12 of 286 ayat typed".
+- [x] Test (S5): the hint, without moving the layout.
+- [x] Test (S5): after the last surah of the order the panel says that the order starts again, and its button says so too; the same for a passage that ends the order without completing the surah.
+- [x] Test (S5): completing a surah moves focus to a quiet panel with name, ayat, accuracy, speed, time and Next surah or Type again; no confetti, no sound, no modal.
+- [x] Test (S1, S5): the passage sizes and their snapping, `endsOrder`, `formatDuration`; the settings group; an overflowing text region is a tab stop and a short one is not.
+- [x] Implement. Gate.
+- [ ] Review, fix, commit.
 
 ### Task 15: Recitation audio
 

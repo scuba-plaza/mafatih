@@ -1,14 +1,19 @@
-import { useEffect, useId, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { RecitationRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { unlockedMarks } from "~/practice/ladder.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
+import { requiredMarks } from "~/text/vocalization.ts";
 import { isComplete, metricsOf } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { useTrainer } from "~/typing/useTrainer.ts";
 import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
+import { PassageBar } from "./PassageBar.tsx";
 import type { Passage } from "./passage.ts";
+import { surahName } from "./quran.ts";
+import { SurahMap } from "./SurahMap.tsx";
 import { type Recitation, useRecitation } from "./useRecitation.ts";
 
 interface PassageLessonProps {
@@ -18,7 +23,7 @@ interface PassageLessonProps {
 }
 
 function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps) {
-  const { t } = useI18n();
+  const { t, language, formatNumber, formatDuration } = useI18n();
   const { settings } = useProfile().profile;
   const checkpoints = useMemo(() => passage.ayat.map((ayah) => ayah.lastUnit), [passage]);
   const signs = useMemo(() => passage.ayat.map((ayah) => ayah.sign), [passage]);
@@ -30,13 +35,17 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
     onCheckpoint: recitation.recordAyah,
   });
   const { focus, session } = trainer;
-  const { continues } = recitation;
+  const { continues, completions, endsTheOrder, meta } = recitation;
 
   useEffect(() => {
     if (continues) {
       focus();
     }
   }, [continues, focus]);
+
+  const metrics = isComplete(session) ? metricsOf(session) : null;
+  const completed = completions !== null;
+  const nextLabel = endsTheOrder ? "recitation.startAgain" : completed ? "completion.next" : "recitation.next";
 
   return (
     <>
@@ -47,12 +56,32 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
         apparatus={signs}
         describedBy={describedBy}
       />
-      {isComplete(session) && (
-        <LessonSummary metrics={metricsOf(session)}>
-          <button type="button" onClick={recitation.next} className={PRIMARY_BUTTON}>
-            {t("recitation.next")}
+      {metrics !== null && (
+        <LessonSummary
+          metrics={metrics}
+          title={completed ? t("completion.title", { surah: surahName(meta, language) }) : undefined}
+          details={
+            completed
+              ? [
+                  { label: t("completion.ayat"), value: formatNumber(meta.ayat) },
+                  { label: t("completion.times"), value: formatNumber(completions) },
+                  { label: t("completion.time"), value: formatDuration(metrics.elapsedMs) },
+                ]
+              : []
+          }
+          note={endsTheOrder ? t("recitation.orderEnds") : undefined}
+        >
+          <button type="button" onClick={recitation.advance} className={PRIMARY_BUTTON}>
+            {t(nextLabel)}
           </button>
-          <button type="button" onClick={trainer.restart} className={BUTTON}>
+          <button
+            type="button"
+            onClick={() => {
+              recitation.forgetCompletion();
+              trainer.restart();
+            }}
+            className={BUTTON}
+          >
             {t("result.again")}
           </button>
         </LessonSummary>
@@ -61,15 +90,16 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
   );
 }
 
-export function RecitationPage({ route }: { route: RecitationRoute }) {
+function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const { t, language } = useI18n();
-  const recitation = useRecitation(route);
+  const { settings, ladder } = useProfile().profile;
+  const recitation = useRecitation(surah, ayah);
   const { meta, from, to, passage, failed } = recitation;
-  const passageId = useId();
+  const marksTyped = requiredMarks(settings.vocalization, unlockedMarks(ladder)).size > 0;
 
   return (
     <div className="flex flex-col gap-3">
-      <div id={passageId}>
+      <div id={`passage-${meta.n}`}>
         <PageHeading>
           {language === "ar" ? (
             meta.name
@@ -85,7 +115,10 @@ export function RecitationPage({ route }: { route: RecitationRoute }) {
         <p className="text-sm text-muted">
           {t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat })}
         </p>
-        <p role="status" className="text-sm text-muted">
+      </div>
+      <div>
+        <p className="text-sm text-muted">{t(marksTyped ? "recitation.hintMarks" : "recitation.hintLetters")}</p>
+        <p role="status" className="min-h-5 text-sm text-muted">
           {passage === null && !failed ? t("recitation.loading") : ""}
         </p>
       </div>
@@ -94,7 +127,7 @@ export function RecitationPage({ route }: { route: RecitationRoute }) {
           key={`${passage.surah}:${passage.fromAyah}`}
           passage={passage}
           recitation={recitation}
-          describedBy={passageId}
+          describedBy={`passage-${meta.n}`}
         />
       )}
       {failed && (
@@ -107,6 +140,18 @@ export function RecitationPage({ route }: { route: RecitationRoute }) {
           </button>
         </div>
       )}
+      <PassageBar
+        meta={meta}
+        from={from}
+        typed={recitation.typed}
+        previous={recitation.previous}
+        next={recitation.next}
+        onGo={recitation.go}
+      />
     </div>
   );
+}
+
+export function RecitationPage({ route }: { route: RecitationRoute }) {
+  return route.surah === null ? <SurahMap /> : <PassagePage surah={route.surah} ayah={route.ayah} />;
 }

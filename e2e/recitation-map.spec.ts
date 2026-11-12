@@ -106,7 +106,7 @@ test("the order setting puts the map in Mushaf order or with Juz ʿAmma first", 
 test("in the Arabic interface only the Arabic names show", async ({ page }) => {
   await seedProfile(page, { settings: { language: "ar" } });
   await page.goto("/");
-  const first = map(page).getByRole("list").or(map(page)).getByRole("link").first();
+  const first = page.getByRole("list", { name: "السور" }).getByRole("link").first();
   await expect(first).toContainText(meta(1).name);
   await expect(first).not.toContainText("Al-Faatiha");
   await expectNoAxeViolations(page);
@@ -145,8 +145,8 @@ test("Go to ayah is a labelled number field; a number outside the surah is broug
   await bar(page).getByRole("button", { name: "Go" }).click();
   await expect(page).toHaveURL(/#\/recitation\/2\/286$/);
   const progress = bar(page).getByRole("progressbar", { name: "12 of 286 ayat typed" });
-  await expect(progress).toHaveAttribute("aria-valuenow", "12");
-  await expect(progress).toHaveAttribute("aria-valuemax", "286");
+  await expect(progress).toHaveJSProperty("value", 12);
+  await expect(progress).toHaveJSProperty("max", 286);
   await expect(bar(page).getByText("12 of 286 ayat typed")).toBeVisible();
   await expectNoAxeViolations(page);
 });
@@ -217,9 +217,10 @@ test("a passage that ends the order without completing the surah also says it st
   await page.getByRole("button", { name: "Start typing" }).click();
   await typeKeys(page, lettersOf(naas, 6, 6));
   await expect(finished(page)).toBeFocused();
-  await expect(page.getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Next passage" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Start again" }).click();
+  const summary = finished(page).locator("xpath=..");
+  await expect(summary.getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
+  await expect(summary.getByRole("button", { name: "Next passage" })).toHaveCount(0);
+  await summary.getByRole("button", { name: "Start again" }).click();
   await expect(page).toHaveURL(/#\/recitation\/1\/1$/);
 });
 
