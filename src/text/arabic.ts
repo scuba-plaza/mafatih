@@ -54,6 +54,12 @@ export function carriedMark(char: string): string {
   return isMark(char) ? `${TATWEEL}${char}` : char;
 }
 
+const DOTTED_CIRCLE = String.fromCodePoint(0x25cc);
+
+export function dottedMark(char: string): string {
+  return isMark(char) ? `${DOTTED_CIRCLE}${char}` : char;
+}
+
 export function canonicalizeMarks(text: string): string {
   return text.replace(MARK_RUN, (run) => [...run].sort((a, b) => rank(a) - rank(b)).join(""));
 }

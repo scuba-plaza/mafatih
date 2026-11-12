@@ -488,7 +488,7 @@ Part B is interface assembly and well-trodden work on top of Part A: dialogs, pa
 | 12b | Practice page and HUD | 10, 11, 12a | done |
 | 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | done |
 | 15 | Recitation audio | 14b | done |
-| 16 | Stats page | 11 | to do |
+| 16 | Stats page | 11 | in review |
 | 17 | Backup and restore | 7, 11, 13 | to do |
 | 18 | About, SEO, security headers and deploy | all pages | to do |
 | 19 | Hardening and the QA matrix | everything | to do |
@@ -593,13 +593,22 @@ Read these before the first task; each one cost time to learn.
 
 ### Task 16: Stats page
 
-**Files:** Create `src/stats/StatsPage.tsx`, `e2e/stats.spec.ts`.
+**Files:** `src/stats/{StatsPage.tsx,rows.ts,rows.test.ts}`, `e2e/stats.spec.ts`; `formatDate` in the i18n context, `dottedMark` in `src/text/arabic.ts`, a `row` layout for `RadioGroup`.
 
 **Interfaces:** Consumes `KeyStats` (Task 11), `LessonRecord` and the history (Task 12a; a record may have `ms: 0`, which has no speed). Produces `<StatsPage />`.
 
-- [ ] Test (S4): a native radio group (Practice, Recitation, Custom) chooses the mode; the empty state explains what to do; a `<table>` with `<caption>` lists keys with columns Key, Speed (ms), Accuracy, Attempts; marks are shown on a dotted circle so they render alone; numbers use `formatNumber`; the last ten lessons are listed with mode, speed, accuracy.
-- [ ] Test (S5): axe clean in `en` and `ar`, light and dark, desktop and mobile; the bars are `aria-hidden` and the table carries the information (A6).
-- [ ] Implement. Gate, review, commit.
+**What exists:**
+- `keyRows(stats)`: one row per key that was ever attempted, in ladder order (the letters as they unlock, then the marks, then the keys that are not on the ladder: the space bar and the lam-alef key), each with its average time (none until a hit was timed), its share of first-try hits and its attempts. `recentLessons(history)`: the last ten lessons, newest first, with the speed worked out from the record (none when it took no time). Both are pure and unit-tested.
+- The page: an `h1`, a native radio group "Show statistics for" (Practice, Recitation, Custom, in a wrapping row) that chooses the mode of the key table and starts on the mode of the last lesson, a `<table>` with a `<caption>` ("Keys in Practice") and the columns Key, Speed (ms), Accuracy, Attempts, and a second table "Last ten lessons" (Date, Mode, Speed in characters per minute, Accuracy) for all modes. A mark is drawn on a dotted circle so that it shows alone; the key cells are Arabic text (`lang="ar"`); numbers and the date come from the language's formatters; a missing time is "Not yet". Each accuracy cell has a thin bar that is `aria-hidden`: the number carries the information (A6). A mode with no keys, and a profile with no lessons, say what to do instead of showing an empty table.
+- A table that is wider than the screen (at 320 pixels the lessons table is, even at the default text size) scrolls inside its own wrapper, which is a focusable region named after the table while it overflows and is not there otherwise (state in React, like the typing surface), so the page never scrolls sideways and the keyboard can reach the table.
+- Reset progress empties both tables (it clears the statistics and the history).
+- Decided: the key table shows the average time and the share of first-try hits over all attempts, not the "recent accuracy" the unlock bar uses; the lesson list is the history of all modes, because the radio group is about keys.
+- No component-test setup exists (no jsdom or Testing Library was ever installed), so what the plan called S4 is tested in the browser (S5) here, as in every earlier task, plus the pure rows at S1.
+
+- [x] Test (S1): the rows and their order; the date formatter.
+- [x] Test (S5): the empty states; the key table's columns, order and values; the mark on a dotted circle; the modes; the mode of the last lesson; the lesson list; the bars are `aria-hidden` and the numbers are there; Arabic labels and digits; axe clean in `en` and `ar`, light and dark, desktop and mobile, with data and without; 320 pixels and 150 percent text; Reset progress.
+- [x] Implement. Gate.
+- [ ] Review, fix, commit.
 
 ### Task 17: Backup and restore
 

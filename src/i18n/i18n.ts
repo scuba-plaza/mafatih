@@ -87,6 +87,15 @@ export function formatBytes(language: Language, bytes: number): string {
     : MEGABYTES[language].format(size / BYTES_IN_MEGABYTE);
 }
 
+const LATEST_DATE_MS = 8.64e15;
+
+export function formatDate(language: Language, ms: number, timeZone?: string): string {
+  if (Math.abs(finite(ms)) > LATEST_DATE_MS) {
+    throw new RangeError(`cannot format the date ${ms}`);
+  }
+  return new Intl.DateTimeFormat(LOCALE_WITH_OWN_DIGITS[language], { dateStyle: "medium", timeZone }).format(ms);
+}
+
 export function placeholdersOf(template: string): string[] {
   return [...template.matchAll(PLACEHOLDER)].map((match) => match[1] ?? "");
 }

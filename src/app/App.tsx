@@ -3,6 +3,7 @@ import { I18nProvider, useI18n } from "~/i18n/I18nProvider.tsx";
 import { PracticePage } from "~/practice/PracticePage.tsx";
 import { RecitationPage } from "~/recitation/RecitationPage.tsx";
 import { SettingsButton } from "~/settings/SettingsButton.tsx";
+import { StatsPage } from "~/stats/StatsPage.tsx";
 import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
 import { StorageNotice } from "~/storage/StorageNotice.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
@@ -24,6 +25,8 @@ function PageContent({ route }: { route: Route }) {
       return <CustomPage />;
     case "practice":
       return <PracticePage />;
+    case "stats":
+      return <StatsPage />;
     default:
       return <Placeholder page={route.page} />;
   }

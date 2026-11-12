@@ -6,6 +6,7 @@ import {
   directionOf,
   fillMessage,
   formatBytes,
+  formatDate,
   formatDuration,
   formatNumber,
   formatPercent,
@@ -77,6 +78,16 @@ test("a size is in kilobytes below a megabyte and in megabytes above, in the lan
   expect(formatBytes("en", -5)).toBe("0 kB");
   expect(formatBytes("ar", 1_460_000)).toMatch(/\u0661/);
   expect(() => formatBytes("en", Number.NaN)).toThrow(RangeError);
+});
+
+test("a date is shown as a medium date in the language's own digits, in the given or the local time zone", () => {
+  const noon = Date.UTC(2026, 10, 12, 12, 0);
+  expect(formatDate("en", noon, "UTC")).toBe("Nov 12, 2026");
+  expect(formatDate("en", Date.UTC(2026, 10, 12, 23, 30), "Asia/Riyadh")).toBe("Nov 13, 2026");
+  expect(formatDate("ar", noon, "UTC")).toMatch(/\u0662\u0660\u0662\u0666/);
+  expect(formatDate("en", noon)).toMatch(/2026/);
+  expect(() => formatDate("en", Number.NaN)).toThrow(RangeError);
+  expect(() => formatDate("en", 8.64e15 + 1)).toThrow(RangeError);
 });
 
 test("a number that is not finite is an error, never shown to the user", () => {
