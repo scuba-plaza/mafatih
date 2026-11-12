@@ -7,21 +7,34 @@ const FONT_FILE = /\.woff2?$/;
 const WORDS_CHUNK = /\/assets\/words-/;
 const SURAH_CHUNK = /\/assets\/\d{3}-/;
 const LONGEST_TASK_MS = 200;
+const SETTLE_MS = 1500;
 const SPY_ON_SCROLLING = `
   const behaviours = [];
   window.scrollBehaviours = behaviours;
-  const original = Element.prototype.scrollTo;
-  Element.prototype.scrollTo = function (...args) {
-    behaviours.push(String(args[0] && args[0].behavior));
-    return original.apply(this, args);
-  };
+  const note = (options) => behaviours.push(String(options !== null && typeof options === "object" ? options.behavior : undefined));
+  const targets = [
+    [Element.prototype, "scrollTo"],
+    [Element.prototype, "scrollBy"],
+    [Element.prototype, "scroll"],
+    [Element.prototype, "scrollIntoView"],
+    [window, "scrollTo"],
+    [window, "scrollBy"],
+    [window, "scroll"],
+  ];
+  for (const [owner, method] of targets) {
+    const original = owner[method];
+    owner[method] = function (...args) {
+      note(args[0]);
+      return original.apply(this, args);
+    };
+  }
 `;
 const WATCH_LONG_TASKS = `
   const tasks = [];
   window.longTasks = tasks;
   new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) tasks.push(entry.duration);
-  }).observe({ type: "longtask", buffered: true });
+    for (const entry of list.getEntries()) tasks.push({ start: entry.startTime, duration: entry.duration });
+  }).observe({ type: "longtask" });
 `;
 
 function requestsOf(page: Page): string[] {
@@ -30,6 +43,11 @@ function requestsOf(page: Page): string[] {
     seen.push(new URL(request.url()).pathname);
   });
   return seen;
+}
+
+async function settle(page: Page): Promise<void> {
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(SETTLE_MS);
 }
 
 async function startCustom(page: Page): Promise<void> {
@@ -43,7 +61,7 @@ test("the statistics page loads neither the Practice words nor any surah", async
   const requests = requestsOf(page);
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1, name: "Stats" })).toBeVisible();
-  await page.waitForLoadState("networkidle");
+  await settle(page);
   expect(requests.filter((path) => WORDS_CHUNK.test(path) || SURAH_CHUNK.test(path))).toEqual([]);
 });
 
@@ -51,7 +69,7 @@ test("a surah page loads that surah only, and no Practice words", async ({ page 
   const requests = requestsOf(page);
   await page.goto("/#/recitation/36");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.waitForLoadState("networkidle");
+  await settle(page);
   expect(requests.filter((path) => SURAH_CHUNK.test(path))).toHaveLength(1);
   expect(requests.filter((path) => WORDS_CHUNK.test(path))).toEqual([]);
 });
@@ -60,7 +78,7 @@ test("Practice loads its words and no surah", async ({ page }) => {
   const requests = requestsOf(page);
   await page.goto("/#/practice");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.waitForLoadState("networkidle");
+  await settle(page);
   expect(requests.filter((path) => WORDS_CHUNK.test(path))).toHaveLength(1);
   expect(requests.filter((path) => SURAH_CHUNK.test(path))).toEqual([]);
 });
@@ -82,10 +100,17 @@ test("typing a hundred and fifty characters never freezes the page for a fifth o
 }) => {
   await page.addInitScript(WATCH_LONG_TASKS);
   await startCustom(page);
+  const typingStarted = await page.evaluate(() => performance.now());
   const typed = LONG.slice(0, 150);
   await typeKeys(page, [...typed]);
   expect(await doneText(page)).toBe(typed);
-  const tasks = await page.evaluate(() => (window as unknown as { longTasks: number[] }).longTasks);
+  const tasks = await page.evaluate(
+    (from) =>
+      (window as unknown as { longTasks: { start: number; duration: number }[] }).longTasks
+        .filter((task) => task.start >= from)
+        .map((task) => task.duration),
+    typingStarted,
+  );
   expect(Math.max(0, ...tasks)).toBeLessThan(LONGEST_TASK_MS);
 });
 
@@ -96,7 +121,13 @@ test("with reduced motion the caret follows the text without animated scrolling"
   await typeKeys(page, [...LONG.slice(0, 150)]);
   const behaviours = await page.evaluate(() => (window as unknown as { scrollBehaviours: string[] }).scrollBehaviours);
   expect(behaviours.length).toBeGreaterThan(0);
-  expect(new Set(behaviours)).toEqual(new Set(["auto"]));
+  expect(behaviours).not.toContain("smooth");
+  const computed = await page.evaluate(() =>
+    [document.documentElement, document.body, document.querySelector("[data-lesson-text]")].map((element) =>
+      element === null ? "missing" : getComputedStyle(element).scrollBehavior,
+    ),
+  );
+  expect(computed).toEqual(["auto", "auto", "auto"]);
 });
 
 test("without that preference the same scrolling is animated, which shows the spy sees it", async ({ page }) => {

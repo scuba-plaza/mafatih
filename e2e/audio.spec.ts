@@ -244,8 +244,18 @@ test("Previous restarts a clip that has played for more than two seconds, and st
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(() => firstAudio(page, (audio) => audio.src)).not.toBe("");
+  const firstClip = await firstAudio(page, (audio) => audio.src);
   await player(page).getByRole("button", { name: "Next ayah" }).click();
   await expect(status(page)).toContainText("1:2");
+  await expect
+    .poll(() =>
+      page.evaluate((previous) => {
+        const audio = (window as unknown as { audios: HTMLAudioElement[] }).audios[0];
+        return audio !== undefined && audio.src !== previous && audio.readyState >= 1;
+      }, firstClip),
+    )
+    .toBe(true);
   await firstAudio(page, (audio) => {
     audio.currentTime = 3;
   });

@@ -32,7 +32,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | I4 | Press Play on a passage after the audio has not been loaded yet. | The recitation starts on that first press. If it does not, unlock the audio element in the click handler with a short silent clip played before the first fetch. | |
 | I5 | Finish a Practice lesson with the keyboard open. | The next lesson appears and the keyboard stays open (the input is disabled for one render when a lesson ends). If the keyboard closes, stop disabling the input and ignore keys through the session instead. | |
 | I6 | Download a backup and restore it through the file picker. | Both work; the file opens from Files. | |
-| I7 | Add the site to the home screen. | The icon, the name and the colours are right; it opens full screen. | |
+| I7 | Optional (the site is not an offline app): add the site to the home screen. | The icon, the name and the colours are right; it opens without the browser bar. | |
 
 ## Android Chrome with Gboard
 
@@ -62,7 +62,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 
 | # | Step | Expected | Result |
 |---|------|----------|--------|
-| L1 | Run `setxkbmap ara`, then type a Practice lesson in Firefox and in Chromium. | Same result as W1. The guide keyboard matches the keys pressed. | |
+| L1 | Run `setxkbmap ara`, then type a Practice lesson in Firefox and in Chromium. | Same result as W1. The guide keyboard matches the keys pressed, and when the lesson ends the caret and focus stay in the typing input. | |
 | L2 | Compose a mark with the layout's own dead keys, where it has any. | Accepted when asked for; otherwise ignored, never double counted. | |
 
 ## Browsers on a desktop
@@ -72,9 +72,10 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | B1 | Firefox, Safari, Chrome, Edge: type part of a lesson. | Typed letters change colour (the CSS Custom Highlight API); if a browser does not support it, record which and what is shown instead. | |
 | B2 | Same browsers: Arabic joins correctly in all three fonts. | No broken joins, no marks on the wrong letter. | |
 | B3 | Screen reader (VoiceOver or NVDA) on About, Stats and Settings. | Headings, tables, groups and the status messages read sensibly; the mark names are spoken. | |
+| B4 | Firefox, Safari, Chrome and Edge: finish a Practice lesson, then start typing the next one without clicking. | Focus never leaves the typing input when a lesson ends (the input is disabled for one render); the next lesson takes keys at once. If a browser blurs it, stop disabling the input and ignore keys through the session instead. | |
 
 ## Owner review of the Arabic wording (no device needed)
 
 | # | Step | Expected | Result |
 |---|------|----------|--------|
-| R1 | Read every Arabic message in `src/i18n/ar.ts`, the About page and the error screen with Arabic selected. | Natural, correct Arabic: the plural of "حرف", "عرض/اعرض إحصاءات", "استبدال", "أبقِ تقدّمي" against "تقدمك", the backup messages (`backup.notJson`, `backup.wrongVersion`), the privacy and credit notes, the style names "مرتل" and "مجوّد". | |
+| R1 | Read every Arabic message in `src/i18n/ar.ts`, the About page and the error screen with Arabic selected. | Natural, correct Arabic: the plural of "حرف", the stats title `stats.mode` ("اعرض إحصاءات"), "استبدال", "أبقِ تقدّمي" against "تقدمك", the backup messages (`backup.notJson`, `backup.wrongVersion`), the privacy and credit notes, the style names "مرتل" and "مجوّد". | |

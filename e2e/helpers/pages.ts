@@ -2,12 +2,12 @@ import { expect, type Page } from "@playwright/test";
 import { seedProfile } from "./profile.ts";
 
 export const PAGES = [
-  { name: "map", hash: "#/", typing: false },
-  { name: "passage", hash: "#/recitation/1", typing: true },
-  { name: "practice", hash: "#/practice", typing: true },
-  { name: "custom", hash: "#/custom", typing: true },
-  { name: "stats", hash: "#/stats", typing: false },
-  { name: "about", hash: "#/about", typing: false },
+  { name: "map", hash: "#/", typing: false, current: { en: "Recitation", ar: "التلاوة" } },
+  { name: "passage", hash: "#/recitation/1", typing: true, current: { en: "Recitation", ar: "التلاوة" } },
+  { name: "practice", hash: "#/practice", typing: true, current: { en: "Practice", ar: "التمرين" } },
+  { name: "custom", hash: "#/custom", typing: true, current: { en: "Custom", ar: "نص مخصص" } },
+  { name: "stats", hash: "#/stats", typing: false, current: { en: "Stats", ar: "الإحصاءات" } },
+  { name: "about", hash: "#/about", typing: false, current: { en: "About", ar: "حول التطبيق" } },
 ] as const;
 
 export type PageName = (typeof PAGES)[number]["name"];

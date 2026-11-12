@@ -84,7 +84,7 @@ export function SurahMap() {
           {label}
         </a>
       </div>
-      <ul aria-label={t("map.list")} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <ul aria-label={t("map.list")} className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-2">
         {surahOrder(settings.surahOrder).map((number) => (
           <li key={number} className="min-w-0">
             <SurahLink meta={requireSurahMeta(number)} progress={recitation} />

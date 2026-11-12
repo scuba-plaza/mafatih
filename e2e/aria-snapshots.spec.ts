@@ -1,25 +1,51 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { type Language, openAndWait, PAGES, type PageName, seedTypicalProfile } from "./helpers/pages.ts";
 
-test.use({ timezoneId: "UTC" });
+test.use({ timezoneId: "UTC", locale: "en-US" });
 
 const SETTINGS_NAME = { en: "Settings", ar: "الإعدادات" } as const;
+const SURAH_COUNT = 114;
 
-function regionOf(page: Page, name: PageName): Locator {
-  return name === "practice" ? page.locator("main section").first() : page.getByRole("main");
+function regionsOf(page: Page, name: PageName): Record<string, Locator> {
+  const main = page.getByRole("main");
+  if (name === "map") {
+    const items = main.getByRole("listitem");
+    return {
+      heading: main.getByRole("heading", { level: 1 }),
+      start: main.getByRole("link").first(),
+      first: items.first(),
+      last: items.last(),
+    };
+  }
+  if (name === "practice") {
+    return { readout: page.locator("main section").first() };
+  }
+  return { page: main };
+}
+
+function viewportOf(isMobile: boolean | undefined): string {
+  return isMobile === true ? "mobile" : "desktop";
 }
 
 for (const language of ["en", "ar"] as const satisfies readonly Language[]) {
   test.describe(language, () => {
-    for (const { name, hash, typing } of PAGES) {
+    for (const { name, hash, typing, current } of PAGES) {
       test(`the ${name} page keeps its accessibility tree`, async ({ page }, testInfo) => {
         await seedTypicalProfile(page, language);
         await openAndWait(page, hash, typing);
-        const project = testInfo.project.name;
-        await expect(regionOf(page, name)).toMatchAriaSnapshot({ name: `${project}-${language}-${name}.aria.yml` });
+        const viewport = viewportOf(testInfo.project.use.isMobile);
+        for (const [key, region] of Object.entries(regionsOf(page, name))) {
+          await expect(region).toMatchAriaSnapshot({ name: `${viewport}-${language}-${name}-${key}.aria.yml` });
+        }
         await expect(page.getByRole("banner")).toMatchAriaSnapshot({
-          name: `${project}-${language}-${name}-header.aria.yml`,
+          name: `${viewport}-${language}-${name}-header.aria.yml`,
         });
+        if (name === "map") {
+          await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(SURAH_COUNT);
+        }
+        const marked = page.locator('[aria-current="page"]');
+        await expect(marked).toHaveCount(1);
+        await expect(marked).toHaveText(current[language]);
       });
     }
 
@@ -29,7 +55,8 @@ for (const language of ["en", "ar"] as const satisfies readonly Language[]) {
       await page.getByRole("button", { name: SETTINGS_NAME[language] }).click();
       const dialog = page.getByRole("dialog", { name: SETTINGS_NAME[language] });
       await expect(dialog).toBeVisible();
-      await expect(dialog).toMatchAriaSnapshot({ name: `${testInfo.project.name}-${language}-settings.aria.yml` });
+      const viewport = viewportOf(testInfo.project.use.isMobile);
+      await expect(dialog).toMatchAriaSnapshot({ name: `${viewport}-${language}-settings.aria.yml` });
     });
   });
 }
