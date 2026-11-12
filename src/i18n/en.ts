@@ -69,6 +69,9 @@ export const en = {
   "bar.previous": "Previous passage",
   "bar.goTo": "Go to ayah",
   "bar.go": "Go",
+  "bar.invalid": "Enter a number from 1 to {count}.",
+  "bar.announce": "{surah}. {range}",
+  "typing.scrollable": "Scrollable text",
   "recitation.hintLetters": "Type the letters. Marks and ayah numbers are shown but not typed.",
   "recitation.hintMarks":
     "Type the letters and the marks your settings ask for. Everything else is shown but not typed.",

@@ -14,7 +14,7 @@ export function applyRecitationAyah(
   samples: readonly Sample[],
   order: SurahOrder,
 ): RecitationState {
-  const { progress } = recordAyah(state.recitation, position, order);
+  const progress = recordAyah(state.recitation, position, order);
   const recorded = progress !== state.recitation;
   return { stats: recorded ? samples.reduce(recordSample, state.stats) : state.stats, recitation: progress };
 }

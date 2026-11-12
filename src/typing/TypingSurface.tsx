@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
 import { FONTS, loadFont } from "~/settings/fonts.ts";
@@ -168,6 +168,10 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const caretLine = useRef<number | null>(null);
   const placeRef = useRef<() => void>(() => undefined);
   const nextWordId = useId();
+  const [scrollable, setScrollable] = useState(false);
+  const scrollRegion = scrollable
+    ? ({ tabIndex: 0, role: "group", "aria-label": t("typing.scrollable") } as const)
+    : {};
 
   const { doneUntil, mistakes } = view(session);
   const complete = isComplete(session);
@@ -195,11 +199,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       }
       paintDone(paragraphs, current, doneUntil - block.start);
       paintApparatus(paragraphs, blocks, apparatus);
-      if (container.scrollHeight > container.clientHeight) {
-        container.tabIndex = 0;
-      } else {
-        container.removeAttribute("tabindex");
-      }
+      setScrollable(container.scrollHeight > container.clientHeight);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = rect === undefined;
       if (rect === undefined) {
@@ -251,6 +251,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           lang="ar"
           dir="rtl"
           data-lesson-text=""
+          {...scrollRegion}
           className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 leading-loose wrap-anywhere"
           style={{
             fontFamily: `"${family.family}", serif`,

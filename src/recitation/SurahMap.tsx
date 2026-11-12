@@ -13,13 +13,13 @@ const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 function Ring({ fraction }: { fraction: number }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 28 28" className="size-7 shrink-0 -rotate-90" fill="none" strokeWidth="3">
-      <circle cx="14" cy="14" r={RING_RADIUS} className="stroke-line" />
+      <circle cx="14" cy="14" r={RING_RADIUS} className="stroke-line forced-colors:stroke-[GrayText]" />
       {fraction > 0 && (
         <circle
           cx="14"
           cy="14"
           r={RING_RADIUS}
-          className="stroke-accent"
+          className="stroke-accent forced-colors:stroke-[Highlight]"
           strokeDasharray={`${fraction * RING_LENGTH} ${RING_LENGTH}`}
           strokeLinecap="round"
         />

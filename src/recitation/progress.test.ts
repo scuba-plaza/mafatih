@@ -16,7 +16,7 @@ import {
 function type(progress: RecitationProgress, surah: number, from: number, to: number): RecitationProgress {
   let next = progress;
   for (let ayah = from; ayah <= to; ayah += 1) {
-    next = recordAyah(next, { surah, ayah }, "mushaf").progress;
+    next = recordAyah(next, { surah, ayah }, "mushaf");
   }
   return next;
 }
@@ -32,8 +32,8 @@ test("nothing is typed at first, and a learner starts with the first surah of th
 });
 
 test("a typed ayah is remembered and the position moves to the ayah after it", () => {
-  const { progress, completion } = recordAyah(initialRecitation(), { surah: 2, ayah: 1 }, "mushaf");
-  expect(completion).toBeNull();
+  const progress = recordAyah(initialRecitation(), { surah: 2, ayah: 1 }, "mushaf");
+  expect(completionsOf(progress, 2)).toBe(0);
   expect(progress.position).toEqual({ surah: 2, ayah: 2 });
   expect(startOf(progress, "juz-amma")).toEqual({ surah: 2, ayah: 2 });
   expect(typedAyat(progress, 2)).toBe(1);
@@ -61,19 +61,18 @@ test("ayat typed out of order are all counted, and the surah resumes at the firs
 test("the surah is complete exactly when its last missing ayah is typed, and then starts over", () => {
   const almost = type(initialRecitation(), 1, 2, 7);
   expect(completionsOf(almost, 1)).toBe(0);
-  const { progress, completion } = recordAyah(almost, { surah: 1, ayah: 1 }, "mushaf");
-  expect(completion).toEqual({ surah: 1, completions: 1 });
+  const progress = recordAyah(almost, { surah: 1, ayah: 1 }, "mushaf");
   expect(completionsOf(progress, 1)).toBe(1);
   expect(typedAyat(progress, 1)).toBe(0);
   expect(resumeOf(progress, 1)).toBe(1);
   const again = type(progress, 1, 1, 6);
   expect(completionsOf(again, 1)).toBe(1);
-  expect(recordAyah(again, { surah: 1, ayah: 7 }, "mushaf").completion).toEqual({ surah: 1, completions: 2 });
+  expect(completionsOf(recordAyah(again, { surah: 1, ayah: 7 }, "mushaf"), 1)).toBe(2);
 });
 
 test("after the last ayah of a surah the position is the next surah of the order", () => {
   expect(type(initialRecitation(), 1, 1, 7).position).toEqual({ surah: 2, ayah: 1 });
-  expect(recordAyah(initialRecitation(), { surah: 114, ayah: 6 }, "juz-amma").progress.position).toEqual({
+  expect(recordAyah(initialRecitation(), { surah: 114, ayah: 6 }, "juz-amma").position).toEqual({
     surah: 113,
     ayah: 1,
   });
@@ -126,7 +125,7 @@ test("an ayah or surah that does not exist is not recorded", () => {
     { surah: 1, ayah: 0 },
     { surah: 1, ayah: 1.5 },
   ]) {
-    expect(recordAyah(fresh, position, "mushaf")).toEqual({ progress: fresh, completion: null });
+    expect(recordAyah(fresh, position, "mushaf")).toBe(fresh);
   }
 });
 

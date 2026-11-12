@@ -19,11 +19,6 @@ export interface RecitationProgress {
   readonly surahs: Readonly<Record<number, SurahProgress>>;
 }
 
-export interface SurahCompletion {
-  readonly surah: number;
-  readonly completions: number;
-}
-
 const NOT_STARTED: SurahProgress = { typed: [], completions: 0 };
 
 function ayatIn(surah: number): number {
@@ -99,13 +94,9 @@ export function passageBefore(position: Position, maxAyat: number, order: SurahO
     : { surah, ayah: 1 + Math.floor((ayatIn(surah) - 1) / size) * size };
 }
 
-export function recordAyah(
-  progress: RecitationProgress,
-  position: Position,
-  order: SurahOrder,
-): { readonly progress: RecitationProgress; readonly completion: SurahCompletion | null } {
+export function recordAyah(progress: RecitationProgress, position: Position, order: SurahOrder): RecitationProgress {
   if (!exists(position)) {
-    return { progress, completion: null };
+    return progress;
   }
   const { surah, ayah } = position;
   const before = recordOf(progress, surah);
@@ -117,10 +108,7 @@ export function recordAyah(
   const resume = completes
     ? positionAfter({ surah, ayah: ayatIn(surah) }, order)
     : afterTypedRange(typed, position, order);
-  return {
-    progress: { position: resume, surahs: { ...progress.surahs, [surah]: after } },
-    completion: completes ? { surah, completions: after.completions } : null,
-  };
+  return { position: resume, surahs: { ...progress.surahs, [surah]: after } };
 }
 
 function afterTypedRange(typed: readonly AyahRange[], position: Position, order: SurahOrder): Position {

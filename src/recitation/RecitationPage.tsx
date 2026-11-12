@@ -40,8 +40,9 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
   useEffect(() => {
     if (continues) {
       focus();
+      recitation.consumeContinue();
     }
-  }, [continues, focus]);
+  }, [continues, focus, recitation]);
 
   const metrics = isComplete(session) ? metricsOf(session) : null;
   const completed = completions !== null;
@@ -96,6 +97,7 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const recitation = useRecitation(surah, ayah);
   const { meta, from, to, passage, failed } = recitation;
   const marksTyped = requiredMarks(settings.vocalization, unlockedMarks(ladder)).size > 0;
+  const range = t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat });
 
   return (
     <div className="flex flex-col gap-3">
@@ -112,16 +114,18 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
             </>
           )}
         </PageHeading>
-        <p className="text-sm text-muted">
-          {t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat })}
-        </p>
+        <p className="text-sm text-muted">{range}</p>
       </div>
+      <p role="status" className="sr-only">
+        {t("bar.announce", { surah: surahName(meta, language), range })}
+      </p>
       <div>
         <p className="text-sm text-muted">{t(marksTyped ? "recitation.hintMarks" : "recitation.hintLetters")}</p>
         <p role="status" className="min-h-5 text-sm text-muted">
           {passage === null && !failed ? t("recitation.loading") : ""}
         </p>
       </div>
+      {passage === null && !failed && <div aria-hidden="true" className="min-h-[40dvh]" />}
       {passage !== null && (
         <PassageLesson
           key={`${passage.surah}:${passage.fromAyah}`}

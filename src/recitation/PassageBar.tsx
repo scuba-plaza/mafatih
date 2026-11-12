@@ -1,4 +1,4 @@
-import { type FormEvent, type KeyboardEvent, useId } from "react";
+import { type FormEvent, type KeyboardEvent, useId, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { BUTTON } from "~/ui/styles.ts";
 import type { Position } from "./progress.ts";
@@ -17,6 +17,16 @@ export function PassageBar({ meta, from, typed, previous, next, onGo }: PassageB
   const { t } = useI18n();
   const textId = useId();
   const fieldId = useId();
+  const errorId = useId();
+  const [draft, setDraft] = useState(String(from));
+  const [shownFrom, setShownFrom] = useState(from);
+  const [invalid, setInvalid] = useState(false);
+
+  if (shownFrom !== from) {
+    setShownFrom(from);
+    setDraft(String(from));
+    setInvalid(false);
+  }
 
   const pageKeys = (event: KeyboardEvent<HTMLFieldSetElement>) => {
     if (event.key === "PageDown") {
@@ -30,11 +40,15 @@ export function PassageBar({ meta, from, typed, previous, next, onGo }: PassageB
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const raw = new FormData(event.currentTarget).get("ayah");
-    const value = typeof raw === "string" && raw.trim() !== "" ? Number(raw) : Number.NaN;
-    if (Number.isFinite(value)) {
-      onGo({ surah: meta.n, ayah: Math.min(Math.max(1, Math.trunc(value)), meta.ayat) });
+    const value = draft.trim() === "" ? Number.NaN : Number(draft);
+    if (!Number.isFinite(value)) {
+      setInvalid(true);
+      return;
     }
+    const ayah = Math.min(Math.max(1, Math.trunc(value)), meta.ayat);
+    setInvalid(false);
+    setDraft(String(ayah));
+    onGo({ surah: meta.n, ayah });
   };
 
   return (
@@ -59,21 +73,31 @@ export function PassageBar({ meta, from, typed, previous, next, onGo }: PassageB
               {t("bar.goTo")}
             </label>
             <input
-              key={from}
               id={fieldId}
               name="ayah"
               type="number"
               inputMode="numeric"
               min={1}
               max={meta.ayat}
-              defaultValue={from}
-              className="h-11 w-full rounded-md border border-line bg-surface px-3 sm:w-24"
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setInvalid(false);
+              }}
+              aria-invalid={invalid ? true : undefined}
+              aria-describedby={invalid ? errorId : undefined}
+              className="h-11 w-full rounded-md border border-line bg-surface px-3 aria-invalid:border-danger sm:w-24"
             />
           </div>
           <button type="submit" className={BUTTON}>
             {t("bar.go")}
           </button>
         </form>
+        {invalid && (
+          <p id={errorId} role="alert" className="w-full text-sm font-medium text-danger">
+            {t("bar.invalid", { count: meta.ayat })}
+          </p>
+        )}
       </div>
     </fieldset>
   );
