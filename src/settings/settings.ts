@@ -1,6 +1,6 @@
 import { prepareCustomText } from "~/custom/text.ts";
 import { detectLanguage, isLanguage, type Language } from "~/i18n/i18n.ts";
-import { isRecord } from "~/storage/guards.ts";
+import { isRecord } from "~/lib/guards.ts";
 import type { Vocalization } from "~/text/vocalization.ts";
 import { clampFontSize, DEFAULT_FONT, DEFAULT_FONT_SIZE, type FontId, isFontId } from "./fonts.ts";
 

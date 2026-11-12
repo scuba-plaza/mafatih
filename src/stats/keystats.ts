@@ -1,5 +1,7 @@
-import { isRecord } from "~/storage/guards.ts";
-import type { Sample } from "~/typing/session.ts";
+import { LIGATURE_KEYS } from "~/keyboard/ligatures.ts";
+import { isTypeable } from "~/keyboard/typeable.ts";
+import { isRecord } from "~/lib/guards.ts";
+import { LATENCY_CAP_MS, type Sample } from "~/typing/session.ts";
 
 export interface KeyStat {
   readonly attempts: number;
@@ -14,8 +16,6 @@ export type KeyStats = Readonly<Record<string, KeyStat>>;
 const NEVER_TYPED: KeyStat = { attempts: 0, hits: 0, timed: 0, meanMs: 0, recentAccuracy: 0 };
 const LATENCY_WEIGHT = 0.25;
 const SLOWEST_ACCURACY_RATE = 0.05;
-const MAX_KEYS = 200;
-const LONGEST_KEY = 2;
 
 export function statOf(stats: KeyStats, key: string): KeyStat {
   return Object.hasOwn(stats, key) ? (stats[key] ?? NEVER_TYPED) : NEVER_TYPED;
@@ -42,7 +42,7 @@ export function recordSample(stats: KeyStats, sample: Sample): KeyStats {
 }
 
 function isCount(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function sanitizeStat(raw: unknown): KeyStat | undefined {
@@ -51,7 +51,7 @@ function sanitizeStat(raw: unknown): KeyStat | undefined {
   }
   const { attempts, hits, timed, meanMs, recentAccuracy } = raw;
   const counts = isCount(attempts) && isCount(hits) && isCount(timed) && hits <= attempts && timed <= hits;
-  const speed = typeof meanMs === "number" && Number.isFinite(meanMs) && meanMs >= 0;
+  const speed = typeof meanMs === "number" && meanMs >= 0 && meanMs <= LATENCY_CAP_MS;
   const accuracy = typeof recentAccuracy === "number" && recentAccuracy >= 0 && recentAccuracy <= 1;
   return counts && speed && accuracy ? { attempts, hits, timed, meanMs, recentAccuracy } : undefined;
 }
@@ -62,8 +62,8 @@ export function sanitizeStats(raw: unknown): KeyStats {
   }
   const kept: [string, KeyStat][] = [];
   for (const key of Object.keys(raw)) {
-    const stat = [...key].length >= 1 && [...key].length <= LONGEST_KEY ? sanitizeStat(raw[key]) : undefined;
-    if (stat !== undefined && kept.length < MAX_KEYS) {
+    const stat = isTypeable(key) || LIGATURE_KEYS.has(key) ? sanitizeStat(raw[key]) : undefined;
+    if (stat !== undefined) {
       kept.push([key, stat]);
     }
   }

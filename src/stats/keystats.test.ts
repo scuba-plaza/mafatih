@@ -105,10 +105,30 @@ test("hostile or broken entries are dropped and the rest kept", () => {
   expect(Object.hasOwn(sanitizeStats(withProto), "__proto__")).toBe(false);
 });
 
-test("at most two hundred keys are kept", () => {
+test("only keys the keyboard can type are kept: a letter, a mark, the space or a lam-alef pair", () => {
   const good = { attempts: 1, hits: 1, timed: 1, meanMs: 300, recentAccuracy: 1 };
-  const raw = Object.fromEntries(
-    Array.from({ length: 300 }, (_, index) => [String.fromCodePoint(0x4e00 + index), good]),
-  );
-  expect(Object.keys(sanitizeStats(raw))).toHaveLength(200);
+  const fatha = String.fromCodePoint(0x64e);
+  const raw = {
+    [BEH]: good,
+    [fatha]: good,
+    " ": good,
+    لا: good,
+    ab: good,
+    __: good,
+    بب: good,
+    "\u{1F642}": good,
+    ٱ: good,
+  };
+  expect(Object.keys(sanitizeStats(raw)).sort()).toEqual([BEH, fatha, " ", "لا"].sort());
+});
+
+test("figures no session could have produced are dropped", () => {
+  const good = { attempts: 4, hits: 3, timed: 2, meanMs: 500, recentAccuracy: 0.75 };
+  const raw = {
+    [BEH]: { ...good, meanMs: 3000 },
+    ت: { ...good, meanMs: 3001 },
+    ن: { attempts: 1e300, hits: 1e300, timed: 1e300, meanMs: 500, recentAccuracy: 1 },
+    م: { ...good, attempts: 2 ** 53 },
+  };
+  expect(Object.keys(sanitizeStats(raw))).toEqual([BEH]);
 });

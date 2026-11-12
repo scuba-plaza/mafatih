@@ -1,7 +1,7 @@
+import { isRecord } from "~/lib/guards.ts";
 import { type LadderProgress, sanitizeProgress } from "~/practice/ladder.ts";
 import { type Settings, sanitizeSettings } from "~/settings/settings.ts";
 import { type KeyStats, sanitizeStats } from "~/stats/keystats.ts";
-import { isRecord } from "./guards.ts";
 
 export interface KeyValueStore {
   getItem(key: string): string | null;

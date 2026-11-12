@@ -355,7 +355,7 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 | 0 to 8 | Tooling, i18n, shell, keyboard model, text model, session engine, input pipeline, storage, typing surface and Custom mode | done |
 | 9a | Guide logic, the two guide settings, finger tint tokens, acceptance specs for the Settings dialog and the guide | done |
 | 10 | Practice corpus pipeline and review gate | done, owner sign-off open |
-| 11 | Key stats and the unlock ladder | in review |
+| 11 | Key stats and the unlock ladder | done |
 | 12a | Practice lesson generator and the lesson outcome (pure) | to do |
 | 13 | Qur'an data and the recitation domain | to do |
 | 14a | Passage typing slice: the surface for Qur'an text, checkpoints, the passage view | to do |
@@ -377,7 +377,7 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 
 **Interfaces:**
 - Consumes: `isFullyVocalized`, `skeleton`, `canonicalizeMarks` (Task 4), `isTypeable` (Task 3).
-- Produces (runtime): `interface PracticeWord { word: string; rank: number }`; `parseWordList(text): PracticeWord[]`; `loadWords(): Promise<readonly PracticeWord[]>` (a lazy chunk of about 45 KB gzip; only Practice imports it). There is no `WordList` index type: Task 12a groups the words the way its generator needs.
+- Produces (runtime): `interface PracticeWord { word: string; rank: number }`; `parseWordList(text): PracticeWord[]`; `loadWords(): Promise<readonly PracticeWord[]>` (a lazy chunk of about 50 KB gzip; only Practice imports it). There is no `WordList` index type: Task 12a groups the words the way its generator needs.
 - Produces (pipeline, `scripts/lib/practice-rules.ts`): `wordsOf(entry, ranks): Candidate[]` (the usable forms of one Wiktionary entry, each with the rank of its own spelling, its part of speech and its headword); `removalOf(candidate, rules): "blocklist" | "reject" | undefined`; `selectWords(candidates, rules): PracticeWord[]`; `parseList(text): Set<string>`; `violationsOf(rows, rules): string[]`; `coverageOf(rows, starterLetters)`. The script streams the dump through `wordsOf` and calls `selectWords` once, the same path the tests take.
 - Data files: `words.tsv` is `word<TAB>rank`; `blocklist.txt` holds unvocalized spellings, `reject.txt` exact vocalized words (either mark order); lines that start with `#` are headings. `data/practice/SOURCES.md` states the ten rules, the sources and their licences, and the known limit. `review-report.txt` is the extraction's report for the owner.
 - Sources (download into a **new empty scratch directory**, never into the repo, and pass paths as arguments): `https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl.gz` and `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/ar/ar_50k.txt`. The dump is streamed with `zlib` and `readline`, never loaded whole.
@@ -400,17 +400,18 @@ What was decided on the way, and why:
 
 **Interfaces:**
 - Consumes: `Sample` (Task 5), `isMark` (Task 4), the committed word list (Task 10, in `build:data` only).
-- Produces (stats): `interface KeyStat { attempts: number; hits: number; timed: number; meanMs: number; recentAccuracy: number }`; `type KeyStats = Readonly<Record<string, KeyStat>>` keyed by the expected unit (one character or a lam-alef pair); `statOf(stats, key): KeyStat` (own keys only; a never-typed key has zero counts and accuracy 1); `recordSample(stats: KeyStats, sample: Sample): KeyStats`; `sanitizeStats(raw: unknown): KeyStats` (at most 200 keys, keys of one or two code points, whole non-negative counts).
+- Produces (stats): `interface KeyStat { attempts: number; hits: number; timed: number; meanMs: number; recentAccuracy: number }`; `type KeyStats = Readonly<Record<string, KeyStat>>` keyed by the expected unit (one character or a lam-alef pair); `statOf(stats, key): KeyStat` (own keys only; a never-typed key has all figures at zero, so read `attempts` before `recentAccuracy`); `recordSample(stats: KeyStats, sample: Sample): KeyStats`; `sanitizeStats(raw: unknown): KeyStats` (only keys the keyboard can type: a letter, a mark, the space or a lam-alef pair; whole counts with `timed <= hits <= attempts`; a mean of at most `LATENCY_CAP_MS`).
 - Produces (ladder): `type Rung = { kind: "letter" | "mark"; char: string }`; `LADDER: { rungs: readonly Rung[]; starter: number }`, **a committed constant**: the ten starter letters `ا ي م ل ب ت ن س ك ش`, then the other 26 letters, then the eight marks (fatha, kasra, damma, sukun, shadda, fathatan, kasratan, dammatan). The letter order was derived once from the word list (spelling frequency times `e^(-reach)`) and is fixed, so that every mode can know the unlocked marks without loading the word list and a regenerated list never reshuffles a learner's progress. `interface LadderProgress { unlocked: number }`; `initialProgress(): LadderProgress`; `unlockedLetters(progress)`, `unlockedMarks(progress): ReadonlySet<string>`; `focusRung(progress): Rung | undefined` (the newest unlocked rung); `interface UnlockConfig { minSamples; letterMs; markMs; minAccuracy }`; `DEFAULT_UNLOCK_CONFIG` (8, 700, 1000, 0.95); `advance(stats, progress, config = DEFAULT_UNLOCK_CONFIG): LadderProgress`; `sanitizeProgress(raw: unknown): LadderProgress`.
 - Produces (profile): `type Mode = "practice" | "recitation" | "custom"`; `Profile` gains `ladder: LadderProgress` and `stats: Readonly<Record<Mode, KeyStats>>`. Each part is sanitized on its own, so a broken ladder or one broken stat never discards the settings or the rest.
 
 - [x] Test (S1): a first-try hit adds a timed latency sample; a miss adds an attempt and no latency; `recentAccuracy` is the exact mean over the first 20 attempts, then a moving average with rate `max(0.05, 1/(attempts+1))`; the mean latency is a moving average with rate 0.25.
 - [x] Test (S1): the ladder has 44 rungs (36 letters, then 8 marks), starts with the ten home-row starter letters, holds every typeable letter and mark exactly once, and ends with the marks in the order above.
 - [x] Test (S1): `initialProgress` unlocks the 10 starter letters and no marks; `focusRung` is the newest unlocked rung; `advance` unlocks one rung only when the focus rung has `minSamples` timed samples, a mean at most its threshold (700 ms letters, 1000 ms marks) and recent accuracy of at least 0.95 (19 of 20 counts); it never advances twice in one call and never past the last rung.
-- [x] Test (S1): `sanitizeProgress` clamps to `[10, 44]`; `sanitizeStats` drops a `__proto__` key, entries with negative or fractional counts and keys that are not one unit.
+- [x] Test (S1): `sanitizeProgress` clamps to `[10, 44]`; `sanitizeStats` drops a `__proto__` key, keys the keyboard cannot type, and figures no session could have produced.
+- [x] Test (S1): the 36 letters are pinned in their exact order (saved progress is a position on the ladder); hits without a latency never count towards the eight timed samples.
 - [x] Test (S2, in `build:data`, real data): for every letter rung at least 10 distinct spellings contain that letter and only letters unlocked by then, so every rung can be drilled when it unlocks.
 - [x] Test (S3): a fresh profile holds `initialProgress()` and empty stats for the three modes; ladder and stats survive a save and reopen; broken parts fall back on their own.
-- [ ] Gate, review, commit.
+- [x] Gate, review, fix, commit. `isRecord` moved to `src/lib/guards.ts`, so that `practice`, `stats` and `settings` no longer import from `storage`.
 
 ### Task 12a: Practice lesson generator and lesson outcome (pure)
 

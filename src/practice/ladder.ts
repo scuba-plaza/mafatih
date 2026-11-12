@@ -1,5 +1,5 @@
+import { isRecord } from "~/lib/guards.ts";
 import { type KeyStats, statOf } from "~/stats/keystats.ts";
-import { isRecord } from "~/storage/guards.ts";
 import { isMark } from "~/text/arabic.ts";
 
 export interface Rung {
@@ -7,7 +7,7 @@ export interface Rung {
   readonly char: string;
 }
 
-export interface Ladder {
+interface Ladder {
   readonly rungs: readonly Rung[];
   readonly starter: number;
 }

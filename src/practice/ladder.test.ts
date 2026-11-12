@@ -56,6 +56,11 @@ test("the starter set is the ten letters of the home row, so a new learner never
   expect(starter[0]).toBe("ا");
 });
 
+test("the letters unlock in one fixed order, because saved progress is a position on it", () => {
+  const letters = LADDER.rungs.slice(0, 36).map((rung) => rung.char);
+  expect(letters.join(" ")).toBe("ا ي م ل ب ت ن س ك ش ر ة ع و ق ح ف ص ط خ ه أ ز ج د ض ث غ ء ى ئ ظ ؤ إ ذ آ");
+});
+
 test("a new learner has the ten starter letters, no marks, and the last starter letter as the focus", () => {
   const progress = initialProgress();
   expect(progress).toEqual({ unlocked: 10 });
@@ -91,6 +96,16 @@ test("without enough timed samples, speed or accuracy on the focus rung nothing 
   expect(advance(typed({}, "ش", 8, 701), initialProgress())).toEqual({ unlocked: 10 });
   expect(advance(typed({}, "ش", 8, 500, 1), initialProgress())).toEqual({ unlocked: 10 });
   expect(advance(typed({}, "ش", 19, 500, 1), initialProgress())).toEqual({ unlocked: 11 });
+});
+
+test("hits without a latency, as after a pause, are no evidence of speed", () => {
+  const sevenTimed = typed({}, "ش", 7, 500);
+  const withUntimed = Array.from({ length: 5 }).reduce<KeyStats>(
+    (stats) => recordSample(stats, { expected: "ش", correct: true, latencyMs: null }),
+    sevenTimed,
+  );
+  expect(advance(withUntimed, initialProgress())).toEqual({ unlocked: 10 });
+  expect(advance(typed(withUntimed, "ش", 1, 500), initialProgress())).toEqual({ unlocked: 11 });
 });
 
 test("only the focus rung counts: other keys, however well typed, unlock nothing", () => {
