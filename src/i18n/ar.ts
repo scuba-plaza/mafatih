@@ -99,6 +99,7 @@ export const ar: Record<MessageKey, string> = {
   "player.now": "{reciter} · {style} {kbps} كيلوبت في الثانية · {surah}:{ayah}",
   "player.nowBasmala": "{reciter} · {style} {kbps} كيلوبت في الثانية · البسملة",
   "player.unavailable": "التلاوة غير متاحة",
+  "player.basmala": "البسملة",
   "settings.audio": "التلاوة الصوتية",
   "settings.reciter": "القارئ",
   "reciter.murattal": "مرتل",

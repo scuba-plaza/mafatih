@@ -7,6 +7,7 @@ export interface PlayerState {
   readonly index: number;
   readonly count: number;
   readonly held: boolean;
+  readonly resting: boolean;
   readonly resume: boolean;
   readonly whole: boolean;
   readonly restarts: number;
@@ -20,19 +21,21 @@ export type PlayerAction =
   | { readonly type: "ended" }
   | { readonly type: "failed" }
   | { readonly type: "hold"; readonly held: boolean }
+  | { readonly type: "rest"; readonly resting: boolean }
   | { readonly type: "whole"; readonly value: boolean }
   | { readonly type: "load"; readonly count: number };
 
 export function initialPlayer(count: number): PlayerState {
-  return { status: "idle", index: 0, count, held: false, resume: false, whole: false, restarts: 0 };
+  return { status: "idle", index: 0, count, held: false, resting: false, resume: false, whole: false, restarts: 0 };
 }
 
-function hold(state: PlayerState, held: boolean): PlayerState {
-  if (held) {
-    const resume = state.held ? state.resume : state.status === "playing";
-    return { ...state, held: true, resume, status: state.status === "playing" ? "paused" : state.status };
+function change(state: PlayerState, patch: Partial<Pick<PlayerState, "held" | "resting">>): PlayerState {
+  const next = { ...state, ...patch };
+  if (next.held || next.resting) {
+    const playing = state.status === "playing";
+    return { ...next, resume: playing || state.resume, status: playing ? "paused" : state.status };
   }
-  return { ...state, held: false, resume: false, status: state.resume ? "playing" : state.status };
+  return { ...next, resume: false, status: state.resume ? "playing" : state.status };
 }
 
 function ended(state: PlayerState): PlayerState {
@@ -75,7 +78,9 @@ export function playerReducer(state: PlayerState, action: PlayerAction): PlayerS
     case "failed":
       return { ...state, status: "failed", resume: false };
     case "hold":
-      return hold(state, action.held);
+      return change(state, { held: action.held });
+    case "rest":
+      return change(state, { resting: action.resting });
     case "whole":
       return { ...state, whole: action.value };
     case "load":

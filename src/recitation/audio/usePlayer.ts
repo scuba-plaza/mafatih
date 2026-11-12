@@ -11,6 +11,7 @@ export interface PlayerOptions {
   readonly muted: boolean;
   readonly whole: boolean;
   readonly held: boolean;
+  readonly resting: boolean;
 }
 
 export interface Player {
@@ -29,18 +30,24 @@ interface Loaded {
   readonly objectUrl: string;
 }
 
-export function usePlayer({ passage, reciter, volume, muted, whole, held }: PlayerOptions): Player {
+export function usePlayer({ passage, reciter, volume, muted, whole, held, resting }: PlayerOptions): Player {
   const clips = useMemo(() => (passage === null ? [] : audioSequence(passage)), [passage]);
   const [state, dispatch] = useReducer(playerReducer, undefined, () => ({ ...initialPlayer(clips.length), whole }));
   const element = useRef<HTMLAudioElement | null>(null);
   const loaded = useRef<Loaded | null>(null);
   const ticket = useRef(0);
+  const playingRef = useRef(false);
+  const seenRestarts = useRef(0);
 
   const clip = clips[state.index];
   const url = clip === undefined ? undefined : ayahAudioUrl(reciter, clip.surah, clip.ayah);
   const nextClip = clips[state.index + 1];
   const nextUrl = nextClip === undefined ? undefined : ayahAudioUrl(reciter, nextClip.surah, nextClip.ayah);
   const playing = state.status === "playing";
+
+  useEffect(() => {
+    playingRef.current = playing;
+  }, [playing]);
 
   const audio = useCallback((): HTMLAudioElement | null => {
     if (typeof Audio === "undefined") {
@@ -59,6 +66,7 @@ export function usePlayer({ passage, reciter, volume, muted, whole, held }: Play
   }, [passage, clips.length]);
 
   useEffect(() => dispatch({ type: "hold", held }), [held]);
+  useEffect(() => dispatch({ type: "rest", resting }), [resting]);
   useEffect(() => dispatch({ type: "whole", value: whole }), [whole]);
 
   useEffect(() => {
@@ -124,14 +132,25 @@ export function usePlayer({ passage, reciter, volume, muted, whole, held }: Play
   }, [audio, playing, url]);
 
   useEffect(() => {
-    const target = element.current;
-    if (state.restarts > 0 && target !== null) {
-      target.currentTime = 0;
-      if (playing) {
-        target.play().catch(() => dispatch({ type: "failed" }));
-      }
+    if (state.restarts === seenRestarts.current) {
+      return;
     }
-  }, [state.restarts, playing]);
+    seenRestarts.current = state.restarts;
+    const target = element.current;
+    if (target === null || loaded.current === null) {
+      return;
+    }
+    target.currentTime = 0;
+    if (playingRef.current) {
+      target.play().catch(() => dispatch({ type: "failed" }));
+    }
+  }, [state.restarts]);
+
+  useEffect(() => {
+    if (passage !== null && element.current !== null && loaded.current !== null) {
+      element.current.currentTime = 0;
+    }
+  }, [passage]);
 
   useEffect(() => {
     if (playing && nextUrl !== undefined) {

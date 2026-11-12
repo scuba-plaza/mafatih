@@ -100,6 +100,7 @@ export const en = {
   "player.now": "{reciter} · {style} {kbps} kbps · {surah}:{ayah}",
   "player.nowBasmala": "{reciter} · {style} {kbps} kbps · Basmala",
   "player.unavailable": "Recitation unavailable",
+  "player.basmala": "Basmala",
   "settings.audio": "Recitation audio",
   "settings.reciter": "Reciter",
   "reciter.murattal": "Murattal",

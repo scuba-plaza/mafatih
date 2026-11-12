@@ -86,3 +86,21 @@ test("an empty record in the store is ignored and fetched again", async () => {
   const cache = memoryCache({ [URL_A]: new Blob([]) });
   expect(await (await loadAyahBlob(URL_A, cache)).text()).toBe("fresh");
 });
+
+test("two requests for the same ayah at once share one fetch and one write", async () => {
+  const fetcher = respond("audio");
+  const cache = memoryCache();
+  const [first, second] = await Promise.all([loadAyahBlob(URL_A, cache), loadAyahBlob(URL_A, cache)]);
+  expect(await first.text()).toBe("audio");
+  expect(await second.text()).toBe("audio");
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(cache.puts).toEqual([URL_A]);
+});
+
+test("a request that failed is not remembered: the next one fetches again", async () => {
+  respond("missing", { status: 500 });
+  await expect(loadAyahBlob(URL_A, memoryCache())).rejects.toThrow();
+  const fetcher = respond("audio");
+  expect(await (await loadAyahBlob(URL_A, memoryCache())).text()).toBe("audio");
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

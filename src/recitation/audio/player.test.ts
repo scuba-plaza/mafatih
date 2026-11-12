@@ -84,3 +84,41 @@ test("a new passage while held does not start playing", () => {
   const held = run([{ type: "play" }, { type: "hold", held: true }]);
   expect(playerReducer(held, { type: "load", count: 3 }).status).toBe("paused");
 });
+
+test("a rest, as when the lesson is finished, pauses what plays, and the learner can still press Play", () => {
+  const rested = run([{ type: "play" }, { type: "rest", resting: true }]);
+  expect(rested.status).toBe("paused");
+  expect(run([{ type: "play" }], rested)).toMatchObject({ status: "playing", resume: false });
+});
+
+test("a rest that ends goes on with what it paused, but not with what the learner had paused", () => {
+  const paused = run([{ type: "play" }, { type: "rest", resting: true }]);
+  expect(run([{ type: "rest", resting: false }], paused).status).toBe("playing");
+  const stopped = run([
+    { type: "play" },
+    { type: "pause" },
+    { type: "rest", resting: true },
+    { type: "rest", resting: false },
+  ]);
+  expect(stopped.status).toBe("paused");
+});
+
+test("a hold on top of a rest is lifted only when both are over", () => {
+  const both = run([{ type: "play" }, { type: "rest", resting: true }, { type: "hold", held: true }]);
+  expect(run([{ type: "hold", held: false }], both).status).toBe("paused");
+  expect(
+    run(
+      [
+        { type: "hold", held: false },
+        { type: "rest", resting: false },
+      ],
+      both,
+    ).status,
+  ).toBe("playing");
+});
+
+test("a dialog opened over a recitation the learner started during a rest pauses it", () => {
+  const started = run([{ type: "rest", resting: true }, { type: "play" }]);
+  expect(started.status).toBe("playing");
+  expect(run([{ type: "hold", held: true }], started).status).toBe("paused");
+});

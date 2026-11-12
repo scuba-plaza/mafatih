@@ -118,7 +118,8 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
     volume: settings.volume,
     muted: settings.muted,
     whole: settings.playWhole,
-    held: dialogOpen || lessonFinished,
+    held: dialogOpen,
+    resting: lessonFinished,
   });
   const marksTyped = requiredMarks(settings.vocalization, unlockedMarks(ladder)).size > 0;
   const range = t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat });

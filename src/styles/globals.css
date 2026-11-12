@@ -34,9 +34,16 @@ button {
 }
 
 ::highlight(mafatih-playing) {
-  background-color: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
   text-decoration: underline;
   text-decoration-thickness: 2px;
+}
+
+@media (forced-colors: active) {
+  ::highlight(mafatih-playing) {
+    background-color: Highlight;
+    color: HighlightText;
+  }
 }
 
 @media (forced-colors: active) {

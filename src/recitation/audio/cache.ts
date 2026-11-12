@@ -20,7 +20,7 @@ export interface AudioCache {
   readonly clear: () => Promise<void>;
 }
 
-function openDatabase(): Promise<IDBDatabase | null> {
+function openDatabase(onLost: () => void): Promise<IDBDatabase | null> {
   return new Promise((resolve) => {
     let request: IDBOpenDBRequest;
     try {
@@ -35,7 +35,10 @@ function openDatabase(): Promise<IDBDatabase | null> {
       }
     };
     request.onsuccess = () => {
-      request.result.onversionchange = () => request.result.close();
+      request.result.onversionchange = () => {
+        request.result.close();
+        onLost();
+      };
       resolve(request.result);
     };
     request.onerror = () => resolve(null);
@@ -53,9 +56,12 @@ export function createAudioCache(): AudioCache | null {
     mode: IDBTransactionMode,
     work: (store: IDBObjectStore) => IDBRequest<Result>,
   ): Promise<Result | null> => {
-    opened ??= openDatabase();
+    opened ??= openDatabase(() => {
+      opened = undefined;
+    });
     const database = await opened;
     if (database === null) {
+      opened = undefined;
       return null;
     }
     return new Promise<Result | null>((resolve) => {
@@ -102,7 +108,9 @@ export function sharedAudioCache(): AudioCache | null {
   return shared;
 }
 
-export async function loadAyahBlob(url: string, cache: AudioCache | null): Promise<Blob> {
+const inFlight = new Map<string, Promise<Blob>>();
+
+async function fetchAyahBlob(url: string, cache: AudioCache | null): Promise<Blob> {
   const stored = await (cache?.get(url) ?? Promise.resolve(null)).catch(() => null);
   if (stored !== null && stored.size > 0) {
     return stored;
@@ -117,4 +125,14 @@ export async function loadAyahBlob(url: string, cache: AudioCache | null): Promi
   }
   await (cache?.put(url, blob) ?? Promise.resolve()).catch(() => undefined);
   return blob;
+}
+
+export function loadAyahBlob(url: string, cache: AudioCache | null): Promise<Blob> {
+  const running = inFlight.get(url);
+  if (running !== undefined) {
+    return running;
+  }
+  const started = fetchAyahBlob(url, cache).finally(() => inFlight.delete(url));
+  inFlight.set(url, started);
+  return started;
 }
