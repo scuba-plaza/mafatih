@@ -356,7 +356,7 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 | 9a | Guide logic, the two guide settings, finger tint tokens, acceptance specs for the Settings dialog and the guide | done |
 | 10 | Practice corpus pipeline and review gate | done, owner sign-off open |
 | 11 | Key stats and the unlock ladder | done |
-| 12a | Practice lesson generator and the lesson outcome (pure) | to do |
+| 12a | Practice lesson generator, the lesson outcome and the lesson history (pure) | in review |
 | 13 | Qur'an data and the recitation domain | to do |
 | 14a | Passage typing slice: the surface for Qur'an text, checkpoints, the passage view | to do |
 
@@ -402,7 +402,7 @@ What was decided on the way, and why:
 - Consumes: `Sample` (Task 5), `isMark` (Task 4), the committed word list (Task 10, in `build:data` only).
 - Produces (stats): `interface KeyStat { attempts: number; hits: number; timed: number; meanMs: number; recentAccuracy: number }`; `type KeyStats = Readonly<Record<string, KeyStat>>` keyed by the expected unit (one character or a lam-alef pair); `statOf(stats, key): KeyStat` (own keys only; a never-typed key has all figures at zero, so read `attempts` before `recentAccuracy`); `recordSample(stats: KeyStats, sample: Sample): KeyStats`; `sanitizeStats(raw: unknown): KeyStats` (only keys the keyboard can type: a letter, a mark, the space or a lam-alef pair; whole counts with `timed <= hits <= attempts`; a mean of at most `LATENCY_CAP_MS`).
 - Produces (ladder): `type Rung = { kind: "letter" | "mark"; char: string }`; `LADDER: { rungs: readonly Rung[]; starter: number }`, **a committed constant**: the ten starter letters `ا ي م ل ب ت ن س ك ش`, then the other 26 letters, then the eight marks (fatha, kasra, damma, sukun, shadda, fathatan, kasratan, dammatan). The letter order was derived once from the word list (spelling frequency times `e^(-reach)`) and is fixed, so that every mode can know the unlocked marks without loading the word list and a regenerated list never reshuffles a learner's progress. `interface LadderProgress { unlocked: number }`; `initialProgress(): LadderProgress`; `unlockedLetters(progress)`, `unlockedMarks(progress): ReadonlySet<string>`; `focusRung(progress): Rung | undefined` (the newest unlocked rung); `interface UnlockConfig { minSamples; letterMs; markMs; minAccuracy }`; `DEFAULT_UNLOCK_CONFIG` (8, 700, 1000, 0.95); `advance(stats, progress, config = DEFAULT_UNLOCK_CONFIG): LadderProgress`; `sanitizeProgress(raw: unknown): LadderProgress`.
-- Produces (profile): `type Mode = "practice" | "recitation" | "custom"`; `Profile` gains `ladder: LadderProgress` and `stats: Readonly<Record<Mode, KeyStats>>`. Each part is sanitized on its own, so a broken ladder or one broken stat never discards the settings or the rest.
+- Produces (profile): `type Mode = "practice" | "recitation" | "custom"` (it lives in `src/stats/history.ts` since Task 12a); `Profile` gains `ladder: LadderProgress` and `stats: Readonly<Record<Mode, KeyStats>>`. Each part is sanitized on its own, so a broken ladder or one broken stat never discards the settings or the rest.
 
 - [x] Test (S1): a first-try hit adds a timed latency sample; a miss adds an attempt and no latency; `recentAccuracy` is the exact mean over the first 20 attempts, then a moving average with rate `max(0.05, 1/(attempts+1))`; the mean latency is a moving average with rate 0.25.
 - [x] Test (S1): the ladder has 44 rungs (36 letters, then 8 marks), starts with the ten home-row starter letters, holds every typeable letter and mark exactly once, and ends with the marks in the order above.
@@ -415,19 +415,22 @@ What was decided on the way, and why:
 
 ### Task 12a: Practice lesson generator and lesson outcome (pure)
 
-**Files:** Create `src/practice/{lesson.ts,outcome.ts,boundary.test.ts}` and tests.
+**Files:** `src/practice/{lesson.ts,outcome.ts}` with `lesson.test.ts`, `outcome.test.ts`, `learner.test.ts`, `boundary.test.ts`; `src/stats/{history.ts,history.test.ts}`; `src/storage/{profile.ts,profile.test.ts}`.
 
 **Interfaces:**
-- Consumes: `WordList` (Task 10), `Ladder`, `LadderProgress` and helpers (Task 11), `buildPrompt`, `requiredMarks` (Task 4), the session engine (Task 5).
-- Produces: `interface PracticeOptions { words: WordList; ladder: Ladder; progress: LadderProgress; vocalization: Vocalization; seed: number; targetChars?: number }`; `buildPracticeLesson(options: PracticeOptions): Prompt`; `createRng(seed: number)` with `next(): number` and `weighted<T>(items: readonly T[], weight: (t: T) => number): T`; `applyPracticeLesson(state: { stats: KeyStats; progress: LadderProgress }, samples: readonly Sample[], ladder: Ladder, config?: UnlockConfig): { stats: KeyStats; progress: LadderProgress; unlocked: Rung | null }` (the one place where a finished Practice lesson changes the profile; the page only calls it and saves the result).
-- Selection rule: choose a skeleton by weight `1 + ln(1 + frequencyScore)`, multiplied by 6 when it contains the focus letter (or when the focus rung is a mark and the word contains it), then pick one vocalized form of that skeleton uniformly; never the same typed string more than twice per lesson or twice in a row; target 38 typed characters.
+- Consumes: `PracticeWord` (Task 10), the ladder (Task 11), `buildPrompt` and `requiredMarks` (Task 4), the session engine (Task 5).
+- Produces: `buildPracticeLesson({ words, progress, vocalization, seed }): Prompt` (pure; the same seed gives the same lesson; an empty word list gives an empty prompt); `LESSON_CHARS = 38`; `applyPracticeLesson(state: { stats: KeyStats; progress: LadderProgress }, samples: readonly Sample[], config?: UnlockConfig): { stats; progress; unlocked: Rung | undefined }`, the one place where a finished Practice lesson changes what is saved (the page passes `profile.stats.practice` and `profile.ladder`, and saves the result).
+- Produces (history, the contract of the Stats page): `MODES`, `type Mode` (moved here from the profile), `interface LessonRecord { at: number; mode: Mode; chars: number; ms: number; accuracy: number }` (`at` is the epoch time the lesson ended; `chars`, `ms` and `accuracy` are `metricsOf`'s `typedChars`, `elapsedMs` and `accuracy`), `recordLesson(history, lesson)` (keeps the last 100), `sanitizeHistory(raw)`; `Profile` gains `history: readonly LessonRecord[]`. Every mode's page appends one record when a lesson is finished.
+- How a lesson is chosen: only words whose letters are all unlocked; each word weighs `1 + ln(1 + rarestRank / rank)` divided by the number of readings of its spelling (so a noun's three cases together weigh as much as a particle); **half of the picks come from the words that carry the newest rung's letter or mark** (a multiplier was tried first and left a rare letter such as `ظ` out of most lessons); no word twice in a row or more than twice in a lesson; words are added until 38 typed characters are reached. Words are always shown fully vocalized; `requiredMarks(vocalization, unlockedMarks(progress))` decides which marks are typed.
 
-- [ ] Test (S1): for 200 seeds and several progress values, every word's skeleton letters are a subset of `unlockedLetters`; `buildPracticeLesson` for `initialProgress` never throws and its typed text uses only home-row letters (**a fresh user can practise immediately**).
-- [ ] Test: same seed gives the same lesson; over 500 seeds at least 40% of lessons contain the focus letter; with `letters` vocalization the typed text of a lesson differs from its `full` typed text and every shown word is `isFullyVocalized` (marks are drawn but not typed); with `auto` and only fatha unlocked, exactly fatha is typed.
-- [ ] Test (S1): `applyPracticeLesson` records every sample, unlocks at most one rung and reports it, and returns the same progress when the focus rung is not yet mastered.
-- [ ] Test (S1): simulated learners through the real generator, session and `applyPracticeLesson`: a seeded learner with 3% errors and 500 ms latency climbs to at least 20 rungs within 300 lessons; one with 20% errors does not leave the starter set within 100 lessons.
-- [ ] Test (boundary): no file under `src/practice/` imports from `src/recitation/` or `generated/quran` (read the sources and assert), enforcing Q2.
-- [ ] Implement. Gate, review, commit.
+- [x] Test (S1): for 200 seeds a new learner's lesson exists and types only home-row letters (**a fresh user can practise immediately**); at nine points of the ladder a lesson uses only unlocked letters.
+- [x] Test (S1): same seed, same lesson; length and spacing; the repetition rules; about half the words carry the newest letter, for common and rare letters alike, and the same for a mark rung; frequent words come more often; a spelling with several readings comes no more often than a spelling with one; one-word, two-word and empty lists end.
+- [x] Test (S1): every shown word is `isFullyVocalized` at every level; `letters` types no mark; `full` types the shown text; on `auto` exactly the unlocked marks are typed.
+- [x] Test (S1): `applyPracticeLesson` records every sample, unlocks at most one rung and names it, and leaves the progress object untouched when the newest rung is not mastered.
+- [x] Test (S1): simulated learners through the real generator, session and outcome: one who never misses finishes the whole ladder, marks included, within 120 lessons; one with 3% mistakes at 500 ms has every letter within 150 lessons; one who misses one key in five stays on the starter letters for 100 lessons; one who never misses but needs 900 ms a key unlocks nothing.
+- [x] Test (boundary, Q2): no source file under `src/practice/`, `scripts/lib/` or the extraction script imports recitation code or Qur'an text (and the check is shown to see imports).
+- [x] Test (S1, S3): history keeps the last hundred lessons, drops broken records, and survives the profile round trip.
+- [ ] Gate, review, fix, commit.
 
 ### Task 13: Qur'an data and the recitation domain (pure)
 
@@ -513,7 +516,7 @@ Read these before the first task; each one cost time to learn.
 
 **Interfaces:**
 - Consumes: `loadWords` (Task 10), the ladder helpers (Task 11), `buildPracticeLesson`, `applyPracticeLesson` (Task 12a), `useTrainer`, `TypingSurface`, `LessonSummary` (Task 14a).
-- Produces: `<PracticePage />`. A finished lesson is passed to `applyPracticeLesson` and the result saved with `update`; the next lesson is built from the new progress with a new seed. The page decides nothing about unlocking itself.
+- Produces: `<PracticePage />`. A finished lesson is passed to `applyPracticeLesson({ stats: profile.stats.practice, progress: profile.ladder }, session.samples)` and the result saved with `update`, together with one `recordLesson(profile.history, { at, mode: "practice", chars, ms, accuracy })` from `metricsOf(session)`; the next lesson is built by `buildPracticeLesson` from the new progress with a new seed (any integer, for example `Date.now()`). The page decides nothing about unlocking or about which words are shown.
 - Requires the owner's sign-off of Task 10's human gate before it ships.
 
 - [ ] Test (S5): on a cleared profile, Practice shows a lesson at once with at least 3 words, all home-row letters, marks visible; typing it correctly completes it and the next lesson is already on screen with a `last` readout; with a profile seeded one sample short of mastery, one clean lesson unlocks the next rung, announced once in the polite status ("Unlocked: ك"), no animation burst; the HUD shows `unlocked 11 / 44`, the focus rung with its accuracy and latency; Practice typing never changes `stats.recitation`; at `unlocked === 44` the HUD says all keys are unlocked.

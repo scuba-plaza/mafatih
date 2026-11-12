@@ -1,6 +1,7 @@
 import { isRecord } from "~/lib/guards.ts";
 import { type LadderProgress, sanitizeProgress } from "~/practice/ladder.ts";
 import { type Settings, sanitizeSettings } from "~/settings/settings.ts";
+import { type LessonRecord, type Mode, sanitizeHistory } from "~/stats/history.ts";
 import { type KeyStats, sanitizeStats } from "~/stats/keystats.ts";
 
 export interface KeyValueStore {
@@ -8,13 +9,12 @@ export interface KeyValueStore {
   setItem(key: string, value: string): void;
 }
 
-export type Mode = "practice" | "recitation" | "custom";
-
 export interface Profile {
   readonly schema: 2;
   readonly settings: Settings;
   readonly ladder: LadderProgress;
   readonly stats: Readonly<Record<Mode, KeyStats>>;
+  readonly history: readonly LessonRecord[];
 }
 
 export type StorageNotice = "unavailable" | "reset" | "newer" | null;
@@ -41,6 +41,7 @@ function sanitizeProfile(raw: Readonly<Record<string, unknown>>, preferredLangua
       recitation: sanitizeStats(stats.recitation),
       custom: sanitizeStats(stats.custom),
     },
+    history: sanitizeHistory(raw.history),
   };
 }
 
