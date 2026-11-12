@@ -91,7 +91,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
 
   useEffect(() => {
     const marks = checkpointsRef.current;
-    if (passed.current.prompt !== session.prompt || session.samples.length < passed.current.samples) {
+    if (passed.current.prompt !== session.prompt) {
       passed.current = { prompt: session.prompt, checkpoints: 0, samples: 0 };
     }
     for (
@@ -115,6 +115,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   const focus = useCallback(() => inputRef.current?.focus(), [inputRef]);
 
   const restart = useCallback(() => {
+    passed.current = { prompt: passed.current.prompt, checkpoints: 0, samples: 0 };
     flushSync(() => setSession((current) => createSession(current.prompt)));
     inputRef.current?.focus();
   }, [inputRef]);

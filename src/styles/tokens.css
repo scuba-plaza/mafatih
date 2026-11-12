@@ -4,6 +4,7 @@
   --color-surface: #ffffff;
   --color-ink: #1c1917;
   --color-muted: #57534e;
+  --color-apparatus: #78716c;
   --color-line: #78716c;
   --color-accent: #0f766e;
   --color-on-accent: #ffffff;
@@ -26,6 +27,7 @@
     --color-surface: #292524;
     --color-ink: #fafaf9;
     --color-muted: #d6d3d1;
+    --color-apparatus: #a8a29e;
     --color-line: #a8a29e;
     --color-accent: #5eead4;
     --color-on-accent: #1c1917;

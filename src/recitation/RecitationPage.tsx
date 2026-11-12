@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useId, useMemo } from "react";
 import type { RecitationRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
@@ -14,9 +14,10 @@ import { type Recitation, useRecitation } from "./useRecitation.ts";
 interface PassageLessonProps {
   readonly passage: Passage;
   readonly recitation: Recitation;
+  readonly describedBy: string;
 }
 
-function PassageLesson({ passage, recitation }: PassageLessonProps) {
+function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps) {
   const { t } = useI18n();
   const { settings } = useProfile().profile;
   const checkpoints = useMemo(() => passage.ayat.map((ayah) => ayah.lastUnit), [passage]);
@@ -29,13 +30,13 @@ function PassageLesson({ passage, recitation }: PassageLessonProps) {
     onCheckpoint: recitation.recordAyah,
   });
   const { focus, session } = trainer;
-  const { continued } = recitation;
+  const { continues } = recitation;
 
   useEffect(() => {
-    if (continued) {
+    if (continues) {
       focus();
     }
-  }, [continued, focus]);
+  }, [continues, focus]);
 
   return (
     <>
@@ -45,6 +46,7 @@ function PassageLesson({ passage, recitation }: PassageLessonProps) {
         fontSize={settings.fontSize}
         centredOpening={passage.basmala !== null}
         apparatus={signs}
+        describedBy={describedBy}
       />
       {isComplete(session) && (
         <LessonSummary metrics={metricsOf(session)}>
@@ -64,34 +66,37 @@ export function RecitationPage({ route }: { route: RecitationRoute }) {
   const { t, language } = useI18n();
   const recitation = useRecitation(route);
   const { meta, from, to, passage, failed } = recitation;
-  const count = meta?.ayat ?? to;
+  const passageId = useId();
 
   return (
     <div className="flex flex-col gap-3">
-      <div>
+      <div id={passageId}>
         <PageHeading>
           {language === "ar" ? (
-            meta?.name
+            meta.name
           ) : (
             <>
-              {meta?.tname}{" "}
+              {meta.tname}{" "}
               <span lang="ar" dir="rtl" className="font-normal">
-                {meta?.name}
+                {meta.name}
               </span>
             </>
           )}
         </PageHeading>
         <p className="text-sm text-muted">
-          {t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count })}
+          {t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat })}
+        </p>
+        <p role="status" className="text-sm text-muted">
+          {passage === null && !failed ? t("recitation.loading") : ""}
         </p>
       </div>
       {passage !== null && (
-        <PassageLesson key={`${passage.surah}:${passage.fromAyah}`} passage={passage} recitation={recitation} />
-      )}
-      {passage === null && !failed && (
-        <p role="status" className="text-sm text-muted">
-          {t("recitation.loading")}
-        </p>
+        <PassageLesson
+          key={`${passage.surah}:${passage.fromAyah}`}
+          passage={passage}
+          recitation={recitation}
+          describedBy={passageId}
+        />
       )}
       {failed && (
         <div className="flex flex-col items-start gap-3">

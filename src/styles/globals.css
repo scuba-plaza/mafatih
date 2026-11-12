@@ -26,5 +26,12 @@ button {
 }
 
 ::highlight(mafatih-apparatus) {
-  color: var(--color-muted);
+  color: var(--color-apparatus);
+}
+
+@media (forced-colors: active) {
+  ::highlight(mafatih-done),
+  ::highlight(mafatih-apparatus) {
+    color: GrayText;
+  }
 }

@@ -23,6 +23,7 @@ const NO_BREAK_SPACE = "\u00A0";
 const END_OF_AYAH = "\u06DD";
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const MEDIAN_BUDGET_MS = 50;
+const SLOWEST_TENTH_BUDGET_MS = 100;
 const UNREPORTED_MS = 8;
 
 function surah(number: number): SurahFile {
@@ -67,18 +68,25 @@ test("a first visit opens the first surah at once, ready to type", async ({ page
   await expectNoAxeViolations(page);
 });
 
-test("every character of the source, dagger alef included, is on screen at every vocalization level", async ({
-  page,
-}) => {
-  const fatiha = surah(1);
-  expect(shownAyat(fatiha, 1, 4)).toContain(DAGGER_ALEF);
-  for (const vocalization of ["auto", "letters", "harakat", "full"]) {
+for (const [vocalization, typesMarks] of [
+  ["auto", false],
+  ["letters", false],
+  ["harakat", true],
+  ["full", true],
+] as const) {
+  test(`at ${vocalization} every character of the source, dagger alef included, is on screen`, async ({ page }) => {
+    const fatiha = surah(1);
+    expect(shownAyat(fatiha, 1, 4)).toContain(DAGGER_ALEF);
     await seedSettings(page, { vocalization });
     await page.goto("/#/recitation/1/1");
     await expect(surface(page)).toBeVisible();
-    expect(await shownText(page), vocalization).toBe(shownAyat(fatiha, 1, 4));
-  }
-});
+    expect(await shownText(page)).toBe(shownAyat(fatiha, 1, 4));
+    await start(page);
+    await typeKeys(page, ["ب", "س"]);
+    await expect(surface(page).locator("[data-mistakes]")).toHaveCount(typesMarks ? 1 : 0);
+    expect(await doneText(page)).toBe(typesMarks ? "ب" : "بِسْ");
+  });
+}
 
 test("the basmala is a centred block of its own, typed before the first ayah", async ({ page }) => {
   const ikhlas = surah(112);
@@ -186,9 +194,13 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
   await expect(next).toBeVisible();
   await expect(page.getByRole("button", { name: "Type again" })).toBeVisible();
   await expectNoAxeViolations(page);
+  const whenFinished = await savedProfile(page);
   await page.keyboard.insertText("ب");
-  expect(await shownText(page)).toBe(shownAyat(fatiha, 1, 4));
-  const history = (await savedProfile(page)).history as { mode: string; chars: number; accuracy: number }[];
+  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeDisabled();
+  expect(await doneText(page)).toBe(shownAyat(fatiha, 1, 4));
+  await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
+  expect(await savedProfile(page)).toEqual(whenFinished);
+  const history = whenFinished.history as { mode: string; chars: number; accuracy: number }[];
   expect(history).toHaveLength(1);
   expect(history[0]).toMatchObject({ mode: "recitation", chars: lettersOf(fatiha, 1, 4).length, accuracy: 1 });
 
@@ -198,7 +210,11 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
   await expect(page.getByText("Ayat 5 to 7 of 7")).toBeVisible();
   expect(await shownText(page)).toBe(shownAyat(fatiha, 5, 7));
   await expect(finished(page)).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  const field = page.getByRole("textbox", { name: "Type the text shown" });
+  await expect(field).toBeFocused();
+  await expect(field).toHaveAccessibleDescription(
+    `Al-Faatiha الفاتحة Ayat 5 to 7 of 7 ${fatiha.ayat[4]?.split(" ")[0]}`,
+  );
   await typeKeys(page, lettersOf(fatiha, 5, 7));
   await expect(finished(page)).toBeFocused();
   expect((await savedProfile(page)).recitation).toEqual({
@@ -210,7 +226,70 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara البقرة");
   await expect(surface(page).locator("[data-block]")).toHaveCount(2);
-  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  await expect(field).toBeFocused();
+  await expect(field).toHaveAccessibleDescription(/Al-Baqara.*Ayat 1 to 4 of 286/);
+
+  await page.evaluate(() => {
+    window.location.hash = "#/recitation/110";
+  });
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("An-Nasr النصر");
+  await expect(surface(page)).toBeVisible();
+  await expect(field).not.toBeFocused();
+});
+
+test("a lesson in progress survives another tab saving the profile", async ({ context }) => {
+  const fatiha = surah(1);
+  const page = await context.newPage();
+  await page.goto("/");
+  await start(page);
+  await typeKeys(page, [...lettersOf(fatiha, 1, 1), " ", ...lettersOf(fatiha, 2, 2).slice(0, 6)]);
+  const typed = await doneText(page);
+  expect(typed.length).toBeGreaterThan(20);
+  const other = await context.newPage();
+  await other.goto("/#/about");
+  await other.evaluate(() => {
+    const key = "mafatih:profile:2";
+    localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "{}"), null, 1));
+  });
+  await page.bringToFront();
+  await page.keyboard.insertText(lettersOf(fatiha, 2, 2)[6] ?? "");
+  expect((await doneText(page)).length).toBeGreaterThan(typed.length);
+});
+
+test("while a surah loads a status says so, and the same region is left empty afterwards", async ({ page }) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(/assets\/036-[^/]*\.js$/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("/#/recitation/36");
+  const status = page.getByRole("main").getByRole("status").first();
+  await expect(status).toHaveText("Loading the surah…");
+  const region = await status.elementHandle();
+  release();
+  await expect(surface(page)).toBeVisible();
+  expect(await region?.evaluate((element) => element.isConnected && element.textContent === "")).toBe(true);
+});
+
+test("with forced colours the typed text and the ayah signs are still told apart from the text to come", async ({
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/#/recitation/112");
+  await expect(surface(page)).toBeVisible();
+  const colours = await surface(page)
+    .locator("[data-block]")
+    .last()
+    .evaluate((block) => ({
+      text: getComputedStyle(block).color,
+      done: getComputedStyle(block, "::highlight(mafatih-done)").color,
+      sign: getComputedStyle(block, "::highlight(mafatih-apparatus)").color,
+    }));
+  expect(colours.done).not.toBe(colours.text);
+  expect(colours.sign).not.toBe(colours.text);
 });
 
 test("Type again starts the same passage over", async ({ page }) => {
@@ -299,11 +378,11 @@ test("the longest ayah renders, keeps the caret line in view, stays fast to type
   }
   await session.send("Emulation.setCPUThrottlingRate", { rate: 1 });
   const slow = await page.evaluate(() => window.inputToPaint ?? []);
-  const durations = [...slow, ...Array.from({ length: measured - slow.length }, () => UNREPORTED_MS)].sort(
-    (a, b) => a - b,
-  );
-  expect(durations.length).toBe(measured);
-  expect(durations[measured / 2]).toBeLessThan(MEDIAN_BUDGET_MS);
+  const unreported = Math.max(0, measured - slow.length);
+  const durations = [...slow, ...Array.from({ length: unreported }, () => UNREPORTED_MS)].sort((a, b) => a - b);
+  expect(durations.length).toBeGreaterThanOrEqual(measured);
+  expect(durations[Math.floor(durations.length / 2)]).toBeLessThan(MEDIAN_BUDGET_MS);
+  expect(durations[Math.floor(durations.length * 0.9)]).toBeLessThan(SLOWEST_TENTH_BUDGET_MS);
 
   await typeKeys(page, keys.slice(measured, 450));
   const caret = surface(page).locator("[data-caret]");

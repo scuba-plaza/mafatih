@@ -18,14 +18,12 @@ export interface TextSpan {
   readonly end: number;
 }
 
-type Block = TextSpan;
-
-function blocksOf(session: Session): Block[] {
+function blocksOf(session: Session): TextSpan[] {
   const edges = [0, ...session.prompt.breaks, session.prompt.shown.length];
   return edges.slice(0, -1).map((start, index) => ({ start, end: edges[index + 1] ?? start }));
 }
 
-function cursorBlock(blocks: readonly Block[], offset: number): number {
+function cursorBlock(blocks: readonly TextSpan[], offset: number): number {
   const index = blocks.findIndex((block) => offset < block.end);
   return index < 0 ? blocks.length - 1 : index;
 }
@@ -120,7 +118,7 @@ function locate(paragraph: HTMLElement, local: number, edge: "start" | "end"): r
 
 function paintApparatus(
   paragraphs: readonly HTMLElement[],
-  blocks: readonly Block[],
+  blocks: readonly TextSpan[],
   spans: readonly TextSpan[],
 ): void {
   const highlights = highlightRegistry();
@@ -156,10 +154,11 @@ export interface TypingSurfaceProps {
   readonly fontSize: number;
   readonly centredOpening?: boolean;
   readonly apparatus?: readonly TextSpan[];
+  readonly describedBy?: string;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, font, fontSize, centredOpening = false, apparatus = NO_SPANS } = props;
+  const { trainer, font, fontSize, centredOpening = false, apparatus = NO_SPANS, describedBy } = props;
   const { t } = useI18n();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
   const textRef = useRef<HTMLDivElement>(null);
@@ -296,7 +295,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         {...inputProps}
         ref={inputRef}
         aria-label={t("typing.inputLabel")}
-        aria-describedby={nextWordId}
+        aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
         disabled={complete}
         tabIndex={-1}
         className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"

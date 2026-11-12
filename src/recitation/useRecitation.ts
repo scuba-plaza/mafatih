@@ -14,23 +14,30 @@ import { type Position, positionAfter, type RecitationProgress, resumeOf, startO
 import { loadSurah, type Surah, type SurahMeta, surahMeta } from "./quran.ts";
 
 export interface Recitation {
-  readonly meta: SurahMeta | undefined;
+  readonly meta: SurahMeta;
   readonly from: number;
   readonly to: number;
   readonly passage: Passage | null;
   readonly failed: boolean;
-  readonly continued: boolean;
+  readonly continues: boolean;
   readonly recordAyah: (index: number, samples: readonly Sample[]) => void;
   readonly recordPassage: (result: TrainerResult) => void;
   readonly next: () => void;
+}
+
+function metaOf(surah: number): SurahMeta {
+  const meta = surahMeta(surah);
+  if (meta === undefined) {
+    throw new RangeError(`there is no surah ${surah}`);
+  }
+  return meta;
 }
 
 function startFor(route: RecitationRoute, saved: RecitationProgress, order: SurahOrder): Position {
   if (route.surah === null) {
     return startOf(saved, order);
   }
-  const last = surahMeta(route.surah)?.ayat ?? 1;
-  return { surah: route.surah, ayah: Math.min(route.ayah ?? resumeOf(saved, route.surah), last) };
+  return { surah: route.surah, ayah: Math.min(route.ayah ?? resumeOf(saved, route.surah), metaOf(route.surah).ayat) };
 }
 
 export function useRecitation(route: RecitationRoute): Recitation {
@@ -38,7 +45,7 @@ export function useRecitation(route: RecitationRoute): Recitation {
   const { ayatPerLesson, surahOrder: order, vocalization } = profile.settings;
   const [pinned, setPinned] = useState(() => ({ route, start: startFor(route, profile.recitation, order) }));
   const [loaded, setLoaded] = useState<{ readonly number: number; readonly surah: Surah | null } | null>(null);
-  const [continued, setContinued] = useState(false);
+  const [continuedAt, setContinuedAt] = useState<Position | null>(null);
 
   const shown = pinned.route === route ? pinned : { route, start: startFor(route, profile.recitation, order) };
   if (shown !== pinned) {
@@ -46,8 +53,9 @@ export function useRecitation(route: RecitationRoute): Recitation {
   }
   const { start } = shown;
   const number = start.surah;
-  const meta = surahMeta(number);
-  const to = Math.min(start.ayah + ayatPerLesson - 1, meta?.ayat ?? start.ayah);
+  const meta = metaOf(number);
+  const to = Math.min(start.ayah + ayatPerLesson - 1, meta.ayat);
+  const { unlocked } = profile.ladder;
 
   useEffect(() => {
     let wanted = true;
@@ -64,10 +72,7 @@ export function useRecitation(route: RecitationRoute): Recitation {
 
   const answer = loaded?.number === number ? loaded : null;
   const surah = answer?.surah ?? null;
-  const required = useMemo(
-    () => requiredMarks(vocalization, unlockedMarks(profile.ladder)),
-    [vocalization, profile.ladder],
-  );
+  const required = useMemo(() => requiredMarks(vocalization, unlockedMarks({ unlocked })), [vocalization, unlocked]);
   const passage = useMemo(
     () => (surah === null ? null : buildPassage(surah, start.ayah, ayatPerLesson, required)),
     [surah, start, ayatPerLesson, required],
@@ -108,7 +113,7 @@ export function useRecitation(route: RecitationRoute): Recitation {
 
   const next = useCallback(() => {
     const after = positionAfter({ surah: number, ayah: to }, order);
-    setContinued(true);
+    setContinuedAt(after);
     replaceRoute({ page: "recitation", surah: after.surah, ayah: after.ayah });
   }, [number, to, order]);
 
@@ -118,7 +123,7 @@ export function useRecitation(route: RecitationRoute): Recitation {
     to,
     passage,
     failed: answer !== null && answer.surah === null,
-    continued,
+    continues: continuedAt?.surah === number && continuedAt.ayah === start.ayah,
     recordAyah,
     recordPassage,
     next,
