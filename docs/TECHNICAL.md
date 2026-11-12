@@ -2,6 +2,10 @@
 
 Mafatih is a static single-page app: React 19, TypeScript (strict), Vite, Tailwind 4, no server. Everything the learner does is stored in their browser. This file is how it works and what to keep true when changing it.
 
+## Getting started
+
+Node 22.12 or newer and pnpm (CI uses pnpm 12). After `pnpm install`, run `pnpm exec playwright install chromium` once; set `PW_CHROMIUM_PATH` instead if a Chromium is already installed. The dev server is on port 5173 and the preview used by the browser tests on 4173; both fail rather than move to another port.
+
 ## Commands
 
 ```sh
@@ -16,21 +20,24 @@ pnpm build:data   # data/ to generated/ (see Data)
 pnpm e2e          # build, then Playwright
 ```
 
-Browser tests serve the build with `vite preview` on port 4173 and run in two Chromium profiles (`chromium-desktop`, `chromium-mobile`, a Pixel 7). Set `PW_CHROMIUM_PATH` to use an installed Chromium; set `PW_FULL=1` to add Firefox, WebKit and an iPhone profile (the CI `engines` job does). Do not run two Playwright runs at once: they share the port. The ARIA snapshots (`e2e/aria-snapshots.spec.ts-snapshots`, machine-written, ignored by Biome) pin the accessibility tree of every page; after an intended interface change run `pnpm exec playwright test e2e/aria-snapshots.spec.ts --update-snapshots` and read the diff before committing it.
+A single unit test: `pnpm test src/path/file.test.ts`. A single browser spec: `pnpm build`, then `pnpm exec playwright test e2e/name.spec.ts --project=chromium-desktop` (Playwright serves what is in `dist`, so a bare run after a source change tests the old build; `pnpm e2e --project=chromium-desktop` builds first).
+
+Browser tests serve the build with `vite preview` on port 4173 and run in two Chromium profiles (`chromium-desktop`, `chromium-mobile`, a Pixel 7). Set `PW_CHROMIUM_PATH` to use an installed Chromium; set `PW_FULL=1` to add Firefox, WebKit and an iPhone profile (the CI `engines` job does). Do not run two Playwright runs at once: they share the port. The ARIA snapshots (`e2e/aria-snapshots.spec.ts-snapshots`, machine-written, ignored by Biome) pin the accessibility tree of every page; after an intended interface change run `pnpm build && pnpm exec playwright test e2e/aria-snapshots.spec.ts --update-snapshots` and read the diff before committing it. The files are named by viewport class (`desktop`, `mobile`), language and region, so the Firefox and WebKit projects compare against the same files as Chromium; do not regenerate them from another engine without looking at what differs.
 
 ## Rules for the code
 
 - No comments anywhere (`check:style`). Names and tests say what code does.
 - No TypeScript `any` (Biome `noExplicitAny`); use `unknown` and guards.
 - `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`; `~/` is `src/`.
-- Messages live in `src/i18n/{en,ar}.ts` with the same keys and placeholders; Arabic messages hold no Latin letters outside placeholders; no plural-dependent sentences, no concatenated fragments. Names of sources and languages are constants of the component, not catalog entries.
+- Messages live in `src/i18n/{en,ar}.ts` with the same keys and placeholders; Arabic messages hold no Latin letters outside placeholders; no plural-dependent sentences, no concatenated fragments. Names of sources (`src/app/credits.ts`, whose extract date and reciter names are tied to their sources by `credits.test.ts`) and of languages are constants, not catalog entries.
+- To add a message: add the key to `src/i18n/en.ts` (it defines `MessageKey`), then to `src/i18n/ar.ts` (typed `Record<MessageKey, string>`); `i18n.test.ts` then checks the parity, the placeholders and that the Arabic has no Latin letters. To add a font: an entry in `FONTS` (`src/settings/fonts.ts`), its `@fontsource/*` dependency, the credit note `about.fontsNote` in both languages, and the font counts in `e2e/perf.spec.ts` and `e2e/settings.spec.ts`.
 - Tests are written first at an agreed seam: S1 pure units (Vitest), S2 data and build outputs, S3 storage, S5 the browser (Playwright with axe). There is no component-test setup (no jsdom), so UI behaviour is tested in the browser.
 
 ## Layout
 
 | Path | What is in it |
 |---|---|
-| `src/app` | shell, routes (`#/`, `#/recitation/:surah[/:ayah]`, `#/practice`, `#/custom`, `#/stats`, `#/about`), About page and its credits, error boundary |
+| `src/app` | shell, routes (`#/`, `#/recitation/:surah[/:ayah]`, `#/practice`, `#/custom`, `#/stats`, `#/about`), About page, `credits.ts` and error boundary |
 | `src/text` | Arabic text model (`arabic.ts`), prompts (`prompt.ts`), which marks are typed (`vocalization.ts`) |
 | `src/keyboard` | the Arabic (101) key table, fingers, ligature keys, what is typeable, the on-screen guide |
 | `src/typing` | the session engine (`session.ts`), the input pipeline (`input.ts`, `useTypingInput.ts`), the surface and the trainer hook |
@@ -38,10 +45,11 @@ Browser tests serve the build with `vite preview` on port 4173 and run in two Ch
 | `src/recitation` | Qur'an data access, passages, progress, order, the pages, and `audio/` (reciters, cache, player) |
 | `src/custom`, `src/stats` | the Custom page; key statistics, lesson history and the Stats page |
 | `src/settings`, `src/storage` | settings and the dialog; the profile, its sanitizers, backup and restore |
-| `src/i18n`, `src/ui`, `src/styles` | catalogs and formatters; shared components; tokens and global CSS |
+| `src/i18n`, `src/ui`, `src/styles`, `src/lib` | catalogs and formatters; shared components; tokens and global CSS; small type guards |
 | `data`, `generated` | committed sources; build output (git-ignored) |
 | `scripts` | data build, word extraction, style and size checks, the Vite plugins for SEO and CSP |
-| `e2e` | Playwright specs and helpers; `docs` | this file, the device checklist, the plan |
+| `e2e` | Playwright specs, helpers, fixtures and the ARIA baselines |
+| `docs` | this file, the device checklist, the plan |
 
 ## Text and typing
 
@@ -58,13 +66,13 @@ Browser tests serve the build with `vite preview` on port 4173 and run in two Ch
 
 ## Recitation
 
-Surah data is split into one chunk per surah. A passage is a run of ayat (1 to 20 per setting). Progress per surah is a list of typed ayah ranges plus a completion count, with a resume position. Audio comes from EveryAyah (`https://everyayah.com/data/<reciter>/<SSS><AAA>.mp3`), is fetched once per ayah and kept in IndexedDB (`mafatih.audio`), and is played from a blob URL through one element with Media Session support. The basmala clip plays first when a passage opens a surah that has one.
+Surah data is split into one chunk per surah. A passage is a run of ayat (1 to 20 per setting). Progress per surah is a list of typed ayah ranges plus a completion count, with a resume position. Audio comes from EveryAyah (`https://everyayah.com/data/<reciter>/<SSS><AAA>.mp3`), is fetched when needed (the next ayah is prefetched), kept by URL in IndexedDB (`mafatih.audio`; Settings shows its size and clears it) and de-duplicated while in flight, and is played from a blob URL through one element with Media Session support. The basmala clip plays first when a passage opens a surah that has one.
 
 ## Storage
 
 One localStorage key, `mafatih:profile:2`, holds `{ schema: 2, settings, ladder, stats: { practice, recitation, custom }, history, recitation }`. Every part is read through its own sanitizer that builds a fresh object from known fields, so a broken part falls back to defaults without discarding the rest, and `__proto__`, wrong types and huge lists cannot get in. If storage is unavailable the app runs in memory with a notice; a profile of a newer schema is left alone with a notice; an unreadable one is copied to `…:unreadable` and replaced.
 
-Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", schema: 2, exportedAt, profile }`, at most 2,000,000 bytes, refused as `not-json`, `not-a-backup` or `wrong-version`, and replaced only after the learner confirms. A render error shows a screen with Reload and Start over (which erases the profile, not the audio cache, after asking). The boundary catches render errors only: errors in event handlers, effects and promises, and in the two providers above it, are not caught.
+Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", schema: 2, exportedAt, profile }`, at most 2,000,000 bytes, refused as `too-large`, `not-json`, `not-a-backup` or `wrong-version` (the old app's export, with no `app` and `schema` 1, is a `wrong-version`), and replaced only after the learner confirms. A render error shows a screen with Reload and Start over (which erases the profile, not the audio cache, after asking). The boundary catches render errors only: errors in event handlers, effects and promises, and in the two providers above it, are not caught.
 
 ## Data
 
@@ -75,13 +83,13 @@ Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", s
 | FrequencyWords Arabic list (ranking only) | Practice word order | CC BY-SA 4.0 |
 | EveryAyah | audio, streamed and never bundled | per reciter |
 
-`pnpm build:data` reads `data/` and writes `generated/`: one JSON per surah (each carries Tanzil's notice) and it checks the committed word list against its rules (counts, coverage per starter letter and mark, size, the blocklist). The word list (`data/practice/words.tsv`) is produced by `scripts/extract-words.ts` and reviewed by a reader; `data/practice/SOURCES.md` has the rules. The list is a derivative of both sources; `SOURCES.md` proposes CC BY-SA 4.0 for it, and the owner has still to confirm that.
+`pnpm build:data` reads `data/` and writes `generated/`: one JSON per surah (each carries Tanzil's notice) and it checks the committed word list against its rules (counts, coverage per starter letter and mark, size, the blocklist). The word list (`data/practice/words.tsv`) is produced by `pnpm exec tsx scripts/extract-words.ts <kaikki.org-dictionary-Arabic.jsonl.gz> <ar_50k.txt>` (the two inputs are downloaded from the sources in `SOURCES.md`, not committed) and reviewed by a reader; `data/practice/SOURCES.md` has the rules. The list is a derivative of both sources; `SOURCES.md` proposes CC BY-SA 4.0 for it, and the owner has still to confirm that.
 
 ## Bundle and security
 
 - Limits (`scripts/check-size.ts`, gzip): entry chunk 130 KB, a surah chunk 80 KB, the Practice list 100 KB; the words must not be in the entry; there are 114 surah chunks. Fonts load on demand (one at first, the others when Settings opens).
-- The built page carries a content security policy as a meta tag (GitHub Pages cannot send headers): `default-src 'self'`, `script-src 'self'`, `media-src 'self' blob:`, `connect-src 'self' https://everyayah.com`, `object-src 'none'`, `base-uri 'self'`, `form-action 'none'`, plus a strict referrer policy. Consequences: no inline scripts or styles (use CSSOM or adopted stylesheets, also in tests) and no data-URL images.
-- `robots.txt` and `sitemap.xml` are emitted by the build from `SITE_URL`; `BASE_PATH` sets the base for project pages.
+- The built page carries a content security policy as a meta tag (GitHub Pages cannot send headers): `default-src 'self'`, `script-src 'self'`, `media-src 'self' blob:`, `connect-src 'self' https://everyayah.com`, `object-src 'none'`, `base-uri 'self'`, `form-action 'none'`, plus `strict-origin-when-cross-origin` as the referrer policy. Both are meta tags added by the build only (the dev server has neither); there is no `style-src` or `img-src`, so those fall back to `default-src 'self'`. Consequences: no inline scripts or styles (use CSSOM or adopted stylesheets, also in tests) and no data-URL images.
+- `robots.txt` and `sitemap.xml` are emitted by the build from `SITE_URL`; `BASE_PATH` sets the base for project pages, for example `BASE_PATH=/mafatih/ SITE_URL=https://example.org/mafatih pnpm build`; `SITE_URL` must be a plain http or https address (no credentials, query or fragment) or the build fails.
 
 ## Deploy
 
