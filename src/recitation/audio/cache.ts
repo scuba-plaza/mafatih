@@ -93,6 +93,15 @@ export function createAudioCache(): AudioCache | null {
   };
 }
 
+let shared: AudioCache | null | undefined;
+
+export function sharedAudioCache(): AudioCache | null {
+  if (shared === undefined) {
+    shared = createAudioCache();
+  }
+  return shared;
+}
+
 export async function loadAyahBlob(url: string, cache: AudioCache | null): Promise<Blob> {
   const stored = await (cache?.get(url) ?? Promise.resolve(null)).catch(() => null);
   if (stored !== null && stored.size > 0) {

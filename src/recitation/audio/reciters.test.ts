@@ -17,6 +17,10 @@ test("two reciters are offered, the measured Murattal one first and by default",
     ["mujawwad", "Mujawwad", 128],
   ]);
   expect(DEFAULT_RECITER).toBe("murattal");
+  for (const reciter of RECITERS) {
+    expect(reciter.nameAr, reciter.id).toMatch(/^[\u0621-\u064A ]+$/);
+    expect(reciter.styleAr, reciter.id).toMatch(/^[\u0621-\u064A\u064B-\u0652 ]+$/);
+  }
   expect(reciterOf("mujawwad").folder).toBe("Abdul_Basit_Mujawwad_128kbps");
   expect(isReciterId("murattal")).toBe(true);
   for (const junk of ["", "other", "toString", 3, null, undefined]) {

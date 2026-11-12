@@ -5,7 +5,9 @@ export type ReciterId = "murattal" | "mujawwad";
 export interface Reciter {
   readonly id: ReciterId;
   readonly name: string;
+  readonly nameAr: string;
   readonly style: string;
+  readonly styleAr: string;
   readonly kbps: number;
   readonly folder: string;
 }
@@ -18,19 +20,30 @@ export interface AudioClip {
 
 const BASE_URL = "https://everyayah.com/data";
 const NAME = "Abdul Basit ʿAbd us-Samad";
+const NAME_AR = "عبد الباسط عبد الصمد";
 const BASMALA_CLIP = { surah: 1, ayah: 1 } as const;
 
 const MURATTAL: Reciter = {
   id: "murattal",
   name: NAME,
+  nameAr: NAME_AR,
   style: "Murattal",
+  styleAr: "مرتل",
   kbps: 64,
   folder: "Abdul_Basit_Murattal_64kbps",
 };
 
 export const RECITERS: readonly Reciter[] = [
   MURATTAL,
-  { id: "mujawwad", name: NAME, style: "Mujawwad", kbps: 128, folder: "Abdul_Basit_Mujawwad_128kbps" },
+  {
+    id: "mujawwad",
+    name: NAME,
+    nameAr: NAME_AR,
+    style: "Mujawwad",
+    styleAr: "مجوّد",
+    kbps: 128,
+    folder: "Abdul_Basit_Mujawwad_128kbps",
+  },
 ];
 
 export const DEFAULT_RECITER: ReciterId = "murattal";

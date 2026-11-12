@@ -67,6 +67,26 @@ export function formatDuration(language: Language, ms: number): string {
   return `${formatNumber(language, Math.floor(seconds / 60))}:${TWO_DIGITS[language].format(seconds % 60)}`;
 }
 
+const KILOBYTES: Record<Language, Intl.NumberFormat> = {
+  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { style: "unit", unit: "kilobyte", maximumFractionDigits: 0 }),
+  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { style: "unit", unit: "kilobyte", maximumFractionDigits: 0 }),
+};
+
+const MEGABYTES: Record<Language, Intl.NumberFormat> = {
+  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { style: "unit", unit: "megabyte", maximumFractionDigits: 1 }),
+  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { style: "unit", unit: "megabyte", maximumFractionDigits: 1 }),
+};
+
+const BYTES_IN_KILOBYTE = 1000;
+const BYTES_IN_MEGABYTE = 1_000_000;
+
+export function formatBytes(language: Language, bytes: number): string {
+  const size = Math.max(0, finite(bytes));
+  return size < BYTES_IN_MEGABYTE
+    ? KILOBYTES[language].format(Math.round(size / BYTES_IN_KILOBYTE))
+    : MEGABYTES[language].format(size / BYTES_IN_MEGABYTE);
+}
+
 export function placeholdersOf(template: string): string[] {
   return [...template.matchAll(PLACEHOLDER)].map((match) => match[1] ?? "");
 }

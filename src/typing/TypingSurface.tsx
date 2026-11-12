@@ -10,6 +10,7 @@ import type { Trainer } from "./useTrainer.ts";
 
 const DONE_HIGHLIGHT = "mafatih-done";
 const APPARATUS_HIGHLIGHT = "mafatih-apparatus";
+const PLAYING_HIGHLIGHT = "mafatih-playing";
 const NO_SPANS: readonly TextSpan[] = [];
 const VISIBLE_SPACE = "\u2423";
 const MARK_CARRIER = "\u0640\u0640";
@@ -118,7 +119,9 @@ function locate(paragraph: HTMLElement, local: number, edge: "start" | "end"): r
   return undefined;
 }
 
-function paintApparatus(
+function paintSpans(
+  name: string,
+  priority: number,
   paragraphs: readonly HTMLElement[],
   blocks: readonly TextSpan[],
   spans: readonly TextSpan[],
@@ -142,12 +145,12 @@ function paintApparatus(
     return [range];
   });
   if (ranges.length === 0) {
-    highlights.delete(APPARATUS_HIGHLIGHT);
+    highlights.delete(name);
     return;
   }
   const highlight = new Highlight(...ranges);
-  highlight.priority = 1;
-  highlights.set(APPARATUS_HIGHLIGHT, highlight);
+  highlight.priority = priority;
+  highlights.set(name, highlight);
 }
 
 export interface TypingSurfaceProps {
@@ -155,11 +158,12 @@ export interface TypingSurfaceProps {
   readonly settings: Settings;
   readonly centredOpening?: boolean;
   readonly apparatus?: readonly TextSpan[];
+  readonly playing?: TextSpan | null;
   readonly describedBy?: string;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, settings, centredOpening = false, apparatus = NO_SPANS, describedBy } = props;
+  const { trainer, settings, centredOpening = false, apparatus = NO_SPANS, playing = null, describedBy } = props;
   const { font, fontSize } = settings;
   const { t } = useI18n();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
@@ -198,7 +202,8 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       paintDone(paragraphs, current, doneUntil - block.start);
-      paintApparatus(paragraphs, blocks, apparatus);
+      paintSpans(APPARATUS_HIGHLIGHT, 1, paragraphs, blocks, apparatus);
+      paintSpans(PLAYING_HIGHLIGHT, 2, paragraphs, blocks, playing === null ? NO_SPANS : [playing]);
       setScrollable(container.scrollHeight > container.clientHeight);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = rect === undefined;
@@ -236,6 +241,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       document.fonts.removeEventListener("loadingdone", place);
       highlightRegistry()?.delete(DONE_HIGHLIGHT);
       highlightRegistry()?.delete(APPARATUS_HIGHLIGHT);
+      highlightRegistry()?.delete(PLAYING_HIGHLIGHT);
     };
   }, []);
 

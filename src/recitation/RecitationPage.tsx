@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { RecitationRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { unlockedMarks } from "~/practice/ladder.ts";
@@ -7,9 +7,12 @@ import { requiredMarks } from "~/text/vocalization.ts";
 import { isComplete, metricsOf } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { useTrainer } from "~/typing/useTrainer.ts";
+import { useDialogOpen } from "~/ui/dialogs.ts";
 import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
+import { Player } from "./audio/Player.tsx";
+import { type Player as PlayerHandle, usePlayer } from "./audio/usePlayer.ts";
 import { PassageBar } from "./PassageBar.tsx";
 import type { Passage } from "./passage.ts";
 import { surahName } from "./quran.ts";
@@ -19,10 +22,12 @@ import { type Recitation, useRecitation } from "./useRecitation.ts";
 interface PassageLessonProps {
   readonly passage: Passage;
   readonly recitation: Recitation;
+  readonly player: PlayerHandle;
   readonly describedBy: string;
+  readonly onFinished: (finished: boolean) => void;
 }
 
-function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps) {
+function PassageLesson({ passage, recitation, player, describedBy, onFinished }: PassageLessonProps) {
   const { t, language, formatNumber, formatDuration } = useI18n();
   const { settings } = useProfile().profile;
   const checkpoints = useMemo(() => passage.ayat.map((ayah) => ayah.lastUnit), [passage]);
@@ -44,7 +49,14 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
     }
   }, [continues, focus, recitation]);
 
-  const metrics = isComplete(session) ? metricsOf(session) : null;
+  const finished = isComplete(session);
+
+  useEffect(() => {
+    onFinished(finished);
+    return () => onFinished(false);
+  }, [finished, onFinished]);
+
+  const metrics = finished ? metricsOf(session) : null;
   const completed = completions !== null;
   const nextLabel = endsTheOrder ? "recitation.startAgain" : completed ? "completion.next" : "recitation.next";
 
@@ -55,8 +67,10 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
         settings={settings}
         centredOpening={passage.basmala !== null}
         apparatus={signs}
+        playing={player.state.status === "playing" ? (player.clip?.span ?? null) : null}
         describedBy={describedBy}
       />
+      <Player player={player} settings={settings} surah={passage.surah} refocus={focus} />
       {metrics !== null && (
         <LessonSummary
           metrics={metrics}
@@ -96,6 +110,16 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const { settings, ladder } = useProfile().profile;
   const recitation = useRecitation(surah, ayah);
   const { meta, from, to, passage, failed } = recitation;
+  const dialogOpen = useDialogOpen();
+  const [lessonFinished, setLessonFinished] = useState(false);
+  const player = usePlayer({
+    passage,
+    reciter: settings.reciter,
+    volume: settings.volume,
+    muted: settings.muted,
+    whole: settings.playWhole,
+    held: dialogOpen || lessonFinished,
+  });
   const marksTyped = requiredMarks(settings.vocalization, unlockedMarks(ladder)).size > 0;
   const range = t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat });
 
@@ -131,7 +155,9 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
           key={`${passage.surah}:${passage.fromAyah}`}
           passage={passage}
           recitation={recitation}
+          player={player}
           describedBy={`passage-${meta.n}`}
+          onFinished={setLessonFinished}
         />
       )}
       {failed && (

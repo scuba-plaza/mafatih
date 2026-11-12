@@ -487,7 +487,7 @@ Part B is interface assembly and well-trodden work on top of Part A: dialogs, pa
 | 9b | Settings dialog and guide keyboard | 9a | done |
 | 12b | Practice page and HUD | 10, 11, 12a | done |
 | 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | done |
-| 15 | Recitation audio | 14b | to do |
+| 15 | Recitation audio | 14b | in review |
 | 16 | Stats page | 11 | to do |
 | 17 | Backup and restore | 7, 11, 13 | to do |
 | 18 | About, SEO, security headers and deploy | all pages | to do |
@@ -573,15 +573,22 @@ Read these before the first task; each one cost time to learn.
 
 ### Task 15: Recitation audio
 
-**Files:** Create `src/recitation/audio/{reciters.ts,cache.ts,usePlayer.ts,Player.tsx}`, `e2e/audio.spec.ts`, `e2e/fixtures/{ayah.mp3,ayah-long.mp3}` (from `git show origin/main:cypress/fixtures/...`). Read `git show origin/main:src/engine/audio/reciters.ts`, `src/hooks/useRecitationPlayer.ts`, `src/storage/audio-cache.ts` as the behavioural reference.
+**Files:** `src/recitation/audio/{reciters.ts,cache.ts,player.ts,usePlayer.ts,Player.tsx,AudioSettings.tsx}` with `reciters.test.ts`, `cache.test.ts`, `player.test.ts`; `src/ui/dialogs.ts`; `e2e/audio.spec.ts`, `e2e/fixtures/{ayah.mp3,ayah-long.mp3}` (from the old app's Cypress fixtures); extended `Settings` (`reciter`, `volume`, `muted`, `playWhole`), the i18n context (`formatBytes`), `Dialog`, `TypingSurface` (`playing`), `RecitationPage`, `SettingsDialog`, `globals.css`.
 
-**Interfaces:**
-- Produces: `RECITERS` (`murattal` = `Abdul_Basit_Murattal_64kbps` default, `mujawwad` = `Abdul_Basit_Mujawwad_128kbps`); `ayahAudioUrl(id: ReciterId, surah: number, ayah: number): string` (`https://everyayah.com/data/<folder>/<SSS><AAA>.mp3`); `audioSequence(passage: Passage): readonly { surah: number; ayah: number; span: { start: number; end: number } }[]` (the basmala clip is `001001`, surah 9 has none, surah 1 ayah 1 is its own basmala); `createAudioCache(): AudioCache | null` (IndexedDB `mafatih.audio`, blobs keyed by URL, `get`, `put`, `usage`, `clear`); `<Player passage held />`.
+**What exists:**
+- `RECITERS` (`murattal` = Abdul Basit Murattal 64 kbps, the default; `mujawwad` = Abdul Basit Mujawwad 128 kbps; each with its Arabic name and style), `ayahAudioUrl(id, surah, ayah)` (`https://everyayah.com/data/<folder>/<SSS><AAA>.mp3`), `audioSequence(passage)` (the basmala clip `001001` first when the passage opens a surah that has a basmala; surah 1 is its own basmala and surah 9 has none; each clip carries the span of text it recites).
+- `playerReducer` (pure): never plays while held; a hold that began during playback is lifted by resuming it; Previous restarts the clip after more than two seconds and otherwise steps back; a clip that ends stops the player unless "play whole passage" is on; a failed fetch shows as failed and Play retries; a new passage keeps a playing player playing.
+- `createAudioCache()` / `sharedAudioCache()` (IndexedDB `mafatih.audio`, store `ayat`, the old app's database, so its saved recitations are reused; `get`, `put`, `usage`, `clear`) and `loadAyahBlob(url, cache)` (stored copy first, one fetch on a miss, a response that is not ok or is empty is an error and is never stored, still plays when the store is missing or fails). The next clip is fetched ahead while playing.
+- `usePlayer({ passage, reciter, volume, muted, whole, held })` lives in the passage view, **above** the per-passage lesson component, so that playing carries on into the next passage when the learner moves on. `held` is: a dialog is open (`useDialogOpen`, fed by `Dialog`) or the lesson is finished (its summary shows).
+- `<Player player settings surah refocus />` (a `fieldset` named "Recitation audio", under the lesson): Previous, Play/Pause (one button whose name changes, no `aria-pressed`), Next, Mute (`aria-pressed`), a Volume slider with `aria-valuetext`, the switch "Play whole passage", and a polite status line "Abdul Basit ʿAbd us-Samad · Murattal 64 kbps · 2:1" ("Basmala" on the basmala clip, "Recitation unavailable" after a failure). The transport row keeps its left-to-right order in the Arabic interface. A mouse click on a control gives the focus back to the typing field on a fine pointer; a keyboard press and a coarse pointer do not (so the keyboard does not pop up unasked and keyboard users keep their place). Media Session metadata and the play, pause, previous and next actions are set while a clip is loaded.
+- The ayah being recited is marked in the text through a third CSS highlight, `mafatih-playing` (a background and an underline, so not colour alone; priority above the apparatus), over the clip's span; typing never starts audio and audio never moves the cursor (Q5); everything works with no audio at all (Q6).
+- Settings gets a "Recitation audio" group: the reciter (radios with hints) and the saved recitations ("Saved recitations: 2 (3 kB)" and a Delete button with a polite confirmation).
+- The CSP additions (`media-src 'self' blob: https://everyayah.com`, `connect-src 'self' https://everyayah.com`) belong to the CSP of Task 18, which lists exactly these; there is no CSP yet to extend.
 
-- [ ] Test (S1): the URL table (`1:1` is `001001.mp3`, `114:6` is `114006.mp3`); `audioSequence` for `2:1-3` starts with the `001001` clip; for surah 9 it has no basmala clip; the previous action restarts the ayah after more than 2 s, otherwise steps back; the player state machine (pure reducer) never plays while `held` (dialog open, completed passage, surah panel).
-- [ ] Test (S5, routes mocked with the fixture): transport buttons have names and no `aria-pressed` on play/pause (the label toggles), mute is a toggle with `aria-pressed`, volume has `aria-valuetext`, "Play whole passage" is a switch; the status line "Abdul Basit ʿAbd us-Samad · Murattal 64 kbps · 2:1" is polite and updates per ayah only; the playing ayah gets the `mafatih-playing` highlight (colour plus background); typing never starts audio and audio never moves the cursor (Q5); a failed fetch shows "Recitation unavailable" and the lesson stays typeable (Q6); each ayah is fetched once (second play hits the cache); the cache size is shown and Delete empties it; finishing a passage while playing carries on into the next one.
-- [ ] Test (S5): after pressing a control on a fine pointer the typing input regains focus; on coarse pointers it does not (so the phone keyboard does not pop up unasked).
-- [ ] Implement `MediaSession` metadata and the CSP additions (`media-src blob: https://everyayah.com`, `connect-src` the same). Gate, review, commit.
+- [x] Test (S1): the URL table; `audioSequence` for `2:1-3` starts with `001001`, surah 1 and 9 add none, a later start has none; the reducer (hold, Previous, ended, failed, load); the cache's fetch-through; the four settings; `formatBytes`.
+- [x] Test (S5, routes mocked with the fixtures): the names and roles of the controls, the status line, the basmala clip, the playing highlight (background, and the text unchanged), each ayah fetched once, typing and audio independent (Q5), a failed fetch (Q6), saved size and Delete, the reciter, the focus rule for mouse and keyboard, Media Session, pausing while a dialog is open and not resuming what the user paused, carrying on into the next passage after the summary, Arabic.
+- [x] Implement. Gate.
+- [ ] Review, fix, commit.
 
 ### Task 16: Stats page
 

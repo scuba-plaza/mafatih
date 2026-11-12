@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useContext, useLayoutEffect, useMemo } f
 import type { MessageKey } from "./en.ts";
 import {
   directionOf,
+  formatBytes,
   formatDuration,
   formatNumber,
   formatPercent,
@@ -17,6 +18,7 @@ export interface I18n {
   formatNumber: (value: number) => string;
   formatPercent: (ratio: number) => string;
   formatDuration: (ms: number) => string;
+  formatBytes: (bytes: number) => string;
 }
 
 const I18nContext = createContext<I18n | null>(null);
@@ -30,6 +32,7 @@ export function I18nProvider({ language, children }: { language: Language; child
       formatNumber: (value) => formatNumber(language, value),
       formatPercent: (ratio) => formatPercent(language, ratio),
       formatDuration: (ms) => formatDuration(language, ms),
+      formatBytes: (bytes) => formatBytes(language, bytes),
     }),
     [language],
   );

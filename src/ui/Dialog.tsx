@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
+import { announceDialogChange } from "./dialogs.ts";
 import { BUTTON } from "./styles.ts";
 
 const SIDE_PADDING = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
@@ -23,6 +24,7 @@ export function Dialog({ open, title, closeLabel, onClose, children }: DialogPro
     if (open && !element.open) {
       element.showModal();
       element.scrollTop = 0;
+      announceDialogChange();
     } else if (!open && element.open) {
       element.close();
     }
@@ -33,7 +35,10 @@ export function Dialog({ open, title, closeLabel, onClose, children }: DialogPro
       ref={dialog}
       aria-labelledby={titleId}
       closedby="any"
-      onClose={onClose}
+      onClose={() => {
+        announceDialogChange();
+        onClose();
+      }}
       className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[90dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-lg border border-line bg-surface p-0 text-ink backdrop:bg-black/50 md:inset-0 md:m-auto md:h-fit md:w-lg md:max-w-[calc(100%-2rem)] md:rounded-lg"
     >
       {open && (

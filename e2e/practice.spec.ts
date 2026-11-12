@@ -227,7 +227,7 @@ test("Reset progress asks first, then clears keys, statistics and lesson history
   expect((await savedProfile(page)).history).toHaveLength(1);
   await dialog.getByRole("button", { name: "Reset progress" }).click();
   await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
-  await expect(dialog.getByRole("status")).toHaveText("Progress was reset.");
+  await expect(dialog.getByRole("status").filter({ hasText: "Progress was reset." })).toHaveCount(1);
   await expect(dialog.getByRole("button", { name: "Reset progress" })).toBeFocused();
   const profile = await savedProfile(page);
   expect(profile.ladder).toEqual({ unlocked: 10 });

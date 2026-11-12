@@ -15,6 +15,10 @@ const DEFAULTS = {
   customText: "",
   ayatPerLesson: 4,
   surahOrder: "mushaf",
+  reciter: "murattal",
+  volume: 0.8,
+  muted: false,
+  playWhole: false,
 };
 
 test("the defaults: errors must be corrected with Backspace, vocalization follows progress", () => {
@@ -35,6 +39,10 @@ test("valid saved settings are kept", () => {
     customText: "بسم الله",
     ayatPerLesson: 8,
     surahOrder: "juz-amma",
+    reciter: "mujawwad",
+    volume: 0.35,
+    muted: true,
+    playWhole: true,
   };
   expect(sanitizeSettings(saved, ENGLISH)).toEqual(saved);
 });
@@ -116,4 +124,28 @@ test("the surah order is the mushaf order unless Juz Amma first was chosen", () 
     "mushaf",
     "mushaf",
   ]);
+});
+
+test("the reciter is one of the two offered, Murattal otherwise", () => {
+  const reciter = (value: unknown) => sanitizeSettings({ reciter: value }, ENGLISH).reciter;
+  expect(["murattal", "mujawwad"].map(reciter)).toEqual(["murattal", "mujawwad"]);
+  expect(["other", "", 3, null, undefined, "toString"].map(reciter)).toEqual(Array(6).fill("murattal"));
+});
+
+test("the volume is a number from nothing to full, brought into range, and 80 percent when it is not a number", () => {
+  const volume = (value: unknown) => sanitizeSettings({ volume: value }, ENGLISH).volume;
+  expect([0, 0.35, 1].map(volume)).toEqual([0, 0.35, 1]);
+  expect([-1, 2, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map(volume)).toEqual([0, 1, 1, 0]);
+  expect(["0.5", null, Number.NaN, undefined, {}].map(volume)).toEqual([0.8, 0.8, 0.8, 0.8, 0.8]);
+});
+
+test("only a real true mutes the recitation or plays the whole passage", () => {
+  const flags = (value: unknown) => {
+    const { muted, playWhole } = sanitizeSettings({ muted: value, playWhole: value }, ENGLISH);
+    return [muted, playWhole];
+  };
+  expect(flags(true)).toEqual([true, true]);
+  for (const junk of ["true", 1, null, {}, undefined, false]) {
+    expect(flags(junk), String(junk)).toEqual([false, false]);
+  }
 });

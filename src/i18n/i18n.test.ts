@@ -5,6 +5,7 @@ import {
   detectLanguage,
   directionOf,
   fillMessage,
+  formatBytes,
   formatDuration,
   formatNumber,
   formatPercent,
@@ -65,6 +66,17 @@ test("a duration is minutes and two-digit seconds in the language's own digits, 
   expect(formatDuration("en", -5)).toBe("0:00");
   expect(formatDuration("ar", 65_000)).toBe("\u0661:\u0660\u0665");
   expect(() => formatDuration("en", Number.NaN)).toThrow(RangeError);
+});
+
+test("a size is in kilobytes below a megabyte and in megabytes above, in the language's own digits", () => {
+  expect(formatBytes("en", 0)).toBe("0 kB");
+  expect(formatBytes("en", 1_600)).toBe("2 kB");
+  expect(formatBytes("en", 999_400)).toBe("999 kB");
+  expect(formatBytes("en", 1_460_000)).toBe("1.5 MB");
+  expect(formatBytes("en", 12_000_000)).toBe("12 MB");
+  expect(formatBytes("en", -5)).toBe("0 kB");
+  expect(formatBytes("ar", 1_460_000)).toMatch(/\u0661/);
+  expect(() => formatBytes("en", Number.NaN)).toThrow(RangeError);
 });
 
 test("a number that is not finite is an error, never shown to the user", () => {
