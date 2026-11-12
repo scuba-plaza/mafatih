@@ -1,12 +1,13 @@
 # Practice word list
 
 `words.tsv` holds the words that Practice drills: one fully vocalized word per line, a tab, and the frequency rank of
-its spelling. It is produced by `scripts/extract-words.ts` and then reviewed by a native reader. `pnpm build:data`
+its spelling. It is produced by `scripts/extract-words.ts`; no native reader has verified it. `pnpm build:data`
 checks the committed file on every build.
 
-**Review state: not yet signed off.** The lists were curated while the pipeline was built, but the owner's reading of
-`review-report.txt`, `blocklist.txt` and `reject.txt` is still open, and so is the confirmation of the licence below.
-Practice must not ship before that.
+**Review state: not human verified.** The lists were curated while the pipeline was built. On 2026-11-12 the owner
+skimmed `review-report.txt` and found it fine, but did not check every word. The owner decided to ship Practice as it is and to say so on the About page. The provisional policy
+points were confirmed: the devil, the jinn and the names of hell stay blocked, and ordinary religious vocabulary stays.
+The licence question below was set aside by the owner as not required.
 
 ## Sources
 

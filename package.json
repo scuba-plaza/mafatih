@@ -2,6 +2,7 @@
   "name": "mafatih",
   "version": "2.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Arabic touch-typing trainer: type the Qur'an in Recitation, drill everyday words in Practice.",
   "scripts": {

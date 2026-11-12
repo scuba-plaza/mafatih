@@ -44,7 +44,7 @@ export const en = {
   "about.codeNote": "The whole site is open to read.",
   "about.madeHeading": "How this site was made",
   "about.made":
-    "This site was mostly written by an AI assistant ({assistant}) and reviewed by its owner. Please report mistakes, especially in the Arabic wording.",
+    "This site was mostly written by an AI assistant ({assistant}). The Arabic wording has not been checked by a native speaker, and the Practice words were chosen by a program and have not been checked word by word. Please report mistakes.",
   "typing.text": "Text to type",
   "typing.inputLabel": "Type the text shown",
   "typing.start": "Start typing",

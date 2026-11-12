@@ -65,13 +65,17 @@ test("every link that leaves the site carries noopener and noreferrer", async ({
   }
 });
 
-test("the notice says the site was mostly written by an AI assistant and asks for mistakes to be reported", async ({
+test("the notice says the site was mostly written by an AI assistant, that the Arabic and the word list are not human-checked, and asks for mistakes", async ({
   page,
 }) => {
   await page.goto("/#/about");
   const notice = page.getByRole("region", { name: "How this site was made" });
   await expect(notice).toContainText("mostly written by an AI assistant");
-  await expect(notice).toContainText("especially in the Arabic wording");
+  await expect(notice).toContainText("The Arabic wording has not been checked by a native speaker");
+  await expect(notice).toContainText(
+    "the Practice words were chosen by a program and have not been checked word by word",
+  );
+  await expect(notice).toContainText("Please report mistakes");
 });
 
 test("About in Arabic is Arabic, and the names of the sources keep their own language", async ({ page }) => {

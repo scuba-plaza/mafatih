@@ -11,7 +11,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. It has two 
 
 **Try it: <https://mafatih.tasrif.xyz/>**
 
-**Status:** the Practice word list and the Arabic wording of the interface are still waiting for a native reader's review, and the manual device checklist (`docs/QA-DEVICES.md`) has not been run.
+**Status: not human verified.** The Practice word list was chosen by a program and skimmed by the owner, not checked word by word. The Arabic wording of the interface has not been read by a native speaker. The manual device checklist (`docs/QA-DEVICES.md`) has not been run, and the Firefox and WebKit projects have never run. Reports of mistakes are welcome.
 
 ## What you can do
 
@@ -35,6 +35,10 @@ There is no account and nothing to sign up for, no cookies and no analytics. You
 - Recitation: Abdul Basit ʿAbd us-Samad, from the [EveryAyah](https://everyayah.com) archive.
 - Practice words: the English Wiktionary via [kaikki.org](https://kaikki.org/dictionary/Arabic/) (CC BY-SA 4.0 and GFDL) and the [FrequencyWords](https://github.com/hermitdave/FrequencyWords) list (CC BY-SA 4.0).
 - Fonts: Noto Naskh Arabic, Amiri, Scheherazade New (SIL Open Font License), through Fontsource.
+
+## Licence
+
+The code is MIT (see `LICENSE`). The Qur'an text, the word list, the audio and the fonts keep the licences named under Credits.
 
 ## For developers
 

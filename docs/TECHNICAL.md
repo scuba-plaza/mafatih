@@ -95,6 +95,6 @@ Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", s
 
 `.github/workflows/deploy.yml`: `pnpm verify` runs before the build on every push; the Pages deployment runs only for `main`. A separate `engines` job runs the whole suite in Firefox and WebKit on `main` and on demand; it does not gate the deploy.
 
-## Open questions for the owner
+## Verification status
 
-The Practice word list needs a native reader's sign-off (`data/practice/review-report.txt`, `blocklist.txt`, `reject.txt`) and the CC BY-SA 4.0 consequence needs confirming; Tanzil's terms ask that the text is reproduced appropriately (each generated file keeps its notice); the Arabic copy in `src/i18n/ar.ts` has not been read by a native speaker; the device checklist in `docs/QA-DEVICES.md` has not been run.
+Not human verified: the Practice word list (chosen by a program, skimmed by the owner, not read word by word), the Arabic copy in `src/i18n/ar.ts` (no native speaker has read it) and the device checklist in `docs/QA-DEVICES.md` (never run). The Firefox and WebKit projects have never run. The About page says the first two to users. The owner decided on 2026-11-12 to ship with these gaps and set the licence and Tanzil questions aside; the details are in the plan.
