@@ -51,7 +51,7 @@ test("a finished lesson is saved into Practice only, and the next lesson is alre
   const first = await typeLesson(page);
   const next = await shownText(page);
   expect(next).not.toBe(first);
-  await expect(hud(page).getByText(/^\d[\d,]* characters per minute, 100% accurate$/)).toBeVisible();
+  await expect(hud(page).getByText(/^\d[\d,]* characters per minute, \P{L}*100%\P{L}* accurate$/u)).toBeVisible();
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveCount(0);
@@ -84,6 +84,15 @@ test("mastering the newest key unlocks the next one: announced once, quietly, an
   await start(page);
   const status = hud(page).getByRole("status");
   await expect(status).toHaveText("");
+  await status.evaluate((element) => {
+    const heard: string[] = [];
+    Object.assign(window, { heard });
+    new MutationObserver(() => heard.push(element.textContent ?? "")).observe(element, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  });
   for (let lesson = 0; lesson < 6 && (await status.textContent()) === ""; lesson += 1) {
     await typeLesson(page);
   }
@@ -95,6 +104,63 @@ test("mastering the newest key unlocks the next one: announced once, quietly, an
   await typeLesson(page);
   await expect(status).toHaveText("");
   await expect(hud(page).getByText("11 of 44")).toBeVisible();
+  const heard = await page.evaluate(() => (window as unknown as { heard: string[] }).heard);
+  expect(heard.filter((text) => text !== "")).toHaveLength(1);
+});
+
+test("after Reset progress the readout forgets the last lesson and its unlock", async ({ page }) => {
+  await seedProfile(page, { stats: { practice: { ش: ONE_SAMPLE_SHORT } } });
+  await page.goto("/#/practice");
+  await start(page);
+  const status = hud(page).getByRole("status");
+  for (let lesson = 0; lesson < 6 && (await status.textContent()) === ""; lesson += 1) {
+    await typeLesson(page);
+  }
+  await expect(status).toHaveText(/^Unlocked:/);
+  await expect(hud(page).getByText(/characters per minute/)).toBeVisible();
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await dialog.getByRole("button", { name: "Reset progress" }).click();
+  await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(hud(page).getByText("10 of 44")).toBeVisible();
+  await expect(status).toHaveText("");
+  await expect(hud(page).getByText(/characters per minute/)).toHaveCount(0);
+  await expect(hud(page).getByText("Not yet")).toHaveCount(3);
+});
+
+test("another tab saving the profile does not rebuild the lesson being typed", async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto("/#/practice");
+  await start(page);
+  await typeKeys(page, keysOf(await shownText(page)).slice(0, 4));
+  const typed = await doneText(page);
+  expect(typed.length).toBeGreaterThan(0);
+  const other = await context.newPage();
+  await other.goto("/#/about");
+  await other.evaluate(() => {
+    const key = "mafatih:profile:2";
+    localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "{}"), null, 1));
+  });
+  await page.bringToFront();
+  await page.waitForTimeout(200);
+  expect(await doneText(page)).toBe(typed);
+});
+
+test("a key tried but never typed within the time limit shows no time yet", async ({ page }) => {
+  const missed = { attempts: 3, hits: 0, timed: 0, meanMs: 0, recentAccuracy: 0 };
+  await seedProfile(page, { stats: { practice: { ش: missed } } });
+  await page.goto("/#/practice");
+  await expect(hud(page).getByText("0%")).toBeVisible();
+  await expect(hud(page).getByText("0 ms")).toHaveCount(0);
+  await expect(hud(page).getByText("Not yet")).toHaveCount(2);
+});
+
+test("a newest key that is a mark is shown with its name", async ({ page }) => {
+  await seedProfile(page, { ladder: { unlocked: 37 } });
+  await page.goto("/#/practice");
+  await expect(hud(page).getByText("37 of 44")).toBeVisible();
+  await expect(hud(page).getByText("fatha", { exact: true })).toBeVisible();
 });
 
 test("a learner who has every key is told so", async ({ page }) => {
@@ -134,7 +200,7 @@ test("changing the vocalization builds a new lesson", async ({ page }) => {
   expect(await doneText(page)).toBe("");
 });
 
-test("Reset progress asks first, then clears keys and statistics but not settings or the place in the Qur'an", async ({
+test("Reset progress asks first, then clears keys, statistics and lesson history but not settings or the place in the Qur'an", async ({
   page,
 }) => {
   const recitation = { position: { surah: 36, ayah: 5 }, surahs: { 36: { typed: [[1, 4]], completions: 0 } } };
@@ -143,6 +209,7 @@ test("Reset progress asks first, then clears keys and statistics but not setting
     ladder: { unlocked: 20 },
     stats: { practice: { ش: stat }, recitation: { ب: stat }, custom: {} },
     recitation,
+    history: [{ at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 60_000, accuracy: 0.98 }],
     settings: { fontSize: 56 },
   });
   await page.goto("/#/practice");
@@ -151,12 +218,13 @@ test("Reset progress asks first, then clears keys and statistics but not setting
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
   const group = dialog.getByRole("group", { name: "Reset progress?" });
-  await expect(group).toHaveAccessibleDescription(/unlocked keys and your key statistics/);
+  await expect(group).toHaveAccessibleDescription(/unlocked keys, your key statistics and your lesson history/);
   const keep = group.getByRole("button", { name: "Keep my progress" });
   await expect(keep).toBeFocused();
   await keep.click();
   await expect(group).toHaveCount(0);
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 20 });
+  expect((await savedProfile(page)).history).toHaveLength(1);
   await dialog.getByRole("button", { name: "Reset progress" }).click();
   await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
   await expect(dialog.getByRole("status")).toHaveText("Progress was reset.");
@@ -164,6 +232,7 @@ test("Reset progress asks first, then clears keys and statistics but not setting
   const profile = await savedProfile(page);
   expect(profile.ladder).toEqual({ unlocked: 10 });
   expect(profile.stats).toEqual({ practice: {}, recitation: {}, custom: {} });
+  expect(profile.history).toEqual([]);
   expect(profile.recitation).toEqual(recitation);
   expect((profile.settings as { fontSize: number }).fontSize).toBe(56);
   await dialog.getByRole("button", { name: "Done" }).click();

@@ -7,6 +7,7 @@ import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { Hud, type LastLesson } from "./Hud.tsx";
+import { focusRung } from "./ladder.ts";
 import { buildPracticeLesson } from "./lesson.ts";
 import { applyPracticeLesson } from "./outcome.ts";
 import { loadWords, type PracticeWord } from "./words.ts";
@@ -25,10 +26,8 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
 
   const finish = useCallback(
     ({ metrics, samples }: TrainerResult) => {
-      const outcome: { unlocked?: LastLesson["unlocked"] } = {};
-      update((current) => {
+      const next = update((current) => {
         const result = applyPracticeLesson({ stats: current.stats.practice, progress: current.ladder }, samples);
-        outcome.unlocked = result.unlocked;
         const lesson = {
           at: Date.now(),
           mode: "practice",
@@ -43,12 +42,13 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
           history: recordLesson(current.history, lesson),
         };
       });
-      setLast({ metrics, unlocked: outcome.unlocked });
+      setLast({ metrics, unlocked: next.ladder.unlocked > unlocked ? focusRung(next.ladder) : undefined });
       setSeed(Date.now());
     },
-    [update],
+    [update, unlocked],
   );
 
+  const noPractice = Object.keys(stats.practice).length === 0;
   const trainer = useTrainer({ prompt, options: { requireBackspace: settings.requireBackspace }, onComplete: finish });
   const { focus } = trainer;
 
@@ -60,7 +60,12 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
 
   return (
     <>
-      <Hud progress={{ unlocked }} stats={stats.practice} vocalization={settings.vocalization} last={last} />
+      <Hud
+        progress={{ unlocked }}
+        stats={stats.practice}
+        vocalization={settings.vocalization}
+        last={noPractice ? null : last}
+      />
       <TypingSurface trainer={trainer} settings={settings} />
     </>
   );
@@ -80,7 +85,7 @@ export function PracticePage() {
       <div>
         <PageHeading>{t("nav.practice")}</PageHeading>
         <p className="text-sm text-muted">{t("practice.subtitle")}</p>
-        <p role="status" className="text-sm text-muted">
+        <p role="status" className="min-h-5 text-sm text-muted">
           {words === null && !failed ? t("practice.loading") : ""}
         </p>
       </div>

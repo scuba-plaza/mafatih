@@ -3,7 +3,7 @@ import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
 import { isFullyVocalized, isMark, skeleton } from "~/text/arabic.ts";
 import type { Prompt } from "~/text/prompt.ts";
 import { initialProgress, type LadderProgress, unlockedLetters } from "./ladder.ts";
-import { buildPracticeLesson } from "./lesson.ts";
+import { buildPracticeLesson, drilledRung } from "./lesson.ts";
 import { loadWords, type PracticeWord } from "./words.ts";
 
 const FATHA = String.fromCodePoint(0x64e);
@@ -223,4 +223,16 @@ test("a list of one or two words still ends", () => {
   ]);
   expect(wordsOf(one)).toEqual(["بَابٌ"]);
   expect(wordsOf(two)).toHaveLength(4);
+});
+
+test("the key a lesson drills is the newest letter, or the newest mark when that mark is typed at the chosen level", () => {
+  const kasratan = String.fromCodePoint(0x64d);
+  expect(drilledRung({ unlocked: 10 }, "auto")).toEqual({ kind: "letter", char: "ش" });
+  expect(drilledRung({ unlocked: 10 }, "letters")).toEqual({ kind: "letter", char: "ش" });
+  expect(drilledRung({ unlocked: 37 }, "auto")).toEqual({ kind: "mark", char: FATHA });
+  expect(drilledRung({ unlocked: 37 }, "letters")).toBeUndefined();
+  expect(drilledRung({ unlocked: 37 }, "harakat")).toEqual({ kind: "mark", char: FATHA });
+  expect(drilledRung({ unlocked: 42 }, "harakat")).toBeUndefined();
+  expect(drilledRung({ unlocked: 42 }, "full")).toEqual({ kind: "mark", char: String.fromCodePoint(0x64b) });
+  expect(drilledRung({ unlocked: 43 }, "auto")).toEqual({ kind: "mark", char: kasratan });
 });

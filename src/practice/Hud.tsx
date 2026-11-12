@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { markNameKey } from "~/i18n/keyNames.ts";
 import { type KeyStats, statOf } from "~/stats/keystats.ts";
 import { carriedMark } from "~/text/arabic.ts";
-import { requiredMarks, type Vocalization } from "~/text/vocalization.ts";
+import type { Vocalization } from "~/text/vocalization.ts";
 import type { Metrics } from "~/typing/session.ts";
-import { focusRung, LADDER, type LadderProgress, type Rung, unlockedMarks } from "./ladder.ts";
+import { LADDER, type LadderProgress, type Rung } from "./ladder.ts";
+import { drilledRung } from "./lesson.ts";
 
 export interface LastLesson {
   readonly metrics: Metrics;
@@ -20,36 +22,37 @@ export interface HudProps {
 
 function Item({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex gap-1.5">
-      <dt className="text-muted">{label}</dt>
+    <div className="flex flex-wrap gap-x-1.5">
+      <dt className="whitespace-nowrap text-muted">{label}</dt>
       <dd className="font-medium">{children}</dd>
     </div>
   );
 }
 
-function isTyped(rung: Rung, progress: LadderProgress, vocalization: Vocalization): boolean {
-  return rung.kind === "letter" || requiredMarks(vocalization, unlockedMarks(progress)).has(rung.char);
-}
-
 export function Hud({ progress, stats, vocalization, last }: HudProps) {
   const { t, formatPercent } = useI18n();
   const total = LADDER.rungs.length;
-  const rung = focusRung(progress);
   const finished = progress.unlocked >= total;
-  const drilled = rung !== undefined && !finished && isTyped(rung, progress, vocalization);
+  const rung = finished ? undefined : drilledRung(progress, vocalization);
   const stat = rung === undefined ? undefined : statOf(stats, rung.char);
   const typed = stat !== undefined && stat.attempts > 0;
+  const nameKey = rung === undefined ? undefined : markNameKey(rung.char);
+  const unlockedKey = last?.unlocked;
+  const unlockedName = unlockedKey === undefined ? undefined : markNameKey(unlockedKey.char);
   const announcement =
-    last?.unlocked === undefined ? "" : t("hud.unlockedKey", { key: carriedMark(last.unlocked.char) });
+    unlockedKey === undefined
+      ? ""
+      : t("hud.unlockedKey", { key: unlockedName === undefined ? unlockedKey.char : t(unlockedName) });
 
   return (
     <section aria-label={t("hud.label")} className="flex flex-col gap-1 rounded-md border border-line bg-surface p-3">
       <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
         <Item label={t("hud.keys")}>{t("hud.keysValue", { count: progress.unlocked, total })}</Item>
-        {drilled && (
+        {rung !== undefined && (
           <>
             <Item label={t("hud.newest")}>
               <span lang="ar">{carriedMark(rung.char)}</span>
+              {nameKey !== undefined && <span className="ms-1.5">{t(nameKey)}</span>}
             </Item>
             <Item label={t("result.accuracy")}>{typed ? formatPercent(stat.recentAccuracy) : t("hud.none")}</Item>
             <Item label={t("hud.time")}>
@@ -60,14 +63,11 @@ export function Hud({ progress, stats, vocalization, last }: HudProps) {
         <Item label={t("hud.last")}>
           {last === null
             ? t("hud.none")
-            : t("hud.lastValue", {
-                speed: last.metrics.cpm,
-                accuracy: Math.round(last.metrics.accuracy * 100),
-              })}
+            : t("hud.lastValue", { speed: last.metrics.cpm, accuracy: formatPercent(last.metrics.accuracy) })}
         </Item>
       </dl>
       {finished && <p className="text-sm text-muted">{t("hud.allUnlocked")}</p>}
-      {!finished && !drilled && <p className="text-sm text-muted">{t("hud.marksNotTyped")}</p>}
+      {!finished && rung === undefined && <p className="text-sm text-muted">{t("hud.marksNotTyped")}</p>}
       <p role="status" className="min-h-5 text-sm font-medium">
         {announcement}
       </p>

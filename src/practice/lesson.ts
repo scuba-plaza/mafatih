@@ -1,7 +1,7 @@
 import { skeleton } from "~/text/arabic.ts";
 import { buildPrompt, type Prompt } from "~/text/prompt.ts";
 import { requiredMarks, type Vocalization } from "~/text/vocalization.ts";
-import { focusRung, type LadderProgress, unlockedLetters, unlockedMarks } from "./ladder.ts";
+import { focusRung, type LadderProgress, type Rung, unlockedLetters, unlockedMarks } from "./ladder.ts";
 import type { PracticeWord } from "./words.ts";
 
 interface PracticeOptions {
@@ -33,10 +33,17 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-function choicesFor(words: readonly PracticeWord[], progress: LadderProgress, required: ReadonlySet<string>): Choice[] {
+export function drilledRung(progress: LadderProgress, vocalization: Vocalization): Rung | undefined {
+  const rung = focusRung(progress);
+  const typed =
+    rung !== undefined &&
+    (rung.kind === "letter" || requiredMarks(vocalization, unlockedMarks(progress)).has(rung.char));
+  return typed ? rung : undefined;
+}
+
+function choicesFor(words: readonly PracticeWord[], progress: LadderProgress, vocalization: Vocalization): Choice[] {
   const letters = unlockedLetters(progress);
-  const focus = focusRung(progress);
-  const drilled = focus !== undefined && (focus.kind === "letter" || required.has(focus.char)) ? focus.char : undefined;
+  const drilled = drilledRung(progress, vocalization)?.char;
   const rarest = words.reduce((highest, entry) => Math.max(highest, entry.rank), 1);
   const usable = words
     .map((entry) => ({ entry, spelling: skeleton(entry.word) }))
@@ -68,7 +75,7 @@ export function buildPracticeLesson(options: PracticeOptions): Prompt {
   const { words, progress, vocalization, seed } = options;
   const required = requiredMarks(vocalization, unlockedMarks(progress));
   const random = mulberry32(seed);
-  const choices = choicesFor(words, progress, required);
+  const choices = choicesFor(words, progress, vocalization);
   const chosen: string[] = [];
   const times = new Map<string, number>();
   let typed = 0;

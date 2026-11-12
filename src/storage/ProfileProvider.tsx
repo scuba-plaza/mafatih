@@ -11,7 +11,7 @@ import {
 export interface ProfileState {
   readonly profile: Profile;
   readonly notice: StorageNotice;
-  readonly update: (change: (profile: Profile) => Profile) => void;
+  readonly update: (change: (profile: Profile) => Profile) => Profile;
 }
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -38,10 +38,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const update = useCallback(
-    (change: (profile: Profile) => Profile) => {
+    (change: (profile: Profile) => Profile): Profile => {
       const current = latest.current;
       const profile = change(current.profile);
       adopt({ ...current, profile, notice: current.save(profile) ?? current.notice });
+      return profile;
     },
     [adopt],
   );

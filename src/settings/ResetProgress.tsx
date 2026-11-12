@@ -25,11 +25,6 @@ export function ResetProgress() {
     }
   }, [confirming]);
 
-  const ask = () => {
-    setDone(false);
-    setConfirming(true);
-  };
-
   const answer = (reset: boolean) => {
     restoreFocus.current = true;
     if (reset) {
@@ -37,9 +32,10 @@ export function ResetProgress() {
         ...current,
         ladder: initialProgress(),
         stats: { practice: {}, recitation: {}, custom: {} },
+        history: [],
       }));
-      setDone(true);
     }
+    setDone(reset);
     setConfirming(false);
   };
 
@@ -61,7 +57,7 @@ export function ResetProgress() {
           </div>
         </fieldset>
       ) : (
-        <button type="button" ref={opener} onClick={ask} className={BUTTON}>
+        <button type="button" ref={opener} onClick={() => setConfirming(true)} className={BUTTON}>
           {t("settings.reset")}
         </button>
       )}
