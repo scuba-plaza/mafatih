@@ -5,6 +5,8 @@ export type Route =
   | { page: "stats" }
   | { page: "about" };
 
+export type RecitationRoute = Extract<Route, { page: "recitation" }>;
+
 const SURAHS = 114;
 const LONGEST_SURAH = 286;
 const WHOLE = /^[1-9]\d{0,2}$/;

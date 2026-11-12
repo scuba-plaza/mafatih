@@ -23,3 +23,8 @@ export function useRoute(): Route {
 
   return route;
 }
+
+export function replaceRoute(route: Route): void {
+  window.history.replaceState(null, "", formatRoute(route));
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+}

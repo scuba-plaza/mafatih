@@ -24,6 +24,8 @@ export interface TrainerConfig {
   readonly prompt: Prompt;
   readonly options: SessionOptions;
   readonly onComplete: (result: TrainerResult) => void;
+  readonly checkpoints?: readonly number[];
+  readonly onCheckpoint?: (index: number, samples: readonly Sample[]) => void;
 }
 
 export interface Trainer {
@@ -37,16 +39,24 @@ export interface Trainer {
   readonly restart: () => void;
 }
 
-export function useTrainer({ prompt, options, onComplete }: TrainerConfig): Trainer {
+const NO_CHECKPOINTS: readonly number[] = [];
+
+export function useTrainer(config: TrainerConfig): Trainer {
+  const { prompt, options, onComplete, checkpoints = NO_CHECKPOINTS, onCheckpoint } = config;
   const [session, setSession] = useState(() => createSession(prompt));
   const [wrongLayout, setWrongLayout] = useState(false);
   const optionsRef = useRef(options);
   const onCompleteRef = useRef(onComplete);
+  const checkpointsRef = useRef(checkpoints);
+  const onCheckpointRef = useRef(onCheckpoint);
   const reported = useRef<Session | null>(null);
+  const passed = useRef({ prompt, checkpoints: 0, samples: 0 });
 
   useEffect(() => {
     optionsRef.current = options;
     onCompleteRef.current = onComplete;
+    checkpointsRef.current = checkpoints;
+    onCheckpointRef.current = onCheckpoint;
   });
 
   if (session.prompt !== prompt) {
@@ -78,6 +88,22 @@ export function useTrainer({ prompt, options, onComplete }: TrainerConfig): Trai
     document.addEventListener("visibilitychange", pauseWhenHidden);
     return () => document.removeEventListener("visibilitychange", pauseWhenHidden);
   }, []);
+
+  useEffect(() => {
+    const marks = checkpointsRef.current;
+    if (passed.current.prompt !== session.prompt || session.samples.length < passed.current.samples) {
+      passed.current = { prompt: session.prompt, checkpoints: 0, samples: 0 };
+    }
+    for (
+      let index = passed.current.checkpoints;
+      session.cursor > (marks[index] ?? Number.POSITIVE_INFINITY);
+      index += 1
+    ) {
+      const samples = session.samples.slice(passed.current.samples);
+      passed.current = { prompt: session.prompt, checkpoints: index + 1, samples: session.samples.length };
+      onCheckpointRef.current?.(index, samples);
+    }
+  }, [session]);
 
   useEffect(() => {
     if (isComplete(session) && session.finishedAt !== null && reported.current !== session) {

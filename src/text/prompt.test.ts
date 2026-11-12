@@ -165,3 +165,12 @@ test("there is no word at the end of the text, after trailing spaces or outside 
   expect(wordAt(prompt, -4)).toBe("\u0628\u062A");
   expect(wordAt(buildPrompt("", NONE), 0)).toBe("");
 });
+
+test("a no-break space ends a word too, so an ayah sign glued to a word is not part of it", () => {
+  const sign = "\u06DD\u0661";
+  const prompt = buildPrompt(`\u0628\u062A\u00A0${sign} \u0646\u0645`, NONE);
+  expect(wordAt(prompt, 0)).toBe("\u0628\u062A");
+  expect(wordAt(prompt, 1)).toBe("\u0628\u062A");
+  expect(wordAt(prompt, 5)).toBe("\u0646\u0645");
+  expect(wordAt(prompt, prompt.units[2]?.start ?? -1)).toBe("\u0646\u0645");
+});

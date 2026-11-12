@@ -5,12 +5,12 @@ import { buildPrompt, type Prompt } from "~/text/prompt.ts";
 import { requiredMarks } from "~/text/vocalization.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
+import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
+import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { CUSTOM_TEXT_LIMIT, hasSomethingToType, prepareCustomText } from "./text.ts";
 
 const NO_MARKS_UNLOCKED: ReadonlySet<string> = new Set();
-const BUTTON = "min-h-11 rounded-md border border-line bg-surface px-4 text-sm font-medium";
-const PRIMARY_BUTTON = "min-h-11 rounded-md bg-accent px-4 text-sm font-medium text-on-accent";
 
 interface TextFormProps {
   readonly initial: string;
@@ -90,11 +90,9 @@ interface LessonProps {
 }
 
 function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
-  const { t, formatNumber, formatPercent } = useI18n();
+  const { t } = useI18n();
   const { settings } = useProfile().profile;
   const [result, setResult] = useState<TrainerResult | null>(null);
-  const summaryHeading = useRef<HTMLHeadingElement>(null);
-  const figuresId = useId();
   const trainer = useTrainer({
     prompt,
     options: { requireBackspace: settings.requireBackspace },
@@ -108,12 +106,6 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
     }
   }, [startNow, focus]);
 
-  useEffect(() => {
-    if (result !== null) {
-      summaryHeading.current?.focus();
-    }
-  }, [result]);
-
   return (
     <div className="flex flex-col gap-3">
       {shortened && <p className="text-sm text-muted">{t("custom.shortened", { limit: CUSTOM_TEXT_LIMIT })}</p>}
@@ -125,34 +117,21 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          <h2 ref={summaryHeading} tabIndex={-1} aria-describedby={figuresId} className="text-lg font-semibold">
-            {t("result.title")}
-          </h2>
-          <dl id={figuresId} className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-1 text-sm">
-            <dt className="text-muted">{t("result.speed")}</dt>
-            <dd>{formatNumber(result.metrics.cpm)}</dd>
-            <dt className="text-muted">{t("result.accuracy")}</dt>
-            <dd>{formatPercent(result.metrics.accuracy)}</dd>
-            <dt className="text-muted">{t("result.mistakes")}</dt>
-            <dd>{formatNumber(result.metrics.errors)}</dd>
-          </dl>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setResult(null);
-                trainer.restart();
-              }}
-              className={PRIMARY_BUTTON}
-            >
-              {t("result.again")}
-            </button>
-            <button type="button" onClick={onEdit} className={BUTTON}>
-              {t("custom.edit")}
-            </button>
-          </div>
-        </div>
+        <LessonSummary metrics={result.metrics}>
+          <button
+            type="button"
+            onClick={() => {
+              setResult(null);
+              trainer.restart();
+            }}
+            className={PRIMARY_BUTTON}
+          >
+            {t("result.again")}
+          </button>
+          <button type="button" onClick={onEdit} className={BUTTON}>
+            {t("custom.edit")}
+          </button>
+        </LessonSummary>
       )}
     </div>
   );

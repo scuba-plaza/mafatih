@@ -1,4 +1,4 @@
-import { buildPrompt, type Prompt } from "~/text/prompt.ts";
+import { buildPrompt, NO_BREAK_SPACE, type Prompt } from "~/text/prompt.ts";
 import type { Surah } from "./quran.ts";
 
 export interface Span {
@@ -21,7 +21,6 @@ export interface Passage {
   readonly basmala: Span | null;
 }
 
-const NO_BREAK_SPACE = "\u00A0";
 const END_OF_AYAH = "\u06DD";
 const ARABIC_ZERO = 0x660;
 

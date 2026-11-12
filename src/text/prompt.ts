@@ -2,6 +2,8 @@ import { LIGATURE_KEYS } from "~/keyboard/ligatures.ts";
 import { isTypeable } from "~/keyboard/typeable.ts";
 import { isMark } from "./arabic.ts";
 
+export const NO_BREAK_SPACE = "\u00A0";
+
 export interface Unit {
   readonly text: string;
   readonly start: number;
@@ -55,7 +57,7 @@ export function buildPrompt(shown: string, required: ReadonlySet<string>, breaks
 
 export function wordAt(prompt: Prompt, offset: number): string {
   const { shown, breaks } = prompt;
-  const isSpace = (index: number) => shown.charAt(index) === " ";
+  const isSpace = (index: number) => shown.charAt(index) === " " || shown.charAt(index) === NO_BREAK_SPACE;
   let start = Math.max(0, offset);
   while (start < shown.length && isSpace(start)) {
     start += 1;

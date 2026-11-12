@@ -7,6 +7,10 @@ export async function seedSettings(page: Page, settings: Record<string, unknown>
   await page.addInitScript(([key, stored]) => localStorage.setItem(key, stored), [PROFILE_KEY, value] as const);
 }
 
+export async function savedProfile(page: Page): Promise<Record<string, unknown>> {
+  return page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}"), PROFILE_KEY);
+}
+
 export async function savedSettings(page: Page): Promise<Record<string, unknown>> {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}").settings ?? {}, PROFILE_KEY);
 }

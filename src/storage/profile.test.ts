@@ -11,6 +11,8 @@ const OTHER_DEFAULTS = {
   showKeyboard: true,
   fingerGuide: true,
   customText: "",
+  ayatPerLesson: 4,
+  surahOrder: "mushaf",
 } as const;
 const NO_PROGRESS = {
   ladder: { unlocked: 10 },
@@ -84,6 +86,8 @@ test("a saved profile is read back as it was, whatever the browser's language is
       showKeyboard: true,
       fingerGuide: true,
       customText: "",
+      ayatPerLesson: 4,
+      surahOrder: "mushaf",
     },
     ladder: { unlocked: 10 },
     stats: { practice: {}, recitation: {}, custom: {} },
@@ -154,6 +158,7 @@ test("unknown and dangerous keys in saved data are never copied into the profile
   expect(Object.keys(profile)).toEqual(["schema", "settings", "ladder", "stats", "history", "recitation"]);
   expect(Object.keys(profile.settings).sort()).toEqual(
     [
+      "ayatPerLesson",
       "customText",
       "fingerGuide",
       "font",
@@ -161,6 +166,7 @@ test("unknown and dangerous keys in saved data are never copied into the profile
       "language",
       "requireBackspace",
       "showKeyboard",
+      "surahOrder",
       "vocalization",
     ].sort(),
   );
@@ -217,6 +223,8 @@ test("every setting and all progress survive being saved and opened again", () =
       showKeyboard: false,
       fingerGuide: false,
       customText: "بسم الله",
+      ayatPerLesson: 2,
+      surahOrder: "juz-amma",
     },
     ladder: { unlocked: 12 },
     stats: {

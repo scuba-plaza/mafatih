@@ -358,7 +358,7 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 | 11 | Key stats and the unlock ladder | done |
 | 12a | Practice lesson generator, the lesson outcome and the lesson history (pure) | done |
 | 13 | Qur'an data and the recitation domain | done |
-| 14a | Passage typing slice: the surface for Qur'an text, checkpoints, the passage view | to do |
+| 14a | Passage typing slice: the surface for Qur'an text, checkpoints, the passage view | in review |
 
 ### Task 9a: Guide logic, guide settings and acceptance specs (done)
 
@@ -454,18 +454,25 @@ What was decided on the way, and why:
 
 ### Task 14a: Passage typing slice (surface, checkpoints, passage view)
 
-**Files:** Create `src/recitation/{RecitationPage.tsx,useRecitation.ts,outcome.ts}`, `src/ui/LessonSummary.tsx`, `e2e/recitation.spec.ts`; extend `TypingSurface`, `useTrainer`, `Settings` (`ayatPerLesson`, default 4).
+**Files:** `src/recitation/{RecitationPage.tsx,useRecitation.ts,outcome.ts,outcome.test.ts}`, `src/ui/{LessonSummary.tsx,styles.ts}`, `e2e/recitation.spec.ts`; extended `TypingSurface`, `useTrainer`, `Settings` (`ayatPerLesson`, `surahOrder`), `src/app/{App.tsx,routes.ts,useRoute.ts}`, `src/text/prompt.ts`, the messages, `e2e/{shell,storage}.spec.ts`.
 
 **Interfaces:**
 - Consumes: Tasks 8, 13, 7.
-- Produces: `<RecitationPage route />` showing one passage: `#/recitation/36/21` is Ya-Sin from ayah 21, `#/recitation/36` resumes that surah, and `#/` resumes the saved position (Task 14b turns `#/` into the surah map); `useTrainer` gains `onCheckpoint` (called once for each ayah as its last unit is typed); `applyRecitationAyah(state, ...)` in `outcome.ts`, the one place where a typed ayah changes the profile (`stats.recitation` and `recitation` progress, never `ladder`); `<LessonSummary>` (the finished heading described by its figures, extracted from Custom) with its action buttons passed in.
-- Surface contract for Qur'an text: the basmala is a centred block of its own; ayah end signs are part of `shown`, never typed, and tinted with a second CSS highlight (`mafatih-apparatus`, `muted`), so no span ever splits the text; every character of the source, dagger alef included, is on screen at every vocalization level (Q1).
+- Settings: `ayatPerLesson` (a whole number from 1 to 20, default 4; `MAX_AYAT_PER_LESSON`) and `surahOrder` (`"mushaf"` by default). Task 14b gives them their controls.
+- `applyRecitationAyah(state: { stats: KeyStats; recitation: RecitationProgress }, position, samples, order): { stats; recitation; completion }` in `outcome.ts`, the one place where a typed ayah changes the profile: `stats.recitation` and the `recitation` progress, never `ladder`. An ayah that does not exist records nothing.
+- `useTrainer` gains `checkpoints` (unit indices, ascending) and `onCheckpoint(index, samples)`: called once when the unit at a checkpoint has been typed, with the samples typed since the checkpoint before. Recitation passes each ayah's `lastUnit`, so every sample of a passage is handed over exactly once and the basmala's keys go with the first ayah. A restart or a new prompt starts the count again.
+- `TypingSurface` gains `centredOpening` (the first block, the basmala, is centred) and `apparatus` (spans of `shown` that are tinted `muted` through a second CSS highlight, `mafatih-apparatus`, with priority over `mafatih-done`; no span ever splits the text). `wordAt` treats the no-break space as a word boundary, so the word announced next is never an ayah sign. The Start button is 44 px high in a bar of constant height.
+- `<LessonSummary metrics>` (`src/ui/`): the finished heading, focused when it appears and described by its figures; the action buttons are its children. `BUTTON` and `PRIMARY_BUTTON` live in `src/ui/styles.ts`. Custom uses both.
+- `<RecitationPage route />` and `useRecitation(route)`: one passage of `ayatPerLesson` ayat. **The address names where the passage starts**: `#/recitation/36/21` is Ya-Sin from ayah 21 (an ayah past the end shows the last one); `#/recitation/36` resumes that surah at its first missing ayah (`resumeOf`); `#/` resumes the saved position (`startOf`; Task 14b turns `#/` into the surah map). The start is worked out once per address, so saving an ayah in the middle of a passage never rebuilds the passage. Next passage goes to `positionAfter` the last ayah with `replaceRoute` (`history.replaceState` plus a `hashchange`, so no history entry per passage) and moves focus into the typing field; Type again restarts the same passage. Each finished ayah is saved at once; a finished passage adds one `recordLesson` entry with mode `"recitation"`. On `auto` the marks to type are the ones unlocked on the Practice ladder; letters are never locked here.
+- The heading is the surah's name (transliterated name plus the Arabic name in the English interface, the Arabic name alone in the Arabic one) with "Ayat 1 to 4 of 7" under it; the document title stays "Recitation". While a surah loads there is a polite status; if its chunk cannot be fetched there is an alert and a Reload button (a failed dynamic import cannot be retried in place).
+- Left for Task 14b: the surah map, the passage bar, the completion panel (the outcome's `completion` is already there to use) and the controls of the two settings.
 
-- [ ] Test (S5): a fresh user opens a surah and types it; progress is saved ayah by ayah (reload resumes after the last finished ayah); the address follows the passage with `replaceState`; the basmala is a centred block of its own; ayah signs are tinted by the apparatus highlight and never typed; the full text, dagger alef included, is on screen at every vocalization level (Q1); typing `letters` only completes the surah.
-- [ ] Test (S5): a finished passage shows the summary with Type again and Next passage, keystrokes are ignored until one is chosen, and Next passage crosses into the next surah; completion is quiet (Q3).
-- [ ] Test (S5, Review Focus 4): `2:282` with `ayatPerLesson = 1` renders, scrolls the caret line into view and completes; the median keystroke-to-paint time stays under 50 ms with 4x CPU throttling on `chromium-mobile`.
-- [ ] Test (S5): recitation typing writes `stats.recitation` and leaves `ladder` unchanged (D4); all letters are typeable regardless of unlocks.
-- [ ] Implement. Gate, review, commit.
+- [x] Test (S1): the two settings and their bounds; `applyRecitationAyah` records an ayah with its keys, reports the completing ayah and ignores an ayah that does not exist; a no-break space ends a word.
+- [x] Test (S5): a first visit opens the first surah, ready to type, with no accessibility violations; every character of the source, dagger alef included, is on screen at all four vocalization levels (Q1); the basmala is a centred block of its own and the caret stays on its line after its last letter; the signs are in the apparatus highlight (also while a mistake is shown), are never typed, and typing letters only completes the surah, quietly (Q3: no dialog, no alert); the word announced next is never a sign.
+- [x] Test (S5): progress is saved ayah by ayah into `recitation` and `stats.recitation` only (`ladder`, `stats.practice` untouched, D4; letters outside the unlocked set are typeable) and a reload resumes after the last finished ayah; a finished passage shows the summary, ignores further keys, adds one history record, and Next passage follows the text with `replaceState`, also into the next surah; Type again starts the passage over.
+- [x] Test (S5): an address past the end; the Arabic interface; a surah that cannot be loaded and the reload.
+- [x] Test (S5, Review Focus 4): `2:282` alone (679 keys at `letters`) renders, keeps the caret line in view and completes; the median time from input to paint over 160 keys stays under 50 ms with 4x CPU throttling on `chromium-mobile` (measured: 16 ms).
+- [ ] Gate, review, fix, commit.
 
 ---
 

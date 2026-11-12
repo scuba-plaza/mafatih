@@ -24,3 +24,7 @@ button {
 ::highlight(mafatih-done) {
   color: var(--color-accent);
 }
+
+::highlight(mafatih-apparatus) {
+  color: var(--color-muted);
+}

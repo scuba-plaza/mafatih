@@ -13,6 +13,8 @@ const DEFAULTS = {
   showKeyboard: true,
   fingerGuide: true,
   customText: "",
+  ayatPerLesson: 4,
+  surahOrder: "mushaf",
 };
 
 test("the defaults: errors must be corrected with Backspace, vocalization follows progress", () => {
@@ -31,6 +33,8 @@ test("valid saved settings are kept", () => {
     showKeyboard: false,
     fingerGuide: false,
     customText: "بسم الله",
+    ayatPerLesson: 7,
+    surahOrder: "juz-amma",
   };
   expect(sanitizeSettings(saved, ENGLISH)).toEqual(saved);
 });
@@ -90,4 +94,22 @@ test("the keyboard guide and its finger guide stay on unless they were really tu
       fingerGuide: true,
     });
   }
+});
+
+test("a passage holds one to twenty ayat: anything else is brought into range or falls back to four", () => {
+  const perLesson = (value: unknown) => sanitizeSettings({ ayatPerLesson: value }, ENGLISH).ayatPerLesson;
+  expect([1, 4, 20].map(perLesson)).toEqual([1, 4, 20]);
+  expect([0, -3, 21, 400, Number.POSITIVE_INFINITY].map(perLesson)).toEqual([1, 1, 20, 20, 20]);
+  expect([2.7, "5", null, Number.NaN, undefined].map(perLesson)).toEqual([2, 4, 4, 4, 4]);
+});
+
+test("the surah order is the mushaf order unless Juz Amma first was chosen", () => {
+  const order = (value: unknown) => sanitizeSettings({ surahOrder: value }, ENGLISH).surahOrder;
+  expect(["mushaf", "juz-amma", "random", 3, undefined].map(order)).toEqual([
+    "mushaf",
+    "juz-amma",
+    "mushaf",
+    "mushaf",
+    "mushaf",
+  ]);
 });

@@ -1,5 +1,6 @@
 import { CustomPage } from "~/custom/CustomPage.tsx";
 import { I18nProvider, useI18n } from "~/i18n/I18nProvider.tsx";
+import { RecitationPage } from "~/recitation/RecitationPage.tsx";
 import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
 import { StorageNotice } from "~/storage/StorageNotice.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
@@ -18,7 +19,9 @@ function Pages() {
   return (
     <I18nProvider language={profile.settings.language}>
       <Shell page={route.page} banner={<StorageNotice />}>
-        {route.page === "custom" ? <CustomPage /> : <Placeholder page={route.page} />}
+        {route.page === "recitation" && <RecitationPage route={route} />}
+        {route.page === "custom" && <CustomPage />}
+        {route.page !== "recitation" && route.page !== "custom" && <Placeholder page={route.page} />}
       </Shell>
     </I18nProvider>
   );

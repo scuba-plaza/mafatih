@@ -7,14 +7,18 @@ import { isComplete, type Session, view } from "./session.ts";
 import type { Trainer } from "./useTrainer.ts";
 
 const DONE_HIGHLIGHT = "mafatih-done";
+const APPARATUS_HIGHLIGHT = "mafatih-apparatus";
+const NO_SPANS: readonly TextSpan[] = [];
 const VISIBLE_SPACE = "\u2423";
 const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
 
-interface Block {
+export interface TextSpan {
   readonly start: number;
   readonly end: number;
 }
+
+type Block = TextSpan;
 
 function blocksOf(session: Session): Block[] {
   const edges = [0, ...session.prompt.breaks, session.prompt.shown.length];
@@ -72,14 +76,19 @@ function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
   return edgeOf(range, "end");
 }
 
+function highlightRegistry(): HighlightRegistry | undefined {
+  return typeof CSS === "undefined" ? undefined : CSS.highlights;
+}
+
 function paintDone(paragraphs: readonly HTMLElement[], blockIndex: number, local: number): void {
-  if (typeof CSS === "undefined" || CSS.highlights === undefined) {
+  const highlights = highlightRegistry();
+  if (highlights === undefined) {
     return;
   }
   const first = paragraphs[0];
   const current = paragraphs[blockIndex];
   if (first === undefined || current === undefined) {
-    CSS.highlights.delete(DONE_HIGHLIGHT);
+    highlights.delete(DONE_HIGHLIGHT);
     return;
   }
   const range = document.createRange();
@@ -93,16 +102,64 @@ function paintDone(paragraphs: readonly HTMLElement[], blockIndex: number, local
   } else {
     range.setEnd(current, 0);
   }
-  CSS.highlights.set(DONE_HIGHLIGHT, new Highlight(range));
+  highlights.set(DONE_HIGHLIGHT, new Highlight(range));
+}
+
+function locate(paragraph: HTMLElement, local: number, edge: "start" | "end"): readonly [Text, number] | undefined {
+  let remaining = local;
+  for (const node of paragraph.childNodes) {
+    if (node instanceof Text) {
+      if (edge === "start" ? remaining < node.data.length : remaining <= node.data.length) {
+        return [node, remaining];
+      }
+      remaining -= node.data.length;
+    }
+  }
+  return undefined;
+}
+
+function paintApparatus(
+  paragraphs: readonly HTMLElement[],
+  blocks: readonly Block[],
+  spans: readonly TextSpan[],
+): void {
+  const highlights = highlightRegistry();
+  if (highlights === undefined) {
+    return;
+  }
+  const ranges = spans.flatMap((span) => {
+    const index = blocks.findIndex((block) => span.start >= block.start && span.end <= block.end);
+    const paragraph = paragraphs[index];
+    const offset = blocks[index]?.start ?? 0;
+    const from = paragraph === undefined ? undefined : locate(paragraph, span.start - offset, "start");
+    const to = paragraph === undefined ? undefined : locate(paragraph, span.end - offset, "end");
+    if (from === undefined || to === undefined) {
+      return [];
+    }
+    const range = document.createRange();
+    range.setStart(...from);
+    range.setEnd(...to);
+    return [range];
+  });
+  if (ranges.length === 0) {
+    highlights.delete(APPARATUS_HIGHLIGHT);
+    return;
+  }
+  const highlight = new Highlight(...ranges);
+  highlight.priority = 1;
+  highlights.set(APPARATUS_HIGHLIGHT, highlight);
 }
 
 export interface TypingSurfaceProps {
   readonly trainer: Trainer;
   readonly font: FontId;
   readonly fontSize: number;
+  readonly centredOpening?: boolean;
+  readonly apparatus?: readonly TextSpan[];
 }
 
-export function TypingSurface({ trainer, font, fontSize }: TypingSurfaceProps) {
+export function TypingSurface(props: TypingSurfaceProps) {
+  const { trainer, font, fontSize, centredOpening = false, apparatus = NO_SPANS } = props;
   const { t } = useI18n();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
   const textRef = useRef<HTMLDivElement>(null);
@@ -136,6 +193,7 @@ export function TypingSurface({ trainer, font, fontSize }: TypingSurfaceProps) {
         return;
       }
       paintDone(paragraphs, current, doneUntil - block.start);
+      paintApparatus(paragraphs, blocks, apparatus);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = rect === undefined;
       if (rect === undefined) {
@@ -170,7 +228,8 @@ export function TypingSurface({ trainer, font, fontSize }: TypingSurfaceProps) {
     return () => {
       observer.disconnect();
       document.fonts.removeEventListener("loadingdone", place);
-      CSS.highlights?.delete(DONE_HIGHLIGHT);
+      highlightRegistry()?.delete(DONE_HIGHLIGHT);
+      highlightRegistry()?.delete(APPARATUS_HIGHLIGHT);
     };
   }, []);
 
@@ -192,7 +251,7 @@ export function TypingSurface({ trainer, font, fontSize }: TypingSurfaceProps) {
         }}
       >
         {blocks.map((block, index) => (
-          <p key={block.start} data-block="">
+          <p key={block.start} data-block="" className={centredOpening && index === 0 ? "text-center" : undefined}>
             {index === current && mistakes !== "" ? (
               <>
                 {session.prompt.shown.slice(block.start, doneUntil)}
@@ -218,12 +277,12 @@ export function TypingSurface({ trainer, font, fontSize }: TypingSurfaceProps) {
           hidden
         />
       </div>
-      <div className="flex min-h-11 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-2 text-sm font-medium">
+      <div className="flex min-h-13 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1 text-sm font-medium">
         {!focused && !complete && (
           <button
             type="button"
             onClick={focus}
-            className="rounded-full border border-line px-4 py-1 after:absolute after:inset-0 after:rounded-md"
+            className="min-h-11 rounded-full border border-line px-4 after:absolute after:inset-0 after:rounded-md"
           >
             {t(session.startedAt === null ? "typing.start" : "typing.continue")}
           </button>
