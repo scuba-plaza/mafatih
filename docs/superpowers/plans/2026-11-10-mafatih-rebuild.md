@@ -354,7 +354,7 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 |---|---|---|
 | 0 to 8 | Tooling, i18n, shell, keyboard model, text model, session engine, input pipeline, storage, typing surface and Custom mode | done |
 | 9a | Guide logic, the two guide settings, finger tint tokens, acceptance specs for the Settings dialog and the guide | done |
-| 10 | Practice corpus pipeline and review gate | to do |
+| 10 | Practice corpus pipeline and review gate | done, owner sign-off open |
 | 11 | Key stats and the unlock ladder | in review |
 | 12a | Practice lesson generator and the lesson outcome (pure) | to do |
 | 13 | Qur'an data and the recitation domain | to do |
@@ -371,22 +371,28 @@ Part A is everything where a wrong decision is expensive or hard to see: the wor
 - [x] Test (S1): `guideFor`; the two settings' defaults and sanitizers; the tint contrast pairs.
 - [x] Implement. Gate, commit.
 
-### Task 10: Practice corpus pipeline and review gate
+### Task 10: Practice corpus pipeline and review gate (done, owner sign-off open)
 
-**Files:** Create `scripts/{extract-words.ts,build-data.ts}`, `scripts/lib/{wiktionary.ts,practice-rules.ts}`, `data/practice/{words.tsv,blocklist.txt,reject.txt,SOURCES.md}`, `src/practice/words.ts`, tests.
+**Files:** `scripts/{extract-words.ts,build-data.ts}`, `scripts/lib/{wiktionary.ts,practice-rules.ts,practice-rules.test.ts}`, `data/practice/{words.tsv,blocklist.txt,reject.txt,review-report.txt,SOURCES.md}`, `src/practice/{words.ts,words.test.ts}`.
 
 **Interfaces:**
 - Consumes: `isFullyVocalized`, `skeleton`, `canonicalizeMarks` (Task 4), `isTypeable` (Task 3).
-- Produces: `interface PracticeWord { text: string; rank: number }`; `interface WordList { words: readonly PracticeWord[]; bySkeleton: ReadonlyMap<string, readonly PracticeWord[]> }`; `loadWords(): Promise<WordList>` (lazy chunk, only Practice imports it); `extractWords(entries: Iterable<WiktionaryEntry>, ranks: ReadonlyMap<string, number>, rules: Rules): readonly { word: string; rank: number; pos: string }[]`.
-- Data files: `words.tsv` is `word<TAB>rank<TAB>pos`; `blocklist.txt` holds unvocalized skeletons, one per line (sections separated by blank lines: divine names used only for Allah, Qur'an terms, prophets and angels); `reject.txt` holds exact vocalized words removed after human review.
-- Sources (download into a **new empty scratch directory**, never into the repo, and pass paths as arguments): `https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl.gz` and `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/ar/ar_50k.txt`. Stream the dump with `zlib` and `readline`; never load it whole.
+- Produces (runtime): `interface PracticeWord { word: string; rank: number }`; `parseWordList(text): PracticeWord[]`; `loadWords(): Promise<readonly PracticeWord[]>` (a lazy chunk of about 45 KB gzip; only Practice imports it). There is no `WordList` index type: Task 12a groups the words the way its generator needs.
+- Produces (pipeline, `scripts/lib/practice-rules.ts`): `wordsOf(entry, ranks): Candidate[]` (the usable forms of one Wiktionary entry, each with the rank of its own spelling, its part of speech and its headword); `removalOf(candidate, rules): "blocklist" | "reject" | undefined`; `selectWords(candidates, rules): PracticeWord[]`; `parseList(text): Set<string>`; `violationsOf(rows, rules): string[]`; `coverageOf(rows, starterLetters)`. The script streams the dump through `wordsOf` and calls `selectWords` once, the same path the tests take.
+- Data files: `words.tsv` is `word<TAB>rank`; `blocklist.txt` holds unvocalized spellings, `reject.txt` exact vocalized words (either mark order); lines that start with `#` are headings. `data/practice/SOURCES.md` states the ten rules, the sources and their licences, and the known limit. `review-report.txt` is the extraction's report for the owner.
+- Sources (download into a **new empty scratch directory**, never into the repo, and pass paths as arguments): `https://kaikki.org/dictionary/Arabic/kaikki.org-dictionary-Arabic.jsonl.gz` and `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/ar/ar_50k.txt`. The dump is streamed with `zlib` and `readline`, never loaded whole.
 
-- [ ] Test (S1, on tiny fixtures): a noun entry yields its three indefinite tanween forms (nominative, accusative, genitive) and no definite or construct forms; a verb yields third person masculine singular past and non-past; particles keep their canonical form; an entry whose only senses are tagged obsolete, archaic, rare, dated, dialectal, vulgar, offensive, slang or `form-of` yields nothing; proper nouns are dropped; a form containing `ٰ` or any untypeable character is dropped; a pausal form (bare final letter) is dropped; a vowel-before-shadda form comes out shadda-first; at most 6 forms per headword; `reject.txt` words are removed.
-- [ ] Test (S1): the blocklist removes `الله`, `رب`, `قرآن`, `آية`, `سورة`, `نبي`, `رسول` and a prophet's name in **every** vocalization, matching by skeleton.
-- [ ] Test (S2, against the real committed data via `build:data`): every word `isFullyVocalized`, typeable, shadda-first; no blocklisted skeleton; at most 12,000 words and at most 300 KB raw; for the ten starter letters at least 60 distinct letters-only skeletons and at least 60 distinct vocalized words, each starter letter in at least 8 words; each of the 8 marks occurs in at least 50 words; **every word has at least one typeable mark, so the Full level always differs from Letters only**.
-- [ ] Run the extraction once; print a report: counts per step, the first 400 words reachable with the ten starter letters, 100 random other words, the blocklist hits.
-- [ ] **Human gate:** the owner (a native reader) reviews the report and `blocklist.txt`, adds entries to `reject.txt` and `blocklist.txt`, and confirms the Share-Alike consequence of the committed word list. The pure generator (Task 12a) may be built before the sign-off; the Practice page (Task 12b) and the cut-over may not ship until the owner has signed off.
-- [ ] Gate, review, commit.
+What was decided on the way, and why:
+- **No automatic homograph ranking.** Wiktionary lists every reading of a spelling and carries no signal for which one is common. Three rules remove most borrowed frequency without guessing: a noun, adjective or verb needs another of its own inflected forms in the frequency list; each form is ranked by its own spelling; a function word wins its spelling. Every spelling among the 3,000 most frequent with more than one reading was then read, and the rare readings went to `reject.txt`.
+- **The blocklist over-blocks on purpose** for names and words for Allah, scripture, prophets and angels, and also holds the devil, the jinn and the names of hell, labels of unbelief, and words unsuitable for a drill. Ordinary religious vocabulary stays (D2).
+- The limit is 10,000 words (9,999 written, because the words of one spelling are never split).
+
+- [x] Test (S1, on tiny fixtures): a noun gives its three indefinite singular case forms and nothing definite, construct, dual or plural; a verb its third person masculine singular past and non-past; a particle its canonical form; an entry with no ordinary sense gives nothing; proper nouns are dropped; untypeable, partly vocalized, pausal and single-letter forms are dropped; a form with the definite article is dropped; a vowel-before-shadda form comes out shadda-first; at most six forms per entry; a verb or noun without another known form of its own gives nothing; each form carries the rank of its own spelling; the function word wins its spelling.
+- [x] Test (S1): the blocklist removes a spelling in every vocalization and every form of a blocked headword; the reject list removes one exact word in either mark order; the committed blocklist holds `الله`, `رب`, `قرآن`, `آية`, `سورة`, `نبي`, `رسول`, a prophet's name and `ملاك`.
+- [x] Test (S2, against the committed data via `build:data`): every line is a word, a tab and a rank; every word fully vocalized, typeable, shadda-first, without the article; no blocklisted spelling, no rejected word, no vocalized blocklist line; at most 12,000 words and 300 KB; at least 60 words and 60 spellings from the ten starter letters, each starter letter in at least 8 words; each of the 8 marks in at least 50 words; **every word has at least one typeable mark, so the Full level always differs from Letters only**.
+- [x] Run the extraction; `review-report.txt` holds the counts per step, stale reject lines, the first 400 starter words, 100 other words spread over the list, the frequent spellings with several readings, and what each list removed.
+- [x] Gate, review, fix, commit.
+- [ ] **Human gate:** the owner (a native reader) reads `data/practice/review-report.txt`, `blocklist.txt` and `reject.txt`, adds what is missing, and confirms the Share-Alike consequence of the committed word list (CC BY-SA 4.0). The pure generator (Task 12a) is built before the sign-off; the Practice page (Task 12b) and the cut-over may not ship until the owner has signed off.
 
 ### Task 11: Key stats and the unlock ladder (pure)
 
@@ -598,5 +604,5 @@ PWA and offline use, an in-app touch keyboard for phones, more reciters, a manua
 ## Open items for the owner
 
 1. Confirm assumptions A1 to A13 (especially A1 starter set, A3 phone keyboard approach, A5 no confetti).
-2. Task 10 needs your native-reader sign-off on `blocklist.txt` and the starter words, and your decision on the Share-Alike licence of the word list. Part A goes on without it; Task 12b (the Practice page) and the cut-over wait for it.
+2. Task 10 needs your native-reader sign-off: read `data/practice/review-report.txt` (the starter words first), `data/practice/blocklist.txt` and `data/practice/reject.txt`, and decide two policy points that were settled provisionally: the devil, the jinn and the names of hell are blocked, ordinary religious vocabulary (`صَلَاةٌ`, `دِينٌ`, `قِبْلَةٌ`) is kept. Confirm the Share-Alike licence (CC BY-SA 4.0) of the word list. Part A goes on without it; Task 12b (the Practice page) and the cut-over wait for it.
 3. Task 19 needs you to review the Arabic UI copy and run the device checklist.

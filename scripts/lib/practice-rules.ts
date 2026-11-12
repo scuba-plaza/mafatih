@@ -3,6 +3,11 @@ import type { PracticeWord } from "~/practice/words.ts";
 import { canonicalizeMarks, FATHATAN, isFullyVocalized, skeleton } from "~/text/arabic.ts";
 import type { WiktionaryEntry } from "./wiktionary.ts";
 
+export interface Candidate extends PracticeWord {
+  readonly pos: string;
+  readonly headword: string;
+}
+
 export interface Rules {
   readonly blocklist: ReadonlySet<string>;
   readonly reject: ReadonlySet<string>;
@@ -17,6 +22,7 @@ const VERB_FORM = ["active", "indicative", "masculine", "singular", "third-perso
 const TENSES = ["past", "non-past"];
 const MAX_FORMS_PER_ENTRY = 6;
 const ALEF = "ا";
+const ARTICLE = "اَل";
 
 const UNWANTED_SENSES: ReadonlySet<string> = new Set([
   "obsolete",
@@ -59,8 +65,25 @@ function isWantedForm(pos: string, tags: readonly string[]): boolean {
   return UNINFLECTED.includes(pos) && has("canonical");
 }
 
+function isInflection(pos: string, tags: readonly string[]): boolean {
+  const has = (tag: string) => tags.includes(tag);
+  if (pos === "verb") {
+    return has("active") && (has("past") || (has("non-past") && has("indicative")));
+  }
+  return CASES.some(has) || has("informal");
+}
+
+function hasOwnFrequency(entry: WiktionaryEntry, pos: string, ranks: ReadonlyMap<string, number>): boolean {
+  const sameWord = [entry.word, `${entry.word}${ALEF}`];
+  return (entry.forms ?? [])
+    .filter((form) => isInflection(pos, form.tags ?? []))
+    .map((form) => skeleton(form.form ?? ""))
+    .some((spelling) => !sameWord.includes(spelling) && ranks.has(spelling));
+}
+
 function isUsable(word: string): boolean {
-  return [...word].every(isTypeable) && isFullyVocalized(word) && skeleton(word).length > 1;
+  const typeable = [...word].every(isTypeable);
+  return typeable && isFullyVocalized(word) && skeleton(word).length > 1 && !word.startsWith(ARTICLE);
 }
 
 function spellingsOf(word: string): string[] {
@@ -73,17 +96,33 @@ function isBlocked(word: string, blocklist: ReadonlySet<string>): boolean {
   return spellingsOf(word).some((spelling) => blocklist.has(spelling));
 }
 
-export function wordsOf(entry: WiktionaryEntry, ranks: ReadonlyMap<string, number>): PracticeWord[] {
+function rankOf(word: string, ranks: ReadonlyMap<string, number>): number {
+  return Math.min(...spellingsOf(word).map((spelling) => ranks.get(spelling) ?? Number.POSITIVE_INFINITY));
+}
+
+export function removalOf(candidate: Candidate, rules: Rules): "blocklist" | "reject" | undefined {
+  if (rules.blocklist.has(candidate.headword) || isBlocked(candidate.word, rules.blocklist)) {
+    return "blocklist";
+  }
+  return rules.reject.has(candidate.word) ? "reject" : undefined;
+}
+
+export function wordsOf(entry: WiktionaryEntry, ranks: ReadonlyMap<string, number>): Candidate[] {
   const { pos, word: headword } = entry;
-  const rank = headword === undefined ? undefined : ranks.get(headword);
-  if (pos === undefined || rank === undefined || !hasOrdinarySense(entry)) {
+  if (pos === undefined || headword === undefined || !ranks.has(headword) || !hasOrdinarySense(entry)) {
+    return [];
+  }
+  if (!UNINFLECTED.includes(pos) && !hasOwnFrequency(entry, pos, ranks)) {
     return [];
   }
   const words = (entry.forms ?? [])
     .filter((form) => isWantedForm(pos, form.tags ?? []))
     .map((form) => canonicalizeMarks(form.form ?? ""))
     .filter(isUsable);
-  return [...new Set(words)].slice(0, MAX_FORMS_PER_ENTRY).map((word) => ({ word, rank, pos }));
+  return [...new Set(words)]
+    .map((word) => ({ word, rank: rankOf(word, ranks), pos, headword }))
+    .filter((candidate) => Number.isFinite(candidate.rank))
+    .slice(0, MAX_FORMS_PER_ENTRY);
 }
 
 function byRankThenSpelling(a: PracticeWord, b: PracticeWord): number {
@@ -93,20 +132,25 @@ function byRankThenSpelling(a: PracticeWord, b: PracticeWord): number {
   return a.word < b.word ? -1 : a.word > b.word ? 1 : 0;
 }
 
-export function selectWords(rows: Iterable<PracticeWord>, rules: Rules): PracticeWord[] {
+export function selectWords(candidates: Iterable<Candidate>, rules: Rules): PracticeWord[] {
   const best = new Map<string, PracticeWord>();
-  for (const row of rows) {
-    const known = best.get(row.word);
-    const allowed = !rules.reject.has(row.word) && !isBlocked(row.word, rules.blocklist);
-    if (allowed && (known === undefined || row.rank < known.rank)) {
-      best.set(row.word, row);
+  const functionWords = new Set<string>();
+  for (const candidate of candidates) {
+    const { word, rank } = candidate;
+    if (removalOf(candidate, rules) !== undefined) {
+      continue;
+    }
+    if (rank < (best.get(word)?.rank ?? Number.POSITIVE_INFINITY)) {
+      best.set(word, { word, rank });
+    }
+    if (UNINFLECTED.includes(candidate.pos)) {
+      functionWords.add(word);
     }
   }
-  const functionWordRanks = new Set(
-    [...best.values()].filter((row) => UNINFLECTED.includes(row.pos)).map((row) => row.rank),
-  );
-  const sorted = [...best.values()]
-    .filter((row) => UNINFLECTED.includes(row.pos) || !functionWordRanks.has(row.rank))
+  const all = [...best.values()];
+  const functionWordRanks = new Set(all.filter((row) => functionWords.has(row.word)).map((row) => row.rank));
+  const sorted = all
+    .filter((row) => functionWords.has(row.word) || !functionWordRanks.has(row.rank))
     .sort(byRankThenSpelling);
   let end = 0;
   for (let index = 1; index <= sorted.length && index <= rules.limit; index += 1) {
@@ -117,20 +161,8 @@ export function selectWords(rows: Iterable<PracticeWord>, rules: Rules): Practic
   return sorted.slice(0, end);
 }
 
-export function extractWords(
-  entries: Iterable<WiktionaryEntry>,
-  ranks: ReadonlyMap<string, number>,
-  rules: Rules,
-): PracticeWord[] {
-  const blockedHeadword = (entry: WiktionaryEntry) => rules.blocklist.has(entry.word ?? "");
-  return selectWords(
-    [...entries].filter((entry) => !blockedHeadword(entry)).flatMap((entry) => wordsOf(entry, ranks)),
-    rules,
-  );
-}
-
 export function parseList(text: string): Set<string> {
-  const lines = text.split("\n").map((line) => line.trim());
+  const lines = text.split("\n").map((line) => canonicalizeMarks(line.trim()));
   return new Set(lines.filter((line) => line !== "" && !line.startsWith("#")));
 }
 
@@ -149,6 +181,9 @@ export function violationsOf(rows: readonly PracticeWord[], rules: Rules): strin
     if (canonicalizeMarks(word) !== word) {
       problems.push(`${word} has a vowel before its shadda`);
     }
+    if (word.startsWith(ARTICLE)) {
+      problems.push(`${word} carries the definite article`);
+    }
     if (seen.has(word)) {
       problems.push(`${word} is listed twice`);
     }
@@ -166,6 +201,11 @@ export function violationsOf(rows: readonly PracticeWord[], rules: Rules): strin
     }
     seen.add(word);
   });
+  for (const entry of rules.blocklist) {
+    if (skeleton(entry) !== entry) {
+      problems.push(`the blocklist entry ${entry} is vocalized and can never match`);
+    }
+  }
   if (rows.length > rules.limit) {
     problems.push(`the list holds more than ${rules.limit} words`);
   }

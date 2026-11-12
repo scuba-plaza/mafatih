@@ -30,32 +30,39 @@ function practiceProblems(): string[] {
   };
   const coverage = coverageOf(rows, HOME_ROW_LETTERS);
   const problems = violationsOf(rows, rules);
-  const require = (holds: boolean, problem: string) => {
+  const check = (holds: boolean, problem: string) => {
     if (!holds) {
       problems.push(problem);
     }
   };
-  require(Buffer.byteLength(text) <= MAX_BYTES, `words.tsv is larger than ${MAX_BYTES} bytes`);
-  require(coverage.starterWords >=
-    MIN_STARTER_WORDS, `only ${coverage.starterWords} words use the starter letters alone`);
-  require(coverage.starterSpellings >=
-    MIN_STARTER_SPELLINGS, `only ${coverage.starterSpellings} spellings use the starter letters alone`);
+  check(Buffer.byteLength(text) <= MAX_BYTES, `words.tsv is larger than ${MAX_BYTES} bytes`);
+  check(
+    coverage.starterWords >= MIN_STARTER_WORDS,
+    `only ${coverage.starterWords} words use the starter letters alone`,
+  );
+  check(
+    coverage.starterSpellings >= MIN_STARTER_SPELLINGS,
+    `only ${coverage.starterSpellings} spellings use the starter letters alone`,
+  );
   for (const [letter, count] of coverage.wordsPerStarterLetter) {
-    require(count >= MIN_WORDS_PER_STARTER_LETTER, `only ${count} starter words contain ${letter}`);
+    check(count >= MIN_WORDS_PER_STARTER_LETTER, `only ${count} starter words contain ${letter}`);
   }
   for (const [mark, count] of coverage.wordsPerMark) {
-    require(count >= MIN_WORDS_PER_MARK, `only ${count} words contain the mark U+${mark.codePointAt(0)?.toString(16)}`);
+    check(count >= MIN_WORDS_PER_MARK, `only ${count} words contain the mark U+${mark.codePointAt(0)?.toString(16)}`);
   }
-  require(coverage.wordsWithoutMarks === 0, `${coverage.wordsWithoutMarks} words have no mark to type`);
+  check(coverage.wordsWithoutMarks === 0, `${coverage.wordsWithoutMarks} words have no mark to type`);
+  check(/^([^\t\n]+\t[1-9]\d*\n)+$/.test(text), "words.tsv has a line that is not a word, a tab and a rank");
   const spellings = [...new Set(rows.map((row) => skeleton(row.word)))];
-  LADDER.rungs.forEach((rung, index) => {
-    const reached = LADDER.rungs.slice(0, Math.max(index + 1, LADDER.starter)).map((earlier) => earlier.char);
+  const letters = LADDER.rungs.filter((rung) => rung.kind === "letter").map((rung) => rung.char);
+  letters.forEach((letter, index) => {
+    const reached = letters.slice(0, Math.max(index + 1, LADDER.starter));
     const drills = spellings.filter(
-      (spelling) => spelling.includes(rung.char) && [...spelling].every((letter) => reached.includes(letter)),
+      (spelling) => spelling.includes(letter) && [...spelling].every((each) => reached.includes(each)),
     );
-    require(rung.kind === "mark" ||
-      drills.length >=
-        MIN_SPELLINGS_PER_RUNG, `only ${drills.length} spellings can drill ${rung.char} when it unlocks`);
+    check(
+      drills.length >= MIN_SPELLINGS_PER_RUNG,
+      `only ${drills.length} spellings can drill ${letter} when it unlocks`,
+    );
   });
   console.log(
     `practice words: ${rows.length}, ${coverage.starterWords} from the starter letters (${coverage.starterSpellings} spellings)`,

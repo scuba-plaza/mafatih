@@ -1,7 +1,6 @@
 export interface PracticeWord {
   readonly word: string;
   readonly rank: number;
-  readonly pos: string;
 }
 
 export function parseWordList(text: string): PracticeWord[] {
@@ -9,8 +8,8 @@ export function parseWordList(text: string): PracticeWord[] {
     .split("\n")
     .filter((line) => line !== "")
     .map((line) => {
-      const [word = "", rank = "", pos = ""] = line.split("\t");
-      return { word, rank: Number(rank), pos };
+      const [word = "", rank = ""] = line.split("\t");
+      return { word, rank: Number(rank) };
     });
 }
 
