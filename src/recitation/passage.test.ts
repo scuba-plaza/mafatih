@@ -115,6 +115,13 @@ test("a start or a length that makes no sense is brought into range", () => {
   expect(buildPassage(FATIHA, 3, Number.POSITIVE_INFINITY, NO_MARKS)).toMatchObject({ fromAyah: 3, toAyah: 7 });
 });
 
+test("a surah without ayat gives an empty passage, not an ayah that does not exist", () => {
+  const passage = buildPassage({ number: 5, basmala: null, ayat: [] }, 1, 4, NO_MARKS);
+  expect(passage.ayat).toEqual([]);
+  expect(passage.prompt.shown).toBe("");
+  expect(passage.prompt.units).toEqual([]);
+});
+
 test("over all 114 surahs every ayah and every dagger alef of the source is on screen", {
   timeout: 30_000,
 }, async () => {

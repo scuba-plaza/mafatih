@@ -1,6 +1,6 @@
 import { LIGATURE_KEYS } from "~/keyboard/ligatures.ts";
 import { isTypeable } from "~/keyboard/typeable.ts";
-import { isRecord } from "~/lib/guards.ts";
+import { isCount, isRecord } from "~/lib/guards.ts";
 import { LATENCY_CAP_MS, type Sample } from "~/typing/session.ts";
 
 export interface KeyStat {
@@ -39,10 +39,6 @@ export function recordSample(stats: KeyStats, sample: Sample): KeyStats {
     recentAccuracy: before.recentAccuracy + rate * ((sample.correct ? 1 : 0) - before.recentAccuracy),
   };
   return { ...stats, [sample.expected]: after };
-}
-
-function isCount(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function sanitizeStat(raw: unknown): KeyStat | undefined {

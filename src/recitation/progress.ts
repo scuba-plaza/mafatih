@@ -1,4 +1,4 @@
-import { isRecord } from "~/lib/guards.ts";
+import { isCount, isRecord } from "~/lib/guards.ts";
 import { type SurahOrder, surahOrder } from "./order.ts";
 import { SURAH_COUNT, surahMeta } from "./quran.ts";
 
@@ -88,12 +88,11 @@ export function positionAfter(position: Position, order: SurahOrder): Position {
 }
 
 export function passageBefore(position: Position, maxAyat: number, order: SurahOrder): Position {
-  const size = Math.max(1, Math.floor(maxAyat) || 1);
-  if (position.ayah > 1) {
-    return { surah: position.surah, ayah: Math.max(1, position.ayah - size) };
-  }
-  const surah = neighbour(position.surah, order, -1);
-  return { surah, ayah: 1 + Math.floor((ayatIn(surah) - 1) / size) * size };
+  const surah = position.ayah > 1 ? position.surah : neighbour(position.surah, order, -1);
+  const size = Math.min(Math.max(1, Math.floor(maxAyat) || 1), Math.max(1, ayatIn(surah)));
+  return position.ayah > 1
+    ? { surah, ayah: Math.max(1, position.ayah - size) }
+    : { surah, ayah: 1 + Math.floor((ayatIn(surah) - 1) / size) * size };
 }
 
 export function recordAyah(
@@ -111,20 +110,18 @@ export function recordAyah(
   const after: SurahProgress = completes
     ? { typed: [], completions: before.completions + 1 }
     : { typed, completions: before.completions };
-  const resume = completes ? positionAfter({ surah, ayah: ayatIn(surah) }, order) : nextMissing(typed, position, order);
+  const resume = completes
+    ? positionAfter({ surah, ayah: ayatIn(surah) }, order)
+    : afterTypedRange(typed, position, order);
   return {
     progress: { position: resume, surahs: { ...progress.surahs, [surah]: after } },
     completion: completes ? { surah, completions: after.completions } : null,
   };
 }
 
-function nextMissing(typed: readonly AyahRange[], position: Position, order: SurahOrder): Position {
+function afterTypedRange(typed: readonly AyahRange[], position: Position, order: SurahOrder): Position {
   const range = typed.find(([start, end]) => start <= position.ayah && position.ayah <= end);
   return positionAfter({ surah: position.surah, ayah: range?.[1] ?? position.ayah }, order);
-}
-
-function isCount(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function sanitizePosition(raw: unknown): Position | null {

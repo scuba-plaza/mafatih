@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { skeleton } from "~/text/arabic.ts";
 
 export interface SourceAyah {
@@ -14,11 +15,23 @@ export interface SurahData {
 
 const AYAH_LINE = /^(\d+)\|(\d+)\|(.*)$/;
 const ARABIC_TEXT = /^[ء-غف-ْٰ ]+$/;
+const TANZIL_SHA256 = "f3268cfe7a400add8a8024fe23368d66f58cc8baa51773fe94e323625c66344b";
 const BASMALA_WORDS = 4;
 const SURAHS_WITHOUT_BASMALA = [1, 9];
 
 function textLines(text: string): string[] {
   return text.split("\n").filter((line) => line.trim() !== "" && !line.startsWith("#"));
+}
+
+export function isTanzilText(bytes: Uint8Array): boolean {
+  return createHash("sha256").update(bytes).digest("hex") === TANZIL_SHA256;
+}
+
+export function noticeOf(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => line.startsWith("#"))
+    .join("\n");
 }
 
 export function parseQuran(text: string): SourceAyah[] {

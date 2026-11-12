@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,15 +6,12 @@ import { LADDER } from "~/practice/ladder.ts";
 import { parseWordList } from "~/practice/words.ts";
 import { skeleton } from "~/text/arabic.ts";
 import { coverageOf, parseList, type Rules, violationsOf } from "./lib/practice-rules.ts";
-import { parseQuran, quranProblems, sourceLinesOf, splitSurahs } from "./lib/quran-rules.ts";
+import { isTanzilText, noticeOf, parseQuran, quranProblems, sourceLinesOf, splitSurahs } from "./lib/quran-rules.ts";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const PRACTICE = resolve(ROOT, "data/practice");
 const QURAN_SOURCE = resolve(ROOT, "data/quran-simple.txt");
 const QURAN_OUTPUT = resolve(ROOT, "generated/quran");
-const QURAN_SHA256 = "f3268cfe7a400add8a8024fe23368d66f58cc8baa51773fe94e323625c66344b";
-const QURAN_CREDIT =
-  "Tanzil Quran Text (Simple, Version 1.1), Tanzil Project, tanzil.net, CC BY 3.0. Not to be changed.";
 const AYAT = 6236;
 const SURAHS = 114;
 const DAGGER_ALEFS = 3330;
@@ -88,6 +84,7 @@ interface SurahMeta {
 }
 
 function quranBuildProblems(): string[] {
+  rmSync(QURAN_OUTPUT, { recursive: true, force: true });
   const bytes = readFileSync(QURAN_SOURCE);
   const text = bytes.toString("utf8");
   const meta: readonly SurahMeta[] = JSON.parse(readFileSync(resolve(ROOT, "data/surahs.json"), "utf8"));
@@ -102,7 +99,7 @@ function quranBuildProblems(): string[] {
   const rejoined = surahs.flatMap(sourceLinesOf);
   const written = surahs.flatMap((surah) => [surah.basmala ?? "", ...surah.ayat]).join("");
   check(
-    createHash("sha256").update(bytes).digest("hex") === QURAN_SHA256,
+    isTanzilText(bytes),
     "data/quran-simple.txt is not the Tanzil text it is meant to be: not one character of it may change",
   );
   check(meta.length === SURAHS && surahs.length === SURAHS, `there are ${surahs.length} surahs, not ${SURAHS}`);
@@ -116,11 +113,11 @@ function quranBuildProblems(): string[] {
     `the built surahs hold ${written.split(DAGGER_ALEF).length - 1} dagger alefs, not ${DAGGER_ALEFS}`,
   );
   if (problems.length === 0) {
-    rmSync(QURAN_OUTPUT, { recursive: true, force: true });
+    const source = noticeOf(text);
     mkdirSync(QURAN_OUTPUT, { recursive: true });
     for (const surah of surahs) {
       const name = `${String(surah.number).padStart(3, "0")}.json`;
-      writeFileSync(resolve(QURAN_OUTPUT, name), `${JSON.stringify({ ...surah, source: QURAN_CREDIT })}\n`);
+      writeFileSync(resolve(QURAN_OUTPUT, name), `${JSON.stringify({ ...surah, source })}\n`);
     }
     console.log(`quran: ${surahs.length} surahs, ${ayat.length} ayat`);
   }

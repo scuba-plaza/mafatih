@@ -96,6 +96,17 @@ test("the passage before starts a passage length earlier, or is the last passage
   expect(passageBefore({ surah: 113, ayah: 1 }, 1, "juz-amma")).toEqual({ surah: 114, ayah: 6 });
 });
 
+test("a passage length that makes no sense still gives a real ayah", () => {
+  const start = { surah: 2, ayah: 1 };
+  expect(passageBefore(start, Number.POSITIVE_INFINITY, "mushaf")).toEqual({ surah: 1, ayah: 1 });
+  expect(passageBefore(start, 1000, "mushaf")).toEqual({ surah: 1, ayah: 1 });
+  expect(passageBefore(start, 2.9, "mushaf")).toEqual({ surah: 1, ayah: 7 });
+  expect(passageBefore(start, 0, "mushaf")).toEqual({ surah: 1, ayah: 7 });
+  expect(passageBefore(start, Number.NaN, "mushaf")).toEqual({ surah: 1, ayah: 7 });
+  expect(passageBefore({ surah: 2, ayah: 9 }, Number.POSITIVE_INFINITY, "mushaf")).toEqual({ surah: 2, ayah: 1 });
+  expect(passageBefore({ surah: 2, ayah: 9 }, 2.9, "mushaf")).toEqual({ surah: 2, ayah: 7 });
+});
+
 test("an ayah or surah that does not exist is not recorded", () => {
   const fresh = initialRecitation();
   for (const position of [

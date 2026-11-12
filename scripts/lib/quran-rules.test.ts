@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { parseQuran, quranProblems, sourceLinesOf, splitSurahs } from "./quran-rules.ts";
+import { isTanzilText, noticeOf, parseQuran, quranProblems, sourceLinesOf, splitSurahs } from "./quran-rules.ts";
 
 const BASMALA = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
 const BEH = String.fromCodePoint(0x628);
@@ -67,4 +68,33 @@ test("a surah that should open with the basmala and does not is reported", () =>
   expect(quranProblems(SOURCE.replace(`2|1|${BASMALA} الم`, "2|1|الم"), COUNTS).join("\n")).toMatch(
     /surah 2 does not open with the basmala/,
   );
+});
+
+test("only letters, marks, the dagger alef and single spaces are Arabic text: anything else in an ayah is reported", () => {
+  const foreign = ["a", "x", "1", "\u0661", "\u0640", "\u200D", "\u200C", "\u200E", "\u00A0", "\u06DD", "\u0653", "|"];
+  for (const char of foreign) {
+    const damaged = SOURCE.replace("2|2|", `2|2|${char}`);
+    expect(quranProblems(damaged, COUNTS), `U+${char.codePointAt(0)?.toString(16)}`).toContain(
+      "2:2 holds a character that is not Arabic text",
+    );
+  }
+});
+
+test("the copyright block is carried over exactly as the source wrote it", () => {
+  expect(noticeOf(SOURCE)).toBe("# PLEASE DO NOT REMOVE OR CHANGE THIS COPYRIGHT BLOCK\n#  Tanzil Quran Text");
+  expect(noticeOf("1|1|x\n")).toBe("");
+});
+
+test("the committed text is the pinned Tanzil text, and a single changed byte is noticed", () => {
+  const bytes = readFileSync(new URL("../../data/quran-simple.txt", import.meta.url));
+  const changed = Uint8Array.from(bytes);
+  changed[100] = (changed[100] ?? 0) ^ 1;
+  expect(isTanzilText(bytes)).toBe(true);
+  expect(isTanzilText(changed)).toBe(false);
+  expect(isTanzilText(bytes.subarray(0, bytes.length - 1))).toBe(false);
+  const notice = noticeOf(bytes.toString("utf8"));
+  expect(notice).toContain("Tanzil Quran Text (Simple, Version 1.1)");
+  expect(notice).toContain("License: Creative Commons Attribution 3.0");
+  expect(notice).toContain("tanzil.net");
+  expect(notice.split("\n")).toHaveLength(28);
 });
