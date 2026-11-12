@@ -27,7 +27,7 @@ async function focusedName(page: Page): Promise<string> {
 for (const language of ["en", "ar"] as const) {
   const copy = COPY[language];
 
-  for (const colorScheme of ["light", "dark"] as const) {
+  for (const colorScheme of ["dark"] as const) {
     test.describe(`${language}, ${colorScheme}`, () => {
       test.use({ locale: LOCALES[language], colorScheme });
 

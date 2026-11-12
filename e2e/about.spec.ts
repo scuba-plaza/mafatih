@@ -90,7 +90,7 @@ test("About in Arabic is Arabic, and the names of the sources keep their own lan
 });
 
 for (const language of ["en", "ar"] as const) {
-  for (const colorScheme of ["light", "dark"] as const) {
+  for (const colorScheme of ["dark"] as const) {
     test.describe(`${language}, ${colorScheme}`, () => {
       test.use({ colorScheme });
 

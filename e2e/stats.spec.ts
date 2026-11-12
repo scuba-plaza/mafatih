@@ -226,7 +226,7 @@ test("in the Arabic interface the labels and the digits are Arabic", async ({ pa
 });
 
 for (const language of ["en", "ar"] as const) {
-  for (const colorScheme of ["light", "dark"] as const) {
+  for (const colorScheme of ["dark"] as const) {
     test.describe(`${language}, ${colorScheme}`, () => {
       test.use({ colorScheme });
 

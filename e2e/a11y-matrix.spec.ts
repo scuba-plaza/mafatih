@@ -6,7 +6,7 @@ import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 test.use({ timezoneId: "UTC", locale: "en-US" });
 
 const LANGUAGES: readonly Language[] = ["en", "ar"];
-const SCHEMES = ["light", "dark"] as const;
+const SCHEMES = ["dark"] as const;
 const SETTINGS_NAME = { en: "Settings", ar: "الإعدادات" } as const;
 const NARROW = { width: 320, height: 568 } as const;
 

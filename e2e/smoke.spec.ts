@@ -9,6 +9,6 @@ test("the app loads in English, left to right, with a main landmark and the agre
     "content",
     "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
   );
-  await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute("content", "light dark");
+  await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute("content", "dark");
   await expect(page.getByRole("main")).toBeVisible();
 });

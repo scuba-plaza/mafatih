@@ -1,41 +1,21 @@
 @theme {
   --color-*: initial;
-  --color-page: #fafaf9;
-  --color-surface: #ffffff;
-  --color-ink: #1c1917;
-  --color-muted: #57534e;
-  --color-apparatus: #78716c;
-  --color-line: #78716c;
-  --color-accent: #0f766e;
-  --color-on-accent: #ffffff;
-  --color-danger: #b91c1c;
-  --color-focus: #1d4ed8;
-  --color-finger-pinky: #fbcfe8;
-  --color-finger-ring: #fef9c3;
-  --color-finger-middle: #bbf7d0;
-  --color-finger-index: #e0f2fe;
+  --color-page: #08090b;
+  --color-surface: #101114;
+  --color-ink: #ebe8e2;
+  --color-muted: #8f9299;
+  --color-upcoming: #5b5d61;
+  --color-apparatus: #8f9299;
+  --color-line: #23262b;
+  --color-edge: #6b6f77;
+  --color-faint: #14161a;
+  --color-accent: #e2b062;
+  --color-on-accent: #1a1408;
+  --color-danger: #fca5a5;
+  --color-focus: #93c5fd;
 
   --breakpoint-*: initial;
   --breakpoint-sm: 30rem;
   --breakpoint-md: 48rem;
   --breakpoint-lg: 64rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-page: #1c1917;
-    --color-surface: #292524;
-    --color-ink: #fafaf9;
-    --color-muted: #d6d3d1;
-    --color-apparatus: #a8a29e;
-    --color-line: #a8a29e;
-    --color-accent: #5eead4;
-    --color-on-accent: #1c1917;
-    --color-danger: #fca5a5;
-    --color-focus: #93c5fd;
-    --color-finger-pinky: #4a1d34;
-    --color-finger-ring: #453a0b;
-    --color-finger-middle: #14391f;
-    --color-finger-index: #172f54;
-  }
 }

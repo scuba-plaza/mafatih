@@ -3,41 +3,31 @@ import { expect, test } from "vitest";
 
 const TEXT = 4.5;
 const UI = 3;
+const UPCOMING_FLOOR = 3;
 
 const PAIRS: readonly (readonly [string, string, number])[] = [
   ["ink", "page", TEXT],
   ["ink", "surface", TEXT],
   ["muted", "page", TEXT],
   ["muted", "surface", TEXT],
+  ["apparatus", "page", TEXT],
   ["accent", "page", TEXT],
   ["accent", "surface", TEXT],
   ["danger", "page", TEXT],
   ["danger", "surface", TEXT],
   ["on-accent", "accent", TEXT],
-  ["line", "page", UI],
-  ["line", "surface", UI],
   ["focus", "page", UI],
   ["focus", "surface", UI],
-  ["ink", "finger-pinky", TEXT],
-  ["ink", "finger-ring", TEXT],
-  ["ink", "finger-middle", TEXT],
-  ["ink", "finger-index", TEXT],
-  ["line", "finger-pinky", UI],
-  ["line", "finger-ring", UI],
-  ["line", "finger-middle", UI],
-  ["line", "finger-index", UI],
-  ["accent", "finger-pinky", UI],
-  ["accent", "finger-ring", UI],
-  ["accent", "finger-middle", UI],
-  ["accent", "finger-index", UI],
+  ["edge", "page", UI],
+  ["edge", "surface", UI],
+  ["ink", "upcoming", TEXT],
+  ["upcoming", "page", UPCOMING_FLOOR],
 ];
 
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
-const darkStart = css.indexOf("prefers-color-scheme: dark");
-
-function colours(block: string): Map<string, string> {
-  return new Map([...block.matchAll(/--color-([\w-]+):\s*(#[0-9a-f]{6})\b/gi)].map((m) => [m[1] ?? "", m[2] ?? ""]));
-}
+const palette = new Map(
+  [...css.matchAll(/--color-([\w-]+):\s*(#[0-9a-f]{6})\b/gi)].map((m) => [m[1] ?? "", m[2] ?? ""]),
+);
 
 function luminance(hex: string): number {
   const channel = (offset: number): number => {
@@ -58,18 +48,22 @@ test("the contrast formula matches the WCAG reference values", () => {
   expect(contrast("#ffffff", "#ffffff")).toBe(1);
 });
 
-for (const [scheme, block] of [
-  ["light", css.slice(0, darkStart)],
-  ["dark", css.slice(darkStart)],
-] as const) {
-  const palette = colours(block);
-  for (const [foreground, background, minimum] of PAIRS) {
-    test(`${scheme}: ${foreground} on ${background} has a contrast of at least ${minimum}:1`, () => {
-      const fg = palette.get(foreground);
-      const bg = palette.get(background);
-      expect(fg, `--color-${foreground}`).toBeDefined();
-      expect(bg, `--color-${background}`).toBeDefined();
-      expect(contrast(fg ?? "", bg ?? "")).toBeGreaterThanOrEqual(minimum);
-    });
-  }
+test("there is one palette: no light values, no scheme switch and no finger tints", () => {
+  expect(css).not.toContain("prefers-color-scheme");
+  expect([...palette.keys()].some((name) => name.startsWith("finger-"))).toBe(false);
+});
+
+test("the page is the dark background of the Focus design", () => {
+  expect(palette.get("page")).toBe("#08090b");
+  expect(palette.get("accent")).toBe("#e2b062");
+});
+
+for (const [foreground, background, minimum] of PAIRS) {
+  test(`${foreground} on ${background} has a contrast of at least ${minimum}:1`, () => {
+    const fg = palette.get(foreground);
+    const bg = palette.get(background);
+    expect(fg, `--color-${foreground}`).toBeDefined();
+    expect(bg, `--color-${background}`).toBeDefined();
+    expect(contrast(fg ?? "", bg ?? "")).toBeGreaterThanOrEqual(minimum);
+  });
 }

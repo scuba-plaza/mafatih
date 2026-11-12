@@ -2,7 +2,16 @@
 @import "./tokens.css";
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
+}
+
+@utility halo {
+  border-color: color-mix(in srgb, var(--color-accent) 80%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent),
+    0 0 22px 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
 html:has(dialog[open]) {
@@ -26,7 +35,7 @@ button {
 }
 
 ::highlight(mafatih-done) {
-  color: var(--color-accent);
+  color: var(--color-ink);
 }
 
 ::highlight(mafatih-apparatus) {

@@ -86,7 +86,7 @@ export function PassageBar({ meta, from, typed, previous, next, onGo }: PassageB
               }}
               aria-invalid={invalid ? true : undefined}
               aria-describedby={invalid ? errorId : undefined}
-              className="h-11 w-full rounded-md border border-line bg-surface px-3 aria-invalid:border-danger sm:w-24"
+              className="h-11 w-full rounded-md border border-edge bg-surface px-3 aria-invalid:border-danger sm:w-24"
             />
           </div>
           <button type="submit" className={BUTTON}>

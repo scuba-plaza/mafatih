@@ -23,7 +23,7 @@ export function RecitationSettings({ settings, change }: RecitationSettingsProps
           id={selectId}
           value={settings.ayatPerLesson}
           onChange={(event) => change({ ayatPerLesson: Number(event.target.value) })}
-          className="h-11 w-24 rounded-md border border-line bg-surface px-3"
+          className="h-11 w-24 rounded-md border border-edge bg-surface px-3"
         >
           {AYAT_PER_PASSAGE.map((count) => (
             <option key={count} value={count}>

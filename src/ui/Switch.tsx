@@ -19,7 +19,7 @@ export function Switch({ label, hint, checked, onChange }: SwitchProps) {
         onChange={(event) => onChange(event.target.checked)}
         aria-labelledby={labelId}
         aria-describedby={hint === undefined ? undefined : hintId}
-        className="relative mt-0.5 h-6 w-11 shrink-0 appearance-none rounded-full border border-line bg-surface before:absolute before:start-0.5 before:top-0.5 before:size-4 before:rounded-full before:bg-ink before:transition-transform checked:border-accent checked:bg-accent checked:before:translate-x-5 checked:before:bg-on-accent rtl:checked:before:-translate-x-5 motion-reduce:before:transition-none forced-colors:appearance-auto forced-colors:before:hidden"
+        className="relative mt-0.5 h-6 w-11 shrink-0 appearance-none rounded-full border border-edge bg-surface before:absolute before:start-0.5 before:top-0.5 before:size-4 before:rounded-full before:bg-ink before:transition-transform checked:border-accent checked:bg-accent checked:before:translate-x-5 checked:before:bg-on-accent rtl:checked:before:-translate-x-5 motion-reduce:before:transition-none forced-colors:appearance-auto forced-colors:before:hidden"
       />
       <span className="flex flex-col">
         <span id={labelId} className="font-medium">
