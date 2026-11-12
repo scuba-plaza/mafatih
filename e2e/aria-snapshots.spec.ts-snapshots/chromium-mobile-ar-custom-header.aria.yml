@@ -1,0 +1,17 @@
+- banner:
+  - button "انتقل إلى المحتوى"
+  - navigation "التنقل الرئيسي":
+    - list:
+      - listitem:
+        - link "التلاوة":
+          - /url: "#/"
+      - listitem:
+        - link "التمرين":
+          - /url: "#/practice"
+      - listitem:
+        - link "نص مخصص":
+          - /url: "#/custom"
+      - listitem:
+        - link "الإحصاءات":
+          - /url: "#/stats"
+  - button "الإعدادات"

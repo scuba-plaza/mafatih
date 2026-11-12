@@ -6,6 +6,7 @@
       "./src/**",
       "./scripts/**",
       "./e2e/**",
+      "!**/*.aria.yml",
       "./index.html",
       "./biome.json",
       "./package.json",

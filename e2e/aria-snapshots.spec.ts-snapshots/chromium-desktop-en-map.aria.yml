@@ -1,0 +1,347 @@
+- main:
+  - heading "Recitation" [level=1]
+  - link "Start with ⁨Al-Faatiha⁩":
+    - /url: "#/recitation/1/1"
+  - list "Surahs":
+    - listitem:
+      - link "1. Al-Faatiha الفاتحة 7 ayat":
+        - /url: "#/recitation/1"
+    - listitem:
+      - link /2\. Al-Baqara البقرة \d+ ayat/:
+        - /url: "#/recitation/2"
+    - listitem:
+      - link /3\. Aal-i-Imraan آل عمران \d+ ayat/:
+        - /url: "#/recitation/3"
+    - listitem:
+      - link /4\. An-Nisaa النساء \d+ ayat/:
+        - /url: "#/recitation/4"
+    - listitem:
+      - link /5\. Al-Maaida المائدة \d+ ayat/:
+        - /url: "#/recitation/5"
+    - listitem:
+      - link /6\. Al-An'aam الأنعام \d+ ayat/:
+        - /url: "#/recitation/6"
+    - listitem:
+      - link /7\. Al-A'raaf الأعراف \d+ ayat/:
+        - /url: "#/recitation/7"
+    - listitem:
+      - link /8\. Al-Anfaal الأنفال \d+ ayat/:
+        - /url: "#/recitation/8"
+    - listitem:
+      - link /9\. At-Tawba التوبة \d+ ayat/:
+        - /url: "#/recitation/9"
+    - listitem:
+      - link /\d+\. Yunus يونس \d+ ayat/:
+        - /url: "#/recitation/10"
+    - listitem:
+      - link /\d+\. Hud هود \d+ ayat/:
+        - /url: "#/recitation/11"
+    - listitem:
+      - link /\d+\. Yusuf يوسف \d+ ayat/:
+        - /url: "#/recitation/12"
+    - listitem:
+      - link /\d+\. Ar-Ra'd الرعد \d+ ayat/:
+        - /url: "#/recitation/13"
+    - listitem:
+      - link /\d+\. Ibrahim ابراهيم \d+ ayat/:
+        - /url: "#/recitation/14"
+    - listitem:
+      - link /\d+\. Al-Hijr الحجر \d+ ayat/:
+        - /url: "#/recitation/15"
+    - listitem:
+      - link /\d+\. An-Nahl النحل \d+ ayat/:
+        - /url: "#/recitation/16"
+    - listitem:
+      - link /\d+\. Al-Israa الإسراء \d+ ayat/:
+        - /url: "#/recitation/17"
+    - listitem:
+      - link /\d+\. Al-Kahf الكهف \d+ ayat/:
+        - /url: "#/recitation/18"
+    - listitem:
+      - link /\d+\. Maryam مريم \d+ ayat/:
+        - /url: "#/recitation/19"
+    - listitem:
+      - link /\d+\. Taa-Haa طه \d+ ayat/:
+        - /url: "#/recitation/20"
+    - listitem:
+      - link /\d+\. Al-Anbiyaa الأنبياء \d+ ayat/:
+        - /url: "#/recitation/21"
+    - listitem:
+      - link /\d+\. Al-Hajj الحج \d+ ayat/:
+        - /url: "#/recitation/22"
+    - listitem:
+      - link /\d+\. Al-Muminoon المؤمنون \d+ ayat/:
+        - /url: "#/recitation/23"
+    - listitem:
+      - link /\d+\. An-Noor النور \d+ ayat/:
+        - /url: "#/recitation/24"
+    - listitem:
+      - link /\d+\. Al-Furqaan الفرقان \d+ ayat/:
+        - /url: "#/recitation/25"
+    - listitem:
+      - link /\d+\. Ash-Shu'araa الشعراء \d+ ayat/:
+        - /url: "#/recitation/26"
+    - listitem:
+      - link /\d+\. An-Naml النمل \d+ ayat/:
+        - /url: "#/recitation/27"
+    - listitem:
+      - link /\d+\. Al-Qasas القصص \d+ ayat/:
+        - /url: "#/recitation/28"
+    - listitem:
+      - link /\d+\. Al-Ankaboot العنكبوت \d+ ayat/:
+        - /url: "#/recitation/29"
+    - listitem:
+      - link /\d+\. Ar-Room الروم \d+ ayat/:
+        - /url: "#/recitation/30"
+    - listitem:
+      - link /\d+\. Luqman لقمان \d+ ayat/:
+        - /url: "#/recitation/31"
+    - listitem:
+      - link /\d+\. As-Sajda السجدة \d+ ayat/:
+        - /url: "#/recitation/32"
+    - listitem:
+      - link /\d+\. Al-Ahzaab الأحزاب \d+ ayat/:
+        - /url: "#/recitation/33"
+    - listitem:
+      - link /\d+\. Saba سبإ \d+ ayat/:
+        - /url: "#/recitation/34"
+    - listitem:
+      - link /\d+\. Faatir فاطر \d+ ayat/:
+        - /url: "#/recitation/35"
+    - listitem:
+      - link /\d+\. Yaseen يس \d+ ayat/:
+        - /url: "#/recitation/36"
+    - listitem:
+      - link /\d+\. As-Saaffaat الصافات \d+ ayat/:
+        - /url: "#/recitation/37"
+    - listitem:
+      - link /\d+\. Saad ص \d+ ayat/:
+        - /url: "#/recitation/38"
+    - listitem:
+      - link /\d+\. Az-Zumar الزمر \d+ ayat/:
+        - /url: "#/recitation/39"
+    - listitem:
+      - link /\d+\. Al-Ghaafir غافر \d+ ayat/:
+        - /url: "#/recitation/40"
+    - listitem:
+      - link /\d+\. Fussilat فصلت \d+ ayat/:
+        - /url: "#/recitation/41"
+    - listitem:
+      - link /\d+\. Ash-Shura الشورى \d+ ayat/:
+        - /url: "#/recitation/42"
+    - listitem:
+      - link /\d+\. Az-Zukhruf الزخرف \d+ ayat/:
+        - /url: "#/recitation/43"
+    - listitem:
+      - link /\d+\. Ad-Dukhaan الدخان \d+ ayat/:
+        - /url: "#/recitation/44"
+    - listitem:
+      - link /\d+\. Al-Jaathiya الجاثية \d+ ayat/:
+        - /url: "#/recitation/45"
+    - listitem:
+      - link /\d+\. Al-Ahqaf الأحقاف \d+ ayat/:
+        - /url: "#/recitation/46"
+    - listitem:
+      - link /\d+\. Muhammad محمد \d+ ayat/:
+        - /url: "#/recitation/47"
+    - listitem:
+      - link /\d+\. Al-Fath الفتح \d+ ayat/:
+        - /url: "#/recitation/48"
+    - listitem:
+      - link /\d+\. Al-Hujuraat الحجرات \d+ ayat/:
+        - /url: "#/recitation/49"
+    - listitem:
+      - link /\d+\. Qaaf ق \d+ ayat/:
+        - /url: "#/recitation/50"
+    - listitem:
+      - link /\d+\. Adh-Dhaariyat الذاريات \d+ ayat/:
+        - /url: "#/recitation/51"
+    - listitem:
+      - link /\d+\. At-Tur الطور \d+ ayat/:
+        - /url: "#/recitation/52"
+    - listitem:
+      - link /\d+\. An-Najm النجم \d+ ayat/:
+        - /url: "#/recitation/53"
+    - listitem:
+      - link /\d+\. Al-Qamar القمر \d+ ayat/:
+        - /url: "#/recitation/54"
+    - listitem:
+      - link /\d+\. Ar-Rahmaan الرحمن \d+ ayat/:
+        - /url: "#/recitation/55"
+    - listitem:
+      - link /\d+\. Al-Waaqia الواقعة \d+ ayat/:
+        - /url: "#/recitation/56"
+    - listitem:
+      - link /\d+\. Al-Hadid الحديد \d+ ayat/:
+        - /url: "#/recitation/57"
+    - listitem:
+      - link /\d+\. Al-Mujaadila المجادلة \d+ ayat/:
+        - /url: "#/recitation/58"
+    - listitem:
+      - link /\d+\. Al-Hashr الحشر \d+ ayat/:
+        - /url: "#/recitation/59"
+    - listitem:
+      - link /\d+\. Al-Mumtahana الممتحنة \d+ ayat/:
+        - /url: "#/recitation/60"
+    - listitem:
+      - link /\d+\. As-Saff الصف \d+ ayat/:
+        - /url: "#/recitation/61"
+    - listitem:
+      - link /\d+\. Al-Jumu'a الجمعة \d+ ayat/:
+        - /url: "#/recitation/62"
+    - listitem:
+      - link /\d+\. Al-Munaafiqoon المنافقون \d+ ayat/:
+        - /url: "#/recitation/63"
+    - listitem:
+      - link /\d+\. At-Taghaabun التغابن \d+ ayat/:
+        - /url: "#/recitation/64"
+    - listitem:
+      - link /\d+\. At-Talaaq الطلاق \d+ ayat/:
+        - /url: "#/recitation/65"
+    - listitem:
+      - link /\d+\. At-Tahrim التحريم \d+ ayat/:
+        - /url: "#/recitation/66"
+    - listitem:
+      - link /\d+\. Al-Mulk الملك \d+ ayat/:
+        - /url: "#/recitation/67"
+    - listitem:
+      - link /\d+\. Al-Qalam القلم \d+ ayat/:
+        - /url: "#/recitation/68"
+    - listitem:
+      - link /\d+\. Al-Haaqqa الحاقة \d+ ayat/:
+        - /url: "#/recitation/69"
+    - listitem:
+      - link /\d+\. Al-Ma'aarij المعارج \d+ ayat/:
+        - /url: "#/recitation/70"
+    - listitem:
+      - link /\d+\. Nooh نوح \d+ ayat/:
+        - /url: "#/recitation/71"
+    - listitem:
+      - link /\d+\. Al-Jinn الجن \d+ ayat/:
+        - /url: "#/recitation/72"
+    - listitem:
+      - link /\d+\. Al-Muzzammil المزمل \d+ ayat/:
+        - /url: "#/recitation/73"
+    - listitem:
+      - link /\d+\. Al-Muddaththir المدثر \d+ ayat/:
+        - /url: "#/recitation/74"
+    - listitem:
+      - link /\d+\. Al-Qiyaama القيامة \d+ ayat/:
+        - /url: "#/recitation/75"
+    - listitem:
+      - link /\d+\. Al-Insaan الانسان \d+ ayat/:
+        - /url: "#/recitation/76"
+    - listitem:
+      - link /\d+\. Al-Mursalaat المرسلات \d+ ayat/:
+        - /url: "#/recitation/77"
+    - listitem:
+      - link /\d+\. An-Naba النبإ \d+ ayat/:
+        - /url: "#/recitation/78"
+    - listitem:
+      - link /\d+\. An-Naazi'aat النازعات \d+ ayat/:
+        - /url: "#/recitation/79"
+    - listitem:
+      - link /\d+\. Abasa عبس \d+ ayat/:
+        - /url: "#/recitation/80"
+    - listitem:
+      - link /\d+\. At-Takwir التكوير \d+ ayat/:
+        - /url: "#/recitation/81"
+    - listitem:
+      - link /\d+\. Al-Infitaar الإنفطار \d+ ayat/:
+        - /url: "#/recitation/82"
+    - listitem:
+      - link /\d+\. Al-Mutaffifin المطففين \d+ ayat/:
+        - /url: "#/recitation/83"
+    - listitem:
+      - link /\d+\. Al-Inshiqaaq الإنشقاق \d+ ayat/:
+        - /url: "#/recitation/84"
+    - listitem:
+      - link /\d+\. Al-Burooj البروج \d+ ayat/:
+        - /url: "#/recitation/85"
+    - listitem:
+      - link /\d+\. At-Taariq الطارق \d+ ayat/:
+        - /url: "#/recitation/86"
+    - listitem:
+      - link /\d+\. Al-A'laa الأعلى \d+ ayat/:
+        - /url: "#/recitation/87"
+    - listitem:
+      - link /\d+\. Al-Ghaashiya الغاشية \d+ ayat/:
+        - /url: "#/recitation/88"
+    - listitem:
+      - link /\d+\. Al-Fajr الفجر \d+ ayat/:
+        - /url: "#/recitation/89"
+    - listitem:
+      - link /\d+\. Al-Balad البلد \d+ ayat/:
+        - /url: "#/recitation/90"
+    - listitem:
+      - link /\d+\. Ash-Shams الشمس \d+ ayat/:
+        - /url: "#/recitation/91"
+    - listitem:
+      - link /\d+\. Al-Lail الليل \d+ ayat/:
+        - /url: "#/recitation/92"
+    - listitem:
+      - link /\d+\. Ad-Dhuhaa الضحى \d+ ayat/:
+        - /url: "#/recitation/93"
+    - listitem:
+      - link /\d+\. Ash-Sharh الشرح 8 ayat/:
+        - /url: "#/recitation/94"
+    - listitem:
+      - link /\d+\. At-Tin التين 8 ayat/:
+        - /url: "#/recitation/95"
+    - listitem:
+      - link /\d+\. Al-Alaq العلق \d+ ayat/:
+        - /url: "#/recitation/96"
+    - listitem:
+      - link /\d+\. Al-Qadr القدر 5 ayat/:
+        - /url: "#/recitation/97"
+    - listitem:
+      - link /\d+\. Al-Bayyina البينة 8 ayat/:
+        - /url: "#/recitation/98"
+    - listitem:
+      - link /\d+\. Az-Zalzala الزلزلة 8 ayat/:
+        - /url: "#/recitation/99"
+    - listitem:
+      - link /\d+\. Al-Aadiyaat العاديات \d+ ayat/:
+        - /url: "#/recitation/100"
+    - listitem:
+      - link /\d+\. Al-Qaari'a القارعة \d+ ayat/:
+        - /url: "#/recitation/101"
+    - listitem:
+      - link /\d+\. At-Takaathur التكاثر 8 ayat/:
+        - /url: "#/recitation/102"
+    - listitem:
+      - link /\d+\. Al-Asr العصر 3 ayat/:
+        - /url: "#/recitation/103"
+    - listitem:
+      - link /\d+\. Al-Humaza الهمزة 9 ayat/:
+        - /url: "#/recitation/104"
+    - listitem:
+      - link /\d+\. Al-Fil الفيل 5 ayat/:
+        - /url: "#/recitation/105"
+    - listitem:
+      - link /\d+\. Quraish قريش 4 ayat/:
+        - /url: "#/recitation/106"
+    - listitem:
+      - link /\d+\. Al-Maa'un الماعون 7 ayat/:
+        - /url: "#/recitation/107"
+    - listitem:
+      - link /\d+\. Al-Kawthar الكوثر 3 ayat/:
+        - /url: "#/recitation/108"
+    - listitem:
+      - link /\d+\. Al-Kaafiroon الكافرون 6 ayat/:
+        - /url: "#/recitation/109"
+    - listitem:
+      - link /\d+\. An-Nasr النصر 3 ayat/:
+        - /url: "#/recitation/110"
+    - listitem:
+      - link /\d+\. Al-Masad المسد 5 ayat/:
+        - /url: "#/recitation/111"
+    - listitem:
+      - link /\d+\. Al-Ikhlaas الإخلاص 4 ayat/:
+        - /url: "#/recitation/112"
+    - listitem:
+      - link /\d+\. Al-Falaq الفلق 5 ayat/:
+        - /url: "#/recitation/113"
+    - listitem:
+      - link /\d+\. An-Naas الناس 6 ayat/:
+        - /url: "#/recitation/114"

@@ -54,7 +54,9 @@ async function unreachedControls(page: Page): Promise<string[]> {
       element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden";
     const candidates = [
       ...document.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex="0"]'),
-    ].filter((element) => shown(element) && !("disabled" in element && element.disabled === true));
+    ].filter(
+      (element) => shown(element) && element.tabIndex >= 0 && !("disabled" in element && element.disabled === true),
+    );
     const checkedGroups = new Set(
       candidates
         .filter((element) => element instanceof HTMLInputElement && element.type === "radio" && element.checked)

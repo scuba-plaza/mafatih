@@ -1,0 +1,84 @@
+- main:
+  - heading "Stats" [level=1]
+  - group "Show statistics for":
+    - text: ""
+    - radio "Practice"
+    - text: Practice
+    - radio "Recitation"
+    - text: Recitation
+    - radio "Custom" [checked]
+    - text: Custom
+  - status: "⁨Custom⁩. Keys: 1."
+  - heading "Keys in ⁨Custom⁩" [level=2]
+  - table "Keys in ⁨Custom⁩":
+    - rowgroup:
+      - row "Key Time per key (ms) Right first time Attempts":
+        - columnheader "Key"
+        - columnheader "Time per key (ms)"
+        - columnheader "Right first time"
+        - columnheader "Attempts"
+    - rowgroup:
+      - row /ت \d+ \d+% 2/:
+        - rowheader "ت"
+        - cell /\d+/
+        - cell /\d+%/
+        - cell "2"
+  - heading "Last ten lessons" [level=2]
+  - table "Last ten lessons":
+    - rowgroup:
+      - row "Date Mode Speed (characters per minute) Accuracy":
+        - columnheader "Date"
+        - columnheader "Mode"
+        - columnheader "Speed (characters per minute)"
+        - columnheader "Accuracy"
+    - rowgroup:
+      - row /Nov \d+, \d+ Custom \d+ \d+%/:
+        - cell /Nov \d+, \d+/
+        - cell "Custom"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov \d+, \d+ Recitation \d+ \d+%/:
+        - cell /Nov \d+, \d+/
+        - cell "Recitation"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov \d+, \d+ Practice \d+ \d+%/:
+        - cell /Nov \d+, \d+/
+        - cell "Practice"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 9, \d+ Custom \d+ \d+%/:
+        - cell /Nov 9, \d+/
+        - cell "Custom"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 8, \d+ Recitation \d+ \d+%/:
+        - cell /Nov 8, \d+/
+        - cell "Recitation"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 7, \d+ Practice \d+ \d+%/:
+        - cell /Nov 7, \d+/
+        - cell "Practice"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 6, \d+ Custom \d+ \d+%/:
+        - cell /Nov 6, \d+/
+        - cell "Custom"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 5, \d+ Recitation \d+ \d+%/:
+        - cell /Nov 5, \d+/
+        - cell "Recitation"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 4, \d+ Practice \d+ \d+%/:
+        - cell /Nov 4, \d+/
+        - cell "Practice"
+        - cell /\d+/
+        - cell /\d+%/
+      - row /Nov 3, \d+ Custom \d+ \d+%/:
+        - cell /Nov 3, \d+/
+        - cell "Custom"
+        - cell /\d+/
+        - cell /\d+%/

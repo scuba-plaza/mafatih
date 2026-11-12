@@ -74,9 +74,7 @@ test("one font is loaded for the page, and the other two only when Settings is o
   expect(before.size).toBeLessThanOrEqual(1);
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(page.locator("[data-font-sample]")).toHaveCount(3);
-  await page.waitForLoadState("networkidle");
-  const after = new Set(requests.filter((path) => FONT_FILE.test(path)));
-  expect(after.size).toBe(3);
+  await expect.poll(() => new Set(requests.filter((path) => FONT_FILE.test(path))).size).toBe(3);
 });
 
 test("typing a hundred and fifty characters never freezes the page for a fifth of a second and drops none", async ({

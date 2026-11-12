@@ -39,7 +39,7 @@ function SurahLink({ meta, progress }: { meta: SurahMeta; progress: RecitationPr
       className="flex min-h-14 items-center gap-3 rounded-md border border-line bg-surface px-3 py-2 hover:bg-page"
     >
       <Ring fraction={fraction} />
-      <span className="flex min-w-0 flex-col">
+      <span className="flex min-w-0 flex-col wrap-anywhere">
         <span className="font-medium">
           <span className="text-muted">{formatNumber(meta.n)}. </span>
           {language === "ar" ? (
@@ -84,9 +84,9 @@ export function SurahMap() {
           {label}
         </a>
       </div>
-      <ul aria-label={t("map.list")} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <ul aria-label={t("map.list")} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {surahOrder(settings.surahOrder).map((number) => (
-          <li key={number}>
+          <li key={number} className="min-w-0">
             <SurahLink meta={requireSurahMeta(number)} progress={recitation} />
           </li>
         ))}

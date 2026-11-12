@@ -1,0 +1,31 @@
+- main:
+  - heading "Al-Faatiha الفاتحة" [level=1]
+  - paragraph: Ayat 1 to 4 of 7
+  - status: ⁨Al-Faatiha⁩. ⁨Ayat 1 to 4 of 7⁩
+  - paragraph: Type the letters. Marks and ayah numbers are shown but not typed.
+  - status
+  - region "Text to type":
+    - paragraph: بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝١ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۝٢ الرَّحْمَٰنِ الرَّحِيمِ ۝٣ مَالِكِ يَوْمِ الدِّينِ ۝٤
+    - button "Start typing"
+    - status
+    - textbox "Type the text shown"
+    - status: بِسْمِ
+  - group "Recitation audio":
+    - text: ""
+    - button "Previous ayah"
+    - button "Play"
+    - button "Next ayah"
+    - button "Mute"
+    - text: Volume
+    - slider "Volume": /\d+/
+    - switch "Play whole passage"
+    - text: Play whole passage
+    - status: /⁨Abdul Basit ʿAbd us-Samad⁩ · ⁨Murattal⁩ \d+ kbps · 1:1/
+  - group "Passage":
+    - text: Passage 0 of 7 ayat typed
+    - progressbar "0 of 7 ayat typed"
+    - button "Previous passage"
+    - button "Next passage"
+    - text: Go to ayah
+    - spinbutton "Go to ayah": "1"
+    - button "Go"

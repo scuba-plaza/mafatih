@@ -1,6 +1,5 @@
 import { expect, type Page } from "@playwright/test";
 import { seedProfile } from "./profile.ts";
-import { surface } from "./typing.ts";
 
 export const PAGES = [
   { name: "map", hash: "#/", typing: false },
@@ -44,7 +43,8 @@ export async function openAndWait(page: Page, hash: string, typing: boolean): Pr
   await page.goto(`/${hash}`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   if (typing) {
-    await expect(surface(page)).toBeVisible();
-    await expect(surface(page).locator("[data-lesson-text]")).not.toHaveText("");
+    const text = page.locator("[data-lesson-text]");
+    await expect(text).toBeVisible();
+    await expect(text).not.toHaveText("");
   }
 }

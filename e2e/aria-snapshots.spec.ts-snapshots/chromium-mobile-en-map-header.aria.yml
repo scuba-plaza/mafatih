@@ -1,0 +1,17 @@
+- banner:
+  - button "Skip to content"
+  - navigation "Main":
+    - list:
+      - listitem:
+        - link "Recitation":
+          - /url: "#/"
+      - listitem:
+        - link "Practice":
+          - /url: "#/practice"
+      - listitem:
+        - link "Custom":
+          - /url: "#/custom"
+      - listitem:
+        - link "Stats":
+          - /url: "#/stats"
+  - button "Settings"
