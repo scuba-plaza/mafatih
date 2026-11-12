@@ -7,3 +7,6 @@ export async function addStyle(page: Page, css: string): Promise<void> {
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
   }, css);
 }
+
+export const WIDE_LARGE_TEXT =
+  'html { font-size: 200%; } html, body, button, input, select, dialog { font-family: "DejaVu Sans", sans-serif !important; }';

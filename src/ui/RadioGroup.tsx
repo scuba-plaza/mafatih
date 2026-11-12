@@ -38,7 +38,7 @@ function Radio<Value extends string>({ name, option, checked, onChange }: RadioP
         aria-describedby={option.hint === undefined ? undefined : hintId}
         className="mt-0.5 size-5 shrink-0 accent-accent"
       />
-      <span className="flex flex-col">
+      <span className="flex min-w-0 flex-col wrap-anywhere">
         <span id={labelId} lang={option.lang} className="font-medium">
           {option.label}
         </span>

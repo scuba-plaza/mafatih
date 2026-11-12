@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { type Language, openAndWait, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
-import { addStyle } from "./helpers/style.ts";
+import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 
 test.use({ timezoneId: "UTC", locale: "en-US" });
 
@@ -92,7 +92,7 @@ for (const language of LANGUAGES) {
       test(`the ${name} page loses nothing: no sideways scroll, every control inside the screen`, async ({ page }) => {
         await seedTypicalProfile(page, language);
         await openAndWait(page, hash, typing);
-        await addStyle(page, "html { font-size: 200%; }");
+        await addStyle(page, WIDE_LARGE_TEXT);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
         await expectNothingLost(page);
       });
@@ -101,7 +101,7 @@ for (const language of LANGUAGES) {
     test("the Settings dialog loses nothing either", async ({ page }) => {
       await seedTypicalProfile(page, language);
       await openAndWait(page, "#/custom", true);
-      await addStyle(page, "html { font-size: 200%; }");
+      await addStyle(page, WIDE_LARGE_TEXT);
       await page.getByRole("button", { name: SETTINGS_NAME[language] }).click();
       await expect(page.getByRole("dialog", { name: SETTINGS_NAME[language] })).toBeVisible();
       await expectNothingLost(page);

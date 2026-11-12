@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
-import { addStyle } from "./helpers/style.ts";
+import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 import { doneText, surface, typeKeys } from "./helpers/typing.ts";
 
 const KASRA = String.fromCodePoint(0x650);
@@ -278,7 +278,7 @@ test("at 320 pixels with text at 200 percent the dialog still fits and its Done 
 }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/#/custom");
-  await addStyle(page, "html { font-size: 200%; }");
+  await addStyle(page, WIDE_LARGE_TEXT);
   await openSettings(page);
   expect(await dialog(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
   await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport({ ratio: 1 });
