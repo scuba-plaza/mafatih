@@ -10,6 +10,7 @@ export interface KeyRow {
 }
 
 export interface LessonRow {
+  readonly id: number;
   readonly at: number;
   readonly mode: Mode;
   readonly cpm: number | null;
@@ -38,13 +39,15 @@ export function keyRows(stats: KeyStats): KeyRow[] {
 }
 
 export function recentLessons(history: readonly LessonRecord[], count = RECENT_LESSONS): LessonRow[] {
+  const first = Math.max(0, history.length - count);
   return history
-    .slice(-count)
-    .reverse()
-    .map(({ at, mode, chars, ms, accuracy }) => ({
+    .slice(first)
+    .map(({ at, mode, chars, ms, accuracy }, index) => ({
+      id: first + index,
       at,
       mode,
       cpm: ms > 0 ? chars / (ms / MS_PER_MINUTE) : null,
       accuracy,
-    }));
+    }))
+    .reverse();
 }

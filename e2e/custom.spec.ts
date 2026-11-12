@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { savedSettings, seedProfile, seedSettings } from "./helpers/profile.ts";
+import { savedProfile, savedSettings, seedProfile, seedSettings } from "./helpers/profile.ts";
 import { doneText, surface, typeKeys } from "./helpers/typing.ts";
 
 const NOTHING = "There is nothing to type in this text.";
@@ -71,6 +71,34 @@ test("the finished summary gives speed, accuracy and mistakes, and offers to typ
   await expect(heading).toHaveCount(0);
   await typeKeys(page, ["ب", "ت"]);
   await expect(page.getByRole("definition").nth(1)).toHaveText("100%");
+});
+
+test("a finished Custom lesson is recorded in the Custom statistics and the history, and nowhere else", async ({
+  page,
+}) => {
+  await seedProfile(page, { settings: { customText: "بت" }, ladder: { unlocked: 12 } });
+  await page.goto("/#/custom");
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await typeKeys(page, ["ب", "س", "Backspace", "ت"]);
+  await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toBeFocused();
+  const profile = await savedProfile(page);
+  const stats = profile.stats as Record<string, Record<string, { attempts: number; hits: number }>>;
+  expect(Object.keys(stats.custom ?? {}).sort()).toEqual(["ب", "ت"]);
+  expect(stats.custom?.ب).toMatchObject({ attempts: 1, hits: 1 });
+  expect(stats.custom?.ت).toMatchObject({ attempts: 1, hits: 0 });
+  expect(stats.practice).toEqual({});
+  expect(stats.recitation).toEqual({});
+  expect(profile.ladder).toEqual({ unlocked: 12 });
+  const history = profile.history as Array<Record<string, unknown>>;
+  expect(history).toHaveLength(1);
+  expect(history[0]).toMatchObject({ mode: "custom", chars: 2, accuracy: 0.5 });
+  await page.getByRole("button", { name: "Type again" }).click();
+  await typeKeys(page, ["ب", "ت"]);
+  await expect(page.getByRole("definition").nth(1)).toHaveText("100%");
+  expect(((await savedProfile(page)).history as unknown[]).length).toBe(2);
+  await page.goto("/#/stats");
+  await expect(page.getByRole("radio", { name: "Custom" })).toBeChecked();
+  await expect(page.getByRole("table", { name: /^Keys in/ }).getByRole("rowheader")).toHaveText(["ب", "ت"]);
 });
 
 test("the message about a refused text goes away as soon as the text is changed", async ({ page }) => {

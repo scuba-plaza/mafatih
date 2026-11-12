@@ -52,6 +52,12 @@ test("the lessons are listed newest first, at most ten", () => {
 
 test("a lesson's speed is its characters per minute, or nothing when it took no time", () => {
   const rows = recentLessons([lesson(1, "recitation", 150, 60_000, 0.97), lesson(2, "custom", 40, 0)]);
-  expect(rows[0]).toEqual({ at: 2, mode: "custom", cpm: null, accuracy: 1 });
-  expect(rows[1]).toEqual({ at: 1, mode: "recitation", cpm: 150, accuracy: 0.97 });
+  expect(rows[0]).toMatchObject({ at: 2, mode: "custom", cpm: null, accuracy: 1 });
+  expect(rows[1]).toMatchObject({ at: 1, mode: "recitation", cpm: 150, accuracy: 0.97 });
+});
+
+test("two lessons stamped with the same time are still two rows with their own identity", () => {
+  const rows = recentLessons([lesson(5, "practice", 40, 24_000), lesson(5, "custom", 40, 24_000)]);
+  expect(rows.map((row) => row.mode)).toEqual(["custom", "practice"]);
+  expect(new Set(rows.map((row) => row.id)).size).toBe(2);
 });

@@ -1,12 +1,14 @@
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { unlockedMarks } from "~/practice/ladder.ts";
+import { lessonOf, recordLesson } from "~/stats/history.ts";
+import { recordSample } from "~/stats/keystats.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { buildPrompt, type Prompt } from "~/text/prompt.ts";
 import { requiredMarks } from "~/text/vocalization.ts";
 import { isComplete, metricsOf } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
-import { useTrainer } from "~/typing/useTrainer.ts";
+import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
 import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
@@ -91,8 +93,15 @@ interface LessonProps {
 
 function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
   const { t } = useI18n();
-  const { settings } = useProfile().profile;
-  const trainer = useTrainer({ prompt, options: { requireBackspace: settings.requireBackspace } });
+  const { profile, update } = useProfile();
+  const { settings } = profile;
+  const record = ({ metrics, samples }: TrainerResult) =>
+    update((current) => ({
+      ...current,
+      stats: { ...current.stats, custom: samples.reduce(recordSample, current.stats.custom) },
+      history: recordLesson(current.history, lessonOf("custom", metrics, Date.now())),
+    }));
+  const trainer = useTrainer({ prompt, options: { requireBackspace: settings.requireBackspace }, onComplete: record });
   const { focus, session } = trainer;
 
   useEffect(() => {

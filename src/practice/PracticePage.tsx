@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
-import { recordLesson } from "~/stats/history.ts";
+import { lessonOf, recordLesson } from "~/stats/history.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
@@ -28,18 +28,11 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
     ({ metrics, samples }: TrainerResult) => {
       const next = update((current) => {
         const result = applyPracticeLesson({ stats: current.stats.practice, progress: current.ladder }, samples);
-        const lesson = {
-          at: Date.now(),
-          mode: "practice",
-          chars: metrics.typedChars,
-          ms: metrics.elapsedMs,
-          accuracy: metrics.accuracy,
-        } as const;
         return {
           ...current,
           ladder: result.progress,
           stats: { ...current.stats, practice: result.stats },
-          history: recordLesson(current.history, lesson),
+          history: recordLesson(current.history, lessonOf("practice", metrics, Date.now())),
         };
       });
       setLast({ metrics, unlocked: next.ladder.unlocked > unlocked ? focusRung(next.ladder) : undefined });

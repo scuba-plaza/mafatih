@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { replaceRoute } from "~/app/useRoute.ts";
 import { unlockedMarks } from "~/practice/ladder.ts";
-import { recordLesson } from "~/stats/history.ts";
+import { lessonOf, recordLesson } from "~/stats/history.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { requiredMarks } from "~/text/vocalization.ts";
 import type { Sample } from "~/typing/session.ts";
@@ -107,14 +107,10 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
 
   const recordPassage = useCallback(
     ({ metrics }: TrainerResult) => {
-      const lesson = {
-        at: Date.now(),
-        mode: "recitation",
-        chars: metrics.typedChars,
-        ms: metrics.elapsedMs,
-        accuracy: metrics.accuracy,
-      } as const;
-      update((current) => ({ ...current, history: recordLesson(current.history, lesson) }));
+      update((current) => ({
+        ...current,
+        history: recordLesson(current.history, lessonOf("recitation", metrics, Date.now())),
+      }));
     },
     [update],
   );

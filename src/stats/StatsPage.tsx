@@ -1,7 +1,7 @@
-import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 import { PAGE_TITLES } from "~/app/pages.ts";
-import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { markNameKey } from "~/i18n/keyNames.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { dottedMark, isMark } from "~/text/arabic.ts";
 import { PageHeading } from "~/ui/PageHeading.tsx";
@@ -9,15 +9,10 @@ import { RadioGroup } from "~/ui/RadioGroup.tsx";
 import { MODES, type Mode } from "./history.ts";
 import { keyRows, recentLessons } from "./rows.ts";
 
-const EMPTY: Record<Mode, MessageKey> = {
-  practice: "stats.empty.practice",
-  recitation: "stats.empty.recitation",
-  custom: "stats.empty.custom",
-};
-
 const CELL = "px-2 py-1.5 text-start align-top";
 const HEAD = `${CELL} font-medium text-muted`;
 const ROW = "border-t border-line";
+const ARABIC_SCRIPT = /\p{Script_Extensions=Arabic}/u;
 
 function Scrollable({ label, children }: { label: string; children: ReactNode }) {
   const wrapper = useRef<HTMLDivElement>(null);
@@ -38,7 +33,7 @@ function Scrollable({ label, children }: { label: string; children: ReactNode })
     return () => observer.disconnect();
   }, []);
 
-  const region = scrollable ? ({ tabIndex: 0, role: "region", "aria-label": label } as const) : {};
+  const region = scrollable ? ({ tabIndex: 0, role: "group", "aria-label": label } as const) : {};
   return (
     <div ref={wrapper} className="overflow-x-auto" {...region}>
       {children}
@@ -46,15 +41,41 @@ function Scrollable({ label, children }: { label: string; children: ReactNode })
   );
 }
 
+function KeyLabel({ char }: { char: string }) {
+  const { t } = useI18n();
+  if (char === " ") {
+    return t("stats.space");
+  }
+  if (isMark(char)) {
+    const nameKey = markNameKey(char);
+    return (
+      <>
+        <span lang="ar" className="text-lg">
+          {dottedMark(char)}
+        </span>
+        {nameKey !== undefined && <> {t(nameKey)}</>}
+      </>
+    );
+  }
+  return ARABIC_SCRIPT.test(char) ? (
+    <span lang="ar" className="text-lg">
+      {char}
+    </span>
+  ) : (
+    char
+  );
+}
+
 export function StatsPage() {
   const { t, formatNumber, formatPercent, formatDate } = useI18n();
   const { profile } = useProfile();
   const [mode, setMode] = useState<Mode>(profile.history.at(-1)?.mode ?? "practice");
+  const keysTitleId = useId();
+  const lessonsTitleId = useId();
   const rows = keyRows(profile.stats[mode]);
   const lessons = recentLessons(profile.history);
-
-  const keysCaption = t("stats.keys", { mode: t(PAGE_TITLES[mode]) });
-  const keyLabel = (key: string) => (key === " " ? t("stats.space") : isMark(key) ? dottedMark(key) : key);
+  const modeName = t(PAGE_TITLES[mode]);
+  const keysTitle = t("stats.keys", { mode: modeName });
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,22 +87,27 @@ export function StatsPage() {
         onChange={setMode}
         row
       />
+      <p role="status" className="sr-only">
+        {t("stats.announce", { mode: modeName, count: rows.length })}
+      </p>
+      <h2 id={keysTitleId} className="font-semibold">
+        {keysTitle}
+      </h2>
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">{t(EMPTY[mode])}</p>
+        <p className="text-sm text-muted">{t("stats.empty", { mode: modeName })}</p>
       ) : (
-        <Scrollable label={keysCaption}>
-          <table className="w-full border-collapse text-sm">
-            <caption className="pb-1 text-start font-semibold">{keysCaption}</caption>
+        <Scrollable label={t("stats.scrollable", { name: keysTitle })}>
+          <table aria-labelledby={keysTitleId} className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th scope="col" className={HEAD}>
                   {t("stats.key")}
                 </th>
                 <th scope="col" className={HEAD}>
-                  {t("stats.speed")}
+                  {t("stats.time")}
                 </th>
                 <th scope="col" className={HEAD}>
-                  {t("result.accuracy")}
+                  {t("stats.firstTry")}
                 </th>
                 <th scope="col" className={HEAD}>
                   {t("stats.attempts")}
@@ -91,15 +117,18 @@ export function StatsPage() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.key} className={ROW}>
-                  <th scope="row" lang="ar" className={`${CELL} text-lg font-medium`}>
-                    {keyLabel(row.key)}
+                  <th scope="row" className={`${CELL} font-medium`}>
+                    <KeyLabel char={row.key} />
                   </th>
                   <td className={CELL}>{row.meanMs === null ? t("hud.none") : formatNumber(row.meanMs)}</td>
                   <td className={CELL}>
                     {formatPercent(row.accuracy)}
-                    <span aria-hidden="true" className="mt-1 block h-1 w-full max-w-24 rounded-full bg-line">
+                    <span
+                      aria-hidden="true"
+                      className="mt-1 block h-1 w-full max-w-24 rounded-full bg-line forced-colors:bg-[GrayText]"
+                    >
                       <span
-                        className="block h-full rounded-full bg-accent"
+                        className="block h-full rounded-full bg-accent forced-colors:bg-[Highlight]"
                         style={{ width: `${row.accuracy * 100}%` }}
                       />
                     </span>
@@ -111,12 +140,14 @@ export function StatsPage() {
           </table>
         </Scrollable>
       )}
+      <h2 id={lessonsTitleId} className="font-semibold">
+        {t("stats.lessons")}
+      </h2>
       {lessons.length === 0 ? (
         <p className="text-sm text-muted">{t("stats.noLessons")}</p>
       ) : (
-        <Scrollable label={t("stats.lessons")}>
-          <table className="w-full border-collapse text-sm">
-            <caption className="pb-1 text-start font-semibold">{t("stats.lessons")}</caption>
+        <Scrollable label={t("stats.scrollable", { name: t("stats.lessons") })}>
+          <table aria-labelledby={lessonsTitleId} className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th scope="col" className={HEAD}>
@@ -135,7 +166,7 @@ export function StatsPage() {
             </thead>
             <tbody>
               {lessons.map((lesson) => (
-                <tr key={lesson.at} className={ROW}>
+                <tr key={lesson.id} className={ROW}>
                   <td className={CELL}>{formatDate(lesson.at)}</td>
                   <td className={CELL}>{t(PAGE_TITLES[lesson.mode])}</td>
                   <td className={CELL}>{lesson.cpm === null ? t("hud.none") : formatNumber(lesson.cpm)}</td>

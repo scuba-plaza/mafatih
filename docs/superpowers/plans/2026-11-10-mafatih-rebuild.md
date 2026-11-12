@@ -488,8 +488,8 @@ Part B is interface assembly and well-trodden work on top of Part A: dialogs, pa
 | 12b | Practice page and HUD | 10, 11, 12a | done |
 | 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | done |
 | 15 | Recitation audio | 14b | done |
-| 16 | Stats page | 11 | in review |
-| 17 | Backup and restore | 7, 11, 13 | to do |
+| 16 | Stats page | 11 | done |
+| 17 | Backup and restore | 7, 11, 13 | in review |
 | 18 | About, SEO, security headers and deploy | all pages | to do |
 | 19 | Hardening and the QA matrix | everything | to do |
 | 20 | Documentation and cut-over | everything | to do |
@@ -599,27 +599,35 @@ Read these before the first task; each one cost time to learn.
 
 **What exists:**
 - `keyRows(stats)`: one row per key that was ever attempted, in ladder order (the letters as they unlock, then the marks, then the keys that are not on the ladder: the space bar and the lam-alef key), each with its average time (none until a hit was timed), its share of first-try hits and its attempts. `recentLessons(history)`: the last ten lessons, newest first, with the speed worked out from the record (none when it took no time). Both are pure and unit-tested.
-- The page: an `h1`, a native radio group "Show statistics for" (Practice, Recitation, Custom, in a wrapping row) that chooses the mode of the key table and starts on the mode of the last lesson, a `<table>` with a `<caption>` ("Keys in Practice") and the columns Key, Speed (ms), Accuracy, Attempts, and a second table "Last ten lessons" (Date, Mode, Speed in characters per minute, Accuracy) for all modes. A mark is drawn on a dotted circle so that it shows alone; the key cells are Arabic text (`lang="ar"`); numbers and the date come from the language's formatters; a missing time is "Not yet". Each accuracy cell has a thin bar that is `aria-hidden`: the number carries the information (A6). A mode with no keys, and a profile with no lessons, say what to do instead of showing an empty table.
-- A table that is wider than the screen (at 320 pixels the lessons table is, even at the default text size) scrolls inside its own wrapper, which is a focusable region named after the table while it overflows and is not there otherwise (state in React, like the typing surface), so the page never scrolls sideways and the keyboard can reach the table.
+- The page: an `h1`, a native radio group "Show statistics for" (Practice, Recitation, Custom, in a wrapping row) that chooses the mode of the key table and starts on the mode of the last lesson, an `h2` "Keys in Practice" naming a `<table>` (`aria-labelledby`, no caption) with the columns Key, Time per key (ms), Right first time, Attempts, and a second `h2` and table "Last ten lessons" (Date, Mode, Speed in characters per minute, Accuracy) for all modes. A visually hidden polite status says the mode and how many keys it holds ("Recitation. Keys: 12."), so changing the mode is heard. A mark is drawn on a dotted circle followed by its name ("fatha"), as in the HUD; only Arabic-script keys carry `lang="ar"` (the word "Space" and any Latin key take the page's language); numbers and the date come from the language's formatters; a missing time is "Not yet". Each accuracy cell has a thin bar that is `aria-hidden` and drawn in system colours under forced colours: the number carries the information (A6). A mode with no keys, and a profile with no lessons, say what to do instead of showing an empty table.
+- A table that is wider than the screen (at 320 pixels the lessons table is, even at the default text size) scrolls inside its own wrapper, which is a focusable `role="group"` named "Scrollable: <table name>" while it overflows and is not there otherwise (state in React, like the typing surface; a group, not a landmark region), so the page never scrolls sideways and the keyboard can reach the table.
 - Reset progress empties both tables (it clears the statistics and the history).
-- Decided: the key table shows the average time and the share of first-try hits over all attempts, not the "recent accuracy" the unlock bar uses; the lesson list is the history of all modes, because the radio group is about keys.
+- Decided: the key table shows the average time and the share of first-try hits over all attempts, not the "recent accuracy" the unlock bar uses, and its column says so ("Right first time"); the lesson list is the history of all modes, because the radio group is about keys; the radio group starts on the mode of the last lesson and is not remembered when the page is left (a question for the owner).
+- Found by the review and fixed with it: **Custom never recorded anything**, so its Stats tab could never fill (A7 and the rule "Recitation and Custom feed the Stats page only" were not met). A finished Custom lesson now records its samples into `stats.custom` and one `lessonOf("custom", ...)` record into the history, and never touches the ladder or the other modes; `lessonOf` is shared by the three modes.
 - No component-test setup exists (no jsdom or Testing Library was ever installed), so what the plan called S4 is tested in the browser (S5) here, as in every earlier task, plus the pure rows at S1.
 
 - [x] Test (S1): the rows and their order; the date formatter.
 - [x] Test (S5): the empty states; the key table's columns, order and values; the mark on a dotted circle; the modes; the mode of the last lesson; the lesson list; the bars are `aria-hidden` and the numbers are there; Arabic labels and digits; axe clean in `en` and `ar`, light and dark, desktop and mobile, with data and without; 320 pixels and 150 percent text; Reset progress.
 - [x] Implement. Gate.
-- [ ] Review, fix, commit.
+- [x] Review, fix, commit. Fixed: the lessons test failed from UTC+12 (the spec now pins `timezoneId: "UTC"`, shown red under `TZ=Pacific/Auckland` without it); "Space" and Latin keys were tagged Arabic; marks were read without a name; the time column said "Speed" for a time and the accuracy column hid that it is a lifetime share; a heading per table, and the scroll wrapper is a group instead of a duplicate landmark; the bars show in forced colours; the mode change is announced; lesson rows have an identity of their own (`id`) because two lessons can share a time; one empty-state message with `{mode}`; the Arabic heading and unit spelling (still for the native review). Answered without a change: finding 11 (not remembering the mode), 13 (isolates in names), 14 (the `RadioGroup` wrapper changes nothing visible; the settings specs pass), 16 and 17 (checked by hand by the reviewer; the observers cover language and font changes).
 
 ### Task 17: Backup and restore
 
-**Files:** Create `src/storage/{transfer.ts,TransferDialog.tsx}`, `e2e/transfer.spec.ts`.
+**Files:** Create `src/storage/{transfer.ts,BackupRestore.tsx}`, `src/ui/ConfirmChoice.tsx`, `e2e/transfer.spec.ts`. Deviation from the first plan: Backup and restore is a section inside the Settings dialog (a second dialog on top of the first would stack two modals), so there is no `TransferDialog`; the confirm fieldset of Reset progress became the shared `ConfirmChoice`.
 
 **Interfaces:**
 - Produces: `exportProfile(profile: Profile, now: Date): { filename: string; json: string }` (`mafatih-backup-YYYY-MM-DD.json`, envelope `{ app: "mafatih", schema: 2, exportedAt, profile }`); `importProfile(text: string): { ok: true; profile: Profile } | { ok: false; reason: "too-large" | "not-json" | "not-a-backup" | "wrong-version" }`; `MAX_IMPORT_BYTES = 2_000_000`.
 
-- [ ] Test (S3): round-trip; a 5 MB text is `too-large`; a v1 export or any other `schema` is `wrong-version`; `__proto__` keys, wrong types, huge arrays are neutralised by the sanitizers (history at most 100, stats keys at most 200).
-- [ ] Test (S5): export downloads a file with the expected name and contents; import through the file input shows a confirm step ("Replace your current progress?") then applies and announces success in the status region; each failure reason shows a distinct `role="alert"` message tied to the field; mobile bottom sheet; axe clean.
-- [ ] Implement. Gate, review, commit.
+**What exists:**
+- `transfer.ts` (pure): `exportProfile` names the file by the local day and holds `{ app, schema, exportedAt, profile }`; `importProfile` refuses text over 2,000,000 **bytes** (not characters) before parsing, then in this order `not-json`, `not-a-backup` (not an object, no numeric `schema`, another `app`), `wrong-version` (any other schema number, with or without the app marker: the old app's export lands here), `not-a-backup` (no `app: "mafatih"` or no profile object), and otherwise passes the profile through the exported `sanitizeProfile`, so unknown keys, `__proto__`, wrong types and huge lists are neutralised by the same code that reads the stored profile (history at most 100, stats keys only the typeable ones).
+- `BackupRestore` (the section "Backup and restore" of the Settings dialog, before Reset progress): "Download backup" (a Blob and a temporary `<a download>`, the object URL revoked after ten seconds; a status says "Backup downloaded."), and a native file input labelled "Restore from a backup file" that reads at most 2,000,001 bytes of the chosen file, so a huge file is never loaded whole. A good file shows the `ConfirmChoice` "Replace your current progress?" with focus on "Keep my progress"; "Replace" swaps the whole profile (settings included, so the language may change) with `update(() => imported)` and the status says "Progress restored."; either answer returns focus to the file input. Each failure has its own `role="alert"` text, tied to the input with `aria-invalid` and `aria-describedby`; choosing another file clears it, and the input is emptied after each choice so the same file can be chosen again.
+- Not done on purpose: a link or QR transfer between devices (the old app had one); nothing is sent anywhere.
+- Left for Task 18: the CSP test must prove the download still works under the policy (a `blob:` anchor is a navigation, which `default-src` does not govern, but the e2e spec will show it).
+
+- [x] Test (S3): round-trip; a 5 MB text and a 2 MB text of two-byte characters are `too-large`, exactly the limit is read; a v1 export or any other `schema` is `wrong-version`; `__proto__` keys, wrong types, huge arrays are neutralised by the sanitizers.
+- [x] Test (S5): export downloads a file with the expected name and contents; import through the file input shows a confirm step then applies, shows the HUD of the new profile and announces success; keeping changes nothing; each failure reason shows a distinct alert tied to the field; the same bad file can be chosen again; axe clean in light and dark; 320 pixels; Arabic, and an English backup switches the language.
+- [x] Implement. Gate.
+- [ ] Review, fix, commit.
 
 ### Task 18: About, SEO, security headers and deploy
 

@@ -2,6 +2,8 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { seedProfile } from "./helpers/profile.ts";
 
+test.use({ timezoneId: "UTC" });
+
 const FATHA = String.fromCodePoint(0x64e);
 const DOTTED_CIRCLE = String.fromCodePoint(0x25cc);
 
@@ -38,6 +40,10 @@ function keys(page: Page) {
   return page.getByRole("table", { name: /^Keys in/ });
 }
 
+function keysHeading(page: Page, mode: string) {
+  return page.getByRole("heading", { level: 2, name: new RegExp(`^Keys in \\P{L}*${mode}`, "u") });
+}
+
 function recent(page: Page) {
   return page.getByRole("table", { name: "Last ten lessons" });
 }
@@ -61,7 +67,7 @@ test("a fresh profile says what to do instead of showing empty tables", async ({
   await expect(modes(page).getByRole("radio")).toHaveCount(3);
   await expect(modes(page).getByRole("radio", { name: "Practice" })).toBeChecked();
   await expect(
-    page.getByText("No Practice keys yet. Type a Practice lesson and its keys will appear here."),
+    page.getByText(/^No keys yet\. Type in \P{L}*Practice\P{L}* and they will appear here\.$/u),
   ).toBeVisible();
   await expect(keys(page)).toHaveCount(0);
   await expect(page.getByText("No lessons yet.")).toBeVisible();
@@ -73,12 +79,17 @@ test("the key table lists keys in ladder order with their speed, accuracy and at
   await seedProfile(page, PROFILE);
   await openPractice(page);
   const table = keys(page);
-  await expect(table.locator("caption")).toContainText("Practice");
-  await expect(table.getByRole("columnheader")).toHaveText(["Key", "Speed (ms)", "Accuracy", "Attempts"]);
+  await expect(keysHeading(page, "Practice")).toBeVisible();
+  await expect(table.getByRole("columnheader")).toHaveText([
+    "Key",
+    "Time per key (ms)",
+    "Right first time",
+    "Attempts",
+  ]);
   const rows = table.getByRole("row");
   await expect(rows).toHaveCount(6);
   const heads = await table.getByRole("rowheader").allTextContents();
-  expect(heads).toEqual(["ا", "ب", `${DOTTED_CIRCLE}${FATHA}`, "Space", "لا"]);
+  expect(heads).toEqual(["ا", "ب", `${DOTTED_CIRCLE}${FATHA} fatha`, "Space", "لا"]);
   expect(await texts(rows.nth(1))).toEqual(["380", "100%", "7"]);
   expect(await texts(rows.nth(2))).toEqual(["420", "90%", "10"]);
   expect(await texts(rows.nth(3))).toEqual(["640", "75%", "4"]);
@@ -86,30 +97,60 @@ test("the key table lists keys in ladder order with their speed, accuracy and at
   expect(await texts(rows.nth(5))).toEqual(["Not yet", "100%", "2"]);
 });
 
-test("a mark is drawn on a dotted circle so that it shows alone, and the key cells are Arabic text", async ({
-  page,
-}) => {
+test("a mark is drawn on a dotted circle and named, so that it shows and is read alone", async ({ page }) => {
   await seedProfile(page, PROFILE);
   await openPractice(page);
-  const mark = keys(page).getByRole("rowheader").filter({ hasText: DOTTED_CIRCLE });
+  const mark = keys(page).getByRole("rowheader", { name: /fatha$/ });
   await expect(mark).toHaveCount(1);
-  await expect(mark).toHaveAttribute("lang", "ar");
-  await expect(keys(page).getByRole("rowheader", { name: "ب" })).toHaveAttribute("lang", "ar");
+  await expect(mark.locator("[lang=ar]")).toHaveText(`${DOTTED_CIRCLE}${FATHA}`);
+  await expect(mark).toHaveAccessibleName(`${DOTTED_CIRCLE}${FATHA} fatha`);
+});
+
+test("only Arabic keys are tagged Arabic: the word Space is the page's own language", async ({ page }) => {
+  await seedProfile(page, PROFILE);
+  await openPractice(page);
+  const letter = keys(page).getByRole("rowheader", { name: "ب" });
+  await expect(letter.locator("[lang=ar]")).toHaveText("ب");
+  const space = keys(page).getByRole("rowheader", { name: "Space" });
+  await expect(space).toHaveCount(1);
+  await expect(space.locator("[lang]")).toHaveCount(0);
+  await expect(space.evaluate((element) => element.closest("[lang=ar]"))).resolves.toBeNull();
+});
+
+test("each table has a heading of its own and is named by it", async ({ page }) => {
+  await seedProfile(page, PROFILE);
+  await openPractice(page);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(2);
+  await expect(keysHeading(page, "Practice")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Last ten lessons" })).toBeVisible();
+  await expect(keys(page)).toBeVisible();
+  await expect(recent(page)).toBeVisible();
+  await expect(page.locator("caption")).toHaveCount(0);
 });
 
 test("the radio group chooses the mode of the key table, and each mode has its own empty state", async ({ page }) => {
   await seedProfile(page, PROFILE);
   await openPractice(page);
   await modes(page).getByRole("radio", { name: "Recitation" }).check();
-  await expect(keys(page).locator("caption")).toContainText("Recitation");
+  await expect(keysHeading(page, "Recitation")).toBeVisible();
   await expect(keys(page).getByRole("rowheader")).toHaveText(["ك"]);
   await modes(page).getByRole("radio", { name: "Custom" }).check();
   await expect(keys(page)).toHaveCount(0);
-  await expect(
-    page.getByText("No Custom keys yet. Type a text in Custom and its keys will appear here."),
-  ).toBeVisible();
+  await expect(page.getByText(/^No keys yet\. Type in \P{L}*Custom\P{L}* and they will appear here\.$/u)).toBeVisible();
   await modes(page).getByRole("radio", { name: "Practice" }).check();
   await expect(keys(page).getByRole("rowheader")).toHaveCount(5);
+});
+
+test("changing the mode is announced politely with how many keys it holds", async ({ page }) => {
+  await seedProfile(page, PROFILE);
+  await openPractice(page);
+  const status = page.getByRole("status").filter({ hasText: /Keys:/ });
+  await expect(status).toHaveText(/^\P{L}*Practice\P{L}*\. Keys: 5\.$/u);
+  await modes(page).getByRole("radio", { name: "Recitation" }).check();
+  await expect(status).toHaveText(/^\P{L}*Recitation\P{L}*\. Keys: 1\.$/u);
+  await modes(page).getByRole("radio", { name: "Custom" }).check();
+  await expect(status).toHaveText(/^\P{L}*Custom\P{L}*\. Keys: 0\.$/u);
+  await expect(status).toHaveClass(/sr-only/);
 });
 
 test("the mode of the last lesson is the one shown first", async ({ page }) => {
@@ -147,18 +188,35 @@ test("the bars are for the eye only: the numbers carry the information", async (
   await openPractice(page);
   const bars = keys(page).locator("[aria-hidden=true]");
   await expect(bars).toHaveCount(5);
-  for (const row of (await keys(page).getByRole("row").all()).slice(1)) {
-    expect((await row.getByRole("cell").nth(1).textContent())?.trim()).toMatch(/\d+%/);
-  }
+  await expect(keys(page).getByRole("cell", { name: /^\d+%$/ })).toHaveCount(5);
+});
+
+test("with forced colours the bars are drawn in system colours and differ", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await seedProfile(page, PROFILE);
+  await openPractice(page);
+  const colours = await keys(page)
+    .locator("[aria-hidden=true]")
+    .first()
+    .evaluate((track) => [track, track.firstElementChild].map((bar) => bar && getComputedStyle(bar).backgroundColor));
+  expect(colours).toHaveLength(2);
+  expect(colours[0]).not.toBe("rgba(0, 0, 0, 0)");
+  expect(colours[1]).not.toBe("rgba(0, 0, 0, 0)");
+  expect(colours[0]).not.toBe(colours[1]);
 });
 
 test("in the Arabic interface the labels and the digits are Arabic", async ({ page }) => {
   await seedProfile(page, { ...PROFILE, settings: { language: "ar" } });
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("الإحصاءات");
-  await page.getByRole("group", { name: "عرض إحصاءات" }).getByRole("radio", { name: "التمرين" }).check();
+  await page.getByRole("group", { name: "اعرض إحصاءات" }).getByRole("radio", { name: "التمرين" }).check();
   const table = page.getByRole("table", { name: /^المفاتيح في/ });
-  await expect(table.getByRole("columnheader")).toHaveText(["المفتاح", "السرعة (بالملّي ثانية)", "الدقة", "المحاولات"]);
+  await expect(table.getByRole("columnheader")).toHaveText([
+    "المفتاح",
+    "الزمن لكل مفتاح (بالملي ثانية)",
+    "صحيح من أول مرة",
+    "المحاولات",
+  ]);
   const cells = await texts(table.getByRole("row").nth(2));
   expect(cells[0]).toBe("\u0664\u0662\u0660");
   expect(cells[1]).toMatch(/^\u0669\u0660\u066A/);
@@ -191,7 +249,7 @@ test("at 320 pixels the page never scrolls sideways: a table too wide for it scr
   await page.setViewportSize({ width: 320, height: 568 });
   await seedProfile(page, PROFILE);
   await page.goto("/#/stats");
-  const scroller = page.getByRole("region", { name: "Last ten lessons" });
+  const scroller = page.getByRole("group", { name: /^Scrollable: \P{L}*Last ten lessons/u });
   await expect(recent(page)).toBeVisible();
   await expect(scroller).toHaveAttribute("tabindex", "0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);

@@ -1,4 +1,5 @@
 import { isRecord } from "~/lib/guards.ts";
+import type { Metrics } from "~/typing/session.ts";
 
 export const MODES = ["practice", "recitation", "custom"] as const;
 
@@ -16,6 +17,14 @@ const MAX_LESSONS = 100;
 const LATEST_DATE_MS = 8.64e15;
 const DAY_MS = 86_400_000;
 const MAX_CHARS = 100_000;
+
+export function lessonOf(
+  mode: Mode,
+  { typedChars, elapsedMs, accuracy }: Pick<Metrics, "typedChars" | "elapsedMs" | "accuracy">,
+  at: number,
+): LessonRecord {
+  return { at, mode, chars: typedChars, ms: elapsedMs, accuracy };
+}
 
 export function recordLesson(history: readonly LessonRecord[], lesson: LessonRecord): readonly LessonRecord[] {
   return [...history, lesson].slice(-MAX_LESSONS);

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { type LessonRecord, recordLesson, sanitizeHistory } from "./history.ts";
+import { type LessonRecord, lessonOf, recordLesson, sanitizeHistory } from "./history.ts";
 
 const LESSON: LessonRecord = { at: 1_700_000_000_000, mode: "practice", chars: 38, ms: 21_500, accuracy: 0.95 };
 
@@ -75,4 +75,14 @@ test("a lesson is kept only with a time the calendar can show, at most a day of 
   for (const lesson of sanitizeHistory([...kept, ...dropped])) {
     expect(Number.isNaN(new Date(lesson.at).getTime())).toBe(false);
   }
+});
+
+test("a lesson record holds the mode, the time and what the session measured", () => {
+  expect(lessonOf("custom", { typedChars: 40, elapsedMs: 24_000, accuracy: 0.9 }, 1_700_000_000_000)).toEqual({
+    at: 1_700_000_000_000,
+    mode: "custom",
+    chars: 40,
+    ms: 24_000,
+    accuracy: 0.9,
+  });
 });
