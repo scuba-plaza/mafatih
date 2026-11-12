@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { fingerOf } from "./fingers.ts";
-import { HOME_ROW_LETTERS, reachOf, strokeFor, WIN101_CAPS } from "./layout101.ts";
+import { HOME_ROW_LETTERS, strokeFor, WIN101_CAPS } from "./layout101.ts";
 import { expandLigature, isLigatureForm, LIGATURE_KEYS } from "./ligatures.ts";
 import { isTypeable, MARKS, TYPEABLE_LETTERS, TYPEABLE_PUNCTUATION } from "./typeable.ts";
 
@@ -170,33 +170,8 @@ test("a lam-alef presentation form expands to its two letters, anything else sta
   expect(isLigatureForm("ل")).toBe(false);
 });
 
-test("the home row holds ten letters, and they are exactly the letters within half a key of rest", () => {
+test("the home row holds the ten letters of the keys A S D F G H J K L and Semicolon", () => {
   expect([...HOME_ROW_LETTERS].sort()).toEqual(["ا", "ب", "ت", "س", "ش", "ك", "ل", "م", "ن", "ي"]);
-  for (const letter of LETTERS) {
-    expect(reachOf(letter) <= 0.5, letter).toBe(HOME_ROW_LETTERS.includes(letter));
-  }
-});
-
-test("reach is zero on the home keys and grows with every stretch, row and Shift", () => {
-  for (const letter of ["ش", "س", "ي", "ب", "ت", "ن", "م", "ك"]) {
-    expect(reachOf(letter), letter).toBe(0);
-  }
-  expect(reachOf("ل")).toBe(0.5);
-  expect(reachOf("ا")).toBe(0.5);
-  expect(reachOf("و")).toBe(1);
-  expect(reachOf("ة")).toBeLessThan(reachOf("ج"));
-  expect(reachOf("أ")).toBe(1.5);
-  expect(reachOf("َ")).toBe(2.5);
-  expect(reachOf("ذ")).toBe(3);
-  expect(reachOf("1")).toBe(3);
-  for (const letter of LETTERS) {
-    expect(reachOf(letter), letter).toBeLessThanOrEqual(3);
-  }
-});
-
-test("a character with no key is farther than any key", () => {
-  expect(reachOf("h")).toBe(4);
-  expect(reachOf("ٰ")).toBe(4);
 });
 
 test("every key belongs to the finger that touch typing assigns it", () => {

@@ -46,7 +46,7 @@ function openDatabase(onLost: () => void): Promise<IDBDatabase | null> {
   });
 }
 
-export function createAudioCache(): AudioCache | null {
+function createAudioCache(): AudioCache | null {
   if (typeof indexedDB === "undefined") {
     return null;
   }

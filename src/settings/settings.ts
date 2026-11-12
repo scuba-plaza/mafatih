@@ -28,7 +28,7 @@ export const AYAT_PER_PASSAGE: readonly number[] = [1, 2, 3, 4, 5, 6, 8, 10, 15,
 const DEFAULT_AYAT_PER_LESSON = 4;
 const DEFAULT_VOLUME = 0.8;
 
-export const VOCALIZATIONS: readonly Vocalization[] = ["auto", "letters", "harakat", "full"];
+const VOCALIZATIONS: readonly Vocalization[] = ["auto", "letters", "harakat", "full"];
 
 function isVocalization(value: unknown): value is Vocalization {
   return VOCALIZATIONS.some((level) => level === value);

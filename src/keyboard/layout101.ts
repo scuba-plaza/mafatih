@@ -60,47 +60,6 @@ export const WIN101_CAPS: readonly KeyCap[] = [
   { code: "Space", base: " ", shift: " ", row: 4 },
 ];
 
-const KEY_REACH: Readonly<Record<string, number>> = {
-  Backquote: 3,
-  KeyQ: 1.5,
-  KeyW: 1,
-  KeyE: 1,
-  KeyR: 1,
-  KeyT: 1.5,
-  KeyY: 1.5,
-  KeyU: 1,
-  KeyI: 1,
-  KeyO: 1,
-  KeyP: 1.5,
-  BracketLeft: 2,
-  BracketRight: 2.5,
-  KeyA: 0,
-  KeyS: 0,
-  KeyD: 0,
-  KeyF: 0,
-  KeyG: 0.5,
-  KeyH: 0.5,
-  KeyJ: 0,
-  KeyK: 0,
-  KeyL: 0,
-  Semicolon: 0,
-  Quote: 1,
-  KeyZ: 1.5,
-  KeyX: 1,
-  KeyC: 1,
-  KeyV: 1,
-  KeyB: 1.5,
-  KeyN: 1.5,
-  KeyM: 1,
-  Comma: 1,
-  Period: 1,
-  Slash: 1.5,
-  Space: 0,
-};
-
-const FAR_REACH = 3;
-const SHIFT_REACH = 1;
-
 export interface KeyStroke {
   readonly code: string;
   readonly shift: boolean;
@@ -129,12 +88,4 @@ const STROKES = strokesOf(WIN101_CAPS);
 
 export function strokeFor(char: string): KeyStroke | undefined {
   return STROKES.get(char);
-}
-
-export function reachOf(char: string): number {
-  const stroke = strokeFor(char);
-  if (stroke === undefined) {
-    return FAR_REACH + SHIFT_REACH;
-  }
-  return (KEY_REACH[stroke.code] ?? FAR_REACH) + (stroke.shift ? SHIFT_REACH : 0);
 }
