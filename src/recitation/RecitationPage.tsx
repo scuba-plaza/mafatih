@@ -42,8 +42,7 @@ function PassageLesson({ passage, recitation, describedBy }: PassageLessonProps)
     <>
       <TypingSurface
         trainer={trainer}
-        font={settings.font}
-        fontSize={settings.fontSize}
+        settings={settings}
         centredOpening={passage.basmala !== null}
         apparatus={signs}
         describedBy={describedBy}

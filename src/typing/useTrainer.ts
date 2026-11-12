@@ -23,7 +23,7 @@ export interface TrainerResult {
 export interface TrainerConfig {
   readonly prompt: Prompt;
   readonly options: SessionOptions;
-  readonly onComplete: (result: TrainerResult) => void;
+  readonly onComplete?: (result: TrainerResult) => void;
   readonly checkpoints?: readonly number[];
   readonly onCheckpoint?: (index: number, samples: readonly Sample[]) => void;
 }
@@ -108,7 +108,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   useEffect(() => {
     if (isComplete(session) && session.finishedAt !== null && reported.current !== session) {
       reported.current = session;
-      onCompleteRef.current({ metrics: metricsOf(session), samples: session.samples });
+      onCompleteRef.current?.({ metrics: metricsOf(session), samples: session.samples });
     }
   }, [session]);
 

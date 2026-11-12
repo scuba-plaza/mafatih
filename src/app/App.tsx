@@ -1,6 +1,7 @@
 import { CustomPage } from "~/custom/CustomPage.tsx";
 import { I18nProvider, useI18n } from "~/i18n/I18nProvider.tsx";
 import { RecitationPage } from "~/recitation/RecitationPage.tsx";
+import { SettingsButton } from "~/settings/SettingsButton.tsx";
 import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
 import { StorageNotice } from "~/storage/StorageNotice.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
@@ -30,7 +31,7 @@ function Pages() {
   const { profile } = useProfile();
   return (
     <I18nProvider language={profile.settings.language}>
-      <Shell page={route.page} banner={<StorageNotice />}>
+      <Shell page={route.page} banner={<StorageNotice />} actions={<SettingsButton />}>
         <PageContent route={route} />
       </Shell>
     </I18nProvider>

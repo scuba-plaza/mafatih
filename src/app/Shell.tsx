@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { TOUCH_TARGET } from "~/ui/styles.ts";
 import { PAGE_TITLES, type Page } from "./pages.ts";
 import { formatRoute, type Route } from "./routes.ts";
 
@@ -12,10 +13,9 @@ const MODES: readonly Route[] = [
 const STATS: Route = { page: "stats" };
 const ABOUT: Route = { page: "about" };
 
-const TARGET = "flex min-h-11 min-w-11 items-center justify-center px-1 whitespace-nowrap sm:px-2";
 const GUTTER = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
 const COLUMN = "mx-auto w-full max-w-4xl";
-const NAV_LINK = `${TARGET} flex-1 border-b-2 border-transparent text-sm font-medium text-muted aria-[current=page]:border-accent aria-[current=page]:text-ink`;
+const NAV_LINK = `${TOUCH_TARGET} flex-1 border-b-2 border-transparent text-sm font-medium text-muted aria-[current=page]:border-accent aria-[current=page]:text-ink`;
 
 function NavLink({ to, current, children }: { to: Route; current: Page; children: ReactNode }) {
   return (
@@ -35,7 +35,14 @@ function StatsIcon() {
   );
 }
 
-export function Shell({ page, banner, children }: { page: Page; banner: ReactNode; children: ReactNode }) {
+interface ShellProps {
+  readonly page: Page;
+  readonly banner: ReactNode;
+  readonly actions: ReactNode;
+  readonly children: ReactNode;
+}
+
+export function Shell({ page, banner, actions, children }: ShellProps) {
   const { t } = useI18n();
   const mainRef = useRef<HTMLElement>(null);
   const shownPage = useRef(page);
@@ -83,6 +90,7 @@ export function Shell({ page, banner, children }: { page: Page; banner: ReactNod
               </li>
             </ul>
           </nav>
+          {actions}
         </div>
       </header>
       <div className={GUTTER}>
@@ -96,7 +104,7 @@ export function Shell({ page, banner, children }: { page: Page; banner: ReactNod
           <a
             href={formatRoute(ABOUT)}
             aria-current={page === "about" ? "page" : undefined}
-            className={`${TARGET} text-sm text-muted underline aria-[current=page]:text-ink aria-[current=page]:decoration-2`}
+            className={`${TOUCH_TARGET} text-sm text-muted underline aria-[current=page]:text-ink aria-[current=page]:decoration-2`}
           >
             {t("nav.about")}
           </a>

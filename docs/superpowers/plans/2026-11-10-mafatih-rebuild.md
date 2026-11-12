@@ -482,17 +482,17 @@ What was decided on the way, and why:
 
 Part B is interface assembly and well-trodden work on top of Part A: dialogs, pages, the audio player, backup, deployment, the QA matrix and the documents. Every rule it needs is already decided in this plan or enforced by Part A's tests. It is executed after Part A by an agent on Sonnet 5.5, with the same Task loop (the review sub-agents stay on Sonnet 5.5 at effort Medium). Run the tasks in the order below.
 
-| Task | What | Builds on |
-|---|---|---|
-| 9b | Settings dialog and guide keyboard | 9a |
-| 12b | Practice page and HUD | 10, 11, 12a |
-| 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a |
-| 15 | Recitation audio | 14b |
-| 16 | Stats page | 11 |
-| 17 | Backup and restore | 7, 11, 13 |
-| 18 | About, SEO, security headers and deploy | all pages |
-| 19 | Hardening and the QA matrix | everything |
-| 20 | Documentation and cut-over | everything |
+| Task | What | Builds on | State |
+|---|---|---|---|
+| 9b | Settings dialog and guide keyboard | 9a | in review |
+| 12b | Practice page and HUD | 10, 11, 12a | to do |
+| 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | to do |
+| 15 | Recitation audio | 14b | to do |
+| 16 | Stats page | 11 | to do |
+| 17 | Backup and restore | 7, 11, 13 | to do |
+| 18 | About, SEO, security headers and deploy | all pages | to do |
+| 19 | Hardening and the QA matrix | everything | to do |
+| 20 | Documentation and cut-over | everything | to do |
 
 ### Notes for whoever executes Part B
 
@@ -514,17 +514,18 @@ Read these before the first task; each one cost time to learn.
 
 **Interfaces:**
 - Consumes: `guideFor`, `WIN101_CAPS`, `fingerOf` (Tasks 3 and 9a), `useProfile().update` (Task 8), `FONTS`, `FONT_SIZES`, `VOCALIZATIONS`.
-- Produces: `<Dialog open title closeLabel onClose>` (native `<dialog>` opened with `showModal()`, named by its `h2`, a sticky header row holding the title and the one close button, `closedby="any"` for a click outside, children mounted only while open; centred from `md` up, a full-width sheet on the bottom edge below it, at most `90dvh` tall and scrolling inside itself with `overscroll-contain`, bottom padding `max(1rem, env(safe-area-inset-bottom))`); `<RadioGroup legend value options onChange>` (a `fieldset` with native radios; each radio is named by its label through `aria-labelledby` and described by its hint through `aria-describedby`, so the hint is not part of the name; an option may carry `lang` and a `preview` node); `<Switch label hint? checked onChange>` (`<input type="checkbox" role="switch">`, drawn as a track and thumb whose position shows the state, falling back to the native checkbox in forced colours); `<SettingsDialog open onClose />`; `<GuideKeyboard session options fingerGuide />`; `Shell` gains an `actions` slot in the header; `<TypingSurface trainer settings />` (it takes the whole `Settings` and draws the guide under the surface when `settings.showKeyboard`).
+- Produces: `<Dialog open title closeLabel onClose>` (native `<dialog>` opened with `showModal()`, named by its `h2`, a sticky header row holding the title and the one close button, `closedby="any"` for a click outside, children mounted only while open; centred from `md` up, a full-width sheet on the bottom edge below it, at most `90dvh` tall and scrolling inside itself with `overscroll-contain`, bottom padding `max(1rem, env(safe-area-inset-bottom))`); `<RadioGroup legend value options onChange>` (a `fieldset` with native radios; each radio is named by its label through `aria-labelledby` and described by its hint through `aria-describedby`, so the hint is not part of the name; an option may carry `lang` and a `preview` node); `<Switch label hint? checked onChange>` (`<input type="checkbox" role="switch">`, drawn as a track and thumb whose position shows the state, falling back to the native checkbox in forced colours); `<SettingsDialog open onClose />`; `<GuideKeyboard session options fingerGuide />`; `Shell` gains an `actions` slot in the header (a plain node; `SettingsButton` in `src/settings/` owns the open state and the dialog); `<TypingSurface trainer settings />` (it takes the whole `Settings` and draws the guide under the surface when `settings.showKeyboard`).
 - The Settings button: a gear icon below `sm` and the word "Settings" from `sm` up (the pattern of the Stats link), at least 44 by 44 px, in the same header row as the navigation at 320 px.
 - Dialog contents, in this order: Language (radios `English` with `lang="en"` and `العربية` with `lang="ar"`, names held as constants, not catalog entries); Vocalization (four radios with hints); the switch "Correct mistakes with Backspace" with its hint; Lesson font (three radios, each with an `aria-hidden` `data-font-sample` preview `الخَطُّ العَرَبِيُّ` in its own face with `lang="ar"`; opening the dialog loads all three faces); Lesson text size (a native range over the nine steps with `aria-valuetext` and a visible value); Keyboard guide (a `fieldset` with the switches "Show the keyboard" and "Show which finger to use", hidden with `hidden md:pointer-fine:block` because the guide only exists there). Every change is saved at once through `update`. Backup and restore joins the dialog in Task 17, Reset progress in Task 12b.
 - Behaviour: a language change must not reset the lesson; a vocalization change builds a new prompt and so a fresh lesson; the Backspace switch keeps the lesson and applies from the next key (the engine already drops stale mistakes). `CustomPage` stops keeping a `result` state: the summary is shown while `isComplete(trainer.session)` with `metricsOf(trainer.session)`, so it disappears by itself when the lesson changes; `onComplete` becomes optional.
 - Guide keyboard: `aria-hidden="true"`, `dir="ltr"`, `data-guide-keyboard`, `hidden md:pointer-fine:flex`; five rows from `WIN101_CAPS` with a fixed key size (44 px) and the row offsets of a real keyboard (row 1 starts 1.5 keys in, row 2 1.75, row 3 after a 2.25-key left Shift), a 2-key Backspace ending row 0, a right Shift filling row 3 and a centred space bar; every key carries `data-key="<code>"` and the due ones `data-due`, drawn with a thick outline and bold legend (not colour alone). The legends show the base layer, or the shifted layer whenever the next character needs Shift; a mark is drawn on a tatweel so it can be seen. With `fingerGuide` the keys are tinted by `fingerOf(code).digit` and a caption line of fixed height under the keyboard names the finger for the next key (nine catalog entries, for example "Left index finger"); the tints are an aid, the caption carries the information (A6). `next` is `expectedText(session)`; `deleting` is `options.requireBackspace` with mistakes pending.
 - Messages to add (English, Arabic): Settings, الإعدادات; Done, تم; Language, اللغة; Vocalization, التشكيل; Auto, تلقائي; "Asks only for the marks you have unlocked in Practice.", يطلب فقط الحركات التي فتحتها في التمرين.; Letters only, الحروف فقط; "Marks are shown but not typed.", تظهر الحركات ولا تُكتب.; Harakat, الحركات; "Type fatha, damma, kasra, shadda and sukun.", اكتب الفتحة والضمة والكسرة والشدة والسكون.; Full, تشكيل كامل; "Type every mark, tanween included.", اكتب كل الحركات مع التنوين.; "Correct mistakes with Backspace", تصحيح الأخطاء بمفتاح الحذف; "Wrong keys are shown until you delete them. When off, they are blocked instead.", تظهر المفاتيح الخاطئة إلى أن تحذفها. عند الإيقاف تُمنع ولا تظهر.; Lesson font, خط الدرس; Lesson text size, حجم نص الدرس; Keyboard guide, دليل لوحة المفاتيح; "Show the keyboard", إظهار لوحة المفاتيح; "Show which finger to use", إظهار الإصبع المناسب لكل مفتاح; the fingers: Left little finger, الخنصر الأيسر; Left ring finger, البنصر الأيسر; Left middle finger, الوسطى اليسرى; Left index finger, السبابة اليسرى; Right index finger, السبابة اليمنى; Right middle finger, الوسطى اليمنى; Right ring finger, البنصر الأيمن; Right little finger, الخنصر الأيمن; Thumb, الإبهام.
 
-- [ ] Rename the two pending specs to `*.spec.ts` and see them fail. They were written before the interface and have never been green: where a spec contradicts this section, the section wins; fix the spec and say so in the commit.
-- [ ] Test (S5): `e2e/settings.spec.ts` (named groups and hints, three ways to close with focus back on the opener, no Tab escape, language change keeps the lesson, vocalization change restarts it and clears a finished summary, Backspace switch applies from the next key, every setting survives a reload, fonts preview themselves and change the lesson text only, the slider from the keyboard, sheet on a phone, 320 px, centred on a wide screen, Arabic and dark).
-- [ ] Test (S5): `e2e/guide.spec.ts` (due keys for letters, space, lam-alef, Shift of the other hand, Backspace while mistakes are pending, tints and caption, both switches, constant height, absent below `md` and on a phone, fits at 768 px).
-- [ ] Implement. Gate, review, commit.
+- [x] Rename the two pending specs to `*.spec.ts` and see them fail (22 of 23 failed; the one pass was vacuous). No spec contradicted the section; only `e2e/shell.spec.ts` changed, because the header has a new tab stop.
+- [x] Test (S5): `e2e/settings.spec.ts` (named groups and hints, three ways to close with focus back on the opener, no Tab escape, language change keeps the lesson, vocalization change restarts it and clears a finished summary, Backspace switch applies from the next key, every setting survives a reload, fonts preview themselves and change the lesson text only, the slider from the keyboard, sheet on a phone, 320 px, centred on a wide screen, Arabic and dark).
+- [x] Test (S5): `e2e/guide.spec.ts` (due keys for letters, space, lam-alef, Shift of the other hand, Backspace while mistakes are pending, tints and caption, both switches, constant height, absent below `md` and on a phone, fits at 768 px).
+- [x] Implement. Gate.
+- [ ] Review, fix, commit.
 
 ### Task 12b: Practice page and HUD
 

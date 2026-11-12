@@ -3,8 +3,9 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { buildPrompt, type Prompt } from "~/text/prompt.ts";
 import { requiredMarks } from "~/text/vocalization.ts";
+import { isComplete, metricsOf } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
-import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
+import { useTrainer } from "~/typing/useTrainer.ts";
 import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
@@ -92,13 +93,8 @@ interface LessonProps {
 function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
   const { t } = useI18n();
   const { settings } = useProfile().profile;
-  const [result, setResult] = useState<TrainerResult | null>(null);
-  const trainer = useTrainer({
-    prompt,
-    options: { requireBackspace: settings.requireBackspace },
-    onComplete: setResult,
-  });
-  const { focus } = trainer;
+  const trainer = useTrainer({ prompt, options: { requireBackspace: settings.requireBackspace } });
+  const { focus, session } = trainer;
 
   useEffect(() => {
     if (startNow) {
@@ -109,29 +105,22 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
   return (
     <div className="flex flex-col gap-3">
       {shortened && <p className="text-sm text-muted">{t("custom.shortened", { limit: CUSTOM_TEXT_LIMIT })}</p>}
-      <TypingSurface trainer={trainer} font={settings.font} fontSize={settings.fontSize} />
-      {result === null ? (
-        <div>
-          <button type="button" onClick={onEdit} className={BUTTON}>
-            {t("custom.edit")}
-          </button>
-        </div>
-      ) : (
-        <LessonSummary metrics={result.metrics}>
-          <button
-            type="button"
-            onClick={() => {
-              setResult(null);
-              trainer.restart();
-            }}
-            className={PRIMARY_BUTTON}
-          >
+      <TypingSurface trainer={trainer} settings={settings} />
+      {isComplete(session) ? (
+        <LessonSummary metrics={metricsOf(session)}>
+          <button type="button" onClick={trainer.restart} className={PRIMARY_BUTTON}>
             {t("result.again")}
           </button>
           <button type="button" onClick={onEdit} className={BUTTON}>
             {t("custom.edit")}
           </button>
         </LessonSummary>
+      ) : (
+        <div>
+          <button type="button" onClick={onEdit} className={BUTTON}>
+            {t("custom.edit")}
+          </button>
+        </div>
       )}
     </div>
   );

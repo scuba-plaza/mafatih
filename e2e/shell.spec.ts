@@ -16,8 +16,8 @@ function headingOf(entry: (typeof PAGES)[number], language: "en" | "ar"): string
 const LOCALES = { en: "en-US", ar: "ar-EG" } as const;
 
 const COPY = {
-  en: { app: "Mafatih", nav: "Main", skip: "Skip to content", start: "Start typing" },
-  ar: { app: "مفاتيح", nav: "التنقل الرئيسي", skip: "انتقل إلى المحتوى", start: "ابدأ الكتابة" },
+  en: { app: "Mafatih", nav: "Main", skip: "Skip to content", start: "Start typing", settings: "Settings" },
+  ar: { app: "مفاتيح", nav: "التنقل الرئيسي", skip: "انتقل إلى المحتوى", start: "ابدأ الكتابة", settings: "الإعدادات" },
 } as const;
 
 async function sidewaysOverflow(page: Page): Promise<number> {
@@ -95,7 +95,7 @@ for (const language of ["en", "ar"] as const) {
       await page.goto("/");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(headingOf(PAGES[0], language));
       const names = PAGES.map((entry) => entry[language]);
-      const expected = [copy.skip, ...names.slice(0, 4), copy.start, ...names.slice(4)];
+      const expected = [copy.skip, ...names.slice(0, 4), copy.settings, copy.start, ...names.slice(4)];
       const edges: number[] = [];
       for (const name of expected) {
         await page.keyboard.press("Tab");

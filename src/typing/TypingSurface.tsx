@@ -1,6 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
-import { FONTS, type FontId } from "~/settings/fonts.ts";
+import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
+import { FONTS } from "~/settings/fonts.ts";
+import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
 import { isComplete, type Session, view } from "./session.ts";
@@ -150,15 +152,15 @@ function paintApparatus(
 
 export interface TypingSurfaceProps {
   readonly trainer: Trainer;
-  readonly font: FontId;
-  readonly fontSize: number;
+  readonly settings: Settings;
   readonly centredOpening?: boolean;
   readonly apparatus?: readonly TextSpan[];
   readonly describedBy?: string;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, font, fontSize, centredOpening = false, apparatus = NO_SPANS, describedBy } = props;
+  const { trainer, settings, centredOpening = false, apparatus = NO_SPANS, describedBy } = props;
+  const { font, fontSize } = settings;
   const { t } = useI18n();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
   const textRef = useRef<HTMLDivElement>(null);
@@ -233,76 +235,81 @@ export function TypingSurface(props: TypingSurfaceProps) {
   }, []);
 
   return (
-    <section
-      aria-label={t("typing.text")}
-      data-error={flagged ? "" : undefined}
-      className="relative rounded-md border border-line bg-surface has-[input:focus]:outline-2 has-[input:focus]:outline-offset-2 has-[input:focus]:outline-focus data-error:border-danger"
-    >
-      <div
-        ref={textRef}
-        lang="ar"
-        dir="rtl"
-        data-lesson-text=""
-        className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 leading-loose wrap-anywhere"
-        style={{
-          fontFamily: `"${family.family}", serif`,
-          fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
-        }}
+    <>
+      <section
+        aria-label={t("typing.text")}
+        data-error={flagged ? "" : undefined}
+        className="relative rounded-md border border-line bg-surface has-[input:focus]:outline-2 has-[input:focus]:outline-offset-2 has-[input:focus]:outline-focus data-error:border-danger"
       >
-        {blocks.map((block, index) => (
-          <p key={block.start} data-block="" className={centredOpening && index === 0 ? "text-center" : undefined}>
-            {index === current && mistakes !== "" ? (
-              <>
-                {session.prompt.shown.slice(block.start, doneUntil)}
-                <span
-                  data-mistakes=""
-                  aria-hidden="true"
-                  className="inline-block max-w-full text-danger underline decoration-wavy underline-offset-4 [unicode-bidi:isolate]"
-                >
-                  {drawnMistakes(mistakes)}
-                </span>
-                {session.prompt.shown.slice(doneUntil, block.end)}
-              </>
-            ) : (
-              session.prompt.shown.slice(block.start, block.end)
-            )}
+        <div
+          ref={textRef}
+          lang="ar"
+          dir="rtl"
+          data-lesson-text=""
+          className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 leading-loose wrap-anywhere"
+          style={{
+            fontFamily: `"${family.family}", serif`,
+            fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
+          }}
+        >
+          {blocks.map((block, index) => (
+            <p key={block.start} data-block="" className={centredOpening && index === 0 ? "text-center" : undefined}>
+              {index === current && mistakes !== "" ? (
+                <>
+                  {session.prompt.shown.slice(block.start, doneUntil)}
+                  <span
+                    data-mistakes=""
+                    aria-hidden="true"
+                    className="inline-block max-w-full text-danger underline decoration-wavy underline-offset-4 [unicode-bidi:isolate]"
+                  >
+                    {drawnMistakes(mistakes)}
+                  </span>
+                  {session.prompt.shown.slice(doneUntil, block.end)}
+                </>
+              ) : (
+                session.prompt.shown.slice(block.start, block.end)
+              )}
+            </p>
+          ))}
+          <span
+            ref={caretRef}
+            aria-hidden="true"
+            data-caret=""
+            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            hidden
+          />
+        </div>
+        <div className="flex min-h-13 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1 text-sm font-medium">
+          {!focused && !complete && (
+            <button
+              type="button"
+              onClick={focus}
+              className="min-h-11 rounded-full border border-line px-4 after:absolute after:inset-0 after:rounded-md"
+            >
+              {t(session.startedAt === null ? "typing.start" : "typing.continue")}
+            </button>
+          )}
+          <p role="status" className="text-danger">
+            {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
           </p>
-        ))}
-        <span
-          ref={caretRef}
-          aria-hidden="true"
-          data-caret=""
-          className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none forced-colors:bg-[CanvasText]"
-          hidden
+          {wrongLayout && <p role="alert">{t("typing.wrongLayout")}</p>}
+        </div>
+        <input
+          {...inputProps}
+          ref={inputRef}
+          aria-label={t("typing.inputLabel")}
+          aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
+          disabled={complete}
+          tabIndex={-1}
+          className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"
         />
-      </div>
-      <div className="flex min-h-13 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1 text-sm font-medium">
-        {!focused && !complete && (
-          <button
-            type="button"
-            onClick={focus}
-            className="min-h-11 rounded-full border border-line px-4 after:absolute after:inset-0 after:rounded-md"
-          >
-            {t(session.startedAt === null ? "typing.start" : "typing.continue")}
-          </button>
-        )}
-        <p role="status" className="text-danger">
-          {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
+        <p id={nextWordId} role="status" lang="ar" dir="rtl" className="sr-only">
+          {wordAt(session.prompt, doneUntil)}
         </p>
-        {wrongLayout && <p role="alert">{t("typing.wrongLayout")}</p>}
-      </div>
-      <input
-        {...inputProps}
-        ref={inputRef}
-        aria-label={t("typing.inputLabel")}
-        aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
-        disabled={complete}
-        tabIndex={-1}
-        className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"
-      />
-      <p id={nextWordId} role="status" lang="ar" dir="rtl" className="sr-only">
-        {wordAt(session.prompt, doneUntil)}
-      </p>
-    </section>
+      </section>
+      {settings.showKeyboard && (
+        <GuideKeyboard session={session} options={options} fingerGuide={settings.fingerGuide} />
+      )}
+    </>
   );
 }
