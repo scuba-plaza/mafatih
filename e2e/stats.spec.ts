@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { seedProfile } from "./helpers/profile.ts";
+import { addStyle } from "./helpers/style.ts";
 
 test.use({ timezoneId: "UTC" });
 
@@ -254,11 +255,11 @@ test("at 320 pixels the page never scrolls sideways: a table too wide for it scr
   await expect(scroller).toHaveAttribute("tabindex", "0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await expectNoAxeViolations(page);
-  await page.addStyleTag({ content: "html { font-size: 150%; }" });
+  await addStyle(page, "html { font-size: 150%; }");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await expectNoAxeViolations(page);
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.addStyleTag({ content: "html { font-size: 100%; }" });
+  await addStyle(page, "html { font-size: 100%; }");
   await expect(scroller).toHaveCount(0);
 });
 

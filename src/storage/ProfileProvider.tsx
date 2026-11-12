@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
+  eraseProfile,
   type KeyValueStore,
   type OpenedProfile,
   openProfile,
@@ -31,6 +32,10 @@ export function deviceLanguages(): readonly string[] {
 
 function open(): OpenedProfile {
   return openProfile(browserStore(), deviceLanguages());
+}
+
+export function eraseStoredProfile(): void {
+  eraseProfile(browserStore());
 }
 
 export function ProfileProvider({ children }: { children: ReactNode }) {

@@ -8,6 +8,7 @@ import { type KeyStats, sanitizeStats } from "~/stats/keystats.ts";
 export interface KeyValueStore {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
 export interface Profile {
@@ -49,6 +50,14 @@ export function sanitizeProfile(
     history: sanitizeHistory(raw.history),
     recitation: sanitizeRecitation(raw.recitation),
   };
+}
+
+export function eraseProfile(store: KeyValueStore | null): void {
+  try {
+    store?.removeItem(STORAGE_KEY);
+  } catch {
+    return;
+  }
 }
 
 function parse(text: string): unknown {

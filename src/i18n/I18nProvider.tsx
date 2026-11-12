@@ -20,7 +20,7 @@ export interface I18n {
   formatPercent: (ratio: number) => string;
   formatDuration: (ms: number) => string;
   formatBytes: (bytes: number) => string;
-  formatDate: (ms: number) => string;
+  formatDate: (ms: number, timeZone?: string) => string;
 }
 
 const I18nContext = createContext<I18n | null>(null);
@@ -35,7 +35,7 @@ export function I18nProvider({ language, children }: { language: Language; child
       formatPercent: (ratio) => formatPercent(language, ratio),
       formatDuration: (ms) => formatDuration(language, ms),
       formatBytes: (bytes) => formatBytes(language, bytes),
-      formatDate: (ms) => formatDate(language, ms),
+      formatDate: (ms, timeZone) => formatDate(language, ms, timeZone),
     }),
     [language],
   );

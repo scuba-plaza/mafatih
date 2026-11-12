@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { type KeyValueStore, openProfile, type Profile, STORAGE_KEY, UNREADABLE_KEY } from "./profile.ts";
+import { eraseProfile, type KeyValueStore, openProfile, type Profile, STORAGE_KEY, UNREADABLE_KEY } from "./profile.ts";
 
 const ENGLISH = ["en-US"];
 const ARABIC = ["ar-EG", "en"];
@@ -44,6 +44,9 @@ function memoryStore(initial: Record<string, string> = {}): MemoryStore {
     },
     setItem: (key, value) => {
       data.set(key, value);
+    },
+    removeItem: (key) => {
+      data.delete(key);
     },
   };
 }
@@ -133,6 +136,7 @@ test("a copy that cannot be written does not stop the app from starting fresh", 
   const store: KeyValueStore = {
     getItem: () => "{not json",
     setItem: failing(new DOMException("full", "QuotaExceededError")),
+    removeItem: () => undefined,
   };
   const opened = openProfile(store, ENGLISH);
   expect(opened.profile).toEqual(ENGLISH_DEFAULTS);
@@ -195,8 +199,8 @@ test("the old version's data is never read", () => {
 test("when the browser refuses access to storage the app runs on defaults and says nothing can be saved", () => {
   const refused = failing(new DOMException("denied", "SecurityError"));
   const stores = [
-    { getItem: refused, setItem: refused },
-    { getItem: failing("not an error object"), setItem: refused },
+    { getItem: refused, setItem: refused, removeItem: refused },
+    { getItem: failing("not an error object"), setItem: refused, removeItem: refused },
     null,
   ];
   for (const store of stores) {
@@ -218,6 +222,7 @@ test("when saving fails the visitor is told, and nothing is thrown", () => {
   const store: KeyValueStore = {
     getItem: () => null,
     setItem: failing(new DOMException("full", "QuotaExceededError")),
+    removeItem: () => undefined,
   };
   expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBe("unavailable");
 });
@@ -283,4 +288,20 @@ test("broken progress falls back on its own: the settings and the rest of the pr
     ...ENGLISH_DEFAULTS,
     ladder: { unlocked: 44 },
   });
+});
+
+test("erasing removes the saved profile and nothing else, and a fresh open then starts from the defaults", () => {
+  const store = memoryStore({ [STORAGE_KEY]: JSON.stringify(ARABIC_PROFILE), other: "kept", [UNREADABLE_KEY]: "old" });
+  eraseProfile(store);
+  expect([...store.data.keys()].sort()).toEqual(["other", UNREADABLE_KEY].sort());
+  expect(openProfile(store, ENGLISH).profile).toEqual(ENGLISH_DEFAULTS);
+});
+
+test("erasing does not throw when the store refuses, or when there is no store", () => {
+  const refusing: KeyValueStore = {
+    ...memoryStore(),
+    removeItem: failing(new DOMException("denied", "SecurityError")),
+  };
+  expect(() => eraseProfile(refusing)).not.toThrow();
+  expect(() => eraseProfile(null)).not.toThrow();
 });

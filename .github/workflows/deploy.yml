@@ -47,6 +47,31 @@ jobs:
         with:
           path: dist
 
+  engines:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/setup@v3
+        with:
+          version: ^12.0.0
+          runtime: node@24
+          cache: true
+
+      - name: Install all browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run the suite in every engine
+        run: pnpm exec playwright test
+        env:
+          PW_FULL: "1"
+
   deploy:
     needs: build
     if: github.ref == 'refs/heads/main'

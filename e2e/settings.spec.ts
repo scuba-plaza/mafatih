@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
+import { addStyle } from "./helpers/style.ts";
 import { doneText, surface, typeKeys } from "./helpers/typing.ts";
 
 const KASRA = String.fromCodePoint(0x650);
@@ -277,7 +278,7 @@ test("at 320 pixels with text at 200 percent the dialog still fits and its Done 
 }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/#/custom");
-  await page.addStyleTag({ content: "html { font-size: 200%; }" });
+  await addStyle(page, "html { font-size: 200%; }");
   await openSettings(page);
   expect(await dialog(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
   await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport({ ratio: 1 });
@@ -379,7 +380,7 @@ for (const [language, locale, settingsName] of [
     }) => {
       await page.setViewportSize({ width: 320, height: 568 });
       await page.goto("/#/custom");
-      await page.addStyleTag({ content: "body { letter-spacing: 0.04em; }" });
+      await addStyle(page, "body { letter-spacing: 0.04em; }");
       const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
       const links = page.getByRole("navigation").getByRole("link");
       const last = await links.last().boundingBox();
@@ -394,7 +395,7 @@ for (const [language, locale, settingsName] of [
     test("with text enlarged by half the Settings button stays on the top row", async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 568 });
       await page.goto("/#/custom");
-      await page.addStyleTag({ content: "html { font-size: 150%; }" });
+      await addStyle(page, "html { font-size: 150%; }");
       const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
       const first = await page.getByRole("navigation").getByRole("link").first().boundingBox();
       expect(settings?.y).toBe(first?.y);

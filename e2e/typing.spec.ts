@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { clearlyDifferentPixels } from "./helpers/pixels.ts";
 import { seedSettings } from "./helpers/profile.ts";
+import { addStyle } from "./helpers/style.ts";
 import { doneText, shownText, surface, typeKeys } from "./helpers/typing.ts";
 
 const FATHA = String.fromCodePoint(0x64e);
@@ -407,9 +408,7 @@ for (const [font, family] of [
 ] as const) {
   test(`${family}: marking text as done never changes how the letters are shaped or joined`, async ({ page }) => {
     await start(page, { customText: "بِسْمِ اللَّهِ الرَّحْمَٰنِ", vocalization: "letters", font });
-    await page.addStyleTag({
-      content: "::highlight(mafatih-done){color:currentColor} [data-caret]{visibility:hidden}",
-    });
+    await addStyle(page, "::highlight(mafatih-done){color:currentColor} [data-caret]{visibility:hidden}");
     await typeKeys(page, ["ب", "س", "م", " ", "ا", "ل"]);
     expect(await doneText(page)).not.toBe("");
     await page.evaluate((name) => document.fonts.load(`40px "${name}"`), family);

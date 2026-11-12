@@ -4,9 +4,8 @@ export async function clearlyDifferentPixels(page: Page, first: Buffer, second: 
   return page.evaluate(
     async ([a, b]) => {
       const pixels = async (data: string): Promise<ImageData> => {
-        const image = new Image();
-        image.src = `data:image/png;base64,${data}`;
-        await image.decode();
+        const bytes = Uint8Array.from(atob(data), (character) => character.charCodeAt(0));
+        const image = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
         const context = new OffscreenCanvas(image.width, image.height).getContext("2d");
         if (context === null) {
           throw new Error("no canvas");

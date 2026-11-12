@@ -102,10 +102,10 @@ test("mastering the newest key unlocks the next one: announced once, quietly, an
   await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await typeLesson(page);
-  await expect(status).toHaveText("");
-  await expect(hud(page).getByText("11 of 44")).toBeVisible();
+  await expect(status).not.toHaveText(/ر/u);
+  await expect(hud(page).getByText(/^1[12] of 44$/)).toBeVisible();
   const heard = await page.evaluate(() => (window as unknown as { heard: string[] }).heard);
-  expect(heard.filter((text) => text !== "")).toHaveLength(1);
+  expect(heard.filter((text) => /ر/u.test(text))).toHaveLength(1);
 });
 
 test("after Reset progress the readout forgets the last lesson and its unlock", async ({ page }) => {

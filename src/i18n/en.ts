@@ -12,6 +12,39 @@ export const en = {
   "notice.newerVersion":
     "This browser holds progress saved by a newer version of Mafatih. It is left untouched, so nothing new will be saved.",
   "notice.dismiss": "Dismiss",
+  "error.title": "Something went wrong",
+  "error.body": "Mafatih could not show this page. Reloading usually fixes it.",
+  "error.startOver": "Start over",
+  "error.question": "Erase your progress and settings?",
+  "error.warning":
+    "This deletes what Mafatih saved in this browser and starts again. Restore a backup afterwards if you have one.",
+  "error.erase": "Erase",
+  "about.contentHeading": "What you type",
+  "about.intro":
+    'Mafatih means "keys". It teaches touch typing in Arabic. In Recitation you type the Qur\'an, passage by passage, exactly as it is written. In Practice you drill everyday words, with their marks, until each key is under your fingers.',
+  "about.quran":
+    "The Qur'an is only ever shown whole and in order, and only in Recitation, from the Tanzil text without changes. Practice never uses it: its words are everyday vocabulary.",
+  "about.privacyHeading": "Privacy",
+  "about.privacy":
+    "Mafatih has no accounts, cookies or analytics. Your progress and settings stay in this browser, in local storage. Recitation audio you have played is kept in the browser's IndexedDB so that it plays again without downloading. The only request to another site is for that audio, from EveryAyah. Nothing about you is sent anywhere. Backup and restore in Settings makes a file that you keep yourself.",
+  "about.creditsHeading": "Credits",
+  "about.quranLabel": "Qur'an text",
+  "about.quranNote":
+    "Simple text, version 1.1, under Creative Commons Attribution 3.0. Copied without changes; each surah file keeps the copyright notice of the Tanzil Project.",
+  "about.audioLabel": "Recitation audio",
+  "about.audioNote": "Abdul Basit ʿAbd us-Samad, Murattal and Mujawwad.",
+  "about.wordsLabel": "Practice words",
+  "about.wordsNote":
+    "Made from the English Wiktionary (extract built {date}) and from a list of word frequencies. Both are under Creative Commons Attribution-ShareAlike 4.0, so the word list is too.",
+  "about.fontsLabel": "Fonts",
+  "about.fontsNote": "Noto Naskh Arabic, Amiri and Scheherazade New, under the SIL Open Font License.",
+  "about.layoutLabel": "Keyboard layout",
+  "about.layoutNote": "The key table follows the Windows Arabic (101) layout.",
+  "about.codeLabel": "Source code",
+  "about.codeNote": "The whole site is open to read.",
+  "about.madeHeading": "How this site was made",
+  "about.made":
+    "This site was mostly written by an AI assistant ({assistant}) and reviewed by its owner. Please report mistakes, especially in the Arabic wording.",
   "typing.text": "Text to type",
   "typing.inputLabel": "Type the text shown",
   "typing.start": "Start typing",
@@ -70,7 +103,8 @@ export const en = {
     "The progress and settings on this device will be replaced by the ones in the file. This cannot be undone.",
   "backup.replace": "Replace",
   "backup.restored": "Progress restored.",
-  "backup.notSaved": "The backup was loaded, but this browser could not save it, so it will be lost when you leave this page.",
+  "backup.notSaved":
+    "The backup was loaded, but this browser could not save it, so it will be lost when you leave this page.",
   "backup.tooLarge": "This file is too large to be a backup.",
   "backup.notJson": "This file could not be read. Choose a file made by Download backup.",
   "backup.notABackup": "This is not a Mafatih backup file.",
