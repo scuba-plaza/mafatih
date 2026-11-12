@@ -44,7 +44,7 @@ export const WIN101_CAPS: readonly KeyCap[] = [
   { code: "KeyL", base: "م", shift: "/", row: 2 },
   { code: "Semicolon", base: "ك", shift: ":", row: 2 },
   { code: "Quote", base: "ط", shift: '"', row: 2 },
-  { code: "Backslash", base: "\\", shift: "|", row: 2 },
+  { code: "Backslash", base: "\\", shift: "|", row: 1 },
 
   { code: "KeyZ", base: "ئ", shift: "~", row: 3 },
   { code: "KeyX", base: "ء", shift: "ْ", row: 3 },

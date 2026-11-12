@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { unlockedMarks } from "~/practice/ladder.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { buildPrompt, type Prompt } from "~/text/prompt.ts";
 import { requiredMarks } from "~/text/vocalization.ts";
@@ -10,8 +11,6 @@ import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { CUSTOM_TEXT_LIMIT, hasSomethingToType, prepareCustomText } from "./text.ts";
-
-const NO_MARKS_UNLOCKED: ReadonlySet<string> = new Set();
 
 interface TextFormProps {
   readonly initial: string;
@@ -133,7 +132,8 @@ export function CustomPage() {
   const [text, setText] = useState(customText);
   const [mode, setMode] = useState<"saved" | "editing" | "started">("saved");
   const [shortened, setShortened] = useState(false);
-  const required = useMemo(() => requiredMarks(vocalization, NO_MARKS_UNLOCKED), [vocalization]);
+  const { unlocked } = profile.ladder;
+  const required = useMemo(() => requiredMarks(vocalization, unlockedMarks({ unlocked })), [vocalization, unlocked]);
   const prompt = useMemo(() => buildPrompt(text, required), [text, required]);
   const editing = mode === "editing" || !hasSomethingToType(prompt);
 

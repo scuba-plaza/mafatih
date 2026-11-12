@@ -10,6 +10,10 @@ export const FONTS = [
   { id: "amiri", family: "Amiri", load: () => import("@fontsource/amiri/arabic-400.css") },
 ] as const satisfies readonly LessonFont[];
 
+export function loadFont(font: LessonFont): void {
+  font.load().catch(() => undefined);
+}
+
 export type FontId = (typeof FONTS)[number]["id"];
 
 export const DEFAULT_FONT: FontId = "noto-naskh";

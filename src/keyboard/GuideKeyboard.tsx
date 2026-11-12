@@ -20,11 +20,14 @@ interface Row {
 
 const KEY_PX = 44;
 const KEY_GAP_PX = 4;
+const KEY_FACE_PX = KEY_PX - KEY_GAP_PX;
 const TATWEEL = String.fromCodePoint(0x640);
 const BACKSPACE_SYMBOL = "⌫";
 const SHIFT_SYMBOL = "⇧";
+const ENTER_SYMBOL = "↵";
 const SPACE_UNITS = 6;
 const ROW_UNITS = 15;
+const WIDE_KEYS: Readonly<Record<string, number>> = { Backslash: 1.5 };
 
 const FINGER_MESSAGES: Readonly<Record<string, MessageKey>> = {
   "left-pinky": "finger.leftPinky",
@@ -48,14 +51,18 @@ const TINTS: Readonly<Record<Digit, string>> = {
   thumb: "bg-surface",
 };
 
-function capsOf(row: number, units = 1): Slot[] {
-  return WIN101_CAPS.filter((cap) => cap.row === row).map((cap) => ({ code: cap.code, units, cap }));
+function capsOf(row: number): Slot[] {
+  return WIN101_CAPS.filter((cap) => cap.row === row).map((cap) => ({
+    code: cap.code,
+    units: WIDE_KEYS[cap.code] ?? 1,
+    cap,
+  }));
 }
 
 const ROWS: readonly Row[] = [
   { lead: 0, slots: [...capsOf(0), { code: "Backspace", units: 2, symbol: BACKSPACE_SYMBOL }] },
   { lead: 1.5, slots: capsOf(1) },
-  { lead: 1.75, slots: capsOf(2) },
+  { lead: 1.75, slots: [...capsOf(2), { code: "Enter", units: 2.25, symbol: ENTER_SYMBOL }] },
   {
     lead: 0,
     slots: [
@@ -64,7 +71,7 @@ const ROWS: readonly Row[] = [
       { code: "ShiftRight", units: 2.75, symbol: SHIFT_SYMBOL },
     ],
   },
-  { lead: (ROW_UNITS - SPACE_UNITS) / 2, slots: capsOf(4, SPACE_UNITS) },
+  { lead: (ROW_UNITS - SPACE_UNITS) / 2, slots: [{ code: "Space", units: SPACE_UNITS, symbol: "" }] },
 ];
 
 function legendOf(slot: Slot, shifted: boolean): string {
@@ -72,9 +79,6 @@ function legendOf(slot: Slot, shifted: boolean): string {
     return slot.symbol;
   }
   const legend = shifted ? (slot.cap?.shift ?? "") : (slot.cap?.base ?? "");
-  if (slot.code === "Space") {
-    return "";
-  }
   return isMark(legend) ? `${TATWEEL}${legend}` : legend;
 }
 
@@ -93,6 +97,7 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
   const deleting = options.requireBackspace && session.mistakes.length > 0;
   const guide = guideFor(expectedText(session), deleting);
   const name = fingerName(guide.finger);
+  const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
 
   return (
     <div
@@ -111,8 +116,8 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
                 lang="ar"
                 data-key={slot.code}
                 data-due={guide.keys.has(slot.code) ? "" : undefined}
-                className={`m-0.5 flex h-10 shrink-0 items-center justify-center rounded border border-line text-lg leading-none text-ink data-due:border-4 data-due:border-ink data-due:font-bold ${digit === undefined ? "bg-surface" : TINTS[digit]}`}
-                style={{ width: slot.units * KEY_PX - KEY_GAP_PX }}
+                className={`flex shrink-0 items-center justify-center rounded border border-line text-lg leading-none text-ink data-due:border-4 data-due:border-ink data-due:font-bold ${digit === undefined ? "bg-surface" : TINTS[digit]}`}
+                style={{ width: slot.units * KEY_PX - KEY_GAP_PX, height: KEY_FACE_PX, margin: KEY_GAP_PX / 2 }}
               >
                 {legendOf(slot, guide.shifted)}
               </div>
@@ -120,7 +125,7 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
           })}
         </div>
       ))}
-      {fingerGuide && <p className="h-6 text-center text-sm text-muted">{name === undefined ? "" : t(name)}</p>}
+      {fingerGuide && <p className="h-6 text-center text-sm text-muted">{caption}</p>}
     </div>
   );
 }

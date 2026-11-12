@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { savedSettings, seedSettings } from "./helpers/profile.ts";
-import { surface, typeKeys } from "./helpers/typing.ts";
+import { savedSettings, seedProfile, seedSettings } from "./helpers/profile.ts";
+import { doneText, surface, typeKeys } from "./helpers/typing.ts";
 
 const NOTHING = "There is nothing to type in this text.";
 
@@ -158,4 +158,22 @@ test.describe("Arabic", () => {
     await expect(page.getByRole("definition").nth(1)).toHaveText("١٠٠٪؜");
     await expectNoAxeViolations(page);
   });
+});
+
+test("on Auto the marks to type are the ones unlocked in Practice, as in every other mode", async ({ page }) => {
+  const fatha = String.fromCodePoint(0x64e);
+  await seedProfile(page, { ladder: { unlocked: 37 }, settings: { customText: `ب${fatha}ت` } });
+  await page.goto("/#/custom");
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe("ب");
+});
+
+test("on Auto a learner with no marks unlocked types letters only", async ({ page }) => {
+  const fatha = String.fromCodePoint(0x64e);
+  await seedProfile(page, { settings: { customText: `ب${fatha}ت` } });
+  await page.goto("/#/custom");
+  await page.getByRole("button", { name: "Start typing" }).click();
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe(`ب${fatha}`);
 });

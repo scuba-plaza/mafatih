@@ -5,7 +5,7 @@ import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { Dialog } from "~/ui/Dialog.tsx";
 import { RadioGroup } from "~/ui/RadioGroup.tsx";
 import { Switch } from "~/ui/Switch.tsx";
-import { FONT_SIZES, FONTS, type FontId } from "./fonts.ts";
+import { clampFontSize, FONT_SIZES, FONTS, type FontId, loadFont } from "./fonts.ts";
 import type { Settings } from "./settings.ts";
 
 const LANGUAGES = [
@@ -30,7 +30,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   useEffect(() => {
     if (open) {
       for (const font of FONTS) {
-        font.load();
+        loadFont(font);
       }
     }
   }, [open]);
@@ -38,7 +38,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const change = (patch: Partial<Settings>) =>
     update((current) => ({ ...current, settings: { ...current.settings, ...patch } }));
 
-  const sizeIndex = Math.max(0, FONT_SIZES.indexOf(settings.fontSize));
+  const sizeIndex = FONT_SIZES.indexOf(settings.fontSize);
 
   return (
     <Dialog open={open} title={t("settings.title")} closeLabel={t("settings.done")} onClose={onClose}>
@@ -77,7 +77,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               data-font-sample=""
               lang="ar"
               dir="rtl"
-              className="text-2xl"
+              className="text-2xl leading-loose"
               style={{ fontFamily: `"${font.family}", serif` }}
             >
               {FONT_SAMPLE}
@@ -99,7 +99,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             step={1}
             value={sizeIndex}
             aria-valuetext={formatNumber(settings.fontSize)}
-            onChange={(event) => change({ fontSize: FONT_SIZES[Number(event.target.value)] ?? settings.fontSize })}
+            onChange={(event) => change({ fontSize: clampFontSize(FONT_SIZES[Number(event.target.value)]) })}
             className="h-11 min-w-0 flex-1 accent-accent"
           />
           <span aria-hidden="true" className="w-8 text-end tabular-nums">

@@ -58,6 +58,7 @@ export const ar: Record<MessageKey, string> = {
   "finger.rightRing": "البنصر الأيمن",
   "finger.rightPinky": "الخنصر الأيمن",
   "finger.thumb": "الإبهام",
+  "guide.withShift": "{finger}، مع مفتاح التحويل",
   "result.title": "اكتمل",
   "result.speed": "السرعة (حرف في الدقيقة)",
   "result.accuracy": "الدقة",

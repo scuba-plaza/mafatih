@@ -57,6 +57,7 @@ export const en = {
   "finger.rightRing": "Right ring finger",
   "finger.rightPinky": "Right little finger",
   "finger.thumb": "Thumb",
+  "guide.withShift": "{finger}, with Shift",
   "result.title": "Finished",
   "result.speed": "Speed (characters per minute)",
   "result.accuracy": "Accuracy",

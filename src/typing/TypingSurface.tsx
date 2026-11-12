@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
-import { FONTS } from "~/settings/fonts.ts";
+import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
@@ -177,7 +177,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const flagged = options.requireBackspace ? mistakes !== "" : session.missed;
 
   useEffect(() => {
-    family.load();
+    loadFont(family);
   }, [family]);
 
   useLayoutEffect(() => {

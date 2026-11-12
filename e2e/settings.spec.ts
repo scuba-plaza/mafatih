@@ -189,6 +189,13 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await expect(samples.nth(1)).toHaveCSS("font-family", /Scheherazade New/);
   await expect(samples.nth(2)).toHaveCSS("font-family", /Amiri/);
   await expect(samples.nth(2)).toHaveAttribute("lang", "ar");
+  const spacing = await samples
+    .nth(1)
+    .evaluate(
+      (sample) =>
+        Number.parseFloat(getComputedStyle(sample).lineHeight) / Number.parseFloat(getComputedStyle(sample).fontSize),
+    );
+  expect(spacing).toBeGreaterThanOrEqual(1.75);
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
   await expect(lessonText(page)).toHaveCSS("font-family", /Amiri/);
   await expect(page.locator("body")).toHaveCSS("font-family", bodyFont);
@@ -254,6 +261,146 @@ test("on a wide screen the dialog stands in the middle", async ({ page }) => {
   expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
   expect(box?.y).toBeGreaterThan(0);
 });
+
+test("opened and closed from the keyboard, the dialog gives focus back to the Settings button", async ({ page }) => {
+  await page.goto("/#/custom");
+  await opener(page).focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog(page)).toBeHidden();
+  await expect(opener(page)).toBeFocused();
+});
+
+test("at 320 pixels with text at 200 percent the dialog still fits and its Done button can be reached", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/#/custom");
+  await page.addStyleTag({ content: "html { font-size: 200%; }" });
+  await openSettings(page);
+  expect(await dialog(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+  await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport({ ratio: 1 });
+});
+
+test("on a landscape phone with a display cutout the dialog keeps its content out of the cutout", async ({ page }) => {
+  const session = await page.context().newCDPSession(page);
+  await session.send("Emulation.setSafeAreaInsetsOverride", { insets: { left: 44, right: 44 } });
+  await page.setViewportSize({ width: 667, height: 375 });
+  await page.goto("/#/custom");
+  await openSettings(page);
+  const title = await dialog(page).getByRole("heading", { name: "Settings" }).boundingBox();
+  const done = await dialog(page).getByRole("button", { name: "Done" }).boundingBox();
+  const radio = await dialog(page).getByRole("radio", { name: "English" }).boundingBox();
+  expect(title?.x).toBeGreaterThanOrEqual(44);
+  expect((done?.x ?? 0) + (done?.width ?? 0)).toBeLessThanOrEqual(667 - 44);
+  expect(radio?.x).toBeGreaterThanOrEqual(44);
+});
+
+test("the dialog always opens at its top, however far it was scrolled when it was closed", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 500 });
+  await page.goto("/#/custom");
+  await openSettings(page);
+  await dialog(page).evaluate((element) => element.scrollTo(0, 300));
+  expect(await dialog(page).evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.keyboard.press("Escape");
+  await openSettings(page);
+  expect(await dialog(page).evaluate((element) => element.scrollTop)).toBe(0);
+});
+
+test("while the dialog is open the page behind it does not scroll, and it scrolls again afterwards", async ({
+  page,
+}) => {
+  await page.goto("/#/custom");
+  await page.evaluate(() => {
+    document.body.style.minHeight = "3000px";
+  });
+  await openSettings(page);
+  await page.mouse.move(4, 4);
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(150);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.keyboard.press("Escape");
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test("a switch shows its state by where its thumb stands, in both reading directions", async ({ page }) => {
+  const thumb = (language: "en" | "ar") =>
+    page
+      .getByRole("dialog")
+      .getByRole("switch", {
+        name: language === "en" ? "Correct mistakes with Backspace" : "تصحيح الأخطاء بمفتاح الحذف",
+      })
+      .evaluate((element) => {
+        const shift = getComputedStyle(element, "::before").translate;
+        return shift === "none" ? 0 : Number.parseFloat(shift);
+      });
+  await page.goto("/#/custom");
+  await openSettings(page);
+  expect(await thumb("en")).toBe(20);
+  await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
+  await expect.poll(() => thumb("en")).toBe(0);
+  await dialog(page).getByRole("radio", { name: "العربية" }).check();
+  await page.getByRole("dialog").getByRole("switch", { name: "تصحيح الأخطاء بمفتاح الحذف" }).check();
+  await expect.poll(() => thumb("ar")).toBe(-20);
+});
+
+test("with forced colours a switch is the browser's own checkbox again", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/#/custom");
+  await openSettings(page);
+  const backspace = dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" });
+  expect(await backspace.evaluate((element) => getComputedStyle(element).appearance)).toBe("auto");
+  expect(await backspace.evaluate((element) => getComputedStyle(element, "::before").display)).toBe("none");
+});
+
+test("a font that cannot be loaded does not break the page", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route(/assets\/arabic-400-[^/]*\.css$/, (route) => route.abort());
+  await page.goto("/#/custom");
+  await openSettings(page);
+  await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
+  await page.waitForTimeout(300);
+  expect(errors).toEqual([]);
+  await expect(dialog(page)).toBeVisible();
+});
+
+for (const [language, locale, settingsName] of [
+  ["English", "en-US", "Settings"],
+  ["Arabic", "ar-EG", "الإعدادات"],
+] as const) {
+  test.describe(`${language} header at 320 pixels`, () => {
+    test.use({ locale });
+
+    test("the Settings button shares the navigation row even with wider letters than the system font's", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto("/#/custom");
+      await page.addStyleTag({ content: "body { letter-spacing: 0.04em; }" });
+      const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
+      const links = page.getByRole("navigation").getByRole("link");
+      const last = await links.last().boundingBox();
+      const first = await links.first().boundingBox();
+      expect(settings?.y).toBe(first?.y);
+      expect(last?.y).toBe(first?.y);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(
+        0,
+      );
+    });
+
+    test("with text enlarged by half the Settings button stays on the top row", async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto("/#/custom");
+      await page.addStyleTag({ content: "html { font-size: 150%; }" });
+      const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
+      const first = await page.getByRole("navigation").getByRole("link").first().boundingBox();
+      expect(settings?.y).toBe(first?.y);
+    });
+  });
+}
 
 test.describe("Arabic", () => {
   test.use({ locale: "ar-EG", colorScheme: "dark" });

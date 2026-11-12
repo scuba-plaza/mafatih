@@ -62,7 +62,7 @@ export function Shell({ page, banner, actions, children }: ShellProps) {
   }, [page]);
 
   return (
-    <div className="grid min-h-dvh grid-rows-[auto_auto_1fr_auto]">
+    <div className="grid min-h-dvh grid-cols-1 grid-rows-[auto_auto_1fr_auto]">
       <header className={`${GUTTER} border-b border-line pt-[env(safe-area-inset-top)]`}>
         <button
           type="button"
@@ -71,7 +71,7 @@ export function Shell({ page, banner, actions, children }: ShellProps) {
         >
           {t("app.skipToContent")}
         </button>
-        <div className={`${COLUMN} flex flex-wrap items-center gap-x-2`}>
+        <div className={`${COLUMN} flex flex-wrap items-start gap-x-0 sm:items-center sm:gap-x-2`}>
           <span className="hidden font-semibold sm:inline">{appName}</span>
           <nav aria-label={t("nav.label")} className="min-w-0 flex-1">
             <ul className="flex flex-wrap sm:justify-end sm:gap-2">

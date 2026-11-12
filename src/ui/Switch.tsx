@@ -16,7 +16,6 @@ export function Switch({ label, hint, checked, onChange }: SwitchProps) {
         type="checkbox"
         role="switch"
         checked={checked}
-        aria-checked={checked}
         onChange={(event) => onChange(event.target.checked)}
         aria-labelledby={labelId}
         aria-describedby={hint === undefined ? undefined : hintId}

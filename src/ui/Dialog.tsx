@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { BUTTON } from "./styles.ts";
 
+const SIDE_PADDING = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
+
 export interface DialogProps {
   readonly open: boolean;
   readonly title: string;
@@ -11,7 +13,6 @@ export interface DialogProps {
 
 export function Dialog({ open, title, closeLabel, onClose, children }: DialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const opener = useRef<Element | null>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -20,40 +21,36 @@ export function Dialog({ open, title, closeLabel, onClose, children }: DialogPro
       return;
     }
     if (open && !element.open) {
-      opener.current = document.activeElement;
       element.showModal();
+      element.scrollTop = 0;
     } else if (!open && element.open) {
       element.close();
     }
   }, [open]);
-
-  const closed = () => {
-    if (opener.current instanceof HTMLElement) {
-      opener.current.focus();
-    }
-    opener.current = null;
-    onClose();
-  };
 
   return (
     <dialog
       ref={dialog}
       aria-labelledby={titleId}
       closedby="any"
-      onClose={closed}
+      onClose={onClose}
       className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[90dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-lg border border-line bg-surface p-0 text-ink backdrop:bg-black/50 md:inset-0 md:m-auto md:h-fit md:w-lg md:max-w-[calc(100%-2rem)] md:rounded-lg"
     >
       {open && (
         <>
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
-            <h2 id={titleId} className="text-lg font-semibold">
+          <div
+            className={`sticky top-0 z-10 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line bg-surface py-2 ${SIDE_PADDING}`}
+          >
+            <h2 id={titleId} className="min-w-0 text-lg font-semibold break-words">
               {title}
             </h2>
-            <button type="button" onClick={() => dialog.current?.close()} className={BUTTON}>
+            <button type="button" onClick={() => dialog.current?.close()} className={`${BUTTON} shrink-0`}>
               {closeLabel}
             </button>
           </div>
-          <div className="flex flex-col gap-5 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
+          <div className={`flex flex-col gap-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${SIDE_PADDING}`}>
+            {children}
+          </div>
         </>
       )}
     </dialog>

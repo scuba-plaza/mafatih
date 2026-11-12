@@ -31,6 +31,12 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["./src/ui/Switch.tsx"],
+      "linter": { "rules": { "a11y": { "useAriaPropsForRole": "off" } } }
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentWidth": 2,

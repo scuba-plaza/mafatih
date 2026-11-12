@@ -5,6 +5,10 @@
   color-scheme: light dark;
 }
 
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
 body {
   background-color: var(--color-page);
   color: var(--color-ink);

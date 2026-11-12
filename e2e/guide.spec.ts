@@ -57,7 +57,7 @@ test.describe("with a wide screen and a mouse", () => {
     await typeKeys(page, ["ب"]);
     expect(await dueKeys(page)).toEqual(["KeyQ", "ShiftRight"]);
     await expect(guide(page).locator('[data-key="KeyQ"]')).toContainText(FATHA);
-    await expect(guide(page).getByText("Left little finger")).toBeVisible();
+    await expect(guide(page).getByText(/Left little finger.*, with Shift/)).toBeVisible();
   });
 
   test("while mistakes wait to be deleted the guide points at Backspace alone", async ({ page }) => {
@@ -106,6 +106,41 @@ test.describe("with a wide screen and a mouse", () => {
     expect(await height()).toBe(before);
   });
 
+  test("the keys sit where a real keyboard has them, and every row is as wide as the Backspace row ends", async ({
+    page,
+  }) => {
+    await start(page, { customText: "بتن" });
+    const box = async (code: string) => {
+      const found = await guide(page).locator(`[data-key="${code}"]`).boundingBox();
+      if (found === null) {
+        throw new Error(`no key ${code}`);
+      }
+      return found;
+    };
+    const right = async (code: string) => {
+      const found = await box(code);
+      return Math.round(found.x + found.width);
+    };
+    const edge = await right("Backspace");
+    expect((await box("Backslash")).y).toBe((await box("BracketRight")).y);
+    expect((await box("Enter")).y).toBe((await box("Quote")).y);
+    for (const code of ["Backslash", "Enter", "ShiftRight"]) {
+      expect(await right(code), code).toBe(edge);
+    }
+    expect((await box("KeyQ")).x).toBeGreaterThan((await box("Backquote")).x);
+    expect((await box("KeyA")).x).toBeGreaterThan((await box("KeyQ")).x);
+  });
+
+  test("a due key is drawn with a thick border, not by colour alone", async ({ page }) => {
+    await start(page, { customText: "بت" });
+    const border = (code: string) =>
+      guide(page)
+        .locator(`[data-key="${code}"]`)
+        .evaluate((key) => getComputedStyle(key).borderTopWidth);
+    expect(await border("KeyF")).toBe("4px");
+    expect(await border("KeyJ")).toBe("1px");
+  });
+
   test("below the medium width there is no guide", async ({ page }) => {
     await page.setViewportSize({ width: 700, height: 800 });
     await start(page, { customText: "بتن" });
@@ -130,6 +165,20 @@ test.describe("on a phone", () => {
     await start(page, { customText: "بتن" });
     await expect(guide(page)).toBeHidden();
     await page.keyboard.press("Tab");
+    await page.getByRole("button", { name: "Settings" }).click();
+    const dialog = page.getByRole("dialog", { name: "Settings" });
+    await expect(dialog.getByRole("group", { name: "Vocalization" })).toBeVisible();
+    await expect(dialog.getByRole("group", { name: "Keyboard guide" })).toHaveCount(0);
+  });
+});
+
+test.describe("on a wide touch screen", () => {
+  test.use({ viewport: { width: 1024, height: 768 }, hasTouch: true, isMobile: true });
+
+  test("there is no guide, and Settings does not offer one", async ({ page }) => {
+    await start(page, { customText: "بتن" });
+    expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
+    await expect(guide(page)).toBeHidden();
     await page.getByRole("button", { name: "Settings" }).click();
     const dialog = page.getByRole("dialog", { name: "Settings" });
     await expect(dialog.getByRole("group", { name: "Vocalization" })).toBeVisible();
