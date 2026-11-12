@@ -40,3 +40,19 @@ test("a stricter bar can be passed in", () => {
   const strict = { minSamples: 50, letterMs: 700, markMs: 1000, minAccuracy: 0.95 };
   expect(applyPracticeLesson(FRESH, hits("ش", 20), strict).unlocked).toBeUndefined();
 });
+
+test("a lesson with nothing typed changes nothing", () => {
+  const outcome = applyPracticeLesson(FRESH, []);
+  expect(outcome.stats).toBe(FRESH.stats);
+  expect(outcome.progress).toBe(FRESH.progress);
+  expect(outcome.unlocked).toBeUndefined();
+});
+
+test("at the top of the ladder a mastered lesson is recorded and unlocks nothing more", () => {
+  const dammatan = String.fromCodePoint(0x64c);
+  const top: PracticeState = { stats: {}, progress: { unlocked: 44 } };
+  const outcome = applyPracticeLesson(top, hits(dammatan, 30));
+  expect(statOf(outcome.stats, dammatan).hits).toBe(30);
+  expect(outcome.progress).toBe(top.progress);
+  expect(outcome.unlocked).toBeUndefined();
+});

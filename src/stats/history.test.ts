@@ -52,3 +52,27 @@ test("broken lessons are dropped, the rest kept in order, and a long list is cut
     Array.from({ length: 100 }, (_, index) => 4900 + index),
   );
 });
+
+test("a lesson is kept only with a time the calendar can show, at most a day of typing and a length a lesson can have", () => {
+  const latestDate = 8.64e15;
+  const day = 86_400_000;
+  const kept = [
+    { ...LESSON, at: latestDate },
+    { ...LESSON, ms: day },
+    { ...LESSON, ms: 0.5 },
+    { ...LESSON, chars: 100_000 },
+  ];
+  const dropped = [
+    { ...LESSON, at: 9e15 },
+    { ...LESSON, at: Number.POSITIVE_INFINITY },
+    { ...LESSON, ms: day + 1 },
+    { ...LESSON, ms: 9e15 },
+    { ...LESSON, ms: Number.NaN },
+    { ...LESSON, chars: 100_001 },
+    { ...LESSON, chars: 2 ** 53 },
+  ];
+  expect(sanitizeHistory([...kept, ...dropped])).toEqual(kept);
+  for (const lesson of sanitizeHistory([...kept, ...dropped])) {
+    expect(Number.isNaN(new Date(lesson.at).getTime())).toBe(false);
+  }
+});

@@ -12,8 +12,10 @@ interface Learner {
 
 const WORDS = await loadWords();
 const BREAK_BETWEEN_LESSONS_MS = 10_000;
-const OPTIONS = { requireBackspace: false };
+const OPTIONS = { requireBackspace: true };
 const SLOW = { timeout: 60_000 };
+const WRONG_KEY = "ض";
+const OTHER_WRONG_KEY = "ص";
 
 function createChance(seed: number): () => number {
   let state = seed >>> 0;
@@ -25,6 +27,7 @@ function createChance(seed: number): () => number {
 
 function practise(learner: Learner, lessons: number, seed: number): number {
   const chance = createChance(seed);
+  const pause = () => learner.latencyMs * (0.8 + 0.4 * chance());
   let state: PracticeState = { stats: {}, progress: initialProgress() };
   let time = 0;
   for (let index = 0; index < lessons; index += 1) {
@@ -37,13 +40,16 @@ function practise(learner: Learner, lessons: number, seed: number): number {
     let session = createSession(prompt);
     time += BREAK_BETWEEN_LESSONS_MS;
     while (!isComplete(session)) {
-      const [char = ""] = expectedText(session) ?? "";
-      time += learner.latencyMs;
+      const key = expectedText(session) ?? "";
       if (chance() < learner.errorRate) {
-        session = applyKey(session, { kind: "char", char: char === "ض" ? "ص" : "ض" }, time, OPTIONS);
-        time += learner.latencyMs;
+        const wrong = key === WRONG_KEY ? OTHER_WRONG_KEY : WRONG_KEY;
+        time += pause();
+        session = applyKey(session, { kind: "char", char: wrong }, time, OPTIONS);
+        time += pause();
+        session = applyKey(session, { kind: "backspace" }, time, OPTIONS);
       }
-      session = applyKey(session, { kind: "char", char }, time, OPTIONS);
+      time += pause();
+      session = applyKey(session, { kind: "char", char: key }, time, OPTIONS);
     }
     state = applyPracticeLesson(state, session.samples);
   }
@@ -60,12 +66,23 @@ test("a careful learner with 3% mistakes has every letter within 150 lessons", S
   }
 });
 
-test("a learner who misses one key in five stays on the starter letters", SLOW, () => {
+test("a learner who misses one key in three unlocks nothing", SLOW, () => {
   for (const seed of [1, 2, 3]) {
-    expect(practise({ errorRate: 0.2, latencyMs: 500 }, 100, seed)).toBeLessThanOrEqual(11);
+    expect(practise({ errorRate: 1 / 3, latencyMs: 500 }, 100, seed)).toBe(10);
   }
 });
 
-test("a learner who never misses but needs 900 ms a key unlocks nothing", SLOW, () => {
+test("a learner who misses one key in five gains a few letters at most in 100 lessons", SLOW, () => {
+  for (const seed of [10, 11]) {
+    expect(practise({ errorRate: 0.2, latencyMs: 500 }, 100, seed)).toBeLessThanOrEqual(14);
+  }
+});
+
+test("a learner who never misses but needs about 900 ms a key unlocks nothing", SLOW, () => {
   expect(practise({ errorRate: 0, latencyMs: 900 }, 60, 1)).toBe(10);
+});
+
+test("the speed bar from near: about 650 ms a key has every letter in 100 lessons, about 760 ms crawls", SLOW, () => {
+  expect(practise({ errorRate: 0, latencyMs: 650 }, 100, 1)).toBeGreaterThanOrEqual(36);
+  expect(practise({ errorRate: 0, latencyMs: 760 }, 100, 3)).toBeLessThanOrEqual(18);
 });

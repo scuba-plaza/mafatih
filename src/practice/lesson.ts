@@ -4,7 +4,7 @@ import { requiredMarks, type Vocalization } from "~/text/vocalization.ts";
 import { focusRung, type LadderProgress, unlockedLetters, unlockedMarks } from "./ladder.ts";
 import type { PracticeWord } from "./words.ts";
 
-export interface PracticeOptions {
+interface PracticeOptions {
   readonly words: readonly PracticeWord[];
   readonly progress: LadderProgress;
   readonly vocalization: Vocalization;
@@ -17,14 +17,13 @@ interface Choice {
   readonly drillsFocus: boolean;
 }
 
-export const LESSON_CHARS = 38;
-
+const LESSON_CHARS = 38;
 const FOCUS_SHARE = 0.5;
 const MAX_REPEATS = 2;
 const SEED_STEP = 0x6d2b79f5;
 const UINT32_RANGE = 2 ** 32;
 
-function createRandom(seed: number): () => number {
+function mulberry32(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (state + SEED_STEP) >>> 0;
@@ -34,32 +33,22 @@ function createRandom(seed: number): () => number {
   };
 }
 
-const spellingsByList = new WeakMap<readonly PracticeWord[], readonly string[]>();
-
-function spellingsOf(words: readonly PracticeWord[]): readonly string[] {
-  const known = spellingsByList.get(words) ?? words.map((entry) => skeleton(entry.word));
-  spellingsByList.set(words, known);
-  return known;
-}
-
-function choicesFor(words: readonly PracticeWord[], progress: LadderProgress): Choice[] {
+function choicesFor(words: readonly PracticeWord[], progress: LadderProgress, required: ReadonlySet<string>): Choice[] {
   const letters = unlockedLetters(progress);
-  const focus = focusRung(progress)?.char;
-  const spellings = spellingsOf(words);
+  const focus = focusRung(progress);
+  const drilled = focus !== undefined && (focus.kind === "letter" || required.has(focus.char)) ? focus.char : undefined;
   const rarest = words.reduce((highest, entry) => Math.max(highest, entry.rank), 1);
+  const usable = words
+    .map((entry) => ({ entry, spelling: skeleton(entry.word) }))
+    .filter(({ spelling }) => spelling !== "" && [...spelling].every((letter) => letters.has(letter)));
   const readings = new Map<string, number>();
-  const usable: { readonly entry: PracticeWord; readonly spelling: string }[] = [];
-  words.forEach((entry, index) => {
-    const spelling = spellings[index] ?? "";
-    if ([...spelling].every((letter) => letters.has(letter))) {
-      usable.push({ entry, spelling });
-      readings.set(spelling, (readings.get(spelling) ?? 0) + 1);
-    }
-  });
+  for (const { spelling } of usable) {
+    readings.set(spelling, (readings.get(spelling) ?? 0) + 1);
+  }
   return usable.map(({ entry, spelling }) => ({
     word: entry.word,
     weight: (1 + Math.log(1 + rarest / entry.rank)) / (readings.get(spelling) ?? 1),
-    drillsFocus: focus !== undefined && entry.word.includes(focus),
+    drillsFocus: drilled !== undefined && entry.word.includes(drilled),
   }));
 }
 
@@ -78,8 +67,8 @@ function pick(choices: readonly Choice[], random: () => number): Choice | undefi
 export function buildPracticeLesson(options: PracticeOptions): Prompt {
   const { words, progress, vocalization, seed } = options;
   const required = requiredMarks(vocalization, unlockedMarks(progress));
-  const random = createRandom(seed);
-  const choices = choicesFor(words, progress);
+  const random = mulberry32(seed);
+  const choices = choicesFor(words, progress, required);
   const chosen: string[] = [];
   const times = new Map<string, number>();
   let typed = 0;

@@ -3,11 +3,13 @@ import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
 import { isFullyVocalized, isMark, skeleton } from "~/text/arabic.ts";
 import type { Prompt } from "~/text/prompt.ts";
 import { initialProgress, type LadderProgress, unlockedLetters } from "./ladder.ts";
-import { buildPracticeLesson, LESSON_CHARS } from "./lesson.ts";
+import { buildPracticeLesson } from "./lesson.ts";
 import { loadWords, type PracticeWord } from "./words.ts";
 
 const FATHA = String.fromCodePoint(0x64e);
+const DAMMATAN = String.fromCodePoint(0x64c);
 const FIRST_MARK_RUNG = 37;
+const LESSON_CHARS = 38;
 const WORDS = await loadWords();
 
 function lesson(seed: number, progress: LadderProgress = initialProgress(), words: readonly PracticeWord[] = WORDS) {
@@ -30,13 +32,37 @@ test("a new learner gets a lesson at once, and it needs nothing but the ten home
   }
 });
 
-test("at every point of the ladder a lesson uses only the letters unlocked so far", () => {
+test("at every point of the ladder a lesson is full length and uses only the letters unlocked so far", () => {
   for (const unlocked of [10, 11, 15, 22, 30, 36, 37, 40, 44]) {
     const allowed = unlockedLetters({ unlocked });
     for (let seed = 0; seed < 25; seed += 1) {
-      const letters = [...skeleton(lesson(seed, { unlocked }).shown)].filter((char) => char !== " ");
+      const prompt = lesson(seed, { unlocked });
+      const letters = [...skeleton(prompt.shown)].filter((char) => char !== " ");
       expect(letters.every((letter) => allowed.has(letter))).toBe(true);
+      expect(prompt.units.length).toBeGreaterThanOrEqual(LESSON_CHARS);
     }
+  }
+});
+
+test("a lesson is full length at every vocalization level", () => {
+  for (const vocalization of ["letters", "harakat", "full"] as const) {
+    for (const unlocked of [10, 44]) {
+      for (let seed = 0; seed < 20; seed += 1) {
+        const prompt = buildPracticeLesson({ words: WORDS, progress: { unlocked }, vocalization, seed });
+        expect(prompt.units.length, vocalization).toBeGreaterThanOrEqual(LESSON_CHARS);
+      }
+    }
+  }
+});
+
+test("any number works as a seed, and the word list and the progress are left as they were", () => {
+  const words = Object.freeze(WORDS.slice(0, 400).map((entry) => Object.freeze({ ...entry })));
+  const progress = Object.freeze({ unlocked: 20 });
+  for (const seed of [Number.NaN, -1, 1.5, 2 ** 40, Number.POSITIVE_INFINITY, -0]) {
+    const options = { words, progress, vocalization: "auto", seed } as const;
+    const prompt = buildPracticeLesson(options);
+    expect(prompt.units.length, String(seed)).toBeGreaterThanOrEqual(LESSON_CHARS);
+    expect(buildPracticeLesson(options), String(seed)).toEqual(prompt);
   }
 });
 
@@ -49,7 +75,6 @@ test("a lesson is about thirty-eight typed characters of whole words, single spa
   for (let seed = 0; seed < 50; seed += 1) {
     const prompt = lesson(seed);
     const longest = Math.max(...wordsOf(prompt).map((word) => [...skeleton(word)].length));
-    expect(LESSON_CHARS).toBe(38);
     expect(prompt.units.length).toBeLessThanOrEqual(LESSON_CHARS + longest);
     expect(prompt.shown).not.toMatch(/^ | {2}| $/);
     expect(prompt.breaks).toEqual([]);
@@ -117,6 +142,19 @@ test("when the newest rung is a mark, most words carry it", () => {
   expect(share(drilled)).toBeGreaterThan(2 * share(plain));
 });
 
+test("a mark the learner is not asked to type is not drilled", () => {
+  const share = (vocalization: "letters" | "harakat" | "full") => {
+    const shown = Array.from({ length: 60 }, (_, seed) =>
+      buildPracticeLesson({ words: WORDS, progress: { unlocked: 44 }, vocalization, seed }),
+    ).flatMap(wordsOf);
+    return shown.filter((word) => word.includes(DAMMATAN)).length / shown.length;
+  };
+  const drilled = share("full");
+  expect(drilled).toBeGreaterThan(0.4);
+  expect(share("letters")).toBeLessThan(0.6 * drilled);
+  expect(share("harakat")).toBeLessThan(0.6 * drilled);
+});
+
 test("frequent words come more often than rare ones", () => {
   const starter = WORDS.filter((entry) =>
     [...skeleton(entry.word)].every((letter) => HOME_ROW_LETTERS.includes(letter)),
@@ -151,6 +189,30 @@ test("a spelling with several readings comes no more often than a spelling with 
 test("with no word to give, the lesson is empty instead of failing", () => {
   expect(lesson(1, initialProgress(), []).shown).toBe("");
   expect(lesson(1, initialProgress(), [{ word: "ظَرْفٌ", rank: 1 }]).units).toEqual([]);
+});
+
+test("a short list is used up to twice a word, never the same word twice in a row", () => {
+  const list = ["بَابٌ", "مَالٌ", "كِتَابٌ", "بَيْتٌ", "سَمَكٌ"].map((word, index) => ({ word, rank: index + 1 }));
+  for (let seed = 0; seed < 40; seed += 1) {
+    const shown = wordsOf(lesson(seed, initialProgress(), list));
+    expect(shown.length).toBeGreaterThanOrEqual(9);
+    shown.forEach((word, index) => {
+      expect(shown[index + 1]).not.toBe(word);
+      expect(shown.filter((other) => other === word).length).toBeLessThanOrEqual(2);
+    });
+  }
+});
+
+test("an entry with no letters is never given", () => {
+  const list = [
+    { word: "", rank: 1 },
+    { word: FATHA, rank: 1 },
+    { word: "بَابٌ", rank: 2 },
+    { word: "مَالٌ", rank: 3 },
+  ];
+  for (let seed = 0; seed < 20; seed += 1) {
+    expect(lesson(seed, initialProgress(), list).shown).toMatch(/^(بَابٌ|مَالٌ)( (بَابٌ|مَالٌ)){3}$/);
+  }
 });
 
 test("a list of one or two words still ends", () => {

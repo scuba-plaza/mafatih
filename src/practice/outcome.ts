@@ -14,7 +14,7 @@ export interface PracticeState {
   readonly progress: LadderProgress;
 }
 
-export interface PracticeOutcome extends PracticeState {
+interface PracticeOutcome extends PracticeState {
   readonly unlocked: Rung | undefined;
 }
 
