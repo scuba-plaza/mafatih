@@ -6,6 +6,7 @@ import { Dialog } from "~/ui/Dialog.tsx";
 import { RadioGroup } from "~/ui/RadioGroup.tsx";
 import { Switch } from "~/ui/Switch.tsx";
 import { clampFontSize, FONT_SIZES, FONTS, type FontId, loadFont } from "./fonts.ts";
+import { ResetProgress } from "./ResetProgress.tsx";
 import type { Settings } from "./settings.ts";
 
 const LANGUAGES = [
@@ -120,6 +121,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           onChange={(fingerGuide) => change({ fingerGuide })}
         />
       </fieldset>
+      <ResetProgress />
     </Dialog>
   );
 }

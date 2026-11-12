@@ -37,6 +37,8 @@ test("the check reads Practice, the extraction script and the files they import 
   const names = [...scanned().keys()].map((path) => path.slice(path.lastIndexOf("/") + 1)).sort();
   expect(names).toEqual(
     [
+      "Hud.tsx",
+      "PracticePage.tsx",
       "extract-words.ts",
       "ladder.ts",
       "lesson.ts",

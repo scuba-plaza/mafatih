@@ -1,0 +1,100 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { recordLesson } from "~/stats/history.ts";
+import { useProfile } from "~/storage/ProfileProvider.tsx";
+import { TypingSurface } from "~/typing/TypingSurface.tsx";
+import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
+import { PageHeading } from "~/ui/PageHeading.tsx";
+import { PRIMARY_BUTTON } from "~/ui/styles.ts";
+import { Hud, type LastLesson } from "./Hud.tsx";
+import { buildPracticeLesson } from "./lesson.ts";
+import { applyPracticeLesson } from "./outcome.ts";
+import { loadWords, type PracticeWord } from "./words.ts";
+
+function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
+  const { profile, update } = useProfile();
+  const { settings, stats } = profile;
+  const { unlocked } = profile.ladder;
+  const [seed, setSeed] = useState(Date.now);
+  const [last, setLast] = useState<LastLesson | null>(null);
+
+  const prompt = useMemo(
+    () => buildPracticeLesson({ words, progress: { unlocked }, vocalization: settings.vocalization, seed }),
+    [words, unlocked, settings.vocalization, seed],
+  );
+
+  const finish = useCallback(
+    ({ metrics, samples }: TrainerResult) => {
+      const outcome: { unlocked?: LastLesson["unlocked"] } = {};
+      update((current) => {
+        const result = applyPracticeLesson({ stats: current.stats.practice, progress: current.ladder }, samples);
+        outcome.unlocked = result.unlocked;
+        const lesson = {
+          at: Date.now(),
+          mode: "practice",
+          chars: metrics.typedChars,
+          ms: metrics.elapsedMs,
+          accuracy: metrics.accuracy,
+        } as const;
+        return {
+          ...current,
+          ladder: result.progress,
+          stats: { ...current.stats, practice: result.stats },
+          history: recordLesson(current.history, lesson),
+        };
+      });
+      setLast({ metrics, unlocked: outcome.unlocked });
+      setSeed(Date.now());
+    },
+    [update],
+  );
+
+  const trainer = useTrainer({ prompt, options: { requireBackspace: settings.requireBackspace }, onComplete: finish });
+  const { focus } = trainer;
+
+  useEffect(() => {
+    if (last !== null) {
+      focus();
+    }
+  }, [last, focus]);
+
+  return (
+    <>
+      <Hud progress={{ unlocked }} stats={stats.practice} vocalization={settings.vocalization} last={last} />
+      <TypingSurface trainer={trainer} settings={settings} />
+    </>
+  );
+}
+
+export function PracticePage() {
+  const { t } = useI18n();
+  const [words, setWords] = useState<readonly PracticeWord[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    loadWords().then(setWords, () => setFailed(true));
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <PageHeading>{t("nav.practice")}</PageHeading>
+        <p className="text-sm text-muted">{t("practice.subtitle")}</p>
+        <p role="status" className="text-sm text-muted">
+          {words === null && !failed ? t("practice.loading") : ""}
+        </p>
+      </div>
+      {words !== null && <PracticeLesson words={words} />}
+      {failed && (
+        <div className="flex flex-col items-start gap-3">
+          <p role="alert" className="text-sm font-medium">
+            {t("practice.loadFailed")}
+          </p>
+          <button type="button" onClick={() => window.location.reload()} className={PRIMARY_BUTTON}>
+            {t("action.reload")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -48,6 +48,12 @@ export function isMark(char: string): boolean {
   return ONE_MARK.test(char);
 }
 
+const TATWEEL = String.fromCodePoint(0x640);
+
+export function carriedMark(char: string): string {
+  return isMark(char) ? `${TATWEEL}${char}` : char;
+}
+
 export function canonicalizeMarks(text: string): string {
   return text.replace(MARK_RUN, (run) => [...run].sort((a, b) => rank(a) - rank(b)).join(""));
 }

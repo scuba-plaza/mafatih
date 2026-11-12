@@ -103,7 +103,7 @@ export function RecitationPage({ route }: { route: RecitationRoute }) {
             {t("recitation.loadFailed")}
           </p>
           <button type="button" onClick={() => window.location.reload()} className={PRIMARY_BUTTON}>
-            {t("recitation.reload")}
+            {t("action.reload")}
           </button>
         </div>
       )}

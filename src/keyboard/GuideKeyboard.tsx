@@ -1,6 +1,6 @@
 import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
-import { isMark } from "~/text/arabic.ts";
+import { carriedMark } from "~/text/arabic.ts";
 import { expectedText, type Session, type SessionOptions } from "~/typing/session.ts";
 import { type Digit, type Finger, fingerOf } from "./fingers.ts";
 import { guideFor } from "./guide.ts";
@@ -21,7 +21,6 @@ interface Row {
 const KEY_PX = 44;
 const KEY_GAP_PX = 4;
 const KEY_FACE_PX = KEY_PX - KEY_GAP_PX;
-const TATWEEL = String.fromCodePoint(0x640);
 const BACKSPACE_SYMBOL = "⌫";
 const SHIFT_SYMBOL = "⇧";
 const ENTER_SYMBOL = "↵";
@@ -79,7 +78,7 @@ function legendOf(slot: Slot, shifted: boolean): string {
     return slot.symbol;
   }
   const legend = shifted ? (slot.cap?.shift ?? "") : (slot.cap?.base ?? "");
-  return isMark(legend) ? `${TATWEEL}${legend}` : legend;
+  return carriedMark(legend);
 }
 
 function fingerName(finger: Finger | undefined): MessageKey | undefined {

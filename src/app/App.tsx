@@ -1,5 +1,6 @@
 import { CustomPage } from "~/custom/CustomPage.tsx";
 import { I18nProvider, useI18n } from "~/i18n/I18nProvider.tsx";
+import { PracticePage } from "~/practice/PracticePage.tsx";
 import { RecitationPage } from "~/recitation/RecitationPage.tsx";
 import { SettingsButton } from "~/settings/SettingsButton.tsx";
 import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
@@ -21,6 +22,8 @@ function PageContent({ route }: { route: Route }) {
       return <RecitationPage route={route} />;
     case "custom":
       return <CustomPage />;
+    case "practice":
+      return <PracticePage />;
     default:
       return <Placeholder page={route.page} />;
   }

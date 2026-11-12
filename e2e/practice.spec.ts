@@ -37,7 +37,7 @@ test("a fresh learner gets a lesson of home-row words at once, marks visible, an
   expect(shown.split(" ").length).toBeGreaterThanOrEqual(3);
   expect(shown).toMatch(MARKS);
   expect([...shown.replace(MARKS, "")].every((char) => char === " " || HOME_ROW.has(char))).toBe(true);
-  await expect(hud(page).getByText("10 / 44")).toBeVisible();
+  await expect(hud(page).getByText("10 of 44")).toBeVisible();
   await expect(hud(page).getByText("ش")).toBeVisible();
   await expect(hud(page).getByText("Not yet")).toHaveCount(3);
   await expectNoAxeViolations(page);
@@ -87,20 +87,20 @@ test("mastering the newest key unlocks the next one: announced once, quietly, an
   for (let lesson = 0; lesson < 6 && (await status.textContent()) === ""; lesson += 1) {
     await typeLesson(page);
   }
-  await expect(status).toHaveText("Unlocked: ر");
-  await expect(hud(page).getByText("11 / 44")).toBeVisible();
+  await expect(status).toHaveText(/^Unlocked: \P{L}*ر\P{L}*$/u);
+  await expect(hud(page).getByText("11 of 44")).toBeVisible();
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 11 });
   await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await typeLesson(page);
   await expect(status).toHaveText("");
-  await expect(hud(page).getByText("11 / 44")).toBeVisible();
+  await expect(hud(page).getByText("11 of 44")).toBeVisible();
 });
 
 test("a learner who has every key is told so", async ({ page }) => {
   await seedProfile(page, { ladder: { unlocked: 44 } });
   await page.goto("/#/practice");
-  await expect(hud(page).getByText("44 / 44")).toBeVisible();
+  await expect(hud(page).getByText("44 of 44")).toBeVisible();
   await expect(hud(page).getByText("All keys are unlocked.")).toBeVisible();
   await expect(surface(page)).toBeVisible();
 });
@@ -110,14 +110,14 @@ test("when the newest key is a mark that this level does not type, the readout s
 }) => {
   await seedProfile(page, { ladder: { unlocked: 37 }, settings: { vocalization: "letters" } });
   await page.goto("/#/practice");
-  await expect(hud(page).getByText("37 / 44")).toBeVisible();
+  await expect(hud(page).getByText("37 of 44")).toBeVisible();
   await expect(
     hud(page).getByText("The remaining keys are marks, and marks are not typed at this level."),
   ).toBeVisible();
   await expect(hud(page).getByText("Newest key")).toHaveCount(0);
   await seedProfile(page, { ladder: { unlocked: 42 }, settings: { vocalization: "harakat" } });
   await page.reload();
-  await expect(hud(page).getByText("42 / 44")).toBeVisible();
+  await expect(hud(page).getByText("42 of 44")).toBeVisible();
   await expect(
     hud(page).getByText("The remaining keys are marks, and marks are not typed at this level."),
   ).toBeVisible();
@@ -146,7 +146,7 @@ test("Reset progress asks first, then clears keys and statistics but not setting
     settings: { fontSize: 56 },
   });
   await page.goto("/#/practice");
-  await expect(hud(page).getByText("20 / 44")).toBeVisible();
+  await expect(hud(page).getByText("20 of 44")).toBeVisible();
   await page.getByRole("button", { name: "Settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
@@ -167,7 +167,7 @@ test("Reset progress asks first, then clears keys and statistics but not setting
   expect(profile.recitation).toEqual(recitation);
   expect((profile.settings as { fontSize: number }).fontSize).toBe(56);
   await dialog.getByRole("button", { name: "Done" }).click();
-  await expect(hud(page).getByText("10 / 44")).toBeVisible();
+  await expect(hud(page).getByText("10 of 44")).toBeVisible();
   const shown = await shownText(page);
   expect([...shown.replace(MARKS, "")].every((char) => char === " " || HOME_ROW.has(char))).toBe(true);
 });
@@ -201,7 +201,7 @@ test.describe("Arabic", () => {
     await seedProfile(page, { settings: { language: "ar" } });
     await page.goto("/#/practice");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("التمرين");
-    await expect(page.getByRole("region", { name: "تقدّمك" }).getByText("١٠ / ٤٤")).toBeVisible();
+    await expect(page.getByRole("region", { name: "تقدّمك" }).getByText("١٠ من ٤٤")).toBeVisible();
     await expectNoAxeViolations(page);
   });
 });

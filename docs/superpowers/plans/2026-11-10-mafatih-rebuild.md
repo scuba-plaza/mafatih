@@ -485,7 +485,7 @@ Part B is interface assembly and well-trodden work on top of Part A: dialogs, pa
 | Task | What | Builds on | State |
 |---|---|---|---|
 | 9b | Settings dialog and guide keyboard | 9a | done |
-| 12b | Practice page and HUD | 10, 11, 12a | to do |
+| 12b | Practice page and HUD | 10, 11, 12a | in review |
 | 14b | Surah map, passage bar, surah completion, recitation settings | 13, 14a | to do |
 | 15 | Recitation audio | 14b | to do |
 | 16 | Stats page | 11 | to do |
@@ -530,18 +530,22 @@ Read these before the first task; each one cost time to learn.
 
 ### Task 12b: Practice page and HUD
 
-**Files:** Create `src/practice/{PracticePage.tsx,Hud.tsx}`, `e2e/practice.spec.ts`; add Reset progress to the Settings dialog.
+**Files:** Create `src/practice/{PracticePage.tsx,Hud.tsx}`, `src/settings/ResetProgress.tsx`, `e2e/practice.spec.ts`; add Reset progress to the Settings dialog; `carriedMark` in `src/text/arabic.ts` (a mark drawn on a tatweel, shared with the guide keyboard); `action.reload` replaces `recitation.reload`.
 
 **Interfaces:**
 - Consumes: `loadWords` (Task 10), the ladder helpers (Task 11), `buildPracticeLesson`, `applyPracticeLesson` (Task 12a), `useTrainer`, `TypingSurface`, `LessonSummary` (Task 14a).
 - Produces: `<PracticePage />`. A finished lesson is passed to `applyPracticeLesson({ stats: profile.stats.practice, progress: profile.ladder }, session.samples)` and the result saved with `update`, together with one `recordLesson(profile.history, { at, mode: "practice", chars, ms, accuracy })` from `metricsOf(session)`; the next lesson is built by `buildPracticeLesson` from the new progress with a new seed (any integer, for example `Date.now()`). The page decides nothing about unlocking or about which words are shown.
+- The page flow: the next lesson replaces a finished one at once, with the focus kept in the typing field and no summary (the HUD's "Last lesson" line carries the speed and accuracy); the lesson is rebuilt only when the number of unlocked keys, the vocalization or the seed changes, so another tab saving the profile never rebuilds it. A load failure of the word list has the alert and Reload of Recitation.
+- The HUD (`<section aria-label="Your progress">`, a `dl` of `label value` pairs that wrap, one status line always in the page): keys unlocked, the newest key with its accuracy and time per key, the last lesson. The unlock announcement is derived from the last lesson's outcome, so it shows for one lesson only. Message parameters that are strings get directional isolates around them, so tests match "Unlocked: ر" with a pattern, not with exact text.
+- Reset progress (`ResetProgress`, the last block of the Settings dialog, its state gone when the dialog closes): a button, then a fieldset "Reset progress?" with the warning as its description, focus on "Keep my progress", and "Reset" in the danger colour; either answer returns focus to the button; a status line says "Progress was reset." It clears `ladder` and `stats` (all three modes) and keeps the settings, the recitation progress **and the lesson history** (the history holds Recitation lessons too).
 - Requires the owner's sign-off of Task 10's human gate before it ships.
 - When the newest rung is a mark that the chosen vocalization level does not type (`letters`, or `harakat` with a tanween rung), the generator drills nothing and the ladder cannot move: the HUD then shows no focus key and says, in one line, that the remaining keys are marks and are not typed at this level.
 
-- [ ] Test (S5): on a cleared profile, Practice shows a lesson at once with at least 3 words, all home-row letters, marks visible; typing it correctly completes it and the next lesson is already on screen with a `last` readout; with a profile seeded one sample short of mastery, one clean lesson unlocks the next rung, announced once in the polite status ("Unlocked: ك"), no animation burst; the HUD shows `unlocked 11 / 44`, the focus rung with its accuracy and latency; Practice typing never changes `stats.recitation`; at `unlocked === 44` the HUD says all keys are unlocked.
-- [ ] Test (S5): after a Practice lesson, stats go into `stats.practice` and the ladder may advance; after a Recitation lesson `ladder` is unchanged.
-- [ ] Test (S5): Reset progress in Settings asks for confirmation, then clears `stats` and `ladder` (not the settings, not the recitation position) and Practice shows a starter lesson again.
-- [ ] Implement; the page subtitle says Practice uses everyday words, not the Qur'an. A11y and mobile per the contracts (compact HUD below `sm`). Gate, review, commit.
+- [x] Test (S5): on a cleared profile, Practice shows a lesson at once with at least 3 words, all home-row letters, marks visible; typing it correctly completes it and the next lesson is already on screen with a `last` readout; with a profile seeded one sample short of mastery, one clean lesson unlocks the next rung, announced once in the polite status ("Unlocked: ك"), no animation burst; the HUD shows "11 of 44", the focus rung with its accuracy and latency; Practice typing never changes `stats.recitation`; at `unlocked === 44` the HUD says all keys are unlocked.
+- [x] Test (S5): after a Practice lesson, stats go into `stats.practice` and the ladder may advance; after a Recitation lesson `ladder` is unchanged.
+- [x] Test (S5): Reset progress in Settings asks for confirmation, then clears `stats` and `ladder` (not the settings, not the recitation position) and Practice shows a starter lesson again.
+- [x] Implement; the page subtitle says Practice uses everyday words, not the Qur'an. A11y and mobile per the contracts (compact HUD below `sm`). Gate.
+- [ ] Review, fix, commit.
 
 ### Task 14b: Surah map, passage bar, surah completion and recitation settings
 
