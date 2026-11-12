@@ -5,6 +5,7 @@ export const MAX_IMPORT_BYTES = 2_000_000;
 
 const APP = "mafatih";
 const SCHEMA = 2;
+const LEGACY_SCHEMA = 1;
 
 export type ImportFailure = "too-large" | "not-json" | "not-a-backup" | "wrong-version";
 
@@ -34,7 +35,7 @@ export function exportProfile(profile: Profile, now: Date): Backup {
   return { filename: `mafatih-backup-${dayOf(now)}.json`, json: JSON.stringify(envelope) };
 }
 
-export function importProfile(text: string): ImportResult {
+export function importProfile(text: string, preferredLanguages: readonly string[]): ImportResult {
   if (new Blob([text]).size > MAX_IMPORT_BYTES) {
     return refuse("too-large");
   }
@@ -44,17 +45,18 @@ export function importProfile(text: string): ImportResult {
   } catch {
     return refuse("not-json");
   }
-  if (!isRecord(envelope) || typeof envelope.schema !== "number") {
+  if (!isRecord(envelope)) {
     return refuse("not-a-backup");
   }
-  if (envelope.app !== undefined && envelope.app !== APP) {
+  const { app, schema, profile } = envelope;
+  const oldAppExport = app === undefined && schema === LEGACY_SCHEMA;
+  if ((app !== APP && !oldAppExport) || typeof schema !== "number") {
     return refuse("not-a-backup");
   }
-  if (envelope.schema !== SCHEMA) {
+  if (schema !== SCHEMA) {
     return refuse("wrong-version");
   }
-  if (envelope.app !== APP || !isRecord(envelope.profile)) {
-    return refuse("not-a-backup");
-  }
-  return { ok: true, profile: sanitizeProfile(envelope.profile, []) };
+  return isRecord(profile)
+    ? { ok: true, profile: sanitizeProfile(profile, preferredLanguages) }
+    : refuse("not-a-backup");
 }

@@ -1,9 +1,10 @@
 import { type ChangeEvent, useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { ConfirmChoice } from "~/ui/ConfirmChoice.tsx";
 import { BUTTON } from "~/ui/styles.ts";
-import { useProfile } from "./ProfileProvider.tsx";
+import { deviceLanguages, useProfile } from "./ProfileProvider.tsx";
 import type { Profile } from "./profile.ts";
 import { type Backup, exportProfile, type ImportFailure, importProfile, MAX_IMPORT_BYTES } from "./transfer.ts";
 
@@ -37,10 +38,11 @@ async function readText(file: File): Promise<string> {
 
 export function BackupRestore() {
   const { t } = useI18n();
-  const { profile, update } = useProfile();
+  const { profile, replace } = useProfile();
   const [pending, setPending] = useState<Profile | null>(null);
   const [failure, setFailure] = useState<ImportFailure | null>(null);
   const [status, setStatus] = useState<"downloaded" | "restored" | null>(null);
+  const [notSaved, setNotSaved] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const restoreFocus = useRef(false);
   const inputId = useId();
@@ -56,6 +58,8 @@ export function BackupRestore() {
   const download = () => {
     saveFile(exportProfile(profile, new Date()));
     setFailure(null);
+    setNotSaved(false);
+    flushSync(() => setStatus(null));
     setStatus("downloaded");
   };
 
@@ -65,11 +69,12 @@ export function BackupRestore() {
     field.value = "";
     setPending(null);
     setFailure(null);
+    setNotSaved(false);
     setStatus(null);
     if (chosen === undefined) {
       return;
     }
-    const result = importProfile(await readText(chosen));
+    const result = importProfile(await readText(chosen), deviceLanguages());
     if (result.ok) {
       setPending(result.profile);
     } else {
@@ -77,11 +82,12 @@ export function BackupRestore() {
     }
   };
 
-  const answer = (replace: boolean) => {
+  const answer = (restore: boolean) => {
     restoreFocus.current = true;
-    if (replace && pending !== null) {
-      update(() => pending);
-      setStatus("restored");
+    if (restore && pending !== null) {
+      const saved = replace(pending);
+      setNotSaved(saved !== null);
+      setStatus(saved === null ? "restored" : null);
     }
     setPending(null);
   };
@@ -93,10 +99,7 @@ export function BackupRestore() {
       <button type="button" onClick={download} className={BUTTON}>
         {t("backup.download")}
       </button>
-      <div className="flex w-full flex-col gap-1">
-        <label htmlFor={inputId} className="text-sm font-medium">
-          {t("backup.choose")}
-        </label>
+      <div>
         <input
           id={inputId}
           ref={input}
@@ -105,12 +108,23 @@ export function BackupRestore() {
           onChange={choose}
           aria-invalid={failure !== null}
           aria-describedby={failure === null ? undefined : alertId}
-          className="w-full min-w-0 text-sm file:me-3 file:min-h-11 file:rounded-md file:border file:border-line file:bg-surface file:px-4 file:font-medium"
+          className="peer sr-only"
         />
+        <label
+          htmlFor={inputId}
+          className={`${BUTTON} inline-flex items-center peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-focus)]`}
+        >
+          {t("backup.choose")}
+        </label>
       </div>
       {failure !== null && (
         <p id={alertId} role="alert" className="text-sm font-medium text-danger">
           {t(FAILURE_MESSAGES[failure])}
+        </p>
+      )}
+      {notSaved && (
+        <p role="alert" className="text-sm font-medium text-danger">
+          {t("backup.notSaved")}
         </p>
       )}
       {pending !== null && (

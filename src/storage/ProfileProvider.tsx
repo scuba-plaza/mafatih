@@ -12,6 +12,7 @@ export interface ProfileState {
   readonly profile: Profile;
   readonly notice: StorageNotice;
   readonly update: (change: (profile: Profile) => Profile) => Profile;
+  readonly replace: (profile: Profile) => StorageNotice;
 }
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -24,8 +25,12 @@ function browserStore(): KeyValueStore | null {
   }
 }
 
+export function deviceLanguages(): readonly string[] {
+  return navigator.languages ?? [navigator.language];
+}
+
 function open(): OpenedProfile {
-  return openProfile(browserStore(), navigator.languages ?? [navigator.language]);
+  return openProfile(browserStore(), deviceLanguages());
 }
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -37,14 +42,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setOpened(next);
   }, []);
 
-  const update = useCallback(
-    (change: (profile: Profile) => Profile): Profile => {
+  const replace = useCallback(
+    (profile: Profile): StorageNotice => {
       const current = latest.current;
-      const profile = change(current.profile);
-      adopt({ ...current, profile, notice: current.save(profile) ?? current.notice });
-      return profile;
+      const saved = current.save(profile);
+      adopt({ ...current, profile, notice: saved ?? current.notice });
+      return saved;
     },
     [adopt],
+  );
+
+  const update = useCallback(
+    (change: (profile: Profile) => Profile): Profile => {
+      const profile = change(latest.current.profile);
+      replace(profile);
+      return profile;
+    },
+    [replace],
   );
 
   useEffect(() => {
@@ -57,7 +71,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, [adopt]);
 
-  const value = useMemo(() => ({ profile: opened.profile, notice: opened.notice, update }), [opened, update]);
+  const value = useMemo(
+    () => ({ profile: opened.profile, notice: opened.notice, update, replace }),
+    [opened, update, replace],
+  );
   return <ProfileContext value={value}>{children}</ProfileContext>;
 }
 

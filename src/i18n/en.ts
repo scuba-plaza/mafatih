@@ -70,6 +70,7 @@ export const en = {
     "The progress and settings on this device will be replaced by the ones in the file. This cannot be undone.",
   "backup.replace": "Replace",
   "backup.restored": "Progress restored.",
+  "backup.notSaved": "The backup was loaded, but this browser could not save it, so it will be lost when you leave this page.",
   "backup.tooLarge": "This file is too large to be a backup.",
   "backup.notJson": "This file could not be read. Choose a file made by Download backup.",
   "backup.notABackup": "This is not a Mafatih backup file.",

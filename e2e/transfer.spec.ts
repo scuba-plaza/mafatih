@@ -132,20 +132,95 @@ for (const failure of FAILURES) {
   });
 }
 
-test("the same bad file can be chosen again and a good file clears the alert", async ({ page }) => {
+test("the field is emptied after each choice so that the same file can be chosen again, and a good file clears the alert", async ({
+  page,
+}) => {
   await seedProfile(page, { ladder: { unlocked: 12 } });
   await page.goto("/#/practice");
   await openSettings(page);
   const input = section(page).getByLabel(FILE_LABEL);
   await input.setInputFiles(file("nonsense"));
   await expect(section(page).getByRole("alert")).toHaveCount(1);
-  await input.setInputFiles([]);
+  await expect(input).toHaveValue("");
   await input.setInputFiles(file("nonsense"));
   await expect(section(page).getByRole("alert")).toHaveCount(1);
+  await expect(input).toHaveValue("");
   await input.setInputFiles(file(backupOf()));
   await expect(section(page).getByRole("alert")).toHaveCount(0);
   await expect(input).not.toHaveAttribute("aria-invalid", "true");
   await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toBeVisible();
+  await expect(input).toHaveValue("");
+});
+
+test("downloading twice announces twice: the status is cleared before it is set again", async ({ page }) => {
+  await page.goto("/#/practice");
+  await openSettings(page);
+  const status = section(page).getByRole("status");
+  await status.evaluate((element) => {
+    const watched = element as HTMLElement & { changes?: number };
+    watched.changes = 0;
+    new MutationObserver((records) => {
+      watched.changes = (watched.changes ?? 0) + records.length;
+    }).observe(element, { childList: true, characterData: true, subtree: true });
+  });
+  const button = section(page).getByRole("button", { name: "Download backup" });
+  await button.click();
+  await expect(status).toHaveText("Backup downloaded.");
+  const afterFirst = await status.evaluate((element) => (element as HTMLElement & { changes?: number }).changes ?? 0);
+  await button.click();
+  await expect(status).toHaveText("Backup downloaded.");
+  const afterSecond = await status.evaluate((element) => (element as HTMLElement & { changes?: number }).changes ?? 0);
+  expect(afterSecond - afterFirst).toBeGreaterThanOrEqual(2);
+});
+
+async function restoreWhileSavingFails(page: Page): Promise<void> {
+  await page.goto("/#/practice");
+  await openSettings(page);
+  await section(page).getByLabel(FILE_LABEL).setInputFiles(file(backupOf()));
+  await section(page).getByRole("button", { name: "Replace" }).click();
+  await expect(section(page).getByRole("alert")).toHaveText(
+    "The backup was loaded, but this browser could not save it, so it will be lost when you leave this page.",
+  );
+  await expect(dialog(page).getByRole("status").filter({ hasText: "Progress restored." })).toHaveCount(0);
+}
+
+test("when the browser cannot save, the restore says so instead of claiming success", async ({ page }) => {
+  await seedProfile(page, { ladder: { unlocked: 12 } });
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+  });
+  await restoreWhileSavingFails(page);
+  expect((await savedProfile(page)).ladder).toEqual({ unlocked: 12 });
+});
+
+test("when a newer version owns the saved progress, the restore says so instead of claiming success", async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem("mafatih:profile:2", '{"schema":3}'));
+  await restoreWhileSavingFails(page);
+  expect(await savedProfile(page)).toEqual({ schema: 3 });
+});
+
+test("the file control is a labelled button of 44 pixels with a visible focus ring, so it speaks the page's language", async ({
+  page,
+}) => {
+  await page.goto("/#/practice");
+  await openSettings(page);
+  const input = section(page).getByLabel(FILE_LABEL);
+  const label = section(page).locator("label", { hasText: FILE_LABEL });
+  await expect(input).toHaveCSS("width", "1px");
+  const box = await label.boundingBox();
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await section(page).getByRole("button", { name: "Download backup" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(input).toBeFocused();
+  const ring = await label.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return `${style.outlineStyle} ${style.outlineWidth}`;
+  });
+  expect(ring).toBe("solid 2px");
 });
 
 test("the section, its question and its alert pass axe in light and dark", async ({ page }) => {

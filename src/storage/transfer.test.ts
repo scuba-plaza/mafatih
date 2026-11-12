@@ -40,25 +40,25 @@ test("a backup is a file named by the day, holding the app, the schema, the time
 });
 
 test("a backup restores exactly the profile it was made from", () => {
-  const result = importProfile(exportProfile(USED, NOW).json);
+  const result = importProfile(exportProfile(USED, NOW).json, ["en"]);
   expect(result).toEqual({ ok: true, profile: USED });
 });
 
 test("a backup of a fresh profile restores a fresh profile", () => {
-  expect(importProfile(exportProfile(FRESH, NOW).json)).toEqual({ ok: true, profile: FRESH });
+  expect(importProfile(exportProfile(FRESH, NOW).json, ["en"])).toEqual({ ok: true, profile: FRESH });
 });
 
 test("text over two megabytes of bytes is refused before it is read, however few characters it has", () => {
   expect(MAX_IMPORT_BYTES).toBe(2_000_000);
-  expect(importProfile("x".repeat(5_000_000))).toEqual({ ok: false, reason: "too-large" });
+  expect(importProfile("x".repeat(5_000_000), ["en"])).toEqual({ ok: false, reason: "too-large" });
   const arabic = "ب".repeat(1_000_001);
   expect(arabic.length).toBeLessThan(MAX_IMPORT_BYTES);
-  expect(importProfile(arabic)).toEqual({ ok: false, reason: "too-large" });
+  expect(importProfile(arabic, ["en"])).toEqual({ ok: false, reason: "too-large" });
 });
 
 test("text that is not JSON is not a backup", () => {
   for (const text of ["", "{not json", "<html></html>", "undefined"]) {
-    expect(importProfile(text), text).toEqual({ ok: false, reason: "not-json" });
+    expect(importProfile(text, ["en"]), text).toEqual({ ok: false, reason: "not-json" });
   }
 });
 
@@ -72,13 +72,16 @@ test("JSON that is not a backup envelope is not a backup", () => {
     '{"schema":2}',
     '{"schema":2,"settings":{}}',
     '{"app":"other","schema":2,"profile":{}}',
+    '{"app":"other","schema":1,"profile":{}}',
+    '{"schema":2,"profile":{}}',
+    '{"schema":3,"settings":{}}',
     '{"app":"mafatih","schema":2}',
     '{"app":"mafatih","schema":2,"profile":[]}',
     '{"app":"mafatih","schema":2,"profile":"x"}',
     '{"app":"mafatih","schema":"2","profile":{}}',
   ];
   for (const text of texts) {
-    expect(importProfile(text), text).toEqual({ ok: false, reason: "not-a-backup" });
+    expect(importProfile(text, ["en"]), text).toEqual({ ok: false, reason: "not-a-backup" });
   }
 });
 
@@ -90,13 +93,14 @@ test("a backup of another schema, such as the old app's export, is a wrong versi
     '{"app":"mafatih","schema":2.5,"profile":{}}',
   ];
   for (const text of texts) {
-    expect(importProfile(text), text).toEqual({ ok: false, reason: "wrong-version" });
+    expect(importProfile(text, ["en"]), text).toEqual({ ok: false, reason: "wrong-version" });
   }
 });
 
 test("a backup with missing or broken parts restores the rest and gives defaults for those", () => {
   const result = importProfile(
     backup({ settings: { language: "ar" }, ladder: { unlocked: "many" }, stats: 5, history: {} }),
+    ["en"],
   );
   expect(result).toEqual({
     ok: true,
@@ -104,12 +108,18 @@ test("a backup with missing or broken parts restores the rest and gives defaults
   });
 });
 
+test("a backup without a language takes the language of the device that restores it", () => {
+  const text = backup({ settings: {} });
+  expect(importProfile(text, ["ar-EG", "en"])).toMatchObject({ ok: true, profile: { settings: { language: "ar" } } });
+  expect(importProfile(text, ["en-GB"])).toMatchObject({ ok: true, profile: { settings: { language: "en" } } });
+});
+
 test("hostile content is neutralised: prototype keys, unknown keys, wrong types", () => {
   const text =
     '{"app":"mafatih","schema":2,"__proto__":{"polluted":true},"profile":{"__proto__":{"polluted":true},' +
     '"constructor":{"prototype":{"polluted":true}},"extra":1,"settings":{"language":"ar","__proto__":{"language":"en"},' +
     '"fontSize":"huge","customText":5,"reciter":"toString"},"ladder":{"unlocked":1e300},"recitation":{"position":{"surah":-1,"ayah":0}}}}';
-  const result = importProfile(text);
+  const result = importProfile(text, ["en"]);
   expect(result.ok).toBe(true);
   if (result.ok) {
     expect(result.profile.settings.language).toBe("ar");
@@ -139,6 +149,7 @@ test("huge lists are cut: at most a hundred lessons and a few dozen keys, howeve
   );
   const result = importProfile(
     backup({ history, stats: { practice: { ...junk, ب: USED.stats.practice.ش }, recitation: junk, custom: {} } }),
+    ["en"],
   );
   expect(result.ok).toBe(true);
   if (result.ok) {
@@ -151,8 +162,8 @@ test("huge lists are cut: at most a hundred lessons and a few dozen keys, howeve
 
 test("a backup that is only just small enough is read", () => {
   const text = backup({});
-  expect(importProfile(text + " ".repeat(MAX_IMPORT_BYTES - text.length)).ok).toBe(true);
-  expect(importProfile(text + " ".repeat(MAX_IMPORT_BYTES - text.length + 1))).toEqual({
+  expect(importProfile(text + " ".repeat(MAX_IMPORT_BYTES - text.length), ["en"]).ok).toBe(true);
+  expect(importProfile(text + " ".repeat(MAX_IMPORT_BYTES - text.length + 1), ["en"])).toEqual({
     ok: false,
     reason: "too-large",
   });
