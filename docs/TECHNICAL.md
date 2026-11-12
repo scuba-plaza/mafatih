@@ -95,6 +95,24 @@ Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", s
 
 `.github/workflows/deploy.yml`: `pnpm verify` runs before the build on every push; the Pages deployment runs only for `main`. A separate `engines` job runs the whole suite in Firefox and WebKit on `main` and on demand; it does not gate the deploy.
 
+## Design decisions, 2026-11-12 (the Focus design)
+
+The look of the app was redesigned in four mockup rounds; the approved mockups are in `docs/design/focus/` and the plan is `docs/superpowers/plans/2026-11-12-focus-redesign.md`. The owner decided:
+
+- Dark only. There is no light theme and no theme setting; the page ignores `prefers-color-scheme`. Background `#08090b`.
+- Passage first: centred text with no box, plain-text nav, a quiet outline keyboard. One amber accent (`#e2b062`) marks the caret, the next key, the primary action, progress and stars. The next key uses the "halo" style. There are no finger-zone colours; the finger caption under the keyboard stays and is controlled by "Show which finger to use".
+- Scheherazade New is the default lesson font. Amiri and Noto Naskh Arabic stay selectable in Settings.
+- There is no "Start typing" pill. The text is the way in: tap or click it, or Tab to it. The caret blinks while it waits. Custom's form button labelled "Start typing" is a form submit and stays.
+- On phones the layout is looser: a top bar with the wordmark and a settings icon, a bottom tab bar that is hidden while the phone keyboard is up, one row of icon controls, no "N of M ayat" line.
+- The surah-complete celebration and the star system of the old app return, in amber: rays that keep bursting until the card is closed, a glowing name, and a star for a surah completed with 95% accuracy or better. Reduced motion gets a static card.
+- The About page no longer has "How this site was made" or the "Source code" credit. Its link moved from the footer into Settings.
+
+Waivers and rules that changed with these decisions:
+
+- The untyped lesson text (`--color-upcoming`, `#5b5d61`, about 3.0 : 1) is below the 4.5 : 1 text-contrast rule. This is an owner decision. The token test pins a 3.0 : 1 floor, and axe's colour-contrast rule excludes the lesson text only. Every other text keeps 4.5 : 1 and every control outline 3 : 1.
+- The rule "no celebration or scoring on Qur'an content" is reversed for surah completion only. Still no sound, no emoji, no confetti, and nothing is shown while typing.
+- The Arabic copy for the new strings is not human verified, like the rest of the Arabic copy.
+
 ## Verification status
 
 Not human verified: the Practice word list (chosen by a program, skimmed by the owner, not read word by word), the Arabic copy in `src/i18n/ar.ts` (no native speaker has read it) and the device checklist in `docs/QA-DEVICES.md` (never run). The Firefox and WebKit projects have never run. The About page says the first two to users. The owner decided on 2026-11-12 to ship with these gaps and set the licence and Tanzil questions aside; the details are in the plan.
