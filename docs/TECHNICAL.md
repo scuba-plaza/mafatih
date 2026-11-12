@@ -16,7 +16,7 @@ pnpm build:data   # data/ to generated/ (see Data)
 pnpm e2e          # build, then Playwright
 ```
 
-Browser tests serve the build with `vite preview` on port 4173 and run in two Chromium profiles (`chromium-desktop`, `chromium-mobile`, a Pixel 7). Set `PW_CHROMIUM_PATH` to use an installed Chromium; set `PW_FULL=1` to add Firefox, WebKit and an iPhone profile (the CI `engines` job does). Do not run two Playwright runs at once: they share the port.
+Browser tests serve the build with `vite preview` on port 4173 and run in two Chromium profiles (`chromium-desktop`, `chromium-mobile`, a Pixel 7). Set `PW_CHROMIUM_PATH` to use an installed Chromium; set `PW_FULL=1` to add Firefox, WebKit and an iPhone profile (the CI `engines` job does). Do not run two Playwright runs at once: they share the port. The ARIA snapshots (`e2e/aria-snapshots.spec.ts-snapshots`, machine-written, ignored by Biome) pin the accessibility tree of every page; after an intended interface change run `pnpm exec playwright test e2e/aria-snapshots.spec.ts --update-snapshots` and read the diff before committing it.
 
 ## Rules for the code
 
@@ -30,7 +30,7 @@ Browser tests serve the build with `vite preview` on port 4173 and run in two Ch
 
 | Path | What is in it |
 |---|---|
-| `src/app` | shell, routes (`#/`, `#/recitation/:surah[/:ayah]`, `#/practice`, `#/custom`, `#/stats`, `#/about`), About page, error boundary |
+| `src/app` | shell, routes (`#/`, `#/recitation/:surah[/:ayah]`, `#/practice`, `#/custom`, `#/stats`, `#/about`), About page and its credits, error boundary |
 | `src/text` | Arabic text model (`arabic.ts`), prompts (`prompt.ts`), which marks are typed (`vocalization.ts`) |
 | `src/keyboard` | the Arabic (101) key table, fingers, ligature keys, what is typeable, the on-screen guide |
 | `src/typing` | the session engine (`session.ts`), the input pipeline (`input.ts`, `useTypingInput.ts`), the surface and the trainer hook |
@@ -64,18 +64,18 @@ Surah data is split into one chunk per surah. A passage is a run of ayat (1 to 2
 
 One localStorage key, `mafatih:profile:2`, holds `{ schema: 2, settings, ladder, stats: { practice, recitation, custom }, history, recitation }`. Every part is read through its own sanitizer that builds a fresh object from known fields, so a broken part falls back to defaults without discarding the rest, and `__proto__`, wrong types and huge lists cannot get in. If storage is unavailable the app runs in memory with a notice; a profile of a newer schema is left alone with a notice; an unreadable one is copied to `…:unreadable` and replaced.
 
-Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", schema: 2, exportedAt, profile }`, at most 2,000,000 bytes, refused as `not-json`, `not-a-backup` or `wrong-version`, and replaced only after the learner confirms. A render error shows a screen with Reload and Start over (which erases the profile after asking).
+Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", schema: 2, exportedAt, profile }`, at most 2,000,000 bytes, refused as `not-json`, `not-a-backup` or `wrong-version`, and replaced only after the learner confirms. A render error shows a screen with Reload and Start over (which erases the profile, not the audio cache, after asking). The boundary catches render errors only: errors in event handlers, effects and promises, and in the two providers above it, are not caught.
 
 ## Data
 
 | Source | Used for | Licence |
 |---|---|---|
 | Tanzil simple text 1.1 (`data/quran-simple.txt`, verbatim, with its copyright block) | Recitation | CC BY 3.0 |
-| English Wiktionary via kaikki.org (extract built 2026-10-30) | Practice words | CC BY-SA 4.0 |
+| English Wiktionary via kaikki.org (extract built 2026-10-30) | Practice words | CC BY-SA 4.0 and GFDL |
 | FrequencyWords Arabic list (ranking only) | Practice word order | CC BY-SA 4.0 |
 | EveryAyah | audio, streamed and never bundled | per reciter |
 
-`pnpm build:data` reads `data/` and writes `generated/`: one JSON per surah (each carries Tanzil's notice) and it checks the committed word list against its rules (counts, coverage per starter letter and mark, size, the blocklist). The word list (`data/practice/words.tsv`) is produced by `scripts/extract-words.ts` and reviewed by a reader; `data/practice/SOURCES.md` has the rules. It is shared under CC BY-SA 4.0.
+`pnpm build:data` reads `data/` and writes `generated/`: one JSON per surah (each carries Tanzil's notice) and it checks the committed word list against its rules (counts, coverage per starter letter and mark, size, the blocklist). The word list (`data/practice/words.tsv`) is produced by `scripts/extract-words.ts` and reviewed by a reader; `data/practice/SOURCES.md` has the rules. The list is a derivative of both sources; `SOURCES.md` proposes CC BY-SA 4.0 for it, and the owner has still to confirm that.
 
 ## Bundle and security
 

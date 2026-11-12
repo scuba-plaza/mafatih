@@ -31,7 +31,7 @@ There is no account and nothing to sign up for, no cookies and no analytics. You
 
 - Qur'an text: [Tanzil Project](https://tanzil.net), simple text 1.1, Creative Commons Attribution 3.0, unchanged.
 - Recitation: Abdul Basit ʿAbd us-Samad, from the [EveryAyah](https://everyayah.com) archive.
-- Practice words: the English Wiktionary via [kaikki.org](https://kaikki.org/dictionary/Arabic/) and the [FrequencyWords](https://github.com/hermitdave/FrequencyWords) list, both CC BY-SA 4.0, so the word list is too.
+- Practice words: the English Wiktionary via [kaikki.org](https://kaikki.org/dictionary/Arabic/) (CC BY-SA 4.0 and GFDL) and the [FrequencyWords](https://github.com/hermitdave/FrequencyWords) list (CC BY-SA 4.0).
 - Fonts: Noto Naskh Arabic, Amiri, Scheherazade New (SIL Open Font License), through Fontsource.
 
 ## For developers

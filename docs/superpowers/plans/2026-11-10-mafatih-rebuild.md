@@ -665,6 +665,15 @@ Read these before the first task; each one cost time to learn.
 
 **Files:** Rewrite `README.md`, create `docs/TECHNICAL.md` (at most 300 lines: how it works, the rules in Global Constraints, commands, layout, data pipeline and licences), update the plan with anything learned.
 
+- [x] Docs written and cross-checked against the code (every command, limit, file name, constant and licence in `README.md` and `docs/TECHNICAL.md` was looked up; the README no longer calls the word list CC BY-SA as a settled fact).
+- [x] Lessons recorded for the next project:
+  - Test the layout, not the browser's generosity: mobile emulation lets the layout viewport grow with overflowing content, so a sideways-scroll check must compare against a fixed width.
+  - `waitForLoadState("networkidle")` is a state that has already been reached; to wait for requests that a click starts, poll the request list.
+  - A content security policy changes how tests are written: adopted stylesheets instead of `<style>`, `createImageBitmap` instead of data-URL images, and a watch that proves it can see a violation.
+  - Pin `timezoneId` in every spec that shows a date; seed once per tab when a spec reloads; random lessons need assertions that hold for every outcome or a fixed clock.
+  - Machine-written files (ARIA baselines) need the formatter's ignore list; review worktrees inside the repository need the linter's ignore list.
+  - Public copy that states a licence, a privacy fact or a security fact is checked against the code and against the owner's open gates before it ships; tests tie constants in copy to their source (the extract date, the reciter names).
+  - Findings of the reviewers that were rated minor were still real in every task; fixing all of them every time kept the next task's review short.
 - [ ] Verify from a clean clone: `pnpm install && pnpm verify` is green and `pnpm build:data` reproduces `generated/` exactly.
 - [ ] Stop and report to the owner with the QA results. **Only when the owner asks:** open a pull request from `claude/clever-thompson-ohqxvp` into `main` using the repository's template if one exists, then (with the owner's approval) tag the old head `v1-legacy`, merge, and watch the Pages deployment. The old `mafatih.profile` key is left untouched in users' browsers.
 - [ ] Review, commit.
