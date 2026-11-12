@@ -6,7 +6,7 @@ import { AYAT_PER_PASSAGE, defaultSettings, sanitizeSettings } from "./settings.
 const ENGLISH = ["en"];
 const DEFAULTS = {
   language: "en",
-  font: "noto-naskh",
+  font: "scheherazade",
   fontSize: 40,
   vocalization: "auto",
   requireBackspace: true,
@@ -47,14 +47,15 @@ test("valid saved settings are kept", () => {
   expect(sanitizeSettings(saved, ENGLISH)).toEqual(saved);
 });
 
-test("three lesson fonts are offered, Noto Naskh Arabic first", () => {
+test("three lesson fonts are offered, Scheherazade New first and the default", () => {
   expect(FONTS.map((font) => [font.id, font.family])).toEqual([
-    ["noto-naskh", "Noto Naskh Arabic"],
     ["scheherazade", "Scheherazade New"],
     ["amiri", "Amiri"],
+    ["noto-naskh", "Noto Naskh Arabic"],
   ]);
-  expect(sanitizeSettings({ font: "comic-sans" }, ENGLISH).font).toBe("noto-naskh");
-  expect(sanitizeSettings({ font: 3 }, ENGLISH).font).toBe("noto-naskh");
+  expect(sanitizeSettings({ font: "comic-sans" }, ENGLISH).font).toBe("scheherazade");
+  expect(sanitizeSettings({ font: 3 }, ENGLISH).font).toBe("scheherazade");
+  expect(sanitizeSettings({ font: "noto-naskh" }, ENGLISH).font).toBe("noto-naskh");
 });
 
 test("the lesson text size is one of nine steps from 28 to 72 pixels", () => {

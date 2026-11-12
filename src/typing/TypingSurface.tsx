@@ -258,7 +258,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 leading-loose wrap-anywhere"
+          className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 leading-[2] wrap-anywhere"
           style={{
             fontFamily: `"${family.family}", serif`,
             fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,

@@ -4,7 +4,7 @@ import { eraseProfile, type KeyValueStore, openProfile, type Profile, STORAGE_KE
 const ENGLISH = ["en-US"];
 const ARABIC = ["ar-EG", "en"];
 const OTHER_DEFAULTS = {
-  font: "noto-naskh",
+  font: "scheherazade",
   fontSize: 40,
   vocalization: "auto",
   requireBackspace: true,
@@ -86,7 +86,7 @@ test("a saved profile is read back as it was, whatever the browser's language is
     schema: 2,
     settings: {
       language: "ar",
-      font: "noto-naskh",
+      font: "scheherazade",
       fontSize: 40,
       vocalization: "auto",
       requireBackspace: true,

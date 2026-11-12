@@ -56,7 +56,7 @@ test("the Settings button opens a dialog with every setting in a named group", a
   await expect(backspace).toHaveAccessibleDescription(/Wrong keys are shown until you delete them/);
   const font = dialog(page).getByRole("group", { name: "Lesson font" });
   await expect(font.getByRole("radio")).toHaveCount(3);
-  await expect(font.getByRole("radio", { name: "Noto Naskh Arabic", exact: true })).toBeChecked();
+  await expect(font.getByRole("radio", { name: "Scheherazade New", exact: true })).toBeChecked();
   await expect(dialog(page).getByRole("slider", { name: "Lesson text size" })).toHaveAttribute("aria-valuetext", "40");
   await expectNoAxeViolations(page);
 });
@@ -182,16 +182,16 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await seedSettings(page, { customText: "بتن" });
   await page.goto("/#/custom");
   const bodyFont = await page.locator("body").evaluate((body) => getComputedStyle(body).fontFamily);
-  await expect(lessonText(page)).toHaveCSS("font-family", /Noto Naskh Arabic/);
+  await expect(lessonText(page)).toHaveCSS("font-family", /Scheherazade New/);
   await openSettings(page);
   const samples = dialog(page).locator("[data-font-sample]");
   await expect(samples).toHaveCount(3);
-  await expect(samples.nth(0)).toHaveCSS("font-family", /Noto Naskh Arabic/);
-  await expect(samples.nth(1)).toHaveCSS("font-family", /Scheherazade New/);
-  await expect(samples.nth(2)).toHaveCSS("font-family", /Amiri/);
+  await expect(samples.nth(0)).toHaveCSS("font-family", /Scheherazade New/);
+  await expect(samples.nth(1)).toHaveCSS("font-family", /Amiri/);
+  await expect(samples.nth(2)).toHaveCSS("font-family", /Noto Naskh Arabic/);
   await expect(samples.nth(2)).toHaveAttribute("lang", "ar");
   const spacing = await samples
-    .nth(1)
+    .nth(0)
     .evaluate(
       (sample) =>
         Number.parseFloat(getComputedStyle(sample).lineHeight) / Number.parseFloat(getComputedStyle(sample).fontSize),
