@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   completionsOf,
+  endsOrder,
   initialRecitation,
   passageBefore,
   positionAfter,
@@ -84,6 +85,15 @@ test("the position after an ayah is the next ayah, the next surah of the order, 
   expect(positionAfter({ surah: 114, ayah: 6 }, "mushaf")).toEqual({ surah: 1, ayah: 1 });
   expect(positionAfter({ surah: 78, ayah: 40 }, "juz-amma")).toEqual({ surah: 1, ayah: 1 });
   expect(positionAfter({ surah: 77, ayah: 50 }, "juz-amma")).toEqual({ surah: 114, ayah: 1 });
+});
+
+test("only the last ayah of the last surah of an order ends the order", () => {
+  expect(endsOrder({ surah: 114, ayah: 6 }, "mushaf")).toBe(true);
+  expect(endsOrder({ surah: 114, ayah: 5 }, "mushaf")).toBe(false);
+  expect(endsOrder({ surah: 113, ayah: 6 }, "mushaf")).toBe(false);
+  expect(endsOrder({ surah: 114, ayah: 6 }, "juz-amma")).toBe(false);
+  expect(endsOrder({ surah: 77, ayah: 50 }, "juz-amma")).toBe(true);
+  expect(endsOrder({ surah: 77, ayah: 49 }, "juz-amma")).toBe(false);
 });
 
 test("the passage before starts a passage length earlier, or is the last passage of the surah before", () => {

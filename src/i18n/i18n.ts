@@ -57,6 +57,16 @@ export function formatPercent(language: Language, ratio: number): string {
   return WHOLE_PERCENTAGES[language].format(finite(ratio));
 }
 
+const TWO_DIGITS: Record<Language, Intl.NumberFormat> = {
+  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { minimumIntegerDigits: 2, maximumFractionDigits: 0 }),
+  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { minimumIntegerDigits: 2, maximumFractionDigits: 0 }),
+};
+
+export function formatDuration(language: Language, ms: number): string {
+  const seconds = Math.max(0, Math.round(finite(ms) / 1000));
+  return `${formatNumber(language, Math.floor(seconds / 60))}:${TWO_DIGITS[language].format(seconds % 60)}`;
+}
+
 export function placeholdersOf(template: string): string[] {
   return [...template.matchAll(PLACEHOLDER)].map((match) => match[1] ?? "");
 }

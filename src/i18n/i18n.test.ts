@@ -5,6 +5,7 @@ import {
   detectLanguage,
   directionOf,
   fillMessage,
+  formatDuration,
   formatNumber,
   formatPercent,
   isLanguage,
@@ -54,6 +55,16 @@ test("ratios are shown as whole percentages with the language's own percent sign
   expect(formatPercent("en", 0.953)).toBe("95%");
   expect(formatPercent("en", 1)).toBe("100%");
   expect(formatPercent("ar", 0.953)).toBe("\u0669\u0665\u066A\u061C");
+});
+
+test("a duration is minutes and two-digit seconds in the language's own digits, rounded to the second", () => {
+  expect(formatDuration("en", 0)).toBe("0:00");
+  expect(formatDuration("en", 65_400)).toBe("1:05");
+  expect(formatDuration("en", 59_600)).toBe("1:00");
+  expect(formatDuration("en", 3_725_000)).toBe("62:05");
+  expect(formatDuration("en", -5)).toBe("0:00");
+  expect(formatDuration("ar", 65_000)).toBe("\u0661:\u0660\u0665");
+  expect(() => formatDuration("en", Number.NaN)).toThrow(RangeError);
 });
 
 test("a number that is not finite is an error, never shown to the user", () => {

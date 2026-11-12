@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { FATHA, SHADDA } from "~/text/arabic.ts";
 import { clampFontSize, FONT_SIZES, FONTS } from "./fonts.ts";
-import { defaultSettings, sanitizeSettings } from "./settings.ts";
+import { AYAT_PER_PASSAGE, defaultSettings, sanitizeSettings } from "./settings.ts";
 
 const ENGLISH = ["en"];
 const DEFAULTS = {
@@ -33,7 +33,7 @@ test("valid saved settings are kept", () => {
     showKeyboard: false,
     fingerGuide: false,
     customText: "بسم الله",
-    ayatPerLesson: 7,
+    ayatPerLesson: 8,
     surahOrder: "juz-amma",
   };
   expect(sanitizeSettings(saved, ENGLISH)).toEqual(saved);
@@ -96,11 +96,15 @@ test("the keyboard guide and its finger guide stay on unless they were really tu
   }
 });
 
-test("a passage holds one to twenty ayat: anything else is brought into range or falls back to four", () => {
+test("a passage holds one of the offered numbers of ayat: any other number snaps to the nearest, a non-number falls back to four", () => {
   const perLesson = (value: unknown) => sanitizeSettings({ ayatPerLesson: value }, ENGLISH).ayatPerLesson;
-  expect([1, 4, 20].map(perLesson)).toEqual([1, 4, 20]);
-  expect([0, -3, 21, 400, Number.POSITIVE_INFINITY].map(perLesson)).toEqual([1, 1, 20, 20, 20]);
-  expect([2.7, "5", null, Number.NaN, undefined].map(perLesson)).toEqual([2, 4, 4, 4, 4]);
+  expect(AYAT_PER_PASSAGE).toEqual([1, 2, 3, 4, 5, 6, 8, 10, 15, 20]);
+  expect(AYAT_PER_PASSAGE.map(perLesson)).toEqual([...AYAT_PER_PASSAGE]);
+  expect([0, -3, 21, 400, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map(perLesson)).toEqual([
+    1, 1, 20, 20, 20, 1,
+  ]);
+  expect([7, 9, 12, 13, 2.7].map(perLesson)).toEqual([6, 8, 10, 15, 3]);
+  expect(["5", null, Number.NaN, undefined, {}].map(perLesson)).toEqual([4, 4, 4, 4, 4]);
 });
 
 test("the surah order is the mushaf order unless Juz Amma first was chosen", () => {

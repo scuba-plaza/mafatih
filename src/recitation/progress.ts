@@ -87,6 +87,10 @@ export function positionAfter(position: Position, order: SurahOrder): Position {
     : { surah: neighbour(position.surah, order, 1), ayah: 1 };
 }
 
+export function endsOrder(position: Position, order: SurahOrder): boolean {
+  return position.ayah === ayatIn(position.surah) && position.surah === surahOrder(order).at(-1);
+}
+
 export function passageBefore(position: Position, maxAyat: number, order: SurahOrder): Position {
   const surah = position.ayah > 1 ? position.surah : neighbour(position.surah, order, -1);
   const size = Math.min(Math.max(1, Math.floor(maxAyat) || 1), Math.max(1, ayatIn(surah)));

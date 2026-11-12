@@ -18,7 +18,7 @@ export interface Settings {
   readonly surahOrder: SurahOrder;
 }
 
-export const MAX_AYAT_PER_LESSON = 20;
+export const AYAT_PER_PASSAGE: readonly number[] = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20];
 
 const DEFAULT_AYAT_PER_LESSON = 4;
 
@@ -33,9 +33,13 @@ function isSurahOrder(value: unknown): value is SurahOrder {
 }
 
 function clampAyatPerLesson(value: unknown): number {
-  return typeof value === "number" && !Number.isNaN(value)
-    ? Math.min(Math.max(1, Math.trunc(value)), MAX_AYAT_PER_LESSON)
-    : DEFAULT_AYAT_PER_LESSON;
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return DEFAULT_AYAT_PER_LESSON;
+  }
+  const within = Math.min(Math.max(value, AYAT_PER_PASSAGE[0] ?? 1), AYAT_PER_PASSAGE.at(-1) ?? 20);
+  return AYAT_PER_PASSAGE.reduce((nearest, size) =>
+    Math.abs(size - within) < Math.abs(nearest - within) ? size : nearest,
+  );
 }
 
 export function defaultSettings(preferredLanguages: readonly string[]): Settings {
