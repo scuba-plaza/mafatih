@@ -32,7 +32,10 @@ export const UNREADABLE_KEY = "mafatih:profile:2:unreadable";
 
 const SCHEMA = 2;
 
-function sanitizeProfile(raw: Readonly<Record<string, unknown>>, preferredLanguages: readonly string[]): Profile {
+export function sanitizeProfile(
+  raw: Readonly<Record<string, unknown>>,
+  preferredLanguages: readonly string[],
+): Profile {
   const stats = isRecord(raw.stats) ? raw.stats : {};
   return {
     schema: SCHEMA,
