@@ -16,6 +16,7 @@ const NO_PROGRESS = {
   ladder: { unlocked: 10 },
   stats: { practice: {}, recitation: {}, custom: {} },
   history: [],
+  recitation: { position: null, surahs: {} },
 } as const;
 const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en", ...OTHER_DEFAULTS }, ...NO_PROGRESS };
 const ARABIC_PROFILE: Profile = { schema: 2, settings: { language: "ar", ...OTHER_DEFAULTS }, ...NO_PROGRESS };
@@ -87,6 +88,7 @@ test("a saved profile is read back as it was, whatever the browser's language is
     ladder: { unlocked: 10 },
     stats: { practice: {}, recitation: {}, custom: {} },
     history: [],
+    recitation: { position: null, surahs: {} },
   });
   const reopened = openProfile(store, ENGLISH);
   expect(reopened.profile).toEqual(ARABIC_PROFILE);
@@ -149,7 +151,7 @@ test("unknown and dangerous keys in saved data are never copied into the profile
     '"settings":{"language":"ar","__proto__":{"language":"en"},"constructor":1,"prototype":2,"x":1}}';
   const { profile } = openProfile(holding(stored), ENGLISH);
   expect(profile).toEqual(ARABIC_PROFILE);
-  expect(Object.keys(profile)).toEqual(["schema", "settings", "ladder", "stats", "history"]);
+  expect(Object.keys(profile)).toEqual(["schema", "settings", "ladder", "stats", "history", "recitation"]);
   expect(Object.keys(profile.settings).sort()).toEqual(
     [
       "customText",
@@ -202,7 +204,7 @@ test("when saving fails the visitor is told, and nothing is thrown", () => {
   expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBe("unavailable");
 });
 
-test("every setting, the ladder, the key stats and the history survive being saved and opened again", () => {
+test("every setting and all progress survive being saved and opened again", () => {
   const store = memoryStore();
   const changed: Profile = {
     schema: 2,
@@ -223,6 +225,10 @@ test("every setting, the ladder, the key stats and the history survive being sav
       custom: {},
     },
     history: [{ at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 65_000, accuracy: 0.97 }],
+    recitation: {
+      position: { surah: 36, ayah: 13 },
+      surahs: { 1: { typed: [], completions: 2 }, 36: { typed: [[1, 12]], completions: 0 } },
+    },
   };
   openProfile(store, ENGLISH).save(changed);
   expect(openProfile(store, ENGLISH).profile).toEqual(changed);
@@ -237,6 +243,7 @@ test("broken progress falls back on its own: the settings and the rest of the pr
     ladder: { unlocked: "many" },
     stats: { practice: { ب: stat, ت: "broken" }, recitation: 5, extra: { ب: stat } },
     history: [lesson, { ...lesson, mode: "quiz" }],
+    recitation: { position: { surah: 1, ayah: 99 }, surahs: { 1: { typed: [[2, 3]], completions: "many" } } },
   });
   const { profile, notice } = openProfile(holding(stored), ENGLISH);
   expect(notice).toBeNull();
@@ -244,6 +251,7 @@ test("broken progress falls back on its own: the settings and the rest of the pr
     ...ARABIC_PROFILE,
     stats: { practice: { ب: stat }, recitation: {}, custom: {} },
     history: [lesson],
+    recitation: { position: null, surahs: { 1: { typed: [[2, 3]], completions: 0 } } },
   });
   expect(
     openProfile(holding('{"schema":2,"ladder":{"unlocked":99},"stats":[],"history":{}}'), ENGLISH).profile,

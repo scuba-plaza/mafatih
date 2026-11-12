@@ -13,7 +13,7 @@
     "check:write": "biome check --write ./",
     "check:style": "tsx scripts/check-style.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "vitest run",
+    "test": "pnpm build:data && vitest run",
     "e2e": "pnpm build && playwright test",
     "verify": "pnpm check && pnpm check:style && pnpm build && pnpm typecheck && pnpm test && playwright test"
   },

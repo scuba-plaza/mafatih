@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
@@ -6,8 +7,19 @@ import { LADDER } from "~/practice/ladder.ts";
 import { parseWordList } from "~/practice/words.ts";
 import { skeleton } from "~/text/arabic.ts";
 import { coverageOf, parseList, type Rules, violationsOf } from "./lib/practice-rules.ts";
+import { parseQuran, quranProblems, sourceLinesOf, splitSurahs } from "./lib/quran-rules.ts";
 
-const PRACTICE = resolve(fileURLToPath(new URL("../data/practice", import.meta.url)));
+const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const PRACTICE = resolve(ROOT, "data/practice");
+const QURAN_SOURCE = resolve(ROOT, "data/quran-simple.txt");
+const QURAN_OUTPUT = resolve(ROOT, "generated/quran");
+const QURAN_SHA256 = "f3268cfe7a400add8a8024fe23368d66f58cc8baa51773fe94e323625c66344b";
+const QURAN_CREDIT =
+  "Tanzil Quran Text (Simple, Version 1.1), Tanzil Project, tanzil.net, CC BY 3.0. Not to be changed.";
+const AYAT = 6236;
+const SURAHS = 114;
+const DAGGER_ALEFS = 3330;
+const DAGGER_ALEF = "\u0670";
 const MAX_WORDS = 12_000;
 const MAX_BYTES = 300_000;
 const MIN_STARTER_WORDS = 60;
@@ -70,7 +82,52 @@ function practiceProblems(): string[] {
   return problems;
 }
 
-const problems = practiceProblems();
+interface SurahMeta {
+  readonly n: number;
+  readonly ayat: number;
+}
+
+function quranBuildProblems(): string[] {
+  const bytes = readFileSync(QURAN_SOURCE);
+  const text = bytes.toString("utf8");
+  const meta: readonly SurahMeta[] = JSON.parse(readFileSync(resolve(ROOT, "data/surahs.json"), "utf8"));
+  const problems = quranProblems(text, new Map(meta.map((surah) => [surah.n, surah.ayat])));
+  const check = (holds: boolean, problem: string) => {
+    if (!holds) {
+      problems.push(problem);
+    }
+  };
+  const ayat = parseQuran(text);
+  const surahs = splitSurahs(ayat);
+  const rejoined = surahs.flatMap(sourceLinesOf);
+  const written = surahs.flatMap((surah) => [surah.basmala ?? "", ...surah.ayat]).join("");
+  check(
+    createHash("sha256").update(bytes).digest("hex") === QURAN_SHA256,
+    "data/quran-simple.txt is not the Tanzil text it is meant to be: not one character of it may change",
+  );
+  check(meta.length === SURAHS && surahs.length === SURAHS, `there are ${surahs.length} surahs, not ${SURAHS}`);
+  check(ayat.length === AYAT, `there are ${ayat.length} ayat, not ${AYAT}`);
+  check(
+    rejoined.join("\n") === ayat.map((ayah) => `${ayah.surah}|${ayah.ayah}|${ayah.text}`).join("\n"),
+    "the built surahs do not give back the source text",
+  );
+  check(
+    written.split(DAGGER_ALEF).length - 1 === DAGGER_ALEFS,
+    `the built surahs hold ${written.split(DAGGER_ALEF).length - 1} dagger alefs, not ${DAGGER_ALEFS}`,
+  );
+  if (problems.length === 0) {
+    rmSync(QURAN_OUTPUT, { recursive: true, force: true });
+    mkdirSync(QURAN_OUTPUT, { recursive: true });
+    for (const surah of surahs) {
+      const name = `${String(surah.number).padStart(3, "0")}.json`;
+      writeFileSync(resolve(QURAN_OUTPUT, name), `${JSON.stringify({ ...surah, source: QURAN_CREDIT })}\n`);
+    }
+    console.log(`quran: ${surahs.length} surahs, ${ayat.length} ayat`);
+  }
+  return problems;
+}
+
+const problems = [...practiceProblems(), ...quranBuildProblems()];
 if (problems.length > 0) {
   console.error(`build:data found problems in the committed data:\n${problems.slice(0, 40).join("\n")}`);
   process.exit(1);
