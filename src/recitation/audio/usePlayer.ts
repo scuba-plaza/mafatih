@@ -110,22 +110,22 @@ export function usePlayer({ passage, reciter, volume, muted, whole, held, restin
     };
     if (loaded.current?.url === url) {
       target.play().catch(failed);
-      return;
+    } else {
+      loadAyahBlob(url, sharedAudioCache())
+        .then((blob) => {
+          if (mine !== ticket.current) {
+            return;
+          }
+          if (loaded.current !== null) {
+            URL.revokeObjectURL(loaded.current.objectUrl);
+          }
+          const objectUrl = URL.createObjectURL(blob);
+          loaded.current = { url, objectUrl };
+          target.src = objectUrl;
+          return target.play();
+        })
+        .catch(failed);
     }
-    loadAyahBlob(url, sharedAudioCache())
-      .then((blob) => {
-        if (mine !== ticket.current) {
-          return;
-        }
-        if (loaded.current !== null) {
-          URL.revokeObjectURL(loaded.current.objectUrl);
-        }
-        const objectUrl = URL.createObjectURL(blob);
-        loaded.current = { url, objectUrl };
-        target.src = objectUrl;
-        return target.play();
-      })
-      .catch(failed);
     return () => {
       ticket.current += 1;
     };
@@ -142,7 +142,12 @@ export function usePlayer({ passage, reciter, volume, muted, whole, held, restin
     }
     target.currentTime = 0;
     if (playingRef.current) {
-      target.play().catch(() => dispatch({ type: "failed" }));
+      const mine = ticket.current;
+      target.play().catch(() => {
+        if (mine === ticket.current) {
+          dispatch({ type: "failed" });
+        }
+      });
     }
   }, [state.restarts]);
 

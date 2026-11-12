@@ -51,7 +51,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     (profile: Profile): StorageNotice => {
       const current = latest.current;
       const saved = current.save(profile);
-      adopt({ ...current, profile, notice: saved ?? current.notice });
+      const kept = current.notice === "unavailable" ? null : current.notice;
+      adopt({ ...current, profile, notice: saved ?? kept });
       return saved;
     },
     [adopt],

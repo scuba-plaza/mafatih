@@ -30,6 +30,19 @@ function refuse(reason: ImportFailure): ImportResult {
   return { ok: false, reason };
 }
 
+function isUnversionedOldExport(envelope: Readonly<Record<string, unknown>>): boolean {
+  const { app, schema, progress, stats, settings, history, recitation } = envelope;
+  return (
+    app === undefined &&
+    schema === undefined &&
+    isRecord(progress) &&
+    isRecord(stats) &&
+    isRecord(settings) &&
+    Array.isArray(history) &&
+    isRecord(recitation)
+  );
+}
+
 export function exportProfile(profile: Profile, now: Date): Backup {
   const envelope = { app: APP, schema: SCHEMA, exportedAt: now.toISOString(), profile };
   return { filename: `mafatih-backup-${dayOf(now)}.json`, json: JSON.stringify(envelope) };
@@ -49,6 +62,9 @@ export function importProfile(text: string, preferredLanguages: readonly string[
     return refuse("not-a-backup");
   }
   const { app, schema, profile } = envelope;
+  if (isUnversionedOldExport(envelope)) {
+    return refuse("wrong-version");
+  }
   const oldAppExport = app === undefined && schema === LEGACY_SCHEMA;
   if ((app !== APP && !oldAppExport) || typeof schema !== "number") {
     return refuse("not-a-backup");

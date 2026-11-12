@@ -90,6 +90,7 @@ test("a backup of another schema, such as the old app's export, is a wrong versi
     '{"app":"mafatih","schema":1,"profile":{}}',
     '{"app":"mafatih","schema":3,"profile":{}}',
     '{"schema":1,"settings":{"language":"ar"}}',
+    '{"progress":{"unlocked":12},"stats":{},"settings":{"font":"amiri"},"history":[],"recitation":{}}',
     '{"app":"mafatih","schema":2.5,"profile":{}}',
   ];
   for (const text of texts) {
