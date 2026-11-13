@@ -48,6 +48,8 @@ export const ar: Record<MessageKey, string> = {
     "كُتب معظم هذا الموقع بمساعدة مساعد ذكاء اصطناعي ({assistant}). لم يراجع الصياغة العربية للواجهة أي متحدث أصلي بالعربية، وكلمات التمرين اختارها برنامج ولم تُراجع كلمةً كلمة. نرجو أن تبلغنا عن أي خطأ.",
   "typing.text": "النص المطلوب كتابته",
   "typing.inputLabel": "اكتب النص الظاهر",
+  "live.speed": "{value} حرف/د",
+  "live.errors": "الأخطاء {value}",
   "typing.start": "ابدأ الكتابة",
   "typing.mistake": "خطأ.",
   "typing.mistakeBackspace": "خطأ. اضغط مفتاح الحذف.",

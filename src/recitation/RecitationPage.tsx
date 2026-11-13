@@ -4,6 +4,7 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { unlockedMarks } from "~/practice/ladder.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { requiredMarks } from "~/text/vocalization.ts";
+import { LiveStats } from "~/typing/LiveStats.tsx";
 import { isComplete, metricsOf } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { useTrainer } from "~/typing/useTrainer.ts";
@@ -69,6 +70,7 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished }:
         playing={player.state.status === "playing" ? (player.clip?.span ?? null) : null}
         describedBy={describedBy}
       />
+      <LiveStats session={session} />
       <Player player={player} settings={settings} surah={passage.surah} refocus={focus} />
       {metrics !== null && (
         <LessonSummary

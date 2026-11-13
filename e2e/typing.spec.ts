@@ -303,6 +303,41 @@ test("leaving the text pauses typing, and clicking it again continues where it s
   await expect(mistakeCount(page)).toHaveText("0");
 });
 
+test("untyped text is dim and typed text is bright", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  const untyped = await lessonText(page).evaluate((element) => getComputedStyle(element).color);
+  expect(untyped).toBe("rgb(91, 93, 97)");
+  await typeKeys(page, ["ب"]);
+  const typed = await lessonText(page).evaluate(
+    (element) => getComputedStyle(element, "::highlight(mafatih-done)").color,
+  );
+  expect(typed).toBe("rgb(235, 232, 226)");
+});
+
+test("a quiet line under the text shows speed, accuracy, mistakes and time on a wide screen", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "phones keep the screen quiet");
+  await start(page, { customText: "بتن كتب" });
+  const live = page.locator("[data-live-stats]");
+  await expect(live).toBeHidden();
+  await typeKeys(page, ["ب", "س"]);
+  await expect(live).toBeVisible();
+  await expect(live).toHaveAttribute("aria-hidden", "true");
+  await expect(live).toContainText("cpm");
+  await expect(live).toContainText("50%");
+  await expect(live).toContainText("Errors 1");
+  await expect(live).toContainText("0:0");
+});
+
+test("the live line is not drawn on a phone", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "wide screens show it");
+  await start(page, { customText: "بتن كتب" });
+  await typeKeys(page, ["ب", "س"]);
+  await expect(page.locator("[data-live-stats]")).toBeHidden();
+});
+
 test("the text is one uninterrupted run, split only where mistakes are shown", async ({ page }) => {
   await start(page, { customText: "بتن كتب" });
   const nodes = () =>

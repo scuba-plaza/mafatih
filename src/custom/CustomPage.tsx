@@ -6,6 +6,7 @@ import { recordSample } from "~/stats/keystats.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { buildPrompt, type Prompt } from "~/text/prompt.ts";
 import { requiredMarks } from "~/text/vocalization.ts";
+import { LiveStats } from "~/typing/LiveStats.tsx";
 import { isComplete, metricsOf } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { type TrainerResult, useTrainer } from "~/typing/useTrainer.ts";
@@ -114,6 +115,7 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
     <div className="flex flex-col gap-3">
       {shortened && <p className="text-sm text-muted">{t("custom.shortened", { limit: CUSTOM_TEXT_LIMIT })}</p>}
       <TypingSurface trainer={trainer} settings={settings} />
+      <LiveStats session={session} />
       {isComplete(session) ? (
         <LessonSummary metrics={metricsOf(session)}>
           <button type="button" onClick={trainer.restart} className={PRIMARY_BUTTON}>
