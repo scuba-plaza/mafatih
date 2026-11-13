@@ -133,6 +133,27 @@ test("Escape and Continue do the same; Type it again starts the surah over and c
   await expect(field(page)).toBeFocused();
 });
 
+test("going back to the passage that finished a surah does not open its celebration again", async ({ page }) => {
+  await seedProfile(page, { settings: { vocalization: "letters", surahOrder: "mushaf" } });
+  await page.goto("/#/recitation/1");
+  await startTyping(page);
+  await typeKeys(page, lettersOf(surah(1), 1, 4));
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+  await typeKeys(page, lettersOf(surah(1), 5, 7));
+  await expect(card(page)).toBeVisible();
+  await card(page)
+    .getByRole("button", { name: /^Continue to / })
+    .click();
+  await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
+  const play = page.getByRole("group", { name: "Passage" }).getByRole("button", { name: "Play", exact: true });
+  await play.focus();
+  await page.keyboard.press("PageUp");
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+  await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
+  await expect(surface(page).locator("[data-lesson-text]")).toContainText("نَعْبُدُ");
+  await expect(card(page)).toHaveCount(0);
+});
+
 test("the last surah of the order offers to start again instead", async ({ page }) => {
   await seedProfile(page, { settings: { vocalization: "letters", surahOrder: "mushaf" } });
   await page.goto("/#/recitation/114");

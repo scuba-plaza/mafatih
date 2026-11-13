@@ -70,6 +70,9 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
   const meta = requireSurahMeta(number);
   const to = Math.min(start.ayah + ayatPerLesson - 1, meta.ayat);
   const { unlocked } = profile.ladder;
+  if (finished !== null && finished.key !== key) {
+    setFinished(null);
+  }
   const finish = finished?.key === key ? finished : null;
 
   useEffect(() => {
