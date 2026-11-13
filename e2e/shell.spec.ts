@@ -104,7 +104,11 @@ for (const language of ["en", "ar"] as const) {
     }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.addInitScript(() => {
-        const viewport = Object.assign(new EventTarget(), { height: window.innerHeight, width: window.innerWidth });
+        const viewport = Object.assign(new EventTarget(), {
+          height: window.innerHeight,
+          width: window.innerWidth,
+          scale: 1,
+        });
         Object.defineProperty(window, "visualViewport", { value: viewport, configurable: true });
         Object.assign(window, { fakeViewport: viewport });
       });
@@ -114,15 +118,41 @@ for (const language of ["en", "ar"] as const) {
       await expect(nav).toBeVisible();
       await page.locator("[data-typing-surface]").click();
       await expect(nav).toBeVisible();
-      const resize = (height: number | "full") =>
-        page.evaluate((to) => {
-          const viewport = (window as unknown as { fakeViewport: EventTarget & { height: number } }).fakeViewport;
-          viewport.height = to === "full" ? window.innerHeight : to;
-          viewport.dispatchEvent(new Event("resize"));
-        }, height);
+      const resize = (height: number | "full", scale = 1) =>
+        page.evaluate(
+          ([to, zoom]) => {
+            const viewport = (window as unknown as { fakeViewport: EventTarget & { height: number; scale: number } })
+              .fakeViewport;
+            viewport.height = to === "full" ? window.innerHeight : to;
+            viewport.scale = zoom;
+            viewport.dispatchEvent(new Event("resize"));
+          },
+          [height, scale] as const,
+        );
       await resize(480);
       await expect(nav).toBeHidden();
       await resize("full");
+      await expect(nav).toBeVisible();
+      await resize(480, 2);
+      await expect(nav).toBeVisible();
+      await resize("full");
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await resize(480);
+      await expect(nav).toBeVisible();
+    });
+
+    test("when the page itself is resized for the soft keyboard the bar still goes away, and comes back with the full height", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await seedSettings(page, { customText: "بتن", language });
+      await page.goto("/#/custom");
+      const nav = page.getByRole("navigation", { name: copy.nav });
+      await page.locator("[data-typing-surface]").click();
+      await expect(nav).toBeVisible();
+      await page.setViewportSize({ width: 390, height: 500 });
+      await expect(nav).toBeHidden();
+      await page.setViewportSize({ width: 390, height: 844 });
       await expect(nav).toBeVisible();
     });
 
