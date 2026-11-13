@@ -99,7 +99,7 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
   return (
     <fieldset className="flex min-w-0 flex-col items-center">
       <legend className="sr-only">{t("player.label")}</legend>
-      <div dir="ltr" className="flex items-center gap-1">
+      <div dir="ltr" className="flex flex-wrap items-center justify-center gap-1">
         <button
           type="button"
           aria-pressed={settings.loop}

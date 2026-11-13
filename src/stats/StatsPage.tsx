@@ -36,7 +36,7 @@ function Scrollable({ label, children }: { label: string; children: ReactNode })
 
   const region = scrollable ? ({ tabIndex: 0, role: "group", "aria-label": label } as const) : {};
   return (
-    <div ref={wrapper} className="overflow-x-auto" {...region}>
+    <div ref={wrapper} className="relative overflow-x-auto" {...region}>
       {children}
     </div>
   );

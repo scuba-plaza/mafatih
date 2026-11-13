@@ -49,7 +49,7 @@ function SurahRow({ meta, progress }: { meta: SurahMeta; progress: RecitationPro
   return (
     <a
       href={formatRoute({ page: "recitation", surah: meta.n, ayah: null })}
-      className="grid min-h-16 grid-cols-[2rem_1fr_auto] items-center gap-x-4 gap-y-3 border-t border-faint py-4"
+      className="grid min-h-16 grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 border-t border-faint py-4"
     >
       <span className="font-mono text-xs text-muted tabular-nums">{formatNumber(meta.n)}</span>
       <span className="flex min-w-0 flex-col wrap-anywhere">
