@@ -33,45 +33,6 @@
   }
 }
 
-@keyframes caret-miss {
-  0% {
-    background-color: var(--color-danger);
-    box-shadow: 0 0 0 2px var(--color-danger);
-  }
-  15% {
-    translate: -5px 0;
-  }
-  30% {
-    translate: 5px 0;
-  }
-  45% {
-    translate: -4px 0;
-  }
-  60% {
-    background-color: var(--color-danger);
-    translate: 3px 0;
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-
-@keyframes caret-miss-still {
-  0%,
-  99% {
-    background-color: var(--color-danger);
-    box-shadow: 0 0 0 2px var(--color-danger);
-  }
-}
-
-[data-caret][data-miss] {
-  animation: caret-miss-still 0.6s linear;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  [data-caret][data-miss] {
-    animation: caret-miss 0.45s ease-out;
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   [data-typing-surface]:not(:has(input:focus)) [data-caret] {
     animation: caret-wait 2.4s ease-in-out infinite;

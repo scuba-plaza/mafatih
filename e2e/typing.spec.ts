@@ -117,7 +117,7 @@ test("a mistyped space is shown as a visible mark", async ({ page }) => {
 test("a mistake is flagged in words once, until the wrong keys are deleted", async ({ page }) => {
   await start(page, { customText: "بتن" });
   await expect(flag(page)).toHaveCount(0);
-  await typeKeys(page, ["س"]);
+  await typeKeys(page, ["ب", "س"]);
   await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
   await typeKeys(page, ["ش", "Backspace"]);
   await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
@@ -152,33 +152,89 @@ async function caretColour(page: Page): Promise<string> {
   return caret(page).evaluate((element) => getComputedStyle(element).backgroundColor);
 }
 
-test("a wrong key is shown at the caret, not in words: the caret flashes and shakes, once for every wrong key", async ({
+async function countShakes(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const original = Element.prototype.animate;
+    Object.assign(window, { shakes: 0 });
+    Element.prototype.animate = function (keyframes, options) {
+      if (typeof options === "object" && options.id === "caret-miss") {
+        Object.assign(window, { shakes: (window as unknown as { shakes: number }).shakes + 1 });
+      }
+      return original.call(this, keyframes, options);
+    };
+  });
+}
+
+async function shakes(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { shakes: number }).shakes);
+}
+
+function shaking(page: Page): Promise<boolean> {
+  return caret(page).evaluate((element) => element.getAnimations().some((animation) => animation.id === "caret-miss"));
+}
+
+test("the caret shakes and flashes once for every wrong key, which is exactly how mistakes are counted", async ({
   page,
 }) => {
+  await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
-  await expect(caret(page)).not.toHaveAttribute("data-miss", /.*/);
-  await typeKeys(page, ["ب", "س"]);
-  await expect(caret(page)).toHaveAttribute("data-miss", "1");
-  expect(await caret(page).evaluate((element) => getComputedStyle(element).animationName)).toBe("caret-miss");
+  await typeKeys(page, ["ب"]);
+  expect(await shakes(page)).toBe(0);
+  await typeKeys(page, ["س"]);
+  expect(await shakes(page)).toBe(1);
+  await expect.poll(() => shaking(page)).toBe(true);
+  const said = await flag(page).boundingBox();
+  expect(said?.width).toBeLessThanOrEqual(1);
+  expect(said?.height).toBeLessThanOrEqual(1);
   await typeKeys(page, ["ش"]);
-  await expect(caret(page)).toHaveAttribute("data-miss", "2");
-  await expect.poll(() => caretColour(page)).toBe(ACCENT);
-  const box = await flag(page).boundingBox();
-  expect(box?.width).toBeLessThanOrEqual(1);
-  expect(box?.height).toBeLessThanOrEqual(1);
-  await expect(surface(page).getByText("Mistake", { exact: false })).toHaveCount(1);
+  expect(await shakes(page)).toBe(2);
+  await typeKeys(page, ["ت", "ن"]);
+  expect(await shakes(page)).toBe(2);
+  await expect(mistakeCount(page)).toHaveText("2");
 });
 
-test("with reduced motion the caret does not move, but it still turns red and thick", async ({ page }) => {
+test("a wrong key before the first correct character is ignored: no shake, no mistake, no clock", async ({ page }) => {
+  await countShakes(page);
+  await start(page, { customText: "بتن", requireBackspace: false });
+  await typeKeys(page, ["س", "ش"]);
+  expect(await shakes(page)).toBe(0);
+  await expect(flag(page)).toHaveCount(0);
+  await typeKeys(page, ["ب", "ت", "ن"]);
+  await expect(mistakeCount(page)).toHaveText("0");
+  expect(await shakes(page)).toBe(0);
+});
+
+test("pressing on the text, leaving the field and coming back never replays a shake", async ({ page }) => {
+  await countShakes(page);
+  await start(page, { customText: "بتن", requireBackspace: false });
+  await typeKeys(page, ["ب", "س"]);
+  expect(await shakes(page)).toBe(1);
+  await expect.poll(() => shaking(page)).toBe(false);
+  await page.mouse.click(4, 4);
+  await expect(field(page)).not.toBeFocused();
+  await surface(page).click();
+  await expect(field(page)).toBeFocused();
+  await surface(page).click();
+  await page.waitForTimeout(150);
+  expect(await shaking(page)).toBe(false);
+  expect(await shakes(page)).toBe(1);
+});
+
+test("with reduced motion the caret does not move, but it still turns red and gets a ring", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await start(page, { customText: "بتن", requireBackspace: false });
-  await typeKeys(page, ["س"]);
-  await expect(caret(page)).toHaveAttribute("data-miss", "1");
+  await typeKeys(page, ["ب", "س"]);
   const style = await caret(page).evaluate((element) => {
+    const animation = element.getAnimations().find((candidate) => candidate.id === "caret-miss");
+    const frames = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes() ?? [];
     const computed = getComputedStyle(element);
-    return { name: computed.animationName, ring: computed.boxShadow, colour: computed.backgroundColor };
+    return {
+      moves: frames.some((frame) => "translate" in frame),
+      ring: computed.boxShadow,
+      colour: computed.backgroundColor,
+    };
   });
-  expect(style.name).toBe("caret-miss-still");
+  expect(style.moves).toBe(false);
   expect(style.ring).toBe(`${DANGER} 0px 0px 0px 2px`);
   expect(style.colour).toBe(DANGER);
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
@@ -188,6 +244,7 @@ test("while wrong keys are waiting to be deleted the caret stays red, and goes b
   page,
 }) => {
   await start(page, { customText: "بتن", requireBackspace: true });
+  await typeKeys(page, ["ب"]);
   expect(await caretColour(page)).toBe(ACCENT);
   await typeKeys(page, ["س"]);
   await expect.poll(() => caretColour(page)).toBe(DANGER);
@@ -195,6 +252,39 @@ test("while wrong keys are waiting to be deleted the caret stays red, and goes b
   expect(await caretColour(page)).toBe(DANGER);
   await typeKeys(page, ["Backspace"]);
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
+});
+
+test("holding a key down is one key press, not several", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone has no key to hold");
+  await start(page, { customText: "ببب" });
+  const cdp = await page.context().newCDPSession(page);
+  const press = (type: "keyDown" | "keyUp", autoRepeat: boolean) =>
+    cdp.send("Input.dispatchKeyEvent", {
+      type,
+      key: "ب",
+      text: type === "keyDown" ? "ب" : undefined,
+      autoRepeat,
+    });
+  await press("keyDown", false);
+  await press("keyDown", true);
+  await press("keyDown", true);
+  await press("keyUp", false);
+  expect((await doneText(page)).length).toBe(1);
+  await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
+  await typeKeys(page, ["ب"]);
+  expect((await doneText(page)).length).toBe(2);
+});
+
+test("holding Backspace still deletes one wrong key after another", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone has no key to hold");
+  await start(page, { customText: "بتن", requireBackspace: true });
+  await typeKeys(page, ["ب", "س", "ش", "ص"]);
+  await expect(surface(page).locator("[data-mistakes]")).toHaveText("سشص");
+  await page.keyboard.down("Backspace");
+  await page.keyboard.down("Backspace");
+  await page.keyboard.down("Backspace");
+  await page.keyboard.up("Backspace");
+  await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
 });
 
 test("typing again starts clean: nothing of the last attempt is flagged or announced", async ({ page }) => {
@@ -210,17 +300,17 @@ test("typing again starts clean: nothing of the last attempt is flagged or annou
 
 test("a digit or sign typed by mistake is shown like any other wrong key", async ({ page }) => {
   await start(page, { customText: "بتن" });
-  await typeKeys(page, ["5", "!"]);
+  await typeKeys(page, ["ب", "5", "!"]);
   await expect(surface(page).locator("[data-mistakes]")).toHaveText("5!");
 });
 
 test("a mark typed by mistake with no letter to sit on is drawn on a tatweel, so it can be seen", async ({ page }) => {
   await start(page, { customText: "بتن" });
   const mistakes = surface(page).locator("[data-mistakes]");
-  await typeKeys(page, [FATHA]);
+  await typeKeys(page, ["ب", FATHA]);
   await expect(mistakes).toHaveText(`ــ${FATHA}`);
   expect((await mistakes.boundingBox())?.width).toBeGreaterThan(6);
-  await typeKeys(page, ["Backspace", "ب", " ", FATHA, "س", KASRA]);
+  await typeKeys(page, ["Backspace", " ", FATHA, "س", KASRA]);
   await expect(mistakes).toHaveText(`␣ــ${FATHA}س${KASRA}`);
 });
 
@@ -467,8 +557,8 @@ test("on a phone every text size is a different size, and the largest still fits
   expect(normal).toBeGreaterThan(small + 4);
   expect(large).toBeGreaterThan(normal + 12);
   await startTyping(page);
-  await typeKeys(page, [..."سسسسسسسسسسسس"]);
-  await expect(surface(page).locator("[data-mistakes]")).toHaveText("سسسسسسسسسس");
+  await typeKeys(page, ["ا", ..."ضضضضضضضضضضضض"]);
+  await expect(surface(page).locator("[data-mistakes]")).toHaveText("ضضضضضضضضضض");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   expect(await lessonText(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(
     0,

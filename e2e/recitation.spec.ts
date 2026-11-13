@@ -262,7 +262,7 @@ test("Type it again starts the surah over, and the next finish is counted as the
   await page.goto("/#/recitation/108");
   await start(page);
   const keys = lettersOf(kawthar, 1, 3, true);
-  await typeKeys(page, ["ض", ...keys]);
+  await typeKeys(page, [keys[0] ?? "", "ض", ...keys.slice(1)]);
   await expect(card(page)).toBeVisible();
   await expect(card(page).getByRole("definition").nth(1)).not.toHaveText("100%");
   await card(page).getByRole("button", { name: "Type it again" }).click();

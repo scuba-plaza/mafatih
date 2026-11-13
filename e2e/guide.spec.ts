@@ -62,10 +62,10 @@ test.describe("with a wide screen and a mouse", () => {
 
   test("while mistakes wait to be deleted the guide points at Backspace alone", async ({ page }) => {
     await start(page, { customText: "بتن" });
-    await typeKeys(page, ["س"]);
+    await typeKeys(page, ["ب", "س"]);
     expect(await dueKeys(page)).toEqual(["Backspace"]);
     await typeKeys(page, ["Backspace"]);
-    expect(await dueKeys(page)).toEqual(["KeyF"]);
+    expect(await dueKeys(page)).toEqual(["KeyJ"]);
   });
 
   test("every key is drawn alike, and the caption names the finger for the next key", async ({ page }) => {

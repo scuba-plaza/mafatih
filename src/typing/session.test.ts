@@ -30,9 +30,51 @@ function press(session: Session, char: string, at: number, options: SessionOptio
   return applyKey(session, { kind: "char", char }, at, options);
 }
 
+function begun(shown: string, options: SessionOptions = STRICT): Session {
+  return press(start(`ب${shown}`), "ب", 0, options);
+}
+
 function typeAll(session: Session, keys: readonly string[], from: number, step: number, options = STRICT): Session {
   return keys.reduce((state, char, index) => press(state, char, from + index * step, options), session);
 }
+
+test("a wrong key before the first correct one is ignored: no mistake, no error, no sample", () => {
+  for (const options of [STRICT, LENIENT]) {
+    const session = start("بت");
+    const after = typeAll(session, ["س", "ش", "ص"], 1000, 100, options);
+    expect(after).toBe(session);
+    expect(view(after).mistakes).toBe("");
+    expect(metricsOf(after).errors).toBe(0);
+    expect(after.samples).toEqual([]);
+  }
+});
+
+test("the clock starts at the first correct key, not at an earlier wrong one", () => {
+  let session = start("بت");
+  session = press(session, "س", 1000);
+  session = press(session, "ب", 5000);
+  expect(session.startedAt).toBe(5000);
+  session = press(session, "ت", 5400);
+  expect(metricsOf(session).elapsedMs).toBe(400);
+  expect(metricsOf(session).errors).toBe(0);
+});
+
+test("once the first character is right a wrong key counts as before", () => {
+  for (const options of [STRICT, LENIENT]) {
+    let session = start("بتن");
+    session = press(session, "ب", 1000, options);
+    session = press(session, "س", 1200, options);
+    expect(metricsOf(session).errors).toBe(1);
+    expect(session.missed).toBe(true);
+  }
+});
+
+test("a session started partway in waits for the right character there", () => {
+  const session = start("بتن", LETTERS, 1);
+  const waiting = press(session, "ب", 1000);
+  expect(waiting).toBe(session);
+  expect(press(session, "ت", 1000).cursor).toBe(2);
+});
 
 test("each correct key moves on to the next unit and the last one completes the session", () => {
   let session = start("بت");
@@ -68,43 +110,43 @@ test("the done part of the text reaches the next unit, past marks that are shown
 });
 
 test("with Backspace required, a wrong key is shown as a mistake and the cursor stays", () => {
-  let session = press(start("بت"), "س", 1000);
-  expect(session.cursor).toBe(0);
+  let session = press(begun("بت"), "س", 1000);
+  expect(session.cursor).toBe(1);
   expect(session.mistakes).toEqual(["س"]);
-  expect(view(session)).toEqual({ doneUntil: 0, mistakes: "س" });
+  expect(view(session)).toEqual({ doneUntil: 1, mistakes: "س" });
   expect(session.lastError).toEqual({ at: 1000, char: "س" });
   session = press(session, "ش", 1100);
   expect(view(session).mistakes).toBe("سش");
 });
 
 test("with Backspace required, even the right key is a mistake while earlier mistakes are still there", () => {
-  let session = press(start("بت"), "س", 1000);
+  let session = press(begun("بت"), "س", 1000);
   session = press(session, "ب", 1100);
-  expect(session.cursor).toBe(0);
+  expect(session.cursor).toBe(1);
   expect(session.mistakes).toEqual(["س", "ب"]);
 });
 
 test("Backspace removes mistakes one at a time, after which the right key moves on", () => {
-  let session = typeAll(start("بت"), ["س", "ش", "ص"], 1000, 100);
+  let session = typeAll(begun("بت"), ["س", "ش", "ص"], 1000, 100);
   session = applyKey(session, BACKSPACE, 1300, STRICT);
   expect(session.mistakes).toEqual(["س", "ش"]);
   session = applyKey(session, BACKSPACE, 1400, STRICT);
   session = applyKey(session, BACKSPACE, 1500, STRICT);
   expect(session.mistakes).toEqual([]);
-  expect(session.cursor).toBe(0);
-  session = press(session, "ب", 1600);
   expect(session.cursor).toBe(1);
+  session = press(session, "ب", 1600);
+  expect(session.cursor).toBe(2);
 });
 
 test("a position that was missed is one miss in the samples, however many wrong keys followed", () => {
-  let session = typeAll(start("بت"), ["س", "ش", "ص"], 1000, 100);
+  let session = typeAll(begun("بت"), ["س", "ش", "ص"], 1000, 100);
   expect(session.errors).toBe(3);
-  expect(session.samples).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
+  expect(session.samples.at(-1)).toEqual({ expected: "ب", correct: false, latencyMs: null });
   for (const at of [1300, 1400, 1500]) {
     session = applyKey(session, BACKSPACE, at, STRICT);
   }
   session = typeAll(session, ["ب", "ت"], 1600, 200);
-  expect(session.samples).toEqual([
+  expect(session.samples.slice(1)).toEqual([
     { expected: "ب", correct: false, latencyMs: null },
     { expected: "ت", correct: true, latencyMs: 200 },
   ]);
@@ -121,32 +163,32 @@ test("Backspace never deletes text that was typed correctly", () => {
 
 test("pending mistakes stop piling up at the limit, but further wrong keys still count as errors", () => {
   const wrong = Array.from({ length: MAX_PENDING_MISTAKES + 3 }, () => "س");
-  const session = typeAll(start("بت"), wrong, 1000, 50);
+  const session = typeAll(begun("بت"), wrong, 1000, 50);
   expect(MAX_PENDING_MISTAKES).toBe(10);
   expect(session.mistakes).toHaveLength(10);
   expect(session.errors).toBe(13);
 });
 
 test("without Backspace required, a wrong key is counted and flagged but never shown", () => {
-  let session = press(start("بت"), "س", 1000, LENIENT);
+  let session = press(begun("بت", LENIENT), "س", 1000, LENIENT);
   expect(session.mistakes).toEqual([]);
-  expect(view(session)).toEqual({ doneUntil: 0, mistakes: "" });
+  expect(view(session)).toEqual({ doneUntil: 1, mistakes: "" });
   expect(session.errors).toBe(1);
   expect(session.lastError).toEqual({ at: 1000, char: "س" });
   session = press(session, "ش", 1100, LENIENT);
   expect(session.errors).toBe(2);
-  expect(session.samples).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
+  expect(session.samples.slice(1)).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
 });
 
 test("without Backspace required, the right key moves on straight after a wrong one and Backspace does nothing", () => {
-  let session = press(start("بت"), "س", 1000, LENIENT);
+  let session = press(begun("بت", LENIENT), "س", 1000, LENIENT);
   session = applyKey(session, BACKSPACE, 1050, LENIENT);
-  expect(session).toMatchObject({ cursor: 0, errors: 1 });
+  expect(session).toMatchObject({ cursor: 1, errors: 1 });
   session = press(session, "ب", 1100, LENIENT);
-  expect(session.cursor).toBe(1);
+  expect(session.cursor).toBe(2);
   session = press(session, "ت", 1300, LENIENT);
   expect(isComplete(session)).toBe(true);
-  expect(session.samples).toEqual([
+  expect(session.samples.slice(1)).toEqual([
     { expected: "ب", correct: false, latencyMs: null },
     { expected: "ت", correct: true, latencyMs: 200 },
   ]);
@@ -203,8 +245,8 @@ test("a lam-alef unit can also be typed as its two letters, giving two samples",
 });
 
 test("a wrong key where a lam-alef is due is a miss of the lam-alef key", () => {
-  const session = press(start("لا"), "ب", 0);
-  expect(session.samples).toEqual([{ expected: "لا", correct: false, latencyMs: null }]);
+  const session = press(begun("لا"), "ب", 100);
+  expect(session.samples.at(-1)).toEqual({ expected: "لا", correct: false, latencyMs: null });
 });
 
 test("a lam-alef key pressed where two separate letters are due types them both", () => {
@@ -226,10 +268,10 @@ test("the second letter of one lam-alef keystroke is never timed, since no time 
 });
 
 test("a lam-alef key pressed where neither letter is due leaves two mistakes, like a text field would", () => {
-  const session = press(start("بت"), "لا", 0);
+  const session = press(begun("بت"), "لا", 100);
   expect(session.mistakes).toEqual(["ل", "ا"]);
   expect(session.errors).toBe(2);
-  expect(session.samples).toHaveLength(1);
+  expect(session.samples).toHaveLength(2);
 });
 
 test("a gap longer than the cap is a pause: the key has no latency and the break is not typing time", () => {
@@ -351,16 +393,16 @@ test("Backspace that removes a mistake is typing time", () => {
 });
 
 test("every character of a key is its own mistake, also when mistakes are already pending", () => {
-  let session = press(press(start("بت"), "س", 0), "لا", 100);
+  let session = press(press(begun("بت"), "س", 100), "لا", 200);
   expect(session.mistakes).toEqual(["س", "ل", "ا"]);
   expect(session.errors).toBe(3);
   session = typeAll(
-    start("بت"),
+    begun("بت"),
     Array.from({ length: 9 }, () => "س"),
-    0,
+    100,
     10,
   );
-  session = press(session, "شش", 200);
+  session = press(session, "شش", 300);
   expect(session.mistakes).toHaveLength(10);
   expect(session.errors).toBe(11);
 });
@@ -466,20 +508,20 @@ test("a session that starts with nothing left to type is complete without ever h
 });
 
 test("turning the Backspace setting off drops mistakes that were pending, so nobody is stuck on hidden ones", () => {
-  let session = press(start("بت"), "س", 0, STRICT);
+  let session = press(begun("بت"), "س", 100, STRICT);
   expect(session.mistakes).toEqual(["س"]);
-  session = press(session, "ب", 100, LENIENT);
+  session = press(session, "ب", 200, LENIENT);
   expect(session.mistakes).toEqual([]);
-  expect(session.cursor).toBe(1);
-  const cleared = applyKey(press(start("بت"), "س", 0, STRICT), BACKSPACE, 100, LENIENT);
-  expect(view(cleared)).toEqual({ doneUntil: 0, mistakes: "" });
+  expect(session.cursor).toBe(2);
+  const cleared = applyKey(press(begun("بت"), "س", 100, STRICT), BACKSPACE, 200, LENIENT);
+  expect(view(cleared)).toEqual({ doneUntil: 1, mistakes: "" });
 });
 
 test("turning the Backspace setting on after a hidden mistake lets the right key through", () => {
-  let session = press(start("بت"), "س", 0, LENIENT);
-  session = press(session, "ب", 100, STRICT);
-  expect(session.cursor).toBe(1);
-  expect(session.samples).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
+  let session = press(begun("بت", LENIENT), "س", 100, LENIENT);
+  session = press(session, "ب", 200, STRICT);
+  expect(session.cursor).toBe(2);
+  expect(session.samples.slice(1)).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
 });
 
 test("pausing and lenient typing never change the session they were given", () => {

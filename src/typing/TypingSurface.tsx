@@ -16,6 +16,20 @@ const VISIBLE_SPACE = "\u2423";
 const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
 const OVERFLOW_TOLERANCE = 2;
+const MISS_RING = "0 0 0 2px var(--color-danger)";
+
+const MISS_SHAKE: Keyframe[] = [
+  { offset: 0, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING, translate: "0 0" },
+  { offset: 0.15, translate: "-5px 0" },
+  { offset: 0.3, translate: "5px 0" },
+  { offset: 0.45, translate: "-4px 0" },
+  { offset: 0.6, backgroundColor: "var(--color-danger)", boxShadow: "0 0 0 0 transparent", translate: "3px 0" },
+];
+
+const MISS_STILL: Keyframe[] = [
+  { offset: 0, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING },
+  { offset: 0.99, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING },
+];
 
 export interface TextSpan {
   readonly start: number;
@@ -189,6 +203,22 @@ export function TypingSurface(props: TypingSurfaceProps) {
     loadFont(family);
   }, [family]);
 
+  const misses = session.errors;
+
+  useEffect(() => {
+    const element = caretRef.current;
+    if (misses === 0 || element === null) {
+      return;
+    }
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const animation = element.animate(calm ? MISS_STILL : MISS_SHAKE, {
+      id: "caret-miss",
+      duration: calm ? 600 : 450,
+      easing: calm ? "linear" : "ease-out",
+    });
+    return () => animation.cancel();
+  }, [misses]);
+
   useLayoutEffect(() => {
     const container = textRef.current;
     const caret = caretRef.current;
@@ -287,11 +317,9 @@ export function TypingSurface(props: TypingSurfaceProps) {
             </p>
           ))}
           <span
-            key={session.errors}
             ref={caretRef}
             aria-hidden="true"
             data-caret=""
-            data-miss={session.errors > 0 ? session.errors : undefined}
             data-pending={mistakes === "" ? undefined : ""}
             className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none data-pending:bg-danger forced-colors:bg-[CanvasText]"
             hidden

@@ -68,6 +68,11 @@ export function useTypingInput({ onKey, onWrongLayout }: TypingInputOptions): Ty
     inputProps: {
       defaultValue: INPUT_SENTINEL,
       onInput,
+      onKeyDown: (event) => {
+        if (event.repeat && event.key !== "Backspace" && !event.nativeEvent.isComposing) {
+          event.preventDefault();
+        }
+      },
       onCompositionEnd: (event) => reset(event.currentTarget),
       onFocus: (event) => {
         reset(event.currentTarget);

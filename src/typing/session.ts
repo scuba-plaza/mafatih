@@ -200,8 +200,16 @@ function typeKey(session: Session, text: string, time: number, options: SessionO
   return state;
 }
 
+function opensRight(session: Session, text: string): boolean {
+  const first = [...text][0] ?? "";
+  return first !== "" && (session.units[session.cursor]?.text.slice(session.within).startsWith(first) ?? false);
+}
+
 export function applyKey(session: Session, key: Key, at: number, options: SessionOptions): Session {
   if (isComplete(session) || (key.kind === "char" && key.char === "")) {
+    return session;
+  }
+  if (session.startedAt === null && (key.kind === "backspace" || !opensRight(session, key.char))) {
     return session;
   }
   const visible = options.requireBackspace || session.mistakes.length === 0 ? session : { ...session, mistakes: [] };

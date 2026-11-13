@@ -82,16 +82,19 @@ test("below 95% there is no star, and a repeat completion says how many times th
     { recitation: { surahs: { 108: { typed: [], completions: 1, run: EMPTY_RUN, best: 0.9 } } } },
   );
   const keys = lettersOf(surah(108), 1, 3, true);
-  const wrong = new Set([0, 4, 8, 12, 16, 20, 24, 28]);
+  const wrong = new Set([2, 6, 10, 14, 18, 22, 26, 30]);
   const typed = keys.flatMap((key, index) => (wrong.has(index) ? ["ض", key] : [key]));
   await typeKeys(page, typed);
   await expect(card(page)).toBeVisible();
   await expect(card(page).getByText("Completed 2 times.")).toBeVisible();
   await expect(card(page).getByText("95% accuracy or better")).toHaveCount(0);
   await expect(card(page).getByRole("definition").nth(1)).toHaveText(/^(8\d|9[0-4])%$/);
-  expect((await savedProfile(page)).recitation).toMatchObject({
-    surahs: { 108: { completions: 2, best: 0.9 } },
-  });
+  const saved = (await savedProfile(page)).recitation as {
+    surahs: Record<string, { completions: number; best: number }>;
+  };
+  expect(saved.surahs[108]?.completions).toBe(2);
+  expect(saved.surahs[108]?.best).toBeGreaterThanOrEqual(0.9);
+  expect(saved.surahs[108]?.best).toBeLessThan(0.95);
 });
 
 test("the rays burst without end while motion is welcome, and are not drawn when it is not", async ({ page }) => {
