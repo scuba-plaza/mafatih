@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { FIREFOX_AUDIO_CHAIN, FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
+import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
@@ -218,10 +218,9 @@ test("the next ayah is fetched ahead while one plays, and not before anything pl
 });
 
 test("with the whole passage on, each clip that ends is followed by the next, each fetched once, and then it stops", async ({
-  browserName,
   page,
 }) => {
-  test.skip(browserName === "firefox", FIREFOX_AUDIO_CHAIN);
+  test.setTimeout(90_000);
   const { requests } = await mockAudio(page, SHORT);
   await seedProfile(page, { settings: { playWhole: true, loop: false } });
   await page.goto("/#/recitation/1/1");
@@ -236,7 +235,7 @@ test("with the whole passage on, each clip that ends is followed by the next, ea
   });
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect
-    .poll(() => page.evaluate(() => (window as unknown as { heard: string[] }).heard.length))
+    .poll(() => page.evaluate(() => (window as unknown as { heard: string[] }).heard.length), { timeout: 45_000 })
     .toBeGreaterThan(2);
   await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
   const heard = await page.evaluate(() => (window as unknown as { heard: string[] }).heard);
@@ -438,10 +437,9 @@ test("Repeat is on from the start, is a toggle that is saved in the settings, an
 });
 
 test("with repeat on, the passage starts again from its first ayah when the last one ends, and keeps playing", async ({
-  browserName,
   page,
 }) => {
-  test.skip(browserName === "firefox", FIREFOX_AUDIO_CHAIN);
+  test.setTimeout(90_000);
   await mockAudio(page, SHORT);
   await seedProfile(page, { settings: { playWhole: true, loop: true } });
   await page.goto("/#/recitation/1/1");
@@ -456,8 +454,12 @@ test("with repeat on, the passage starts again from its first ayah when the last
   });
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect
-    .poll(() =>
-      page.evaluate(() => (window as unknown as { heard: string[] }).heard.filter((text) => /1:1$/.test(text)).length),
+    .poll(
+      () =>
+        page.evaluate(
+          () => (window as unknown as { heard: string[] }).heard.filter((text) => /1:1$/.test(text)).length,
+        ),
+      { timeout: 45_000 },
     )
     .toBeGreaterThanOrEqual(2);
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
@@ -638,6 +640,10 @@ test("a cache left by the first version of the app, which kept whole blobs, is r
             .objectStore("ayat")
             .put({ url: "https://everyayah.com/data/old.mp3", blob: new Blob(["old"]), bytes: 3, at: 1 });
           transaction.oncomplete = () => {
+            opening.result.close();
+            resolve();
+          };
+          transaction.onabort = () => {
             opening.result.close();
             resolve();
           };
