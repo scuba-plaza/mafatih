@@ -1,4 +1,5 @@
 import { useEffect, useId } from "react";
+import { formatRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Language } from "~/i18n/i18n.ts";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
@@ -128,6 +129,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       <AudioSettings settings={settings} change={change} />
       <BackupRestore />
       <ResetProgress />
+      <a
+        href={formatRoute({ page: "about" })}
+        onClick={onClose}
+        className="flex min-h-11 items-center self-start text-sm text-muted underline underline-offset-4"
+      >
+        {t("nav.about")}
+      </a>
     </Dialog>
   );
 }

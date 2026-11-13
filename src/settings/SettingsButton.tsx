@@ -8,7 +8,7 @@ function GearIcon() {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="size-5 sm:hidden"
+      className="size-5 md:hidden"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -26,9 +26,9 @@ export function SettingsButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`${TOUCH_TARGET} text-sm font-medium text-muted`}>
+      <button type="button" onClick={() => setOpen(true)} className={`${TOUCH_TARGET} px-3 text-sm text-muted md:px-3`}>
         <GearIcon />
-        <span className="sr-only sm:not-sr-only">{t("settings.title")}</span>
+        <span className="sr-only md:not-sr-only">{t("settings.title")}</span>
       </button>
       <SettingsDialog open={open} onClose={() => setOpen(false)} />
     </>

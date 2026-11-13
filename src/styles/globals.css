@@ -30,6 +30,10 @@
   }
 }
 
+body:has([data-typing-input]:focus) [data-tabbar] {
+  display: none;
+}
+
 html:has(dialog[open]) {
   overflow: hidden;
 }

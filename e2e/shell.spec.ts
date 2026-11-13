@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { seedSettings } from "./helpers/profile.ts";
 
 const PAGES = [
   { hash: "#/", en: "Recitation", ar: "التلاوة" },
@@ -12,8 +13,14 @@ const PAGES = [
 const LOCALES = { en: "en-US", ar: "ar-EG" } as const;
 
 const COPY = {
-  en: { app: "Mafatih", nav: "Main", skip: "Skip to content", start: "Start typing", settings: "Settings" },
-  ar: { app: "مفاتيح", nav: "التنقل الرئيسي", skip: "انتقل إلى المحتوى", start: "ابدأ الكتابة", settings: "الإعدادات" },
+  en: { app: "Mafatih", nav: "Main", skip: "Skip to content", input: "Type the text shown", settings: "Settings" },
+  ar: {
+    app: "مفاتيح",
+    nav: "التنقل الرئيسي",
+    skip: "انتقل إلى المحتوى",
+    input: "اكتب النص الظاهر",
+    settings: "الإعدادات",
+  },
 } as const;
 
 async function sidewaysOverflow(page: Page): Promise<number> {
@@ -50,12 +57,64 @@ for (const language of ["en", "ar"] as const) {
   test.describe(`${language}`, () => {
     test.use({ locale: LOCALES[language] });
 
-    test("the page has banner, navigation, main and footer landmarks", async ({ page }) => {
+    test("the page has banner, navigation and main landmarks, and no footer", async ({ page }) => {
       await page.goto("/");
       await expect(page.getByRole("banner")).toBeVisible();
       await expect(page.getByRole("navigation", { name: copy.nav })).toBeVisible();
       await expect(page.getByRole("main")).toBeVisible();
-      await expect(page.getByRole("contentinfo")).toBeVisible();
+      await expect(page.getByRole("contentinfo")).toHaveCount(0);
+    });
+
+    test("on a wide screen the banner holds the Arabic wordmark, the four pages and Settings, and there is no tab bar", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/");
+      const banner = page.getByRole("banner");
+      const mark = banner.getByRole("img", { name: copy.app });
+      await expect(mark).toHaveText("مفاتيح");
+      await expect(mark).toHaveAttribute("lang", "ar");
+      const nav = banner.getByRole("navigation", { name: copy.nav });
+      await expect(nav.getByRole("link")).toHaveCount(4);
+      await expect(banner.getByRole("button", { name: copy.settings })).toBeVisible();
+      await expect(page.getByRole("navigation")).toHaveCount(1);
+    });
+
+    test("on a phone the banner holds the wordmark and a settings icon, and the four pages are a bar at the bottom", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/");
+      const banner = page.getByRole("banner");
+      await expect(banner.getByRole("img", { name: copy.app })).toBeVisible();
+      await expect(banner.getByRole("navigation")).toHaveCount(0);
+      const settings = banner.getByRole("button", { name: copy.settings });
+      const box = await settings.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      const nav = page.getByRole("navigation", { name: copy.nav });
+      await expect(nav.getByRole("link")).toHaveCount(4);
+      const bar = await nav.boundingBox();
+      expect((bar?.y ?? 0) + (bar?.height ?? 0)).toBeCloseTo(844, 0);
+      expect(bar?.width).toBe(390);
+    });
+
+    test("the bar at the bottom of a phone goes away while the typing field has focus and comes back after", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await seedSettings(page, { customText: "بتن", language });
+      await page.goto("/#/custom");
+      const nav = page.getByRole("navigation", { name: copy.nav });
+      await expect(nav).toBeVisible();
+      await page.locator("[data-typing-surface]").click();
+      await expect(nav).toBeHidden();
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      });
+      await expect(nav).toBeVisible();
     });
 
     test("the navigation is a list of the four pages, each named in words", async ({ page }) => {
@@ -90,8 +149,9 @@ for (const language of ["en", "ar"] as const) {
     test("the tab order follows the reading order and every stop shows a focus outline", async ({ page }) => {
       await page.goto("/#/practice");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[1][language]);
-      const names = PAGES.map((entry) => entry[language]);
-      const expected = [copy.skip, ...names.slice(0, 4), copy.settings, copy.start, ...names.slice(4)];
+      await page.setViewportSize({ width: 1280, height: 800 });
+      const names = PAGES.map((entry) => entry[language]).slice(0, 4);
+      const expected = [copy.skip, ...names, copy.settings];
       const edges: number[] = [];
       for (const name of expected) {
         await page.keyboard.press("Tab");
@@ -105,6 +165,30 @@ for (const language of ["en", "ar"] as const) {
       }
       const navEdges = edges.slice(1, 5);
       expect(navEdges).toEqual([...navEdges].sort((a, b) => a - b));
+      await page.keyboard.press("Tab");
+      await expect(page.getByRole("textbox", { name: copy.input })).toBeFocused();
+    });
+
+    test("on a phone the skip control and Settings come first and the four pages come after the content", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/#/practice");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[1][language]);
+      await page.keyboard.press("Tab");
+      expect(await focusedName(page)).toBe(copy.skip);
+      await page.keyboard.press("Tab");
+      expect(await focusedName(page)).toBe(copy.settings);
+      const order = await page.evaluate(() => {
+        const follows = (a: Element | null, b: Element | null) =>
+          a !== null && b !== null && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        const tabs = [...document.querySelectorAll("nav")].find((nav) => getComputedStyle(nav).display !== "none");
+        return {
+          settingsBeforeMain: follows(document.activeElement, document.querySelector("main")),
+          mainBeforeTabs: follows(document.querySelector("main"), tabs ?? null),
+        };
+      });
+      expect(order).toEqual({ settingsBeforeMain: true, mainBeforeTabs: true });
     });
 
     test("nothing scrolls sideways at 320 pixels", async ({ page }) => {
@@ -123,7 +207,7 @@ for (const language of ["en", "ar"] as const) {
       for (const link of await page.getByRole("navigation", { name: copy.nav }).getByRole("link").all()) {
         const box = await link.boundingBox();
         tops.add(box?.y ?? -1);
-        expect(box?.height).toBe(44);
+        expect(box?.height).toBeGreaterThanOrEqual(44);
       }
       expect(tops.size).toBe(1);
     });
@@ -168,16 +252,17 @@ for (const language of ["en", "ar"] as const) {
     });
 
     test("a display cutout on one side pads that same side whatever the reading direction", async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
       const session = await page.context().newCDPSession(page);
       await session.send("Emulation.setSafeAreaInsetsOverride", { insets: { right: 40 } });
       await page.goto("/");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[0][language]);
-      for (const landmark of ["banner", "main", "contentinfo"] as const) {
+      for (const landmark of ["banner", "main"] as const) {
         const padding = await page.getByRole(landmark).evaluate((element) => {
           const style = getComputedStyle(element);
           return [style.paddingLeft, style.paddingRight];
         });
-        expect(padding, landmark).toEqual(["16px", "40px"]);
+        expect(padding, landmark).toEqual(["20px", "40px"]);
       }
     });
   });
@@ -195,9 +280,9 @@ test("the navigation marks the current page without changing the width of its la
   await expect(practice).toHaveAttribute("aria-current", "page");
   await expect(recitation).not.toHaveAttribute("aria-current");
   expect(await practice.boundingBox()).toEqual(before);
-  expect(await practice.evaluate((element) => getComputedStyle(element).borderBottomColor)).not.toBe(
-    await recitation.evaluate((element) => getComputedStyle(element).borderBottomColor),
-  );
+  const mark = (element: Element): string =>
+    `${getComputedStyle(element).borderBottomColor}|${getComputedStyle(element, "::after").backgroundColor}`;
+  expect(await practice.evaluate(mark)).not.toBe(await recitation.evaluate(mark));
 });
 
 test("moving to another page focuses its heading and renames the document", async ({ page }) => {
@@ -238,18 +323,6 @@ test("the first page load leaves focus on the document", async ({ page }) => {
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stats");
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
-});
-
-test("the footer links to the About page and marks it as current there", async ({ page }) => {
-  await page.goto("/");
-  const about = page.getByRole("contentinfo").getByRole("link", { name: "About" });
-  const thickness = (): Promise<string> =>
-    about.evaluate((element) => getComputedStyle(element).textDecorationThickness);
-  const before = await thickness();
-  await about.click();
-  await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeFocused();
-  await expect(about).toHaveAttribute("aria-current", "page");
-  expect(await thickness()).not.toBe(before);
 });
 
 test("an unknown or misspelled address shows Recitation and is rewritten to the real address", async ({ page }) => {

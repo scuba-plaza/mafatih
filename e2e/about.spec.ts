@@ -108,10 +108,16 @@ for (const language of ["en", "ar"] as const) {
   }
 }
 
-test("the footer leads to About from any page, and About is the current page there", async ({ page }) => {
+test("the Settings dialog ends with a link to About: it closes the dialog and About has the focus", async ({
+  page,
+}) => {
   await page.goto("/#/practice");
-  await page.getByRole("link", { name: "About" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await dialog.getByRole("link", { name: "About" }).click();
+  await expect(dialog).toBeHidden();
   await expect(page).toHaveURL(/#\/about$/);
-  await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
-  await expect(page.getByRole("link", { name: "About" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeFocused();
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About" })).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
 });
