@@ -43,9 +43,13 @@ for (const language of ["en", "ar"] as const satisfies readonly Language[]) {
         if (name === "map") {
           await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(SURAH_COUNT);
         }
-        const marked = page.locator('[aria-current="page"]');
-        await expect(marked).toHaveCount(1);
-        await expect(marked).toHaveText(current[language]);
+        const marked = page.locator('[aria-current="page"]:visible');
+        if (name === "about") {
+          await expect(marked).toHaveCount(0);
+        } else {
+          await expect(marked).toHaveCount(1);
+          await expect(marked).toHaveText(current[language]);
+        }
       });
     }
 
