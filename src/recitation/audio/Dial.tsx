@@ -1,4 +1,4 @@
-import { type PointerEvent, useSyncExternalStore } from "react";
+import { type MouseEvent, type PointerEvent, useSyncExternalStore } from "react";
 import { RING_LENGTH, RING_RADIUS, ringArcs } from "./dial.ts";
 import { PauseIcon, PlayIcon } from "./icons.tsx";
 import type { ClipProgress } from "./usePlayer.ts";
@@ -13,6 +13,7 @@ export interface DialProps {
   readonly playing: boolean;
   readonly label: string;
   readonly onToggle: () => void;
+  readonly onMouseDown: (event: MouseEvent) => void;
   readonly onPointerUp: (event: PointerEvent) => void;
 }
 
@@ -42,7 +43,7 @@ function Arc({
   );
 }
 
-export function Dial({ weights, current, progress, playing, label, onToggle, onPointerUp }: DialProps) {
+export function Dial({ weights, current, progress, playing, label, onToggle, onMouseDown, onPointerUp }: DialProps) {
   const fraction = useSyncExternalStore(progress.subscribe, progress.read);
   const arcs = ringArcs(weights);
   return (
@@ -68,6 +69,7 @@ export function Dial({ weights, current, progress, playing, label, onToggle, onP
       <button
         type="button"
         onClick={onToggle}
+        onMouseDown={onMouseDown}
         onPointerUp={onPointerUp}
         className={`absolute inset-0 grid place-items-center rounded-full ${playing ? "text-accent" : "text-ink"}`}
       >

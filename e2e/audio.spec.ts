@@ -325,6 +325,21 @@ test("Page Up and Page Down on the volume slider move the slider and leave the p
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
 });
 
+test("pressing an audio button leaves the focus in the typing field, with a mouse or a finger", async ({ page }) => {
+  await spyAudio(page);
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  await startTyping(page);
+  const field = page.getByRole("textbox", { name: "Type the text shown" });
+  await expect(field).toBeFocused();
+  for (const name of ["Repeat passage", "Next ayah", "Previous ayah", "Play"]) {
+    await player(page).getByRole("button", { name, exact: true }).click();
+    await expect(field, name).toBeFocused();
+  }
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(field).toBeFocused();
+});
+
 test("an error from the audio element is said plainly", async ({ page }) => {
   await spyAudio(page);
   await mockAudio(page, LONG);

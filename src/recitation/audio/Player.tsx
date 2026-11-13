@@ -1,4 +1,4 @@
-import { type PointerEvent, useEffect, useMemo } from "react";
+import { type MouseEvent, type PointerEvent, useEffect, useMemo } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Settings } from "~/settings/settings.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
@@ -11,6 +11,10 @@ import { NextIcon, PreviousIcon, RepeatIcon } from "./icons.tsx";
 import { reciterOf } from "./reciters.ts";
 import { ICON_BUTTON, LATCHED } from "./styles.ts";
 import type { Player as PlayerHandle } from "./usePlayer.ts";
+
+function keepFocus(event: MouseEvent): void {
+  event.preventDefault();
+}
 
 function finePointer(): boolean {
   return window.matchMedia("(pointer: fine)").matches;
@@ -104,13 +108,20 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
           type="button"
           aria-pressed={settings.loop}
           onClick={() => change({ loop: !settings.loop })}
+          onMouseDown={keepFocus}
           onPointerUp={afterPointer}
           className={`${ICON_BUTTON} ${LATCHED}`}
         >
           <RepeatIcon />
           <span className="sr-only">{t("player.repeat")}</span>
         </button>
-        <button type="button" onClick={previous} onPointerUp={afterPointer} className={ICON_BUTTON}>
+        <button
+          type="button"
+          onClick={previous}
+          onMouseDown={keepFocus}
+          onPointerUp={afterPointer}
+          className={ICON_BUTTON}
+        >
           <PreviousIcon />
           <span className="sr-only">{t("player.previous")}</span>
         </button>
@@ -121,9 +132,10 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
           playing={playing}
           label={t(playing ? "player.pause" : "player.play")}
           onToggle={toggle}
+          onMouseDown={keepFocus}
           onPointerUp={afterPointer}
         />
-        <button type="button" onClick={next} onPointerUp={afterPointer} className={ICON_BUTTON}>
+        <button type="button" onClick={next} onMouseDown={keepFocus} onPointerUp={afterPointer} className={ICON_BUTTON}>
           <NextIcon />
           <span className="sr-only">{t("player.next")}</span>
         </button>
