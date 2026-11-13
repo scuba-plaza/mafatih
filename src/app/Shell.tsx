@@ -44,15 +44,16 @@ function PageLinks({ page, linkClass, title }: Omit<NavProps, "label">) {
 
 interface ShellProps {
   readonly page: Page;
+  readonly view: string;
   readonly banner: ReactNode;
   readonly actions: ReactNode;
   readonly children: ReactNode;
 }
 
-export function Shell({ page, banner, actions, children }: ShellProps) {
+export function Shell({ page, view, banner, actions, children }: ShellProps) {
   const { t } = useI18n();
   const mainRef = useRef<HTMLElement>(null);
-  const shownPage = useRef(page);
+  const shownView = useRef(view);
   const title = (target: Page) => t(PAGE_TITLES[target]);
   const appName = t("app.name");
   const navLabel = t("nav.label");
@@ -63,12 +64,12 @@ export function Shell({ page, banner, actions, children }: ShellProps) {
   }, [page, appName, t]);
 
   useEffect(() => {
-    if (shownPage.current !== page) {
-      shownPage.current = page;
+    if (shownView.current !== view) {
+      shownView.current = view;
       window.scrollTo(0, 0);
       mainRef.current?.querySelector("h1")?.focus();
     }
-  }, [page]);
+  }, [view]);
 
   return (
     <div className="grid min-h-dvh grid-cols-1 grid-rows-[auto_auto_1fr]">

@@ -318,6 +318,24 @@ test("Back and Forward move between pages, focus the heading and rename the docu
   await expect(page).toHaveTitle("Custom · Mafatih");
 });
 
+test("opening a surah from the map, and coming back to the map, start at the top with the heading focused", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 400 });
+  await page.goto("/");
+  const surahs = page.getByRole("list", { name: "Surahs" }).getByRole("link");
+  await surahs.last().scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(200);
+  await surahs.last().click();
+  await expect(page).toHaveURL(/#\/recitation\/114$/);
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toContainText("·");
+  await expect(heading).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Recitation" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Recitation" })).toBeFocused();
+});
+
 test("following the link of the page you are on changes nothing and keeps focus on the link", async ({ page }) => {
   await page.goto("/#/practice");
   const practice = page.getByRole("link", { name: "Practice" });

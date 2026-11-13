@@ -28,13 +28,17 @@ function PageContent({ route }: { route: Route }) {
   }
 }
 
+function viewOf(route: Route): string {
+  return route.page === "recitation" && route.surah !== null ? "lesson" : route.page;
+}
+
 function Pages() {
   const route = useRoute();
   const { profile } = useProfile();
   return (
     <I18nProvider language={profile.settings.language}>
       <ErrorBoundary>
-        <Shell page={route.page} banner={<StorageNotice />} actions={<SettingsButton />}>
+        <Shell page={route.page} view={viewOf(route)} banner={<StorageNotice />} actions={<SettingsButton />}>
           <PageContent route={route} />
         </Shell>
       </ErrorBoundary>
