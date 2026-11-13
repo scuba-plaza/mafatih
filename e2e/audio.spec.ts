@@ -321,14 +321,14 @@ test("an error from the audio element is said plainly", async ({ page }) => {
   await expect(status(page)).toHaveText("Recitation unavailable");
 });
 
-test("when the passage is finished Play still plays: the pause was only a rest", async ({ page }) => {
+test("when a passage has moved on by itself Play plays the new passage", async ({ page }) => {
   await spyAudio(page);
   await mockAudio(page, LONG);
   await seedProfile(page, { settings: { vocalization: "letters" } });
-  await page.goto("/#/recitation/112/1");
+  await page.goto("/#/recitation/1/1");
   await startTyping(page);
   await typeKeys(page, lettersOf(await shownText(page)));
-  await expect(page.getByRole("heading", { level: 2 })).toBeVisible();
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
   const before = (await readLog(page)).plays;
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
@@ -612,22 +612,20 @@ test("a recitation paused by the user stays paused when a dialog closes", async 
   await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
 
-test("finishing a passage pauses the audio, and Next passage carries it on into the next passage", async ({ page }) => {
+test("a passage finished while the audio plays moves on by itself and the audio carries on with the next passage", async ({
+  page,
+}) => {
   await spyAudio(page);
   await mockAudio(page, LONG);
   await seedProfile(page, { settings: { vocalization: "letters", playWhole: true } });
-  await page.goto("/#/recitation/112/1");
+  await page.goto("/#/recitation/2/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "Type the text shown" }).focus();
   await typeKeys(page, lettersOf(await shownText(page)));
-  const summary = page.getByRole("heading", { level: 2 }).locator("xpath=..");
-  await expect(summary).toBeVisible();
-  await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  await summary.getByRole("button", { name: /^(Next surah|Next passage|Start again)$/ }).click();
-  await expect(page).toHaveURL(/#\/recitation\/113\/1$/);
+  await expect(page).toHaveURL(/#\/recitation\/2\/5$/);
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
-  await expect(status(page)).toContainText("Basmala");
+  await expect(status(page)).toContainText("2:5");
   expect((await readLog(page)).currentTime.at(-1)).toBe(0);
 });
 

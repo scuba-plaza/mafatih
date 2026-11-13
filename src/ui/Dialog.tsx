@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
 import { announceDialogChange } from "./dialogs.ts";
-import { BUTTON } from "./styles.ts";
+import { BUTTON, SHEET } from "./styles.ts";
 
 const SIDE_PADDING = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
 
@@ -39,7 +39,7 @@ export function Dialog({ open, title, closeLabel, onClose, children }: DialogPro
         announceDialogChange();
         onClose();
       }}
-      className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[90dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface p-0 text-ink backdrop:bg-black/60 md:inset-0 md:m-auto md:h-fit md:w-lg md:max-w-[calc(100%-2rem)] md:rounded-2xl"
+      className={`${SHEET} md:w-lg`}
     >
       {open && (
         <>

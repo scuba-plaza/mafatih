@@ -5,20 +5,22 @@ import { unlockedMarks } from "~/practice/ladder.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { requiredMarks } from "~/text/vocalization.ts";
 import { LiveStats } from "~/typing/LiveStats.tsx";
-import { isComplete, metricsOf } from "~/typing/session.ts";
+import { isComplete } from "~/typing/session.ts";
 import { TypingSurface } from "~/typing/TypingSurface.tsx";
 import { useTrainer } from "~/typing/useTrainer.ts";
 import { useDialogOpen } from "~/ui/dialogs.ts";
-import { LessonSummary } from "~/ui/LessonSummary.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
-import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
+import { PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { Player } from "./audio/Player.tsx";
 import { type Player as PlayerHandle, usePlayer } from "./audio/usePlayer.ts";
 import { PassageFooter } from "./PassageFooter.tsx";
 import type { Passage } from "./passage.ts";
-import { surahName } from "./quran.ts";
+import { requireSurahMeta, surahName } from "./quran.ts";
+import { SurahComplete } from "./SurahComplete.tsx";
 import { SurahMap } from "./SurahMap.tsx";
 import { type Recitation, useRecitation } from "./useRecitation.ts";
+
+const ADVANCE_DELAY_MS = 450;
 
 interface PassageLessonProps {
   readonly passage: Passage;
@@ -30,7 +32,6 @@ interface PassageLessonProps {
 }
 
 function PassageLesson({ passage, recitation, player, describedBy, onFinished, refocus }: PassageLessonProps) {
-  const { t, language, formatNumber, formatDuration } = useI18n();
   const { settings } = useProfile().profile;
   const checkpoints = useMemo(() => passage.ayat.map((ayah) => ayah.lastUnit), [passage]);
   const signs = useMemo(() => passage.ayat.map((ayah) => ayah.sign), [passage]);
@@ -42,6 +43,7 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
     onCheckpoint: recitation.recordAyah,
   });
   const { focus, session } = trainer;
+  const { continues, finish, endsTheOrder, meta, target, from, advance, restartSurah, consumeContinue } = recitation;
 
   useEffect(() => {
     refocus.current = focus;
@@ -49,14 +51,13 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
       refocus.current = () => undefined;
     };
   }, [focus, refocus]);
-  const { continues, completions, endsTheOrder, meta } = recitation;
 
   useEffect(() => {
     if (continues) {
       focus();
-      recitation.consumeContinue();
+      consumeContinue();
     }
-  }, [continues, focus, recitation]);
+  }, [continues, focus, consumeContinue]);
 
   const finished = isComplete(session);
 
@@ -65,9 +66,26 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
     return () => onFinished(false);
   }, [finished, onFinished]);
 
-  const metrics = finished ? metricsOf(session) : null;
-  const completed = completions !== null;
-  const nextLabel = endsTheOrder ? "recitation.startAgain" : completed ? "completion.next" : "recitation.next";
+  const latestAdvance = useRef(advance);
+  useEffect(() => {
+    latestAdvance.current = advance;
+  });
+  const movesOn = finished && finish === null;
+
+  useEffect(() => {
+    if (!movesOn) {
+      return;
+    }
+    const timer = setTimeout(() => latestAdvance.current(), ADVANCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [movesOn]);
+
+  const again = () => {
+    restartSurah();
+    if (from === 1) {
+      trainer.restart();
+    }
+  };
 
   return (
     <>
@@ -79,36 +97,14 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
         describedBy={describedBy}
       />
       <LiveStats session={session} />
-      {metrics !== null && (
-        <LessonSummary
-          metrics={metrics}
-          title={completed ? t("completion.title", { surah: surahName(meta, language) }) : undefined}
-          details={
-            completed
-              ? [
-                  { label: t("completion.ayat"), value: formatNumber(meta.ayat) },
-                  { label: t("completion.times"), value: formatNumber(completions) },
-                  { label: t("completion.time"), value: formatDuration(metrics.elapsedMs) },
-                ]
-              : []
-          }
-          note={endsTheOrder ? t("recitation.orderEnds") : undefined}
-        >
-          <button type="button" onClick={recitation.advance} className={PRIMARY_BUTTON}>
-            {t(nextLabel)}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              recitation.forgetCompletion();
-              trainer.restart();
-            }}
-            className={BUTTON}
-          >
-            {t("result.again")}
-          </button>
-        </LessonSummary>
-      )}
+      <SurahComplete
+        meta={meta}
+        finish={finish}
+        next={requireSurahMeta(target.surah)}
+        endsTheOrder={endsTheOrder}
+        onContinue={advance}
+        onAgain={again}
+      />
     </>
   );
 }

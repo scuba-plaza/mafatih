@@ -15,10 +15,16 @@ import {
   passageBefore,
   positionAfter,
   type RecitationProgress,
+  type RunTally,
   resumeOf,
   typedAyat,
 } from "./progress.ts";
 import { loadSurah, requireSurahMeta, type Surah, type SurahMeta } from "./quran.ts";
+
+export interface SurahFinish {
+  readonly completions: number;
+  readonly tally: RunTally;
+}
 
 export interface Recitation {
   readonly meta: SurahMeta;
@@ -28,7 +34,7 @@ export interface Recitation {
   readonly passage: Passage | null;
   readonly failed: boolean;
   readonly continues: boolean;
-  readonly completions: number | null;
+  readonly finish: SurahFinish | null;
   readonly previous: Position;
   readonly next: Position;
   readonly target: Position;
@@ -37,7 +43,7 @@ export interface Recitation {
   readonly recordPassage: (result: TrainerResult) => void;
   readonly go: (position: Position) => void;
   readonly advance: () => void;
-  readonly forgetCompletion: () => void;
+  readonly restartSurah: () => void;
   readonly consumeContinue: () => void;
 }
 
@@ -53,7 +59,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
   const [pinned, setPinned] = useState(pin);
   const [loaded, setLoaded] = useState<{ readonly number: number; readonly surah: Surah | null } | null>(null);
   const [continuedAt, setContinuedAt] = useState<Position | null>(null);
-  const [completedKey, setCompletedKey] = useState<string | null>(null);
+  const [finished, setFinished] = useState<(SurahFinish & { readonly key: string }) | null>(null);
 
   const shown = pinned.key === key ? pinned : pin();
   if (shown !== pinned) {
@@ -64,7 +70,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
   const meta = requireSurahMeta(number);
   const to = Math.min(start.ayah + ayatPerLesson - 1, meta.ayat);
   const { unlocked } = profile.ladder;
-  const completions = completedKey === key ? completionsOf(profile.recitation, number) : null;
+  const finish = finished?.key === key ? finished : null;
 
   useEffect(() => {
     let wanted = true;
@@ -93,16 +99,18 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
       if (typedAyah === undefined) {
         return;
       }
+      const caught: { tally: RunTally | null } = { tally: null };
       const next = update((current) => {
         const state = { stats: current.stats.recitation, recitation: current.recitation };
         const outcome = applyRecitationAyah(state, { surah: number, ayah: typedAyah }, samples, order);
+        caught.tally = outcome.finished;
         return { ...current, stats: { ...current.stats, recitation: outcome.stats }, recitation: outcome.recitation };
       });
-      if (completionsOf(next.recitation, number) > completionsOf(profile.recitation, number)) {
-        setCompletedKey(key);
+      if (caught.tally !== null) {
+        setFinished({ key, tally: caught.tally, completions: completionsOf(next.recitation, number) });
       }
     },
-    [passage, number, order, update, profile.recitation, key],
+    [passage, number, order, update, key],
   );
 
   const recordPassage = useCallback(
@@ -119,7 +127,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
     replaceRoute({ page: "recitation", surah: position.surah, ayah: position.ayah });
   }, []);
 
-  const finishesSurah = completions !== null;
+  const finishesSurah = finish !== null;
   const lastAyah: Position = { surah: number, ayah: finishesSurah ? meta.ayat : to };
   const next = positionAfter({ surah: number, ayah: to }, order);
   const target = finishesSurah ? positionAfter(lastAyah, order) : next;
@@ -129,7 +137,11 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
     go(target);
   }, [target, go]);
 
-  const forgetCompletion = useCallback(() => setCompletedKey(null), []);
+  const restartSurah = useCallback(() => {
+    setFinished(null);
+    setContinuedAt({ surah: number, ayah: 1 });
+    go({ surah: number, ayah: 1 });
+  }, [number, go]);
   const consumeContinue = useCallback(() => setContinuedAt(null), []);
 
   return {
@@ -140,7 +152,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
     passage,
     failed: answer !== null && answer.surah === null,
     continues: continuedAt?.surah === number && continuedAt.ayah === start.ayah,
-    completions,
+    finish,
     previous: passageBefore({ surah: number, ayah: start.ayah }, ayatPerLesson, order),
     next,
     target,
@@ -149,7 +161,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
     recordPassage,
     go,
     advance,
-    forgetCompletion,
+    restartSurah,
     consumeContinue,
   };
 }

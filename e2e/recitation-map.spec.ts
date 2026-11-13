@@ -47,8 +47,8 @@ function bar(page: Page) {
   return page.getByRole("group", { name: "Passage" });
 }
 
-const finished = (page: Page) => page.getByRole("heading", { level: 2, name: "Finished" });
-const completed = (page: Page) => page.getByRole("heading", { level: 2, name: /^Completed: / });
+const card = (page: Page) => page.getByRole("dialog", { name: /complete$/ });
+const continueButton = (page: Page) => card(page).getByRole("button", { name: /^Continue to / });
 
 test("the home page is a map of all 114 surahs, each a link that says how much of it is typed", async ({ page }) => {
   await page.goto("/");
@@ -153,7 +153,9 @@ test("a first-time visitor is told in one line what is typed and what is not, wi
   ).toBeVisible();
 });
 
-test("finishing a surah brings a quiet panel with its figures and Next surah, and nothing else", async ({ page }) => {
+test("finishing the last ayah of a surah typed in parts opens the celebration, and Continue goes to the next surah", async ({
+  page,
+}) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
@@ -162,23 +164,15 @@ test("finishing a surah brings a quiet panel with its figures and Next surah, an
   await page.goto("/#/recitation/108/3");
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
-  const heading = page.getByRole("heading", { level: 2, name: /^Completed: .*Al-Kawthar/ });
-  await expect(heading).toBeFocused();
-  const panel = heading.locator("xpath=..");
-  await expect(panel.getByText("Ayat")).toBeVisible();
-  await expect(panel.getByText("Times completed")).toBeVisible();
-  await expect(panel.getByText("Time", { exact: true })).toBeVisible();
-  await expect(panel.getByText("Accuracy")).toBeVisible();
-  await expect(panel.getByRole("button", { name: "Type again" })).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(card(page)).toBeVisible();
+  await expect(card(page).getByRole("term")).toHaveText(["Ayat", "Accuracy", "Speed", "Time"]);
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await expectNoAxeViolations(page);
-  await panel.getByRole("button", { name: "Next surah" }).click();
+  await continueButton(page).click();
   await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
 });
 
-test("after the last surah of the order the panel says the order starts again, and so does its button", async ({
+test("after the last surah of the order the celebration says the order starts again, and so does its button", async ({
   page,
 }) => {
   const naas = surah(114);
@@ -189,24 +183,22 @@ test("after the last surah of the order the panel says the order starts again, a
   await page.goto("/#/recitation/114/6");
   await startTyping(page);
   await typeKeys(page, lettersOf(naas, 6, 6));
-  await expect(page.getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Next surah" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Start again" }).click();
+  await expect(card(page).getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
+  await expect(continueButton(page)).toHaveCount(0);
+  await card(page).getByRole("button", { name: "Start again" }).click();
   await expect(page).toHaveURL(/#\/recitation\/1\/1$/);
 });
 
-test("a passage that ends the order without completing the surah also says it starts again", async ({ page }) => {
+test("a passage that ends the order without completing the surah goes on to the start of the order by itself", async ({
+  page,
+}) => {
   const naas = surah(114);
   await seedProfile(page, { settings: { vocalization: "letters", ayatPerLesson: 1 } });
   await page.goto("/#/recitation/114/6");
   await startTyping(page);
   await typeKeys(page, lettersOf(naas, 6, 6));
-  await expect(finished(page)).toBeFocused();
-  const summary = finished(page).locator("xpath=..");
-  await expect(summary.getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
-  await expect(summary.getByRole("button", { name: "Next passage" })).toHaveCount(0);
-  await summary.getByRole("button", { name: "Start again" }).click();
   await expect(page).toHaveURL(/#\/recitation\/1\/1$/);
+  await expect(card(page)).toHaveCount(0);
 });
 
 test("Settings offers ayat per passage and the surah order together, and a change applies at once", async ({
@@ -228,7 +220,7 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 10 });
 });
 
-test("Next surah puts the focus in the typing field once", async ({ page }) => {
+test("Continue puts the focus in the typing field once", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
@@ -237,7 +229,7 @@ test("Next surah puts the focus in the typing field once", async ({ page }) => {
   await page.goto("/#/recitation/108/3");
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
-  await page.getByRole("button", { name: "Next surah" }).click();
+  await continueButton(page).click();
   await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
 });
@@ -253,7 +245,7 @@ test("moving to another passage from the footer is announced politely with the n
   await expect(announced).toContainText("Al-Faatiha");
 });
 
-test("retyping the last passage of a surah completed earlier ends with Finished, not Completed", async ({ page }) => {
+test("retyping only the last passage of a surah completed earlier just moves on: no celebration", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 1 }, surahs: { 108: { typed: [], completions: 1 } } },
@@ -262,11 +254,11 @@ test("retyping the last passage of a surah completed earlier ends with Finished,
   await page.goto("/#/recitation/108/3");
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
-  await expect(finished(page)).toBeFocused();
-  await expect(completed(page)).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
+  await expect(card(page)).toHaveCount(0);
 });
 
-test("Type again after a completed surah starts a fresh count: a partial retype is only Finished", async ({ page }) => {
+test("Type it again after a completed surah starts a fresh count: a partial retype just moves on", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
@@ -275,11 +267,12 @@ test("Type again after a completed surah starts a fresh count: a partial retype 
   await page.goto("/#/recitation/108/3");
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
-  await expect(completed(page)).toBeFocused();
-  await page.getByRole("button", { name: "Type again" }).click();
-  await typeKeys(page, lettersOf(kawthar, 3, 3));
-  await expect(finished(page)).toBeFocused();
-  await expect(completed(page)).toHaveCount(0);
+  await expect(card(page)).toBeVisible();
+  await card(page).getByRole("button", { name: "Type it again" }).click();
+  await expect(page).toHaveURL(/#\/recitation\/108\/1$/);
+  await typeKeys(page, lettersOf(kawthar, 1, 1, true));
+  await expect(page).toHaveURL(/#\/recitation\/108\/2$/);
+  await expect(card(page)).toHaveCount(0);
 });
 
 test("a surah finished from the middle of its passage hands on to the next surah, not to the passage after it", async ({
@@ -293,12 +286,14 @@ test("a surah finished from the middle of its passage hands on to the next surah
   await page.goto("/#/recitation/108/1");
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 1, 1, true));
-  await expect(completed(page)).toBeFocused();
-  await page.getByRole("button", { name: "Next surah" }).click();
+  await expect(card(page)).toBeVisible();
+  await continueButton(page).click();
   await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
 });
 
-test("another tab finishing the surah does not make a partial passage here read as completed", async ({ context }) => {
+test("another tab finishing the surah does not make a partial passage here open the celebration", async ({
+  context,
+}) => {
   const kawthar = surah(108);
   const page = await context.newPage();
   await seedProfile(page, { settings: { vocalization: "letters", ayatPerLesson: 1 } });
@@ -316,8 +311,8 @@ test("another tab finishing the surah does not make a partial passage here read 
   await page.waitForTimeout(300);
   await page.getByRole("textbox", { name: "Type the text shown" }).focus();
   await typeKeys(page, lettersOf(kawthar, 1, 1, true));
-  await expect(finished(page)).toBeFocused();
-  await expect(completed(page)).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/recitation\/108\/2$/);
+  await expect(card(page)).toHaveCount(0);
 });
 
 test("on the home page Tab goes from Settings to the Start link and then through the surahs in order", async ({

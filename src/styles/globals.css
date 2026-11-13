@@ -82,6 +82,106 @@ body:has([data-typing-input]:focus) [data-tabbar] {
   display: none;
 }
 
+@keyframes burst {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scaleY(0.4);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-5.5rem) scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  0% {
+    transform: translateY(0.75rem) scale(0.97);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    text-shadow: 0 0 0 transparent;
+  }
+  50% {
+    text-shadow: 0 0 1.5rem color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    scale: 0.92;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+
+@keyframes starpop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.celebration-ray {
+  opacity: 0;
+  background-color: var(--color-accent);
+}
+
+.celebration-ray:nth-child(3n) {
+  background-color: color-mix(in srgb, var(--color-accent), white 45%);
+}
+
+.celebration-halo {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent);
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .celebration-ray {
+    animation: burst 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay, 0ms) infinite both;
+  }
+
+  .celebration-card {
+    animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+
+  .celebration-name {
+    animation: glow 2.4s ease-in-out infinite;
+  }
+
+  .celebration-halo {
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  .celebration-star {
+    animation: starpop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) 0.5s both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-ray {
+    display: none;
+  }
+}
+
 html:has(dialog[open]) {
   overflow: hidden;
 }

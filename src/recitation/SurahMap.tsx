@@ -3,6 +3,7 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { Rail } from "~/ui/Rail.tsx";
+import { StarIcon } from "~/ui/StarIcon.tsx";
 import { PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { surahOrder } from "./order.ts";
 import {
@@ -15,14 +16,6 @@ import {
   typedAyat,
 } from "./progress.ts";
 import { requireSurahMeta, SURAH_COUNT, type SurahMeta, surahName } from "./quran.ts";
-
-function StarIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 shrink-0 text-accent" fill="currentColor">
-      <path d="M12 2.6l2.9 6.1 6.7.8-4.9 4.6 1.3 6.6L12 17.5l-6 3.2 1.3-6.6L2.4 9.5l6.7-.8z" />
-    </svg>
-  );
-}
 
 function CheckIcon() {
   return (
