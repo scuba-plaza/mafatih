@@ -1,9 +1,16 @@
 const DATABASE = "mafatih.audio";
-const STORE = "ayat";
+const VERSION = 2;
+const RECORDS = "ayat";
+const SIZES = "sizes";
 
 interface StoredAyah {
   readonly url: string;
-  readonly blob: Blob;
+  readonly data: ArrayBuffer;
+  readonly type: string;
+}
+
+interface StoredSize {
+  readonly url: string;
   readonly bytes: number;
 }
 
@@ -23,14 +30,21 @@ function openDatabase(onLost: () => void): Promise<IDBDatabase | null> {
   return new Promise((resolve) => {
     let request: IDBOpenDBRequest;
     try {
-      request = indexedDB.open(DATABASE, 1);
+      request = indexedDB.open(DATABASE, VERSION);
     } catch {
       resolve(null);
       return;
     }
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE)) {
-        request.result.createObjectStore(STORE, { keyPath: "url" });
+    request.onupgradeneeded = (event) => {
+      const database = request.result;
+      if (event.oldVersion < VERSION && database.objectStoreNames.contains(RECORDS)) {
+        database.deleteObjectStore(RECORDS);
+      }
+      if (!database.objectStoreNames.contains(RECORDS)) {
+        database.createObjectStore(RECORDS, { keyPath: "url" });
+      }
+      if (!database.objectStoreNames.contains(SIZES)) {
+        database.createObjectStore(SIZES, { keyPath: "url" });
       }
     };
     request.onsuccess = () => {
@@ -53,7 +67,7 @@ function createAudioCache(): AudioCache | null {
 
   const run = async <Result>(
     mode: IDBTransactionMode,
-    work: (store: IDBObjectStore) => IDBRequest<Result>,
+    work: (transaction: IDBTransaction) => IDBRequest<Result>,
   ): Promise<Result | null> => {
     opened ??= openDatabase(() => {
       opened = undefined;
@@ -65,9 +79,11 @@ function createAudioCache(): AudioCache | null {
     }
     return new Promise<Result | null>((resolve) => {
       try {
-        const request = work(database.transaction(STORE, mode).objectStore(STORE));
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => resolve(null);
+        const transaction = database.transaction([RECORDS, SIZES], mode);
+        const request = work(transaction);
+        transaction.oncomplete = () => resolve(request.result);
+        transaction.onerror = () => resolve(null);
+        transaction.onabort = () => resolve(null);
       } catch {
         resolve(null);
       }
@@ -76,23 +92,34 @@ function createAudioCache(): AudioCache | null {
 
   return {
     get: async (url) => {
-      const record = await run<StoredAyah | undefined>("readonly", (store) => store.get(url));
-      return record !== undefined && record !== null && record.blob instanceof Blob && record.blob.size > 0
-        ? record.blob
+      const record = await run<StoredAyah | undefined>("readonly", (transaction) =>
+        transaction.objectStore(RECORDS).get(url),
+      );
+      return record !== undefined && record !== null && record.data instanceof ArrayBuffer && record.data.byteLength > 0
+        ? new Blob([record.data], { type: record.type })
         : null;
     },
     put: async (url, blob) => {
-      const record: StoredAyah = { url, blob, bytes: blob.size };
-      await run("readwrite", (store) => store.put(record));
+      const data = await blob.arrayBuffer();
+      const record: StoredAyah = { url, data, type: blob.type };
+      const size: StoredSize = { url, bytes: data.byteLength };
+      await run("readwrite", (transaction) => {
+        transaction.objectStore(SIZES).put(size);
+        return transaction.objectStore(RECORDS).put(record);
+      });
     },
     usage: async () => {
-      const records = await run<StoredAyah[]>("readonly", (store) => store.getAll());
+      const sizes = await run<StoredSize[]>("readonly", (transaction) => transaction.objectStore(SIZES).getAll());
       return {
-        files: records?.length ?? 0,
-        bytes: (records ?? []).reduce((sum, record) => sum + (record.bytes || 0), 0),
+        files: sizes?.length ?? 0,
+        bytes: (sizes ?? []).reduce((sum, size) => sum + (size.bytes || 0), 0),
       };
     },
-    clear: async () => (await run("readwrite", (store) => store.clear())) !== null,
+    clear: async () =>
+      (await run("readwrite", (transaction) => {
+        transaction.objectStore(SIZES).clear();
+        return transaction.objectStore(RECORDS).clear();
+      })) !== null,
   };
 }
 

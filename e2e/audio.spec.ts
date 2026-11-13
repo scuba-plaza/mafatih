@@ -536,6 +536,89 @@ test("Settings shows how much is saved and Delete empties it", async ({ page }) 
   await expect(group.getByRole("status")).toHaveText("Saved recitations were deleted.");
 });
 
+interface SavedAudio {
+  readonly shapes: { bytes: boolean; type: string; blob: boolean }[];
+  readonly sizes: number[];
+}
+
+function savedAudio(page: Page): Promise<SavedAudio> {
+  return page.evaluate(
+    () =>
+      new Promise<SavedAudio>((resolve, reject) => {
+        const opening = indexedDB.open("mafatih.audio");
+        opening.onerror = () => reject(opening.error);
+        opening.onsuccess = () => {
+          try {
+            const transaction = opening.result.transaction(["ayat", "sizes"]);
+            const records = transaction.objectStore("ayat").getAll();
+            const sizes = transaction.objectStore("sizes").getAll();
+            transaction.oncomplete = () => {
+              opening.result.close();
+              resolve({
+                shapes: records.result.map((record) => ({
+                  bytes: record.data instanceof ArrayBuffer,
+                  type: record.type,
+                  blob: "blob" in record,
+                })),
+                sizes: sizes.result.map((record) => record.bytes),
+              });
+            };
+          } catch (error) {
+            reject(error);
+          }
+        };
+      }),
+  );
+}
+
+test("a played ayah is saved as plain bytes with its type, with its size kept in a small record of its own", async ({
+  page,
+}) => {
+  await mockAudio(page, SHORT);
+  await page.goto("/#/recitation/1/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect
+    .poll(async () => (await savedAudio(page).catch(() => ({ shapes: [] }))).shapes.length)
+    .toBeGreaterThan(0);
+  const saved = await savedAudio(page);
+  expect(saved.shapes[0]).toEqual({ bytes: true, type: "audio/mpeg", blob: false });
+  expect(saved.sizes).toHaveLength(saved.shapes.length);
+  expect(saved.sizes[0]).toBe(SHORT.byteLength);
+});
+
+test("a cache left by the first version of the app, which kept whole blobs, is replaced and not misread", async ({
+  page,
+}) => {
+  await mockAudio(page, SHORT);
+  await page.goto("/#/about");
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const opening = indexedDB.open("mafatih.audio", 1);
+        opening.onupgradeneeded = () => opening.result.createObjectStore("ayat", { keyPath: "url" });
+        opening.onerror = () => reject(opening.error);
+        opening.onsuccess = () => {
+          const transaction = opening.result.transaction("ayat", "readwrite");
+          transaction
+            .objectStore("ayat")
+            .put({ url: "https://everyayah.com/data/old.mp3", blob: new Blob(["old"]), bytes: 3, at: 1 });
+          transaction.oncomplete = () => {
+            opening.result.close();
+            resolve();
+          };
+        };
+      }),
+  );
+  await page.goto("/#/recitation/1/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect
+    .poll(async () => (await savedAudio(page).catch(() => ({ shapes: [] }))).shapes.length)
+    .toBeGreaterThan(0);
+  const saved = await savedAudio(page);
+  expect(saved.shapes.every((shape) => shape.bytes && !shape.blob)).toBe(true);
+  expect(saved.sizes).toHaveLength(saved.shapes.length);
+});
+
 test("when the saved recitations cannot be deleted Settings says so and keeps the count", async ({ page }) => {
   await mockAudio(page, SHORT);
   await page.addInitScript(() => {
