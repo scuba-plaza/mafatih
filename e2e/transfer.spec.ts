@@ -5,7 +5,10 @@ import { savedProfile, seedProfile } from "./helpers/profile.ts";
 
 const STAT = { attempts: 9, hits: 9, timed: 9, meanMs: 300, recentAccuracy: 1 };
 const LESSON = { at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 60_000, accuracy: 0.98 };
-const RECITATION = { position: { surah: 36, ayah: 5 }, surahs: { 36: { typed: [[1, 4]], completions: 0 } } };
+const RECITATION = {
+  position: { surah: 36, ayah: 5 },
+  surahs: { 36: { typed: [[1, 4]], completions: 0, run: { correct: 0, total: 0, ms: 0 }, best: 0 } },
+};
 const FILE_LABEL = "Restore from a backup file";
 
 function backupOf(settings: Record<string, unknown> = {}): string {

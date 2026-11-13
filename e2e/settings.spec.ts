@@ -153,7 +153,8 @@ test("turning off correction with Backspace keeps the lesson and applies from th
   expect(await doneText(page)).toBe("ب");
   await typeKeys(page, ["س"]);
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
-  await expect(surface(page).getByRole("status").filter({ hasText: "Mistake." })).toBeVisible();
+  await expect(surface(page).getByRole("status").filter({ hasText: "Mistake." })).toHaveCount(1);
+  await expect(surface(page).locator("[data-caret][data-miss]")).toHaveCount(1);
   expect((await savedSettings(page)).requireBackspace).toBe(false);
 });
 

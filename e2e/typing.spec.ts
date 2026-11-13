@@ -119,7 +119,6 @@ test("a mistake is flagged in words once, until the wrong keys are deleted", asy
   await expect(flag(page)).toHaveCount(0);
   await typeKeys(page, ["س"]);
   await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
-  await expect(flag(page)).toBeVisible();
   await typeKeys(page, ["ش", "Backspace"]);
   await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
   await typeKeys(page, ["Backspace"]);
@@ -132,7 +131,6 @@ test("without the Backspace setting a wrong key is blocked, and flagged in words
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["ب", "س"]);
   await expect(flag(page)).toHaveText("Mistake.");
-  await expect(flag(page)).toBeVisible();
   expect(await shownText(page)).toBe("بتن");
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
   await typeKeys(page, ["Backspace"]);
@@ -141,6 +139,62 @@ test("without the Backspace setting a wrong key is blocked, and flagged in words
   await expect(flag(page)).toHaveCount(0);
   await typeKeys(page, ["ن"]);
   await expect(mistakeCount(page)).toHaveText("1");
+});
+
+const DANGER = "rgb(252, 165, 165)";
+const ACCENT = "rgb(226, 176, 98)";
+
+function caret(page: Page) {
+  return surface(page).locator("[data-caret]");
+}
+
+async function caretColour(page: Page): Promise<string> {
+  return caret(page).evaluate((element) => getComputedStyle(element).backgroundColor);
+}
+
+test("a wrong key is shown at the caret, not in words: the caret flashes and shakes, once for every wrong key", async ({
+  page,
+}) => {
+  await start(page, { customText: "بتن", requireBackspace: false });
+  await expect(caret(page)).not.toHaveAttribute("data-miss", /.*/);
+  await typeKeys(page, ["ب", "س"]);
+  await expect(caret(page)).toHaveAttribute("data-miss", "1");
+  expect(await caret(page).evaluate((element) => getComputedStyle(element).animationName)).toBe("caret-miss");
+  await typeKeys(page, ["ش"]);
+  await expect(caret(page)).toHaveAttribute("data-miss", "2");
+  await expect.poll(() => caretColour(page)).toBe(ACCENT);
+  const box = await flag(page).boundingBox();
+  expect(box?.width).toBeLessThanOrEqual(1);
+  expect(box?.height).toBeLessThanOrEqual(1);
+  await expect(surface(page).getByText("Mistake", { exact: false })).toHaveCount(1);
+});
+
+test("with reduced motion the caret does not move, but it still turns red and thick", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await start(page, { customText: "بتن", requireBackspace: false });
+  await typeKeys(page, ["س"]);
+  await expect(caret(page)).toHaveAttribute("data-miss", "1");
+  const style = await caret(page).evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return { name: computed.animationName, ring: computed.boxShadow, colour: computed.backgroundColor };
+  });
+  expect(style.name).toBe("caret-miss-still");
+  expect(style.ring).toBe(`${DANGER} 0px 0px 0px 2px`);
+  expect(style.colour).toBe(DANGER);
+  await expect.poll(() => caretColour(page)).toBe(ACCENT);
+});
+
+test("while wrong keys are waiting to be deleted the caret stays red, and goes back when they are gone", async ({
+  page,
+}) => {
+  await start(page, { customText: "بتن", requireBackspace: true });
+  expect(await caretColour(page)).toBe(ACCENT);
+  await typeKeys(page, ["س"]);
+  await expect.poll(() => caretColour(page)).toBe(DANGER);
+  await page.waitForTimeout(700);
+  expect(await caretColour(page)).toBe(DANGER);
+  await typeKeys(page, ["Backspace"]);
+  await expect.poll(() => caretColour(page)).toBe(ACCENT);
 });
 
 test("typing again starts clean: nothing of the last attempt is flagged or announced", async ({ page }) => {

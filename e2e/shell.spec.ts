@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { seedSettings } from "./helpers/profile.ts";
 
@@ -339,4 +339,17 @@ test("an address without a hash is left as it is", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recitation");
   expect(new URL(page.url()).hash).toBe("");
+});
+
+test("everything that can be pressed shows the pointer cursor", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a touch screen has no cursor");
+  await page.goto("/#/custom");
+  const cursorOf = (locator: Locator) => locator.evaluate((element) => getComputedStyle(element).cursor);
+  expect(await cursorOf(page.getByRole("button", { name: "Settings" }))).toBe("pointer");
+  expect(await cursorOf(page.getByRole("link", { name: "Practice" }))).toBe("pointer");
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  expect(await cursorOf(dialog.getByRole("radio", { name: "English" }))).toBe("pointer");
+  expect(await cursorOf(dialog.getByRole("switch", { name: "Correct mistakes with Backspace" }))).toBe("pointer");
+  expect(await cursorOf(dialog.getByRole("button", { name: "Done" }))).toBe("pointer");
 });

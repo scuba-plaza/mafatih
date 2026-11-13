@@ -46,6 +46,8 @@
 | D19 | Audio controls shortlist (round 1, 2026-11-13) | The owner likes the Dial most and the Ayah Ruler next, and especially the ruler's volume panel. The dial's arcs are not clickable (previous and next are enough). Both designs show one stop per ayah, at most five (the basmala is a stop of its own, then up to four ayat). Round 2 shows the Dial's volume control and the long and short ayah cases |
 | D20 | **Audio controls decided (round 2, 2026-11-13): the Dial** | Mockups: `audio-dial-desktop.png`, `audio-dial-phone.png`, `audio-long-short-cases.png`. The speaker opens an **Audio panel** (a floating panel above the control, not the row-in-place alternative) with volume, mute, "Play whole passage" and the reciter line. Arc sizes are **proportional to each stop's word count with a minimum arc**. The arcs are display only. **The surah name is not repeated in the audio controls**: it appears once, above the lesson text. The caption under the dial says only `Ayah 14 · 2 of 4` (`Basmala · 1 of 5` on the basmala stop) |
 | D21 | **The audio controls are bare** (owner, 2026-11-13) | No caption under the dial (no "Listen", no "Ayah 13 · 1 of 4"), no "Previous passage" and "Next passage" buttons and no `#` Go to ayah button or panel. The footer is the thin rail, the quiet "12 of 83 ayat typed" text (screen-reader text on phones) and the dial row. Moving between passages is Page Down and Page Up with focus in the footer, the summary's Next button after finishing, and the surah list. Go to ayah was removed with its tests and strings (it is in the git history, commit 0e49c34) |
+| D22 | **No summary after a passage, no "Completed" text** (owner, C2 feedback, 2026-11-13) | Finishing a passage inside a surah does not show the "Finished" card with figures and a Next button: after a short pause (450 ms) the page goes to the next passage by itself, with the typing field focused and the audio carrying on if it was playing. The "Completed: {surah}" summary is gone too; finishing a surah shows the celebration (F12) only. "Type again" for a passage goes with the card; the celebration keeps "Type it again" for the surah. The Practice HUD stops being a boxed card (the quiet strip of F13, done early). Every button shows the pointer cursor |
+| D23 | **The language can be set from the link** (owner, C2 feedback, 2026-11-13) | `?lang=ar` or `?lang=en` in the address chooses the interface language, so a link can be shared with people who read only Arabic. Task F13c |
 
 ## Superseded rules and waivers (record these in `docs/TECHNICAL.md` in Task F1)
 
@@ -349,10 +351,10 @@ export interface RecitationOutcome { readonly stats: KeyStats; readonly recitati
 
 Animation (all in `globals.css`, only inside `@media (prefers-reduced-motion: no-preference)`; otherwise the card is static and the rays are `display: none`): 18 rays, amber with every third one lighter, `burst` 1.2 s per cycle, staggered 0 / 60 / 120 ms, **iteration count infinite**; the card `rise` 0.45 s once; the name `glow` 2.4 s and the `halo` `pulse` 2.4 s, **infinite**; the star `starpop` 0.55 s once, delayed 0.5 s. Only `transform`, `opacity` and the name's `text-shadow` animate. Rays take their angle and delay from `style` custom properties set through React (allowed by the CSP, which blocks inline `style` attributes in markup but not CSSOM writes); type them with `CSSProperties`, never `any`.
 
-**Tests (S5), first:** typing through the last ayah of a short surah fixture opens the dialog (named "…complete") with the right figures; a run at 95% or better shows the star line and a worse run does not; the first completion shows the first-time line and a second shows the repeat line; `.ray` elements have `animation-iteration-count: infinite` with motion allowed and are not displayed with `prefers-reduced-motion: reduce`; "Continue to …" goes to the next surah; "Type it again" restarts the surah; the dialog is a bottom sheet at 390 px; no dialog appears when a passage inside a surah is finished (the quiet summary shows instead).
+**Tests (S5), first:** typing through the last ayah of a short surah fixture opens the dialog (named "…complete") with the right figures; a run at 95% or better shows the star line and a worse run does not; the first completion shows the first-time line and a second shows the repeat line; `.ray` elements have `animation-iteration-count: infinite` with motion allowed and are not displayed with `prefers-reduced-motion: reduce`; "Continue to …" goes to the next surah; "Type it again" restarts the surah; the dialog is a bottom sheet at 390 px; finishing a passage inside a surah shows no dialog and no "Finished" text: the next passage opens after a short pause with the field focused, and the audio, if it was playing, carries on (D22).
 
 - [ ] Arabic strings for every new key, reviewed for parity by the i18n parity test.
-- **Removes:** the completion branch of `LessonSummary` in `RecitationPage` (the title and details props it needed), `completion.times`/`completion.time` strings if now unused.
+- **Removes (D22):** the whole `LessonSummary` use in `RecitationPage` (the "Finished" card, its Next and Type again buttons, the completion title and details), the `recitation.next` string if now unused, the `title`, `details` and `note` props of `LessonSummary` if no other page needs them. The celebration takes over the "This was the last surah in this order. Next, it starts again." note and the "Start again" label on its Continue button.
 - **Acceptance:** specs above green; `celebration-frames.png` reproduced by freezing animations at the same times.
 
 > **Checkpoint C3:** the real card (stills at the mockup times plus a screen recording or GIF of the loop), desktop and phone, English and Arabic, starred and not starred, reduced motion.
@@ -363,7 +365,7 @@ Animation (all in `globals.css`, only inside `@media (prefers-reduced-motion: no
 
 **Files:** `src/practice/Hud.tsx`, `PracticePage.tsx`, `src/stats/StatsPage.tsx`, `src/custom/CustomPage.tsx`, `src/app/AboutPage.tsx`, `src/app/credits.ts`, `src/app/credits.test.ts`, `src/settings/SettingsDialog.tsx`, `src/i18n/*`, `e2e/about.spec.ts`.
 
-- [ ] **Practice:** the HUD becomes the quiet strip (uppercase mono labels over values: keys unlocked, newest key, accuracy, time per key, last lesson), no box. The unlock announcement keeps its polite status.
+- [x] **Practice:** the HUD becomes the quiet strip (uppercase mono labels over values: keys unlocked, newest key, accuracy, time per key, last lesson), no box. The unlock announcement keeps its polite status. Done early after the owner's C2 feedback (D22); C4 shows it with the other pages.
 - [ ] **Stats:** the mode choice as the segmented control; keys table and last-ten-lessons table side by side from `lg`, stacked below, hairline rows, amber meters.
 - [ ] **Custom:** textarea with an `edge` outline on `surface`; "Start typing" form button is `PRIMARY_BUTTON`.
 - [ ] **About (D10):** delete the "How this site was made" `Section` and the `ASSISTANT` constant; delete the `about.madeHeading` and `about.made` strings; delete the "Source code" entry from `CREDITS` and the `about.codeLabel` and `about.codeNote` strings (en and ar). The remaining sections (What you type, Privacy, Credits) stay.
@@ -398,6 +400,25 @@ Animation (all in `globals.css`, only inside `@media (prefers-reduced-motion: no
 - **Removes:** the old images (overwritten), nothing else.
 - **Acceptance:** the owner approves the new images; `pnpm check`, `pnpm test` green.
 
+#### Task F13c: Language from the link (D23)
+
+**Goal:** `https://…/?lang=ar` opens the app in Arabic (and `?lang=en` in English), so the owner can send the site to friends who read only Arabic and it does not greet them in English.
+
+**Rules (proposed; the owner can change them):**
+
+- The parameter is read once, at start-up, from the query string that sits before the `#` (so `/?lang=ar#/recitation/36/1` works and the hash routes are untouched). Only `ar` and `en` count (case-insensitive); anything else is ignored.
+- It beats the saved language and the browser's language for this visit, and it is **saved as the language setting**, exactly as if the visitor had chosen it in Settings, so their next visit without the parameter stays in Arabic.
+- After it is applied the parameter is removed from the address with `history.replaceState` (same path and hash), so a later change of language in Settings is not undone by a reload.
+- When storage is blocked or holds a newer schema, the app still starts in the requested language for this visit; nothing is written (the existing notices explain why).
+- No separate pages per language, no `hreflang`: the search and social tags stay as they are.
+
+**Files:** `src/i18n/i18n.ts` (a small `languageFromSearch(search: string): Language | null`), `src/storage/ProfileProvider.tsx` or `src/main.tsx` (apply once before the first render), `README.md` (one line: how to share an Arabic link).
+
+**Tests, first:** S1 `i18n.test.ts`: `languageFromSearch` accepts `?lang=ar`, `?lang=EN`, `?x=1&lang=ar`, returns `null` for `?lang=fr`, `?lang=`, no query. S5 `storage.spec.ts`: a visit to `/?lang=ar` with a saved English profile renders Arabic (`html[lang=ar][dir=rtl]`), saves `language: "ar"`, and the address has no `lang` parameter afterwards; the same visit with a `#/practice` hash keeps the hash; a bad value changes nothing; with blocked storage it renders Arabic without a crash.
+
+- **Removes:** nothing.
+- **Acceptance:** specs above green; the owner opens a `?lang=ar` link on a phone-sized window at C4.
+
 ### Phase F: Tests, baselines, docs
 
 #### Task F14: End-to-end sweep and baselines
@@ -426,7 +447,7 @@ Animation (all in `globals.css`, only inside `@media (prefers-reduced-motion: no
 
 - A light theme or a theme setting.
 - New app icons, the social share image, and the manifest icons (they stay as they are; the owner can ask for dark variants later).
-- Any new feature other than: the live stats line, stars, the celebration, the Settings About link.
+- Any new feature other than: the live stats line, stars, the celebration, the Settings About link, the language link parameter.
 - Changing the Arabic copy beyond adding the new strings.
 - Merging, tagging `v1-legacy`, or deploying.
 

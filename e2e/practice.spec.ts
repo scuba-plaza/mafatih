@@ -206,7 +206,10 @@ test("changing the vocalization builds a new lesson", async ({ page }) => {
 test("Reset progress asks first, then clears keys, statistics and lesson history but not settings or the place in the Qur'an", async ({
   page,
 }) => {
-  const recitation = { position: { surah: 36, ayah: 5 }, surahs: { 36: { typed: [[1, 4]], completions: 0 } } };
+  const recitation = {
+    position: { surah: 36, ayah: 5 },
+    surahs: { 36: { typed: [[1, 4]], completions: 0, run: { correct: 0, total: 0, ms: 0 }, best: 0 } },
+  };
   const stat = { attempts: 9, hits: 9, timed: 9, meanMs: 300, recentAccuracy: 1 };
   await seedProfile(page, {
     ladder: { unlocked: 20 },
@@ -262,7 +265,7 @@ test("the readout is compact on a narrow screen and nothing scrolls sideways", a
   await expect(hud(page)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   const box = await hud(page).boundingBox();
-  expect(box?.height ?? 999).toBeLessThan(160);
+  expect(box?.height ?? 999).toBeLessThan(184);
   await expectNoAxeViolations(page);
 });
 

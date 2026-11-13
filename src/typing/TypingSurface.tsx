@@ -287,19 +287,24 @@ export function TypingSurface(props: TypingSurfaceProps) {
             </p>
           ))}
           <span
+            key={session.errors}
             ref={caretRef}
             aria-hidden="true"
             data-caret=""
-            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            data-miss={session.errors > 0 ? session.errors : undefined}
+            data-pending={mistakes === "" ? undefined : ""}
+            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none data-pending:bg-danger forced-colors:bg-[CanvasText]"
             hidden
           />
         </div>
-        <div className="flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1 text-sm font-medium">
-          <p role="status" className="text-danger">
-            {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
+        <p role="status" className="sr-only">
+          {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
+        </p>
+        {wrongLayout && (
+          <p role="alert" className="px-4 py-1 text-center text-sm font-medium">
+            {t("typing.wrongLayout")}
           </p>
-          {wrongLayout && <p role="alert">{t("typing.wrongLayout")}</p>}
-        </div>
+        )}
         <input
           {...inputProps}
           ref={inputRef}

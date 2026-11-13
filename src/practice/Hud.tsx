@@ -22,9 +22,9 @@ export interface HudProps {
 
 function Item({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-wrap gap-x-1.5">
-      <dt className="whitespace-nowrap text-muted">{label}</dt>
-      <dd className="font-medium">{children}</dd>
+    <div className="flex flex-col gap-1">
+      <dt className="text-xs tracking-widest whitespace-nowrap text-muted uppercase">{label}</dt>
+      <dd className="font-mono text-sm tabular-nums">{children}</dd>
     </div>
   );
 }
@@ -39,30 +39,31 @@ export function Hud({ progress, stats, vocalization, last }: HudProps) {
   const nameKey = rung === undefined ? undefined : markNameKey(rung.char);
   const unlockedKey = last?.unlocked;
   const unlockedName = unlockedKey === undefined ? undefined : markNameKey(unlockedKey.char);
+  const none = <span className="text-muted">{t("hud.none")}</span>;
   const announcement =
     unlockedKey === undefined
       ? ""
       : t("hud.unlockedKey", { key: unlockedName === undefined ? unlockedKey.char : t(unlockedName) });
 
   return (
-    <section aria-label={t("hud.label")} className="flex flex-col gap-1 rounded-md border border-line bg-surface p-3">
-      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+    <section aria-label={t("hud.label")} className="flex flex-col gap-3">
+      <dl className="flex flex-wrap gap-x-8 gap-y-3">
         <Item label={t("hud.keys")}>{t("hud.keysValue", { count: progress.unlocked, total })}</Item>
         {rung !== undefined && (
           <>
             <Item label={t("hud.newest")}>
               <span lang="ar">{carriedMark(rung.char)}</span>
-              {nameKey !== undefined && <span className="ms-1.5">{t(nameKey)}</span>}
+              {nameKey !== undefined && <span className="ms-1.5 font-sans">{t(nameKey)}</span>}
             </Item>
-            <Item label={t("result.accuracy")}>{typed ? formatPercent(stat.recentAccuracy) : t("hud.none")}</Item>
+            <Item label={t("result.accuracy")}>{typed ? formatPercent(stat.recentAccuracy) : none}</Item>
             <Item label={t("hud.time")}>
-              {typed && stat.timed > 0 ? t("hud.timeValue", { ms: stat.meanMs }) : t("hud.none")}
+              {typed && stat.timed > 0 ? t("hud.timeValue", { ms: stat.meanMs }) : none}
             </Item>
           </>
         )}
         <Item label={t("hud.last")}>
           {last === null
-            ? t("hud.none")
+            ? none
             : t("hud.lastValue", { speed: last.metrics.cpm, accuracy: formatPercent(last.metrics.accuracy) })}
         </Item>
       </dl>
