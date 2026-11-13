@@ -1,14 +1,19 @@
 import { expect, test } from "vitest";
 import {
+  completedSurahs,
   completionsOf,
   endsOrder,
   initialRecitation,
+  NO_RUN,
   passageBefore,
   positionAfter,
   type RecitationProgress,
+  type RunTally,
   recordAyah,
   resumeOf,
   sanitizeRecitation,
+  starCount,
+  starredOf,
   startOf,
   typedAyat,
 } from "./progress.ts";
@@ -156,8 +161,8 @@ test("broken parts of saved progress are dropped and the rest kept", () => {
   expect(sanitizeRecitation(raw)).toEqual({
     position: null,
     surahs: {
-      1: { typed: [[1, 3]], completions: 2 },
-      2: { typed: [[3, 6]], completions: 0 },
+      1: { typed: [[1, 3]], completions: 2, run: NO_RUN, best: 0 },
+      2: { typed: [[3, 6]], completions: 0, run: NO_RUN, best: 0 },
     },
   });
   expect(sanitizeRecitation({ position: { surah: 2, ayah: 286 }, surahs: {} }).position).toEqual({
@@ -170,4 +175,66 @@ test("broken parts of saved progress are dropped and the rest kept", () => {
 test("a saved surah that would already be complete is not kept as half typed", () => {
   const raw = { position: null, surahs: { 1: { typed: [[1, 7]], completions: 0 } } };
   expect(typedAyat(sanitizeRecitation(raw), 1)).toBe(0);
+});
+
+const tally = (correct: number, total: number): RunTally => ({ correct, total, ms: total * 300 });
+
+function typeKawthar(progress: RecitationProgress, perAyah: readonly RunTally[]): RecitationProgress {
+  return perAyah.reduce(
+    (next, ayahTally, index) => recordAyah(next, { surah: 108, ayah: index + 1 }, "mushaf", ayahTally),
+    progress,
+  );
+}
+
+test("the keys typed for each new ayah add up to the run in progress, and retyping an ayah adds nothing", () => {
+  const second = typeKawthar(initialRecitation(), [tally(9, 10), tally(10, 10)]);
+  expect(second.surahs[108]?.run).toEqual({ correct: 19, total: 20, ms: 6000 });
+  expect(recordAyah(second, { surah: 108, ayah: 2 }, "mushaf", tally(0, 10))).toEqual(second);
+});
+
+test("completing a surah starts the next run from nothing and keeps the accuracy of the finished one", () => {
+  const done = typeKawthar(initialRecitation(), [tally(9, 10), tally(10, 10), tally(10, 10)]);
+  expect(done.surahs[108]).toMatchObject({ typed: [], completions: 1, run: NO_RUN });
+  expect(done.surahs[108]?.best).toBeCloseTo(0.9667, 4);
+});
+
+test("a worse run later leaves the best where it was, and a better one raises it", () => {
+  const first = typeKawthar(initialRecitation(), [tally(9, 10), tally(9, 10), tally(9, 10)]);
+  expect(first.surahs[108]?.best).toBeCloseTo(0.9, 4);
+  const worse = typeKawthar(first, [tally(7, 10), tally(7, 10), tally(7, 10)]);
+  expect(worse.surahs[108]?.best).toBeCloseTo(0.9, 4);
+  expect(completionsOf(worse, 108)).toBe(2);
+  const better = typeKawthar(worse, [tally(10, 10), tally(10, 10), tally(10, 10)]);
+  expect(better.surahs[108]?.best).toBe(1);
+});
+
+test("a surah is starred once a finished run reached 95%: 19 keys of 20 do, 18 of 20 do not", () => {
+  const typeIkhlas = (counts: readonly number[]) =>
+    counts.reduce(
+      (next, correct, index) => recordAyah(next, { surah: 112, ayah: index + 1 }, "mushaf", tally(correct, 5)),
+      initialRecitation(),
+    );
+  const nineteen = typeIkhlas([5, 5, 5, 4]);
+  const eighteen = typeIkhlas([5, 5, 4, 4]);
+  expect(starredOf(nineteen, 112)).toBe(true);
+  expect(starredOf(eighteen, 112)).toBe(false);
+  expect(starCount(nineteen)).toBe(1);
+  expect(starCount(eighteen)).toBe(0);
+  expect(completedSurahs(nineteen)).toBe(1);
+  expect(completedSurahs(eighteen)).toBe(1);
+  expect(completedSurahs(typeKawthar(initialRecitation(), [tally(1, 1)]))).toBe(0);
+});
+
+test("a save from before runs and bests were kept loads with zeros, and nonsense in them is cleared", () => {
+  const old = { position: null, surahs: { 108: { typed: [[1, 1]], completions: 2 } } };
+  expect(sanitizeRecitation(old).surahs[108]).toEqual({ typed: [[1, 1]], completions: 2, run: NO_RUN, best: 0 });
+  const junk = (run: unknown, best: unknown) =>
+    sanitizeRecitation({ surahs: { 108: { typed: [[1, 1]], completions: 1, run, best } } }).surahs[108];
+  expect(junk({ correct: -1, total: "x", ms: 5 }, 7)).toMatchObject({ run: NO_RUN, best: 0 });
+  expect(junk({ correct: 11, total: 10, ms: 5 }, -0.2)).toMatchObject({ run: NO_RUN, best: 0 });
+  expect(junk({ correct: 2.5, total: 10, ms: 5 }, "0.99")).toMatchObject({ run: NO_RUN, best: 0 });
+  expect(junk({ correct: 9, total: 10, ms: 3000 }, 0.97)).toMatchObject({
+    run: { correct: 9, total: 10, ms: 3000 },
+    best: 0.97,
+  });
 });

@@ -23,7 +23,10 @@ const USED: Profile = {
     custom: {},
   },
   history: [{ at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 65_000, accuracy: 0.97 }],
-  recitation: { position: { surah: 36, ayah: 13 }, surahs: { 36: { typed: [[1, 12]], completions: 0 } } },
+  recitation: {
+    position: { surah: 36, ayah: 13 },
+    surahs: { 36: { typed: [[1, 12]], completions: 0, run: { correct: 40, total: 44, ms: 15_000 }, best: 0 } },
+  },
 };
 
 function backup(profile: unknown, over: Record<string, unknown> = {}): string {

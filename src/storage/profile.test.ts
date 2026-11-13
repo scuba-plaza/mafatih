@@ -256,7 +256,10 @@ test("every setting and all progress survive being saved and opened again", () =
     history: [{ at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 65_000, accuracy: 0.97 }],
     recitation: {
       position: { surah: 36, ayah: 13 },
-      surahs: { 1: { typed: [], completions: 2 }, 36: { typed: [[1, 12]], completions: 0 } },
+      surahs: {
+        1: { typed: [], completions: 2, run: { correct: 0, total: 0, ms: 0 }, best: 0.97 },
+        36: { typed: [[1, 12]], completions: 0, run: { correct: 40, total: 44, ms: 15_000 }, best: 0 },
+      },
     },
   };
   openProfile(store, ENGLISH).save(changed);
@@ -280,7 +283,10 @@ test("broken progress falls back on its own: the settings and the rest of the pr
     ...ARABIC_PROFILE,
     stats: { practice: { ب: stat }, recitation: {}, custom: {} },
     history: [lesson],
-    recitation: { position: null, surahs: { 1: { typed: [[2, 3]], completions: 0 } } },
+    recitation: {
+      position: null,
+      surahs: { 1: { typed: [[2, 3]], completions: 0, run: { correct: 0, total: 0, ms: 0 }, best: 0 } },
+    },
   });
   expect(
     openProfile(holding('{"schema":2,"ladder":{"unlocked":99},"stats":[],"history":{}}'), ENGLISH).profile,

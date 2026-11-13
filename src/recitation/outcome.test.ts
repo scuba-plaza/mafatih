@@ -38,3 +38,17 @@ test("an ayah that does not exist records neither progress nor keys", () => {
   expect(outcome.recitation).toBe(FRESH.recitation);
   expect(outcome.stats).toBe(FRESH.stats);
 });
+
+test("the tally of a run is handed back once, on the ayah that finishes the surah", () => {
+  let state: RecitationState = FRESH;
+  for (let ayah = 1; ayah <= 6; ayah += 1) {
+    const outcome = applyRecitationAyah(state, { surah: 1, ayah }, SAMPLES, "mushaf");
+    expect(outcome.finished).toBeNull();
+    state = outcome;
+  }
+  const last = applyRecitationAyah(state, { surah: 1, ayah: 7 }, SAMPLES, "mushaf");
+  expect(last.finished).toEqual({ correct: 14, total: 21, ms: 4060 });
+  expect(last.recitation.surahs[1]?.best).toBeCloseTo(0.6667, 4);
+  const retyped = applyRecitationAyah(last, { surah: 1, ayah: 1 }, SAMPLES, "mushaf");
+  expect(retyped.finished).toBeNull();
+});

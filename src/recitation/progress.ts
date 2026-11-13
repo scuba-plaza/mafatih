@@ -9,9 +9,21 @@ export interface Position {
 
 export type AyahRange = readonly [number, number];
 
+export const STAR_ACCURACY = 0.95;
+
+export interface RunTally {
+  readonly correct: number;
+  readonly total: number;
+  readonly ms: number;
+}
+
+export const NO_RUN: RunTally = { correct: 0, total: 0, ms: 0 };
+
 export interface SurahProgress {
   readonly typed: readonly AyahRange[];
   readonly completions: number;
+  readonly run: RunTally;
+  readonly best: number;
 }
 
 export interface RecitationProgress {
@@ -19,7 +31,7 @@ export interface RecitationProgress {
   readonly surahs: Readonly<Record<number, SurahProgress>>;
 }
 
-const NOT_STARTED: SurahProgress = { typed: [], completions: 0 };
+const NOT_STARTED: SurahProgress = { typed: [], completions: 0, run: NO_RUN, best: 0 };
 
 function ayatIn(surah: number): number {
   return surahMeta(surah)?.ayat ?? 0;
@@ -44,6 +56,18 @@ function merged(ranges: readonly AyahRange[]): AyahRange[] {
     }
   }
   return result;
+}
+
+export function addTally(a: RunTally, b: RunTally): RunTally {
+  return { correct: a.correct + b.correct, total: a.total + b.total, ms: a.ms + b.ms };
+}
+
+export function accuracyOf(tally: RunTally): number {
+  return tally.total === 0 ? 0 : tally.correct / tally.total;
+}
+
+function covers(ranges: readonly AyahRange[], ayah: number): boolean {
+  return ranges.some(([start, end]) => start <= ayah && ayah <= end);
 }
 
 function countOf(ranges: readonly AyahRange[]): number {
@@ -71,6 +95,22 @@ export function completionsOf(progress: RecitationProgress, surah: number): numb
   return recordOf(progress, surah).completions;
 }
 
+export function runOf(progress: RecitationProgress, surah: number): RunTally {
+  return recordOf(progress, surah).run;
+}
+
+export function starredOf(progress: RecitationProgress, surah: number): boolean {
+  return recordOf(progress, surah).best >= STAR_ACCURACY;
+}
+
+export function completedSurahs(progress: RecitationProgress): number {
+  return Object.values(progress.surahs).filter((record) => record.completions > 0).length;
+}
+
+export function starCount(progress: RecitationProgress): number {
+  return Object.values(progress.surahs).filter((record) => record.best >= STAR_ACCURACY).length;
+}
+
 export function resumeOf(progress: RecitationProgress, surah: number): number {
   const [first] = recordOf(progress, surah).typed;
   return first === undefined || first[0] > 1 ? 1 : first[1] + 1;
@@ -94,17 +134,23 @@ export function passageBefore(position: Position, maxAyat: number, order: SurahO
     : { surah, ayah: 1 + Math.floor((ayatIn(surah) - 1) / size) * size };
 }
 
-export function recordAyah(progress: RecitationProgress, position: Position, order: SurahOrder): RecitationProgress {
+export function recordAyah(
+  progress: RecitationProgress,
+  position: Position,
+  order: SurahOrder,
+  tally: RunTally = NO_RUN,
+): RecitationProgress {
   if (!exists(position)) {
     return progress;
   }
   const { surah, ayah } = position;
   const before = recordOf(progress, surah);
   const typed = merged([...before.typed, [ayah, ayah]]);
+  const run = covers(before.typed, ayah) ? before.run : addTally(before.run, tally);
   const completes = countOf(typed) === ayatIn(surah);
   const after: SurahProgress = completes
-    ? { typed: [], completions: before.completions + 1 }
-    : { typed, completions: before.completions };
+    ? { typed: [], completions: before.completions + 1, run: NO_RUN, best: Math.max(before.best, accuracyOf(run)) }
+    : { typed, completions: before.completions, run, best: before.best };
   const resume = completes
     ? positionAfter({ surah, ayah: ayatIn(surah) }, order)
     : afterTypedRange(typed, position, order);
@@ -134,6 +180,17 @@ function sanitizeRanges(raw: unknown, surah: number): AyahRange[] {
   return countOf(typed) >= ayatIn(surah) ? [] : typed;
 }
 
+function sanitizeRun(raw: unknown): RunTally {
+  if (!isRecord(raw) || !isCount(raw.correct) || !isCount(raw.total) || !isCount(raw.ms) || raw.correct > raw.total) {
+    return NO_RUN;
+  }
+  return { correct: raw.correct, total: raw.total, ms: raw.ms };
+}
+
+function sanitizeBest(raw: unknown): number {
+  return typeof raw === "number" && raw >= 0 && raw <= 1 ? raw : 0;
+}
+
 export function sanitizeRecitation(raw: unknown): RecitationProgress {
   if (!isRecord(raw)) {
     return initialRecitation();
@@ -146,7 +203,12 @@ export function sanitizeRecitation(raw: unknown): RecitationProgress {
       const typed = sanitizeRanges(entry.typed, surah);
       const completions = isCount(entry.completions) ? entry.completions : 0;
       if (typed.length > 0 || completions > 0) {
-        surahs[surah] = { typed, completions };
+        surahs[surah] = {
+          typed,
+          completions,
+          run: typed.length > 0 ? sanitizeRun(entry.run) : NO_RUN,
+          best: sanitizeBest(entry.best),
+        };
       }
     }
   }
