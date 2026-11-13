@@ -119,6 +119,7 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
     volume: settings.volume,
     muted: settings.muted,
     whole: settings.playWhole,
+    loop: settings.loop,
     held: dialogOpen,
     resting: lessonFinished,
   });

@@ -10,6 +10,7 @@ export interface PlayerState {
   readonly resting: boolean;
   readonly resume: boolean;
   readonly whole: boolean;
+  readonly loop: boolean;
   readonly restarts: number;
 }
 
@@ -23,10 +24,21 @@ export type PlayerAction =
   | { readonly type: "hold"; readonly held: boolean }
   | { readonly type: "rest"; readonly resting: boolean }
   | { readonly type: "whole"; readonly value: boolean }
+  | { readonly type: "loop"; readonly value: boolean }
   | { readonly type: "load"; readonly count: number };
 
 export function initialPlayer(count: number): PlayerState {
-  return { status: "idle", index: 0, count, held: false, resting: false, resume: false, whole: false, restarts: 0 };
+  return {
+    status: "idle",
+    index: 0,
+    count,
+    held: false,
+    resting: false,
+    resume: false,
+    whole: false,
+    loop: false,
+    restarts: 0,
+  };
 }
 
 function change(state: PlayerState, patch: Partial<Pick<PlayerState, "held" | "resting">>): PlayerState {
@@ -38,7 +50,18 @@ function change(state: PlayerState, patch: Partial<Pick<PlayerState, "held" | "r
   return { ...next, resume: false, status: state.resume ? "playing" : state.status };
 }
 
+function onLast(state: PlayerState): boolean {
+  return state.index >= state.count - 1;
+}
+
+function wrapped(state: PlayerState): PlayerState {
+  return { ...state, index: 0, restarts: state.count === 1 ? state.restarts + 1 : state.restarts };
+}
+
 function ended(state: PlayerState): PlayerState {
+  if (state.loop && state.count > 0 && onLast(state)) {
+    return { ...wrapped(state), status: "playing" };
+  }
   if (!state.whole) {
     return { ...state, status: "paused" };
   }
@@ -68,7 +91,10 @@ export function playerReducer(state: PlayerState, action: PlayerAction): PlayerS
     case "pause":
       return state.status === "playing" ? { ...state, status: "paused", resume: false } : state;
     case "next":
-      return state.index < state.count - 1 ? { ...state, index: state.index + 1 } : state;
+      if (!onLast(state)) {
+        return { ...state, index: state.index + 1 };
+      }
+      return state.loop && state.count > 0 ? wrapped(state) : state;
     case "previous":
       return action.elapsed > RESTART_AFTER_SECONDS || state.index === 0
         ? { ...state, restarts: state.restarts + 1 }
@@ -83,6 +109,8 @@ export function playerReducer(state: PlayerState, action: PlayerAction): PlayerS
       return change(state, { resting: action.resting });
     case "whole":
       return { ...state, whole: action.value };
+    case "loop":
+      return { ...state, loop: action.value };
     case "load":
       return load(state, action.count);
   }

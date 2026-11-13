@@ -19,6 +19,7 @@ const DEFAULTS = {
   volume: 0.8,
   muted: false,
   playWhole: false,
+  loop: false,
 };
 
 test("the defaults: errors must be corrected with Backspace, vocalization follows progress", () => {
@@ -43,6 +44,7 @@ test("valid saved settings are kept", () => {
     volume: 0.35,
     muted: true,
     playWhole: true,
+    loop: true,
   };
   expect(sanitizeSettings(saved, ENGLISH)).toEqual(saved);
 });
@@ -139,13 +141,13 @@ test("the volume is a number from nothing to full, brought into range, and 80 pe
   expect(["0.5", null, Number.NaN, undefined, {}].map(volume)).toEqual([0.8, 0.8, 0.8, 0.8, 0.8]);
 });
 
-test("only a real true mutes the recitation or plays the whole passage", () => {
+test("only a real true mutes the recitation, plays the whole passage or repeats it", () => {
   const flags = (value: unknown) => {
-    const { muted, playWhole } = sanitizeSettings({ muted: value, playWhole: value }, ENGLISH);
-    return [muted, playWhole];
+    const { muted, playWhole, loop } = sanitizeSettings({ muted: value, playWhole: value, loop: value }, ENGLISH);
+    return [muted, playWhole, loop];
   };
-  expect(flags(true)).toEqual([true, true]);
+  expect(flags(true)).toEqual([true, true, true]);
   for (const junk of ["true", 1, null, {}, undefined, false]) {
-    expect(flags(junk), String(junk)).toEqual([false, false]);
+    expect(flags(junk), String(junk)).toEqual([false, false, false]);
   }
 });

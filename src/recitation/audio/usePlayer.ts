@@ -10,6 +10,7 @@ export interface PlayerOptions {
   readonly volume: number;
   readonly muted: boolean;
   readonly whole: boolean;
+  readonly loop: boolean;
   readonly held: boolean;
   readonly resting: boolean;
 }
@@ -30,9 +31,13 @@ interface Loaded {
   readonly objectUrl: string;
 }
 
-export function usePlayer({ passage, reciter, volume, muted, whole, held, resting }: PlayerOptions): Player {
+export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, resting }: PlayerOptions): Player {
   const clips = useMemo(() => (passage === null ? [] : audioSequence(passage)), [passage]);
-  const [state, dispatch] = useReducer(playerReducer, undefined, () => ({ ...initialPlayer(clips.length), whole }));
+  const [state, dispatch] = useReducer(playerReducer, undefined, () => ({
+    ...initialPlayer(clips.length),
+    whole,
+    loop,
+  }));
   const element = useRef<HTMLAudioElement | null>(null);
   const loaded = useRef<Loaded | null>(null);
   const ticket = useRef(0);
@@ -68,6 +73,7 @@ export function usePlayer({ passage, reciter, volume, muted, whole, held, restin
   useEffect(() => dispatch({ type: "hold", held }), [held]);
   useEffect(() => dispatch({ type: "rest", resting }), [resting]);
   useEffect(() => dispatch({ type: "whole", value: whole }), [whole]);
+  useEffect(() => dispatch({ type: "loop", value: loop }), [loop]);
 
   useEffect(() => {
     const target = audio();

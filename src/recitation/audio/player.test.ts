@@ -65,6 +65,59 @@ test("when the last clip of the whole passage ends the player stops, ready to st
   expect(run([{ type: "ended" }], lastClip)).toMatchObject({ status: "paused", index: 0 });
 });
 
+test("a player repeats nothing by default", () => {
+  expect(initialPlayer(4).loop).toBe(false);
+});
+
+test("with repeat on, the end of the last clip of the whole passage starts the passage again and keeps playing", () => {
+  const onLast = run([
+    { type: "loop", value: true },
+    { type: "whole", value: true },
+    { type: "play" },
+    { type: "next" },
+    { type: "next" },
+    { type: "next" },
+  ]);
+  expect(onLast.index).toBe(3);
+  expect(run([{ type: "ended" }], onLast)).toMatchObject({ status: "playing", index: 0 });
+});
+
+test("with repeat on, a passage of one clip starts that clip over when it ends", () => {
+  const single = run(
+    [{ type: "loop", value: true }, { type: "whole", value: true }, { type: "play" }, { type: "ended" }],
+    initialPlayer(1),
+  );
+  expect(single).toMatchObject({ status: "playing", index: 0 });
+  expect(single.restarts).toBe(1);
+});
+
+test("with repeat on but not the whole passage, each clip still stops at its end, and the last one starts the passage over", () => {
+  const first = run([{ type: "loop", value: true }, { type: "play" }, { type: "ended" }]);
+  expect(first).toMatchObject({ status: "paused", index: 0 });
+  const last = run([
+    { type: "loop", value: true },
+    { type: "play" },
+    { type: "next" },
+    { type: "next" },
+    { type: "next" },
+  ]);
+  expect(run([{ type: "ended" }], last)).toMatchObject({ status: "playing", index: 0 });
+});
+
+test("with repeat on, Next on the last clip goes round to the first and changes nothing else", () => {
+  const paused = run([{ type: "loop", value: true }, { type: "next" }, { type: "next" }, { type: "next" }]);
+  expect(run([{ type: "next" }], paused)).toMatchObject({ status: "idle", index: 0 });
+  const playing = run([{ type: "play" }], paused);
+  expect(run([{ type: "next" }], playing)).toMatchObject({ status: "playing", index: 0 });
+  expect(run([{ type: "next" }], { ...paused, index: 0, count: 1, status: "playing" }).restarts).toBe(1);
+  expect(run([{ type: "next" }, { type: "next" }, { type: "next" }, { type: "next" }]).index).toBe(3);
+});
+
+test("the repeat choice survives a new passage", () => {
+  const repeating = run([{ type: "loop", value: true }, { type: "play" }]);
+  expect(playerReducer(repeating, { type: "load", count: 2 }).loop).toBe(true);
+});
+
 test("a failed fetch is shown as failed, and Play tries again", () => {
   const failed = run([{ type: "play" }, { type: "failed" }]);
   expect(failed.status).toBe("failed");

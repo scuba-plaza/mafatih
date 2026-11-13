@@ -17,6 +17,7 @@ const OTHER_DEFAULTS = {
   volume: 0.8,
   muted: false,
   playWhole: false,
+  loop: false,
 } as const;
 const NO_PROGRESS = {
   ladder: { unlocked: 10 },
@@ -99,6 +100,7 @@ test("a saved profile is read back as it was, whatever the browser's language is
       volume: 0.8,
       muted: false,
       playWhole: false,
+      loop: false,
     },
     ladder: { unlocked: 10 },
     stats: { practice: {}, recitation: {}, custom: {} },
@@ -176,6 +178,7 @@ test("unknown and dangerous keys in saved data are never copied into the profile
       "font",
       "fontSize",
       "language",
+      "loop",
       "muted",
       "playWhole",
       "reciter",
@@ -246,6 +249,7 @@ test("every setting and all progress survive being saved and opened again", () =
       volume: 0.25,
       muted: true,
       playWhole: true,
+      loop: true,
     },
     ladder: { unlocked: 12 },
     stats: {

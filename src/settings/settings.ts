@@ -21,6 +21,7 @@ export interface Settings {
   readonly volume: number;
   readonly muted: boolean;
   readonly playWhole: boolean;
+  readonly loop: boolean;
 }
 
 export const AYAT_PER_PASSAGE: readonly number[] = [1, 2, 3, 4];
@@ -65,6 +66,7 @@ export function defaultSettings(preferredLanguages: readonly string[]): Settings
     volume: DEFAULT_VOLUME,
     muted: false,
     playWhole: false,
+    loop: false,
   };
 }
 
@@ -88,5 +90,6 @@ export function sanitizeSettings(raw: unknown, preferredLanguages: readonly stri
     volume: clampVolume(raw.volume),
     muted: raw.muted === true,
     playWhole: raw.playWhole === true,
+    loop: raw.loop === true,
   };
 }
