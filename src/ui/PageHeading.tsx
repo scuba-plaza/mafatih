@@ -6,8 +6,8 @@ export function PageHeading({ children, quiet = false }: { children: ReactNode; 
       tabIndex={-1}
       className={
         quiet
-          ? "text-center text-xs font-normal tracking-[0.18em] text-muted uppercase"
-          : "text-2xl font-normal tracking-tight"
+          ? "mx-auto w-fit text-center text-xs font-normal tracking-[0.18em] text-muted uppercase"
+          : "w-fit text-2xl font-normal tracking-tight"
       }
     >
       {children}
