@@ -93,7 +93,7 @@ Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", s
 
 ## Deploy
 
-`.github/workflows/deploy.yml`: `pnpm verify` runs before the build on every push; the Pages deployment runs only for `main`. A separate `engines` job runs the whole suite in Firefox and WebKit on `main` and on demand; it does not gate the deploy.
+`.github/workflows/deploy.yml`: Pages is configured first, then `pnpm verify` builds and tests with the Pages `BASE_PATH` and `SITE_URL`, and the artifact is that same `dist` (there is no second build, so what is deployed is what was tested; the browser suite expects the app at the root of its address, which holds for the custom domain). Every action is pinned to a commit, not a tag. The Pages deployment runs only for `main`. A separate `engines` job runs the whole suite in Firefox and WebKit on `main` and on demand; it does not gate the deploy.
 
 ## Design decisions, 2026-11-12 (the Focus design)
 
