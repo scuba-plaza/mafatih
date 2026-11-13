@@ -108,7 +108,7 @@ export function SurahComplete({ meta, finish, next, endsTheOrder, onContinue, on
             {[
               { label: t("celebration.ayat"), value: formatNumber(meta.ayat) },
               { label: t("celebration.accuracy"), value: formatPercent(accuracy) },
-              { label: t("celebration.speed"), value: `${formatNumber(speed)}${t("celebration.perMinute")}` },
+              { label: t("result.speedShort"), value: `${formatNumber(speed)}${t("celebration.perMinute")}` },
               { label: t("celebration.time"), value: formatDuration(finish.tally.ms) },
             ].map((figure) => (
               <div key={figure.label} className="flex min-w-0 flex-col-reverse items-center gap-1">

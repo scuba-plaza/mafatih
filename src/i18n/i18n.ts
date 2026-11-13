@@ -45,6 +45,11 @@ export function detectLanguage(preferred: readonly string[]): Language {
   return "en";
 }
 
+export function languageFromSearch(search: string): Language | null {
+  const asked = new URLSearchParams(search).get("lang")?.toLowerCase();
+  return isLanguage(asked) ? asked : null;
+}
+
 export function directionOf(language: Language): "ltr" | "rtl" {
   return language === "ar" ? "rtl" : "ltr";
 }

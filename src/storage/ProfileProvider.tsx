@@ -1,9 +1,11 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { Language } from "~/i18n/i18n.ts";
 import {
   eraseProfile,
   type KeyValueStore,
   type OpenedProfile,
   openProfile,
+  openProfileInLanguage,
   type Profile,
   STORAGE_KEY,
   type StorageNotice,
@@ -38,8 +40,15 @@ export function eraseStoredProfile(): void {
   eraseProfile(browserStore());
 }
 
-export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [opened, setOpened] = useState(open);
+export interface ProfileProviderProps {
+  readonly requestedLanguage?: Language | null;
+  readonly children: ReactNode;
+}
+
+export function ProfileProvider({ requestedLanguage = null, children }: ProfileProviderProps) {
+  const [opened, setOpened] = useState(() =>
+    openProfileInLanguage(browserStore(), deviceLanguages(), requestedLanguage),
+  );
   const latest = useRef(opened);
 
   const adopt = useCallback((next: OpenedProfile) => {

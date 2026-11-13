@@ -1,5 +1,13 @@
 import { expect, test } from "vitest";
-import { eraseProfile, type KeyValueStore, openProfile, type Profile, STORAGE_KEY, UNREADABLE_KEY } from "./profile.ts";
+import {
+  eraseProfile,
+  type KeyValueStore,
+  openProfile,
+  openProfileInLanguage,
+  type Profile,
+  STORAGE_KEY,
+  UNREADABLE_KEY,
+} from "./profile.ts";
 
 const ENGLISH = ["en-US"];
 const ARABIC = ["ar-EG", "en"];
@@ -314,4 +322,43 @@ test("erasing does not throw when the store refuses, or when there is no store",
   };
   expect(() => eraseProfile(refusing)).not.toThrow();
   expect(() => eraseProfile(null)).not.toThrow();
+});
+
+test("a language asked for in the address beats the saved one and the browser's, and is saved like a choice in Settings", () => {
+  const store = holding(JSON.stringify(ENGLISH_DEFAULTS));
+  const opened = openProfileInLanguage(store, ENGLISH, "ar");
+  expect(opened.profile.settings.language).toBe("ar");
+  expect(opened.notice).toBeNull();
+  expect(JSON.parse(store.data.get(STORAGE_KEY) ?? "{}").settings.language).toBe("ar");
+  expect(openProfile(store, ENGLISH).profile.settings.language).toBe("ar");
+});
+
+test("no language asked for, or the one already in use, writes nothing", () => {
+  const stored = JSON.stringify(ARABIC_PROFILE);
+  const store = holding(stored);
+  expect(openProfileInLanguage(store, ENGLISH, null).profile.settings.language).toBe("ar");
+  expect(openProfileInLanguage(store, ENGLISH, "ar").profile.settings.language).toBe("ar");
+  expect(store.data.get(STORAGE_KEY)).toBe(stored);
+});
+
+test("a first visit through a link in Arabic starts in Arabic and keeps its progress settings at their defaults", () => {
+  const store = memoryStore();
+  const opened = openProfileInLanguage(store, ENGLISH, "ar");
+  expect(opened.profile).toEqual(ARABIC_PROFILE);
+  expect(JSON.parse(store.data.get(STORAGE_KEY) ?? "{}").settings.language).toBe("ar");
+});
+
+test("progress saved by a newer version stays untouched, while this visit still opens in the language asked for", () => {
+  const newer = '{"schema":3,"settings":{"language":"en"}}';
+  const store = holding(newer);
+  const opened = openProfileInLanguage(store, ENGLISH, "ar");
+  expect(opened.profile.settings.language).toBe("ar");
+  expect(opened.notice).toBe("newer");
+  expect(store.data.get(STORAGE_KEY)).toBe(newer);
+});
+
+test("when storage is refused the language asked for still applies, and the visitor is told nothing is saved", () => {
+  const opened = openProfileInLanguage(null, ENGLISH, "ar");
+  expect(opened.profile.settings.language).toBe("ar");
+  expect(opened.notice).toBe("unavailable");
 });

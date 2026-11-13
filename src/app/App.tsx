@@ -1,5 +1,6 @@
 import { CustomPage } from "~/custom/CustomPage.tsx";
 import { I18nProvider } from "~/i18n/I18nProvider.tsx";
+import type { Language } from "~/i18n/i18n.ts";
 import { PracticePage } from "~/practice/PracticePage.tsx";
 import { RecitationPage } from "~/recitation/RecitationPage.tsx";
 import { SettingsButton } from "~/settings/SettingsButton.tsx";
@@ -41,9 +42,9 @@ function Pages() {
   );
 }
 
-export function App() {
+export function App({ requestedLanguage = null }: { requestedLanguage?: Language | null }) {
   return (
-    <ProfileProvider>
+    <ProfileProvider requestedLanguage={requestedLanguage}>
       <Pages />
     </ProfileProvider>
   );

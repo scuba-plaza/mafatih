@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { startTyping } from "./helpers/typing.ts";
+import { savedSettings } from "./helpers/profile.ts";
 
 const KEY = "mafatih:profile:2";
 const NOT_SAVED = "Your progress can't be saved in this browser.";
@@ -178,7 +178,67 @@ test("when saving fails after a change the visitor is told, and the change still
   await page.goto("/#/custom");
   await expect(noticeArea(page)).toBeEmpty();
   await page.getByRole("textbox", { name: "Text to type" }).fill("بتن");
-  await startTyping(page);
+  await page.getByRole("button", { name: "Start typing" }).click();
   await expect(page.getByRole("region", { name: "Text to type" })).toContainText("بتن");
   await expect(page.getByText("Your progress can't be saved in this browser.")).toBeVisible();
+});
+
+test.describe("the language asked for in the link", () => {
+  test("opens the app in Arabic, saves it as the setting, and leaves the address clean", async ({ page }) => {
+    await store(page, KEY, '{"schema":2,"settings":{"language":"en"}}');
+    await page.goto("/?lang=ar");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("التلاوة");
+    expect(new URL(page.url()).search).toBe("");
+    expect((await savedSettings(page)).language).toBe("ar");
+  });
+
+  test("works on a first visit from an English browser and keeps the page asked for", async ({ page }) => {
+    await page.goto("/?lang=ar#/practice");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("التمرين");
+    expect(new URL(page.url()).hash).toBe("#/practice");
+    expect(new URL(page.url()).search).toBe("");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  });
+
+  test("a language chosen in Settings afterwards is not undone by a reload", async ({ page }) => {
+    await page.goto("/?lang=ar#/practice");
+    await page.getByRole("button", { name: "الإعدادات" }).click();
+    await page.getByRole("dialog", { name: "الإعدادات" }).getByRole("radio", { name: "English" }).check();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  });
+
+  test("English can be asked for as well, against a saved Arabic profile", async ({ page }) => {
+    await store(page, KEY, '{"schema":2,"settings":{"language":"ar"}}');
+    await page.goto("/?lang=en");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    expect((await savedSettings(page)).language).toBe("en");
+  });
+
+  test("a language that is not offered changes nothing and leaves the address alone", async ({ page }) => {
+    await page.goto("/?lang=fr");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    expect(new URL(page.url()).search).toBe("?lang=fr");
+  });
+
+  test("with storage blocked the app still opens in Arabic, and says nothing is saved, in Arabic", async ({ page }) => {
+    await blockStorage(page);
+    await page.goto("/?lang=ar");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(noticeArea(page).getByText("تعذّر حفظ تقدّمك في هذا المتصفح.")).toBeVisible();
+  });
+
+  test("progress saved by a newer version stays untouched while the page opens in the language asked for", async ({
+    page,
+  }) => {
+    const newer = '{"schema":3,"settings":{"language":"en"}}';
+    await store(page, KEY, newer);
+    await page.goto("/?lang=ar");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBe(newer);
+  });
 });

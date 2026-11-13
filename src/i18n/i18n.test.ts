@@ -11,6 +11,7 @@ import {
   formatNumber,
   formatPercent,
   isLanguage,
+  languageFromSearch,
   placeholdersOf,
   translate,
 } from "./i18n.ts";
@@ -152,4 +153,17 @@ test("a placeholder named like a built-in object property is still missing unles
   expect(() => fillMessage("en", "{constructor}", {})).toThrow(/constructor/);
   expect(() => fillMessage("en", "{toString}")).toThrow(/toString/);
   expect(() => fillMessage("en", "{__proto__}", {})).toThrow(/__proto__/);
+});
+
+test("a language can be asked for in the address: ar or en, in any case, among other parameters", () => {
+  expect(languageFromSearch("?lang=ar")).toBe("ar");
+  expect(languageFromSearch("?lang=EN")).toBe("en");
+  expect(languageFromSearch("?x=1&lang=ar&y=2")).toBe("ar");
+  expect(languageFromSearch("lang=ar")).toBe("ar");
+});
+
+test("an address that asks for nothing, or for something else, asks for no language", () => {
+  for (const search of ["", "?", "?lang=", "?lang=fr", "?lang=ar-EG", "?language=ar", "?x=lang=ar", "?lang=toString"]) {
+    expect(languageFromSearch(search), search).toBeNull();
+  }
 });

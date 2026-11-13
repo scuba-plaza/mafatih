@@ -252,10 +252,10 @@ test("at 320 pixels the page never scrolls sideways: a table too wide for it scr
   await page.goto("/#/stats");
   const scroller = page.getByRole("group", { name: /^Scrollable: \P{L}*Last ten lessons/u });
   await expect(recent(page)).toBeVisible();
-  await expect(scroller).toHaveAttribute("tabindex", "0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await expectNoAxeViolations(page);
   await addStyle(page, "html { font-size: 150%; }");
+  await expect(scroller).toHaveAttribute("tabindex", "0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await expectNoAxeViolations(page);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -274,4 +274,40 @@ test("Reset progress empties the statistics and the lesson list", async ({ page 
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(keys(page)).toHaveCount(0);
   await expect(page.getByText("No lessons yet.")).toBeVisible();
+});
+
+test("the mode is chosen with a segmented control: the chosen segment is filled, and the arrow keys move it", async ({
+  page,
+}) => {
+  await seedProfile(page, PROFILE);
+  await openPractice(page);
+  const fill = (name: string) =>
+    modes(page)
+      .getByRole("radio", { name })
+      .evaluate(
+        (radio) => getComputedStyle(radio.parentElement?.querySelector("[data-segment]") ?? radio).backgroundColor,
+      );
+  expect(await fill("Practice")).not.toBe("rgba(0, 0, 0, 0)");
+  expect(await fill("Recitation")).toBe("rgba(0, 0, 0, 0)");
+  await modes(page).getByRole("radio", { name: "Practice" }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(modes(page).getByRole("radio", { name: "Recitation" })).toBeChecked();
+  expect(await fill("Recitation")).not.toBe("rgba(0, 0, 0, 0)");
+  expect(await fill("Practice")).toBe("rgba(0, 0, 0, 0)");
+  await expect(keysHeading(page, "Recitation")).toBeVisible();
+});
+
+test("from a large screen the key table and the lessons table sit side by side, and stack below it", async ({
+  page,
+}) => {
+  await seedProfile(page, PROFILE);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openPractice(page);
+  const [keysBox, lessonsBox] = await Promise.all([keys(page).boundingBox(), recent(page).boundingBox()]);
+  expect(Math.abs((keysBox?.y ?? 0) - (lessonsBox?.y ?? 0))).toBeLessThanOrEqual(2);
+  expect(Math.abs((keysBox?.x ?? 0) - (lessonsBox?.x ?? 0))).toBeGreaterThan(300);
+  await expect(page.getByRole("group", { name: /^Scrollable/ })).toHaveCount(0);
+  await page.setViewportSize({ width: 800, height: 800 });
+  const [stackedKeys, stackedLessons] = await Promise.all([keys(page).boundingBox(), recent(page).boundingBox()]);
+  expect(stackedLessons?.y ?? 0).toBeGreaterThan((stackedKeys?.y ?? 0) + (stackedKeys?.height ?? 0));
 });

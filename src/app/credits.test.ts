@@ -24,9 +24,21 @@ test("the audio credit names the reciter and both recitations exactly as the pla
 
 test("every credit links to a secure address, and no address is listed twice", () => {
   const addresses = CREDITS.flatMap((credit) => credit.links.map((link) => link.href));
-  expect(addresses.length).toBeGreaterThanOrEqual(7);
+  expect(addresses.length).toBeGreaterThanOrEqual(6);
   expect(new Set(addresses).size).toBe(addresses.length);
   for (const address of addresses) {
     expect(address.startsWith("https://"), address).toBe(true);
+  }
+});
+
+test("the site's own source code is not credited, and the page has no notice about how it was made", () => {
+  const labels: readonly string[] = CREDITS.map((credit) => credit.label);
+  expect(labels).not.toContain("about.codeLabel");
+  expect(CREDITS.flatMap((credit) => credit.links.map((link) => link.href))).not.toContain(
+    "https://github.com/scuba-plaza/mafatih",
+  );
+  for (const key of ["about.codeLabel", "about.codeNote", "about.madeHeading", "about.made"]) {
+    expect(Object.keys(en), key).not.toContain(key);
+    expect(Object.keys(ar), key).not.toContain(key);
   }
 });

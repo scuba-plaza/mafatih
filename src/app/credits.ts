@@ -43,9 +43,4 @@ export const CREDITS: readonly Credit[] = [
       },
     ],
   },
-  {
-    label: "about.codeLabel",
-    note: "about.codeNote",
-    links: [{ name: "Source code on GitHub", href: "https://github.com/scuba-plaza/mafatih" }],
-  },
 ];

@@ -9,12 +9,8 @@ function credits(page: Page) {
 test("About says what each mode types, and that the Qur'an is only ever shown whole and in order", async ({ page }) => {
   await page.goto("/#/about");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("About");
-  await expect(page.getByRole("heading", { level: 2 })).toHaveText([
-    "What you type",
-    "Privacy",
-    "Credits",
-    "How this site was made",
-  ]);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveText(["What you type", "Privacy", "Credits"]);
+  await expect(page.getByRole("region", { name: "How this site was made" })).toHaveCount(0);
   await expect(page.getByText(/Practice never uses it/)).toBeVisible();
   await expect(page.getByText(/only ever shown whole and in order/)).toBeVisible();
 });
@@ -46,7 +42,8 @@ test("Credits name every source with its link and licence", async ({ page }) => 
     "href",
     "https://learn.microsoft.com/en-us/globalization/keyboards/kbda1",
   );
-  await expect(link("Source code on GitHub")).toHaveAttribute("href", "https://github.com/scuba-plaza/mafatih");
+  await expect(page.locator("main a[href*='scuba-plaza']")).toHaveCount(0);
+  await expect(list.getByText("Source code")).toHaveCount(0);
   await expect(list).toContainText("Creative Commons Attribution 3.0");
   await expect(list).toContainText("Creative Commons Attribution-ShareAlike 4.0");
   await expect(list).toContainText("GNU Free Documentation License");
@@ -58,35 +55,21 @@ test("Credits name every source with its link and licence", async ({ page }) => 
 test("every link that leaves the site carries noopener and noreferrer", async ({ page }) => {
   await page.goto("/#/about");
   const external = page.locator("main a[href^='http']");
-  expect(await external.count()).toBeGreaterThanOrEqual(7);
+  expect(await external.count()).toBeGreaterThanOrEqual(6);
   for (const link of await external.all()) {
     const rel = (await link.getAttribute("rel")) ?? "";
     expect(rel.split(" ").sort(), (await link.getAttribute("href")) ?? "").toEqual(["noopener", "noreferrer"]);
   }
 });
 
-test("the notice says the site was mostly written by an AI assistant, that the Arabic and the word list are not human-checked, and asks for mistakes", async ({
-  page,
-}) => {
-  await page.goto("/#/about");
-  const notice = page.getByRole("region", { name: "How this site was made" });
-  await expect(notice).toContainText("mostly written by an AI assistant");
-  await expect(notice).toContainText("The Arabic wording has not been checked by a native speaker");
-  await expect(notice).toContainText(
-    "the Practice words were chosen by a program and have not been checked word by word",
-  );
-  await expect(notice).toContainText("Please report mistakes");
-});
-
 test("About in Arabic is Arabic, and the names of the sources keep their own language", async ({ page }) => {
   await seedSettings(page, { language: "ar" });
   await page.goto("/#/about");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("حول التطبيق");
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(4);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(3);
   const tanzil = page.getByRole("link", { name: "Tanzil Project" });
   await expect(tanzil).toHaveAttribute("lang", "en");
   await expect(page.getByRole("link", { name: "EveryAyah" })).toHaveAttribute("lang", "en");
-  await expect(page.getByRole("region", { name: "ملاحظة حول صنع الموقع" })).toContainText("Claude");
 });
 
 for (const language of ["en", "ar"] as const) {

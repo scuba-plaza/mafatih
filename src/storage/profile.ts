@@ -1,3 +1,4 @@
+import type { Language } from "~/i18n/i18n.ts";
 import { isRecord } from "~/lib/guards.ts";
 import { type LadderProgress, sanitizeProgress } from "~/practice/ladder.ts";
 import { type RecitationProgress, sanitizeRecitation } from "~/recitation/progress.ts";
@@ -83,6 +84,19 @@ function read(store: KeyValueStore): { readonly stored: unknown } | undefined {
   } catch {
     return undefined;
   }
+}
+
+export function openProfileInLanguage(
+  store: KeyValueStore | null,
+  preferredLanguages: readonly string[],
+  requested: Language | null,
+): OpenedProfile {
+  const opened = openProfile(store, preferredLanguages);
+  if (requested === null || opened.profile.settings.language === requested) {
+    return opened;
+  }
+  const profile: Profile = { ...opened.profile, settings: { ...opened.profile.settings, language: requested } };
+  return { ...opened, profile, notice: opened.save(profile) ?? opened.notice };
 }
 
 export function openProfile(store: KeyValueStore | null, preferredLanguages: readonly string[]): OpenedProfile {

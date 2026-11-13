@@ -13,7 +13,6 @@ export interface RadioGroupProps<Value extends string> {
   readonly value: Value;
   readonly options: readonly RadioOption<Value>[];
   readonly onChange: (value: Value) => void;
-  readonly row?: boolean;
 }
 
 interface RadioProps<Value extends string> {
@@ -53,18 +52,12 @@ function Radio<Value extends string>({ name, option, checked, onChange }: RadioP
   );
 }
 
-export function RadioGroup<Value extends string>({
-  legend,
-  value,
-  options,
-  onChange,
-  row = false,
-}: RadioGroupProps<Value>) {
+export function RadioGroup<Value extends string>({ legend, value, options, onChange }: RadioGroupProps<Value>) {
   const name = useId();
   return (
     <fieldset className="flex min-w-0 flex-col">
       <legend className="mb-1 font-medium">{legend}</legend>
-      <div className={row ? "flex flex-wrap gap-x-6" : "flex flex-col"}>
+      <div className="flex flex-col">
         {options.map((option) => (
           <Radio key={option.value} name={name} option={option} checked={option.value === value} onChange={onChange} />
         ))}

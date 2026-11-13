@@ -66,7 +66,7 @@ function TextForm({ initial, focusField, toPrompt, onStart }: TextFormProps) {
         lang="ar"
         dir="auto"
         rows={6}
-        className="rounded-md border border-edge bg-surface p-3 text-lg leading-loose aria-invalid:border-danger"
+        className="rounded-xl border border-edge bg-surface p-3 text-lg leading-loose aria-invalid:border-danger"
       />
       <p id={hintId} className="text-sm text-muted">
         {t("custom.textHint")}

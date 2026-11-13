@@ -3,8 +3,6 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { CREDITS, WORD_LIST_DATE } from "./credits.ts";
 
-const ASSISTANT = "Claude";
-
 function Section({ title, children }: { title: string; children: ReactNode }) {
   const headingId = useId();
   return (
@@ -56,9 +54,6 @@ export function AboutPage() {
             </div>
           ))}
         </dl>
-      </Section>
-      <Section title={t("about.madeHeading")}>
-        <p>{t("about.made", { assistant: ASSISTANT })}</p>
       </Section>
     </div>
   );
