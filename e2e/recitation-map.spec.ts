@@ -136,6 +136,36 @@ test("Page Down and Page Up in the footer go to the next and previous passage, a
   await expect(bar(page).getByRole("button", { name: /previous passage|next passage|Go to ayah/i })).toHaveCount(0);
 });
 
+test("a small pager beside the passage heading goes to the previous and the next passage", async ({ page }) => {
+  await seedProfile(page, { settings: { surahOrder: "mushaf" } });
+  await page.goto("/#/recitation/1/5");
+  const previous = page.getByRole("button", { name: "Previous passage", exact: true });
+  const next = page.getByRole("button", { name: "Next passage", exact: true });
+  await expect(previous).toHaveAttribute("aria-keyshortcuts", "PageUp");
+  await expect(next).toHaveAttribute("aria-keyshortcuts", "PageDown");
+  await next.click();
+  await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara · 1–4");
+  await previous.click();
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+  const box = await next.boundingBox();
+  expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await expectNoAxeViolations(page);
+});
+
+test("Page Down and Page Up work with the focus in the typing field as well", async ({ page }) => {
+  await seedProfile(page, { settings: { surahOrder: "mushaf" } });
+  await page.goto("/#/recitation/1/5");
+  await startTyping(page);
+  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  await page.keyboard.press("PageDown");
+  await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
+  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  await page.keyboard.press("PageUp");
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+});
+
 test("a first-time visitor is told in one line what is typed and what is not, without the layout moving", async ({
   page,
 }) => {

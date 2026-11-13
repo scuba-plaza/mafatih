@@ -14,6 +14,7 @@ import { PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { Player } from "./audio/Player.tsx";
 import { type Player as PlayerHandle, usePlayer } from "./audio/usePlayer.ts";
 import { PassageFooter } from "./PassageFooter.tsx";
+import { PassagePager } from "./PassagePager.tsx";
 import type { Passage } from "./passage.ts";
 import { requireSurahMeta, surahName } from "./quran.ts";
 import { SurahComplete } from "./SurahComplete.tsx";
@@ -121,11 +122,34 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const label = `${language === "ar" ? meta.name : meta.tname} \u00b7 ${shortRange}`;
   const hintId = `hint-${meta.n}`;
 
+  const pageRef = useRef<HTMLDivElement>(null);
+  const { go, next, previous } = recitation;
+  useEffect(() => {
+    const page = pageRef.current;
+    if (page === null) {
+      return;
+    }
+    const turnPage = (event: globalThis.KeyboardEvent) => {
+      const { target, key } = event;
+      if (target instanceof Element && (target.closest("dialog") !== null || target.matches('input[type="range"]'))) {
+        return;
+      }
+      if (key === "PageDown" || key === "PageUp") {
+        event.preventDefault();
+        go(key === "PageDown" ? next : previous, target instanceof Element && target.matches("[data-typing-input]"));
+      }
+    };
+    page.addEventListener("keydown", turnPage);
+    return () => page.removeEventListener("keydown", turnPage);
+  }, [go, next, previous]);
+
   return (
-    <div className="flex flex-1 flex-col gap-3">
-      <PageHeading quiet>
-        <span id={`passage-${meta.n}`}>{label}</span>
-      </PageHeading>
+    <div ref={pageRef} className="flex flex-1 flex-col gap-3">
+      <PassagePager previous={recitation.previous} next={recitation.next} onGo={recitation.go}>
+        <PageHeading quiet>
+          <span id={`passage-${meta.n}`}>{label}</span>
+        </PageHeading>
+      </PassagePager>
       <p role="status" className="sr-only">
         {t("bar.announce", { surah: surahName(meta, language), range })}
       </p>
@@ -159,9 +183,6 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
       <PassageFooter
         meta={meta}
         typed={recitation.typed}
-        previous={recitation.previous}
-        next={recitation.next}
-        onGo={recitation.go}
         audio={
           shown === null ? null : (
             <Player player={player} passage={shown} settings={settings} refocus={() => refocus.current()} />

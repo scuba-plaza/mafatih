@@ -116,6 +116,8 @@ export const en = {
   "map.rule": "Finish a surah to complete it. Hold 95% accuracy to earn a star.",
   "bar.label": "Passage",
   "bar.announce": "{surah}. {range}",
+  "pager.previous": "Previous passage",
+  "pager.next": "Next passage",
   "typing.scrollable": "Scrollable text",
   "recitation.hintLetters": "Type the letters. Marks and ayah numbers are shown but not typed.",
   "recitation.hintMarks":

@@ -37,7 +37,7 @@ test("finishing a passage inside a surah opens the next one by itself: no summar
   await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /next passage|type again/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /type again/i })).toHaveCount(0);
   await expect(field(page)).toBeFocused();
   const profile = await savedProfile(page);
   expect(profile.history).toHaveLength(1);
@@ -145,6 +145,16 @@ test("Escape and Continue do the same; Type it again starts the surah over and c
   await expect(card(page)).toHaveCount(0);
   await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
   await expect(field(page)).toBeFocused();
+});
+
+test("Page Down while the celebration is open does not change the passage behind it", async ({ page }) => {
+  await startKawthar(page);
+  await typeKeys(page, lettersOf(surah(108), 1, 3, true));
+  await expect(card(page)).toBeVisible();
+  await page.keyboard.press("PageDown");
+  await page.keyboard.press("PageUp");
+  await expect(card(page)).toBeVisible();
+  await expect(page).toHaveURL(/#\/recitation\/108(\/1)?$/);
 });
 
 test("going back to the passage that finished a surah does not open its celebration again", async ({ page }) => {

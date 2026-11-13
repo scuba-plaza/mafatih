@@ -113,6 +113,8 @@ export const ar: Record<MessageKey, string> = {
   "map.rule": "أكمل السورة لتُحسب مكتملة. حافظ على دقة ٩٥٪ لتنال نجمة.",
   "bar.label": "المقطع",
   "bar.announce": "سورة {surah}. {range}",
+  "pager.previous": "المقطع السابق",
+  "pager.next": "المقطع التالي",
   "typing.scrollable": "نص قابل للتمرير",
   "recitation.hintLetters": "اكتب الحروف. تظهر الحركات وأرقام الآيات ولا تُكتب.",
   "recitation.hintMarks": "اكتب الحروف والحركات التي تطلبها إعداداتك. يظهر كل ما عدا ذلك ولا يُكتب.",

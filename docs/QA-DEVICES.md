@@ -26,6 +26,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | A12 | Before typing, press wrong keys, then the right first key. Hold a letter key down. | Wrong keys before the first right one count for nothing. A held key types one letter. | |
 | A13 | Open the site with `?lang=ar` added to the address, on a fresh browser. | It opens in Arabic, the address loses the parameter, and a reload stays in Arabic. | |
 | A14 | Tap the text on a phone, with no button first. | The keyboard opens and typing starts; while it is open the bottom tab bar is hidden and the audio row stays reachable. | |
+| A15 | On a phone, tap the arrow on each side of the passage heading. | The previous and the next passage open; each arrow is easy to hit and the Arabic interface mirrors them. | |
 
 ## iOS Safari (iPhone), with the Arabic keyboard added
 

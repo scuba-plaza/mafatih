@@ -41,7 +41,7 @@ export interface Recitation {
   readonly endsTheOrder: boolean;
   readonly recordAyah: (index: number, samples: readonly Sample[]) => void;
   readonly recordPassage: (result: TrainerResult) => void;
-  readonly go: (position: Position) => void;
+  readonly go: (position: Position, focusField?: boolean) => void;
   readonly advance: () => void;
   readonly restartSurah: () => void;
   readonly consumeContinue: () => void;
@@ -119,7 +119,10 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
     [passage, number, order, update, key],
   );
 
-  const go = useCallback((position: Position) => {
+  const go = useCallback((position: Position, focusField = false) => {
+    if (focusField) {
+      setContinuedAt(position);
+    }
     replaceRoute({ page: "recitation", surah: position.surah, ayah: position.ayah });
   }, []);
 
