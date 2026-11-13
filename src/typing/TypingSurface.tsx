@@ -156,17 +156,17 @@ function paintSpans(
 export interface TypingSurfaceProps {
   readonly trainer: Trainer;
   readonly settings: Settings;
-  readonly centredOpening?: boolean;
   readonly apparatus?: readonly TextSpan[];
   readonly playing?: TextSpan | null;
   readonly describedBy?: string;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, settings, centredOpening = false, apparatus = NO_SPANS, playing = null, describedBy } = props;
+  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy } = props;
   const { font, fontSize } = settings;
   const { t } = useI18n();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
+  const sectionRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const caretRef = useRef<HTMLSpanElement>(null);
   const caretLine = useRef<number | null>(null);
@@ -245,27 +245,29 @@ export function TypingSurface(props: TypingSurfaceProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const section = sectionRef.current;
+    section?.addEventListener("click", focus);
+    return () => section?.removeEventListener("click", focus);
+  }, [focus]);
+
   return (
     <>
-      <section
-        aria-label={t("typing.text")}
-        data-error={flagged ? "" : undefined}
-        className="relative rounded-md border border-line bg-surface has-[input:focus]:outline-2 has-[input:focus]:outline-offset-2 has-[input:focus]:outline-focus data-error:border-danger"
-      >
+      <section ref={sectionRef} aria-label={t("typing.text")} data-typing-surface="" className="relative cursor-text">
         <div
           ref={textRef}
           lang="ar"
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 leading-[2] wrap-anywhere"
+          className="relative max-h-[60dvh] min-h-24 overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere"
           style={{
             fontFamily: `"${family.family}", serif`,
             fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
           }}
         >
           {blocks.map((block, index) => (
-            <p key={block.start} data-block="" className={centredOpening && index === 0 ? "text-center" : undefined}>
+            <p key={block.start} data-block="">
               {index === current && mistakes !== "" ? (
                 <>
                   {session.prompt.shown.slice(block.start, doneUntil)}
@@ -291,16 +293,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
             hidden
           />
         </div>
-        <div className="flex min-h-13 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1 text-sm font-medium">
-          {!focused && !complete && (
-            <button
-              type="button"
-              onClick={focus}
-              className="min-h-11 rounded-full border border-line px-4 after:absolute after:inset-0 after:rounded-md"
-            >
-              {t(session.startedAt === null ? "typing.start" : "typing.continue")}
-            </button>
-          )}
+        <div className="flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-1 text-sm font-medium">
           <p role="status" className="text-danger">
             {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
           </p>
@@ -312,7 +305,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           aria-label={t("typing.inputLabel")}
           aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
           disabled={complete}
-          tabIndex={-1}
+          data-typing-input=""
           className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"
         />
         <p id={nextWordId} role="status" lang="ar" dir="rtl" className="sr-only">

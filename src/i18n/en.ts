@@ -48,7 +48,6 @@ export const en = {
   "typing.text": "Text to type",
   "typing.inputLabel": "Type the text shown",
   "typing.start": "Start typing",
-  "typing.continue": "Continue typing",
   "typing.mistake": "Mistake.",
   "typing.mistakeBackspace": "Mistake. Press Backspace.",
   "typing.wrongLayout": "Your keyboard is not typing Arabic. Switch it to the Arabic layout.",

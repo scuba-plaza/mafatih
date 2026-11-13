@@ -49,7 +49,6 @@ export const ar: Record<MessageKey, string> = {
   "typing.text": "النص المطلوب كتابته",
   "typing.inputLabel": "اكتب النص الظاهر",
   "typing.start": "ابدأ الكتابة",
-  "typing.continue": "تابع الكتابة",
   "typing.mistake": "خطأ.",
   "typing.mistakeBackspace": "خطأ. اضغط مفتاح الحذف.",
   "typing.wrongLayout": "لوحة مفاتيحك لا تكتب بالعربية. بدّلها إلى التخطيط العربي.",

@@ -65,7 +65,6 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished }:
       <TypingSurface
         trainer={trainer}
         settings={settings}
-        centredOpening={passage.basmala !== null}
         apparatus={signs}
         playing={player.state.status === "playing" ? (player.clip?.span ?? null) : null}
         describedBy={describedBy}

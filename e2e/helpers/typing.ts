@@ -4,6 +4,10 @@ export function surface(page: Page): Locator {
   return page.getByRole("region", { name: "Text to type" });
 }
 
+export async function startTyping(page: Page): Promise<void> {
+  await surface(page).click();
+}
+
 export async function typeKeys(page: Page, keys: readonly string[]): Promise<void> {
   for (const key of keys) {
     if (key === "Backspace") {

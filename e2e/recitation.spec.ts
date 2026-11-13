@@ -89,7 +89,7 @@ for (const [vocalization, typesMarks] of [
   });
 }
 
-test("the basmala is a centred block of its own, typed before the first ayah", async ({ page }) => {
+test("the basmala is a block of its own, typed before the first ayah", async ({ page }) => {
   const ikhlas = surah(112);
   await page.goto("/#/recitation/112");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Ikhlaas الإخلاص");
@@ -98,7 +98,6 @@ test("the basmala is a centred block of its own, typed before the first ayah", a
   await expect(blocks.first()).toHaveText(ikhlas.basmala ?? "");
   await expect(blocks.first()).toHaveCSS("text-align", "center");
   await expect(blocks.last()).toHaveText(shownAyat(ikhlas, 1, 4));
-  await expect(blocks.last()).not.toHaveCSS("text-align", "center");
   await start(page);
   const basmala = [...(ikhlas.basmala ?? "").replace(MARKS, "")];
   await typeKeys(page, basmala);

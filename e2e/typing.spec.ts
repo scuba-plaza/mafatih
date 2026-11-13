@@ -3,7 +3,7 @@ import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { clearlyDifferentPixels } from "./helpers/pixels.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
-import { doneText, shownText, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const FATHA = String.fromCodePoint(0x64e);
 const KASRA = String.fromCodePoint(0x650);
@@ -20,7 +20,7 @@ async function open(page: Page, settings: Record<string, unknown>): Promise<void
 
 async function start(page: Page, settings: Record<string, unknown>): Promise<void> {
   await open(page, settings);
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await expect(field(page)).toBeFocused();
 }
 
@@ -120,12 +120,10 @@ test("a mistake is flagged in words once, until the wrong keys are deleted", asy
   await typeKeys(page, ["س"]);
   await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
   await expect(flag(page)).toBeVisible();
-  await expect(surface(page)).toHaveAttribute("data-error", "");
   await typeKeys(page, ["ش", "Backspace"]);
   await expect(flag(page)).toHaveText("Mistake. Press Backspace.");
   await typeKeys(page, ["Backspace"]);
   await expect(flag(page)).toHaveCount(0);
-  await expect(surface(page)).not.toHaveAttribute("data-error");
 });
 
 test("without the Backspace setting a wrong key is blocked, and flagged in words until the right key is typed", async ({
@@ -135,14 +133,12 @@ test("without the Backspace setting a wrong key is blocked, and flagged in words
   await typeKeys(page, ["ب", "س"]);
   await expect(flag(page)).toHaveText("Mistake.");
   await expect(flag(page)).toBeVisible();
-  await expect(surface(page)).toHaveAttribute("data-error", "");
   expect(await shownText(page)).toBe("بتن");
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
   await typeKeys(page, ["Backspace"]);
   await expect(flag(page)).toHaveText("Mistake.");
   await typeKeys(page, ["ت"]);
   await expect(flag(page)).toHaveCount(0);
-  await expect(surface(page)).not.toHaveAttribute("data-error");
   await typeKeys(page, ["ن"]);
   await expect(mistakeCount(page)).toHaveText("1");
 });
@@ -154,7 +150,7 @@ test("typing again starts clean: nothing of the last attempt is flagged or annou
   await page.getByRole("button", { name: "Type again" }).click();
   await expect(field(page)).toBeFocused();
   await expect(surface(page).getByText(/Mistake|Finished/)).toHaveCount(0);
-  await expect(surface(page)).not.toHaveAttribute("data-error");
+  await expect(flag(page)).toHaveCount(0);
   expect(await doneText(page)).toBe("");
 });
 
@@ -189,29 +185,54 @@ test("a screen reader hears the word to type next: on entering the field and aft
   await expect(next).toHaveText("");
 });
 
-test("the start control never covers the text, and clicking the text starts typing too", async ({ page }) => {
+test("there is no start button: clicking the text starts typing", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await open(page, { customText: "بسم الله الرحمن الرحيم" });
-  const control = await page.getByRole("button", { name: "Start typing" }).boundingBox();
+  await expect(page.getByRole("button", { name: /Start typing|Continue typing/ })).toHaveCount(0);
   const text = await lessonText(page).boundingBox();
-  expect(control?.y).toBeGreaterThanOrEqual((text?.y ?? 0) + (text?.height ?? 0));
   await page.mouse.click((text?.x ?? 0) + (text?.width ?? 0) / 2, (text?.y ?? 0) + (text?.height ?? 0) / 2);
   await expect(field(page)).toBeFocused();
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe("ب");
+});
+
+test("the text can be reached with Tab, shows a focus ring for the keyboard only, and Tab leaves it", async ({
+  page,
+}) => {
+  await open(page, { customText: "بتن" });
+  await page.getByRole("heading", { level: 1 }).focus();
+  await page.keyboard.press("Tab");
+  await expect(field(page)).toBeFocused();
+  await expect(surface(page)).toHaveCSS("outline-style", "solid");
+  await typeKeys(page, ["ب"]);
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
+  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
+  await surface(page).click();
+  await expect(field(page)).toBeFocused();
+  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
+});
+
+test("while it waits the caret blinks, and while typing or with reduced motion it stands still", async ({ page }) => {
+  await open(page, { customText: "بتن" });
+  const caret = surface(page).locator("[data-caret]");
+  await expect(caret).toHaveCSS("animation-name", "caret-wait");
+  await startTyping(page);
+  await expect(caret).toHaveCSS("animation-name", "none");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.keyboard.press("Tab");
+  await expect(caret).toHaveCSS("animation-name", "none");
 });
 
 test("the lesson can be started, left, continued and finished from the keyboard alone", async ({ page }) => {
   await open(page, { customText: "بتن" });
   await page.getByRole("heading", { level: 1 }).focus();
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Start typing" })).toBeFocused();
-  await page.keyboard.press("Enter");
   await expect(field(page)).toBeFocused();
   await typeKeys(page, ["ب"]);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(page.getByRole("button", { name: "Continue typing" })).toBeFocused();
-  await page.keyboard.press("Space");
   await expect(field(page)).toBeFocused();
   await typeKeys(page, ["ت", "ن"]);
   await expect(finished(page)).toBeFocused();
@@ -269,19 +290,15 @@ test("a keyboard that builds each word as a composition types one key per letter
   await expect(mistakeCount(page)).toHaveText("0");
 });
 
-test("leaving the text pauses typing and offers to continue where it stopped", async ({ page }) => {
+test("leaving the text pauses typing, and clicking it again continues where it stopped", async ({ page }) => {
   await open(page, { customText: "بتن" });
-  const begin = page.getByRole("button", { name: "Start typing" });
-  await expect(begin).toBeVisible();
-  await begin.click();
-  await expect(begin).toHaveCount(0);
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
-  const resume = page.getByRole("button", { name: "Continue typing" });
-  await expect(resume).toBeVisible();
-  await resume.click();
-  await expect(resume).toHaveCount(0);
+  await expect(field(page)).not.toBeFocused();
+  await startTyping(page);
+  await expect(field(page)).toBeFocused();
   await typeKeys(page, ["ت", "ن"]);
   await expect(mistakeCount(page)).toHaveText("0");
 });
@@ -361,7 +378,7 @@ test("on a phone every text size is a different size, and the largest still fits
   expect(small).toBeGreaterThanOrEqual(16);
   expect(normal).toBeGreaterThan(small + 4);
   expect(large).toBeGreaterThan(normal + 12);
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, [..."سسسسسسسسسسسس"]);
   await expect(surface(page).locator("[data-mistakes]")).toHaveText("سسسسسسسسسس");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
