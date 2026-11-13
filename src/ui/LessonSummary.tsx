@@ -25,23 +25,22 @@ export function LessonSummary({ metrics, title, details = [], note, children }: 
   }, []);
 
   return (
-    <div className="flex flex-col gap-3">
-      <h2 ref={heading} tabIndex={-1} aria-describedby={figuresId} className="text-lg font-semibold">
+    <div className="flex flex-col gap-4">
+      <h2 ref={heading} tabIndex={-1} aria-describedby={figuresId} className="text-xl font-normal tracking-tight">
         {title ?? t("result.title")}
       </h2>
-      <dl id={figuresId} className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-1 text-sm">
-        {details.map((detail) => (
-          <div key={detail.label} className="contents">
-            <dt className="text-muted">{detail.label}</dt>
-            <dd>{detail.value}</dd>
+      <dl id={figuresId} className="flex flex-wrap gap-x-8 gap-y-3">
+        {[
+          ...details,
+          { label: t("result.speed"), value: formatNumber(metrics.cpm) },
+          { label: t("result.accuracy"), value: formatPercent(metrics.accuracy) },
+          { label: t("result.mistakes"), value: formatNumber(metrics.errors) },
+        ].map((figure) => (
+          <div key={figure.label} className="flex flex-col gap-1">
+            <dt className="text-xs tracking-widest text-muted uppercase">{figure.label}</dt>
+            <dd className="font-mono text-lg tabular-nums">{figure.value}</dd>
           </div>
         ))}
-        <dt className="text-muted">{t("result.speed")}</dt>
-        <dd>{formatNumber(metrics.cpm)}</dd>
-        <dt className="text-muted">{t("result.accuracy")}</dt>
-        <dd>{formatPercent(metrics.accuracy)}</dd>
-        <dt className="text-muted">{t("result.mistakes")}</dt>
-        <dd>{formatNumber(metrics.errors)}</dd>
       </dl>
       {note !== undefined && <p className="text-sm text-muted">{note}</p>}
       <div className="flex flex-wrap gap-2">{children}</div>

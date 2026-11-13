@@ -36,7 +36,7 @@ function Radio<Value extends string>({ name, option, checked, onChange }: RadioP
         onChange={() => onChange(option.value)}
         aria-labelledby={labelId}
         aria-describedby={option.hint === undefined ? undefined : hintId}
-        className="mt-0.5 size-5 shrink-0 accent-accent"
+        className="relative mt-0.5 size-5 shrink-0 appearance-none rounded-full border border-edge before:absolute before:inset-1 before:rounded-full before:bg-accent before:opacity-0 checked:border-accent checked:before:opacity-100 forced-colors:appearance-auto forced-colors:before:hidden"
       />
       <span className="flex min-w-0 flex-col wrap-anywhere">
         <span id={labelId} lang={option.lang} className="font-medium">
@@ -63,7 +63,7 @@ export function RadioGroup<Value extends string>({
   const name = useId();
   return (
     <fieldset className="flex min-w-0 flex-col">
-      <legend className="mb-1 font-semibold">{legend}</legend>
+      <legend className="mb-1 font-medium">{legend}</legend>
       <div className={row ? "flex flex-wrap gap-x-6" : "flex flex-col"}>
         {options.map((option) => (
           <Radio key={option.value} name={name} option={option} checked={option.value === value} onChange={onChange} />

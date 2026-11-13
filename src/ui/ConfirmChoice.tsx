@@ -19,7 +19,7 @@ export function ConfirmChoice({ question, warning, keepLabel, confirmLabel, onAn
 
   return (
     <fieldset aria-describedby={warningId} className="flex flex-col items-start gap-3">
-      <legend className="mb-1 font-semibold">{question}</legend>
+      <legend className="mb-1 font-medium">{question}</legend>
       <p id={warningId} className="text-sm text-muted">
         {warning}
       </p>

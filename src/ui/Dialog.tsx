@@ -39,14 +39,15 @@ export function Dialog({ open, title, closeLabel, onClose, children }: DialogPro
         announceDialogChange();
         onClose();
       }}
-      className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[90dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-lg border border-line bg-surface p-0 text-ink backdrop:bg-black/50 md:inset-0 md:m-auto md:h-fit md:w-lg md:max-w-[calc(100%-2rem)] md:rounded-lg"
+      className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[90dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface p-0 text-ink backdrop:bg-black/60 md:inset-0 md:m-auto md:h-fit md:w-lg md:max-w-[calc(100%-2rem)] md:rounded-2xl"
     >
       {open && (
         <>
+          <span aria-hidden="true" className="mx-auto mt-2 block h-1 w-10 rounded-full bg-edge md:hidden" />
           <div
             className={`sticky top-0 z-10 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line bg-surface py-2 ${SIDE_PADDING}`}
           >
-            <h2 id={titleId} className="min-w-0 text-lg font-semibold break-words">
+            <h2 id={titleId} className="min-w-0 text-lg font-medium break-words">
               {title}
             </h2>
             <button type="button" onClick={() => dialog.current?.close()} className={`${BUTTON} shrink-0`}>
