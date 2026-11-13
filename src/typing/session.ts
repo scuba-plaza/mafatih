@@ -78,12 +78,40 @@ export function expectedText(session: Session): string | undefined {
   return session.units[session.cursor]?.text.slice(session.within);
 }
 
+function drawnAt(session: Session, unit: Unit): string {
+  return session.prompt.shown.slice(unit.start, unit.end);
+}
+
+function reachOfMarksTypedAhead(session: Session): number {
+  let reach = 0;
+  for (let index = session.cursor - 1; index >= 0; index -= 1) {
+    const done = session.units[index];
+    if (done === undefined || !isMark(done.text)) {
+      break;
+    }
+    if (drawnAt(session, done) === done.text) {
+      continue;
+    }
+    for (let ahead = session.cursor; ahead < session.units.length; ahead += 1) {
+      const later = session.units[ahead];
+      if (later === undefined || !isMark(drawnAt(session, later))) {
+        break;
+      }
+      if (drawnAt(session, later) === done.text) {
+        reach = Math.max(reach, later.end);
+        break;
+      }
+    }
+  }
+  return reach;
+}
+
 export function view(session: Session): SessionView {
   const unit = session.units[session.cursor];
   const remaining = unit === undefined ? 0 : unit.text.length - session.within;
   const doneUntil =
     unit === undefined ? session.prompt.shown.length : session.within > 0 ? unit.end - remaining : unit.start;
-  return { doneUntil, mistakes: session.mistakes.join("") };
+  return { doneUntil: Math.max(doneUntil, reachOfMarksTypedAhead(session)), mistakes: session.mistakes.join("") };
 }
 
 function timeOf(session: Session, at: number): number {

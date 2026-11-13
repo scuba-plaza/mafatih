@@ -37,6 +37,17 @@ test("a page that throws is replaced by a screen with the problem, Reload and St
   await expectNoAxeViolations(page);
 });
 
+test("a page that throws leaves its error in the console, so that it can be found", async ({ page }) => {
+  const logged: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      logged.push(message.text());
+    }
+  });
+  await showTheErrorScreen(page);
+  await expect.poll(() => logged.some((text) => text.includes("dates are broken"))).toBe(true);
+});
+
 test("Reload loads the page again and keeps the saved progress", async ({ page }) => {
   await showTheErrorScreen(page);
   const reloaded = page.waitForEvent("load");

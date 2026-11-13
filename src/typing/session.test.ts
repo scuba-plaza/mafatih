@@ -223,13 +223,6 @@ test("a mark belonging to the next letter is not accepted early", () => {
   expect(session.mistakes).toEqual([SHADDA]);
 });
 
-test("the done part of the text still grows mark by mark when they are typed in the other order", () => {
-  let session = typeAll(start(`ب${SHADDA}${FATHA}`, WITH_MARKS), ["ب", FATHA], 0, 100);
-  expect(view(session).doneUntil).toBe(2);
-  session = press(session, SHADDA, 300);
-  expect(view(session).doneUntil).toBe(3);
-});
-
 test("the lam-alef key types a lam-alef unit in one stroke and one sample", () => {
   const session = typeAll(start("بلا"), ["ب", "لا"], 0, 300);
   expect(isComplete(session)).toBe(true);
@@ -426,6 +419,18 @@ test("three marks on one letter are accepted in any order", () => {
     expect(isComplete(session), order.join(" ")).toBe(true);
     expect(session.errors).toBe(0);
   }
+});
+
+test("a mark typed ahead of another is shown as typed where it is drawn, and the highlight settles when the other follows", () => {
+  const shown = `ب${SHADDA}${FATHA}ت`;
+  const ahead = typeAll(start(shown, WITH_MARKS), ["ب", FATHA], 0, 100);
+  expect(ahead.cursor).toBe(2);
+  expect(view(ahead).doneUntil).toBe(3);
+  const settled = press(ahead, SHADDA, 300);
+  expect(settled.cursor).toBe(3);
+  expect(view(settled).doneUntil).toBe(3);
+  const inOrder = typeAll(start(shown, WITH_MARKS), ["ب", SHADDA], 0, 100);
+  expect(view(inOrder).doneUntil).toBe(2);
 });
 
 test("a mark already typed is not accepted a second time", () => {
