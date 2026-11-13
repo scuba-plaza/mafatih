@@ -44,6 +44,7 @@
 | D17 | A passage holds at most four ayat | The `Ayat per passage` setting is 1 to 4 (default 4). Nobody wants more on screen, and the audio position display needs a bounded, predictable number of stops. A saved value above 4 is read as 4. Done (2026-11-13) |
 | D18 | No underline on the ayah being recited | The wash stays, the 2 px underline is gone (`::highlight(mafatih-playing)`). The wavy underline under wrong letters stays: it is the non-colour cue for mistakes (A6). Done (2026-11-13) |
 | D19 | Audio controls shortlist (round 1, 2026-11-13) | The owner likes the Dial most and the Ayah Ruler next, and especially the ruler's volume panel. The dial's arcs are not clickable (previous and next are enough). Both designs show one stop per ayah, at most five (the basmala is a stop of its own, then up to four ayat). Round 2 shows the Dial's volume control and the long and short ayah cases |
+| D20 | **Audio controls decided (round 2, 2026-11-13): the Dial** | Mockups: `audio-dial-desktop.png`, `audio-dial-phone.png`, `audio-long-short-cases.png`. The speaker opens an **Audio panel** (a floating panel above the control, not the row-in-place alternative) with volume, mute, "Play whole passage" and the reciter line. Arc sizes are **proportional to each stop's word count with a minimum arc**. The arcs are display only. **The surah name is not repeated in the audio controls**: it appears once, above the lesson text. The caption under the dial says only `Ayah 14 · 2 of 4` (`Basmala · 1 of 5` on the basmala stop) |
 
 ## Superseded rules and waivers (record these in `docs/TECHNICAL.md` in Task F1)
 
@@ -238,13 +239,17 @@ These are the seams of the rebuild plan. No new seam is added. Approving this pl
 
 **Why:** the owner does not like the current audio controls (a bordered card with a button row, a volume slider, a switch and a status line). They also want back the **repeat toggle of the old player**.
 
-**Process (design, not code):**
+**Process:** two showcase rounds happened (2026-11-13) and the owner decided (D20). The build is part of Task F11.
 
-1. **Round 1:** four or five very different directions, rendered as real mockups on the Focus passage page (desktop and phone, collapsed and expanded where relevant), each containing every control below. Shown to the owner as screenshots. The owner picks one.
-2. **Round 2:** improve the pick, again as screenshots, until the owner approves. Mockups go to `docs/design/focus/` once approved.
-3. **Build:** inside Task F11, to the approved design.
+**The decided design (build to the mockups):**
 
-**Every design must hold these controls and states:** play and pause; previous and next ayah; the position in the passage (which ayah is playing); **repeat passage (toggle)**; mute and volume; "play whole passage" (off means stop at the end of each ayah); the reciter and style line (name, style, kbps, ayah), with the basmala as its own stop; the unavailable state; the loading state; and the setting for choosing the reciter stays in Settings. Quiet by default: the passage stays the hero, nothing loud, one amber accent (D1, D5). Phone and desktop both designed; icon buttons need 44 px targets (M4) and an accessible name; the media-session handlers stay.
+- Row: Repeat, Previous ayah, the **dial**, Next ayah, the speaker. Desktop: in the footer centre; phone: above the tab bar, with a caption row under it. The dial is 76 px on desktop and 84 px on phones; Repeat and the speaker are amber while on or open.
+- **Dial:** a ring with one arc per stop, in order, starting at the top and going clockwise: the basmala (when the passage opens a surah that has one) and then each ayah, so at most five arcs. Arc length is proportional to the stop's number of words, with a minimum arc of 15 px so a one-word ayah never disappears (the layout function: sizes proportional to weight, any size under the minimum is fixed at the minimum and the rest is shared again). A single stop is a full circle. Passed arcs are grey, the current arc fills in amber with the clip's playback fraction, the rest are dim. The centre is the play or pause button. **Arcs are not clickable and are hidden from assistive technology**; the buttons carry every action.
+- **Caption:** `Ayah 14 · 2 of 4` while a stop is current (`Basmala · 1 of 5` for the basmala), `Listen` while idle. **No surah name.** On phones the caption row also holds `‹ Previous` and `Next ›` for the passage.
+- **Audio panel:** the speaker (`aria-expanded`, `aria-controls`) opens a non-modal panel above it with: a Mute toggle (`aria-pressed`, name "Mute"), the Volume slider (name "Volume", value text in percent), the "Play whole passage" switch and the reciter line (`Abdul Basit · Murattal · 64 kbps`). It closes on Escape (focus returns to the speaker), when focus leaves it, and on a pointer press outside it. On phones it is anchored to the right edge.
+- **The reciter, style and ayah sentence stays in a polite, visually hidden status** (`Abdul Basit · Murattal 64 kbps · 36:14`) so screen readers hear it, as today.
+
+**Every control and state the build must hold:** play and pause; previous and next ayah; the position in the passage (which ayah is playing); **repeat passage (toggle)**; mute and volume; "play whole passage" (off means stop at the end of each ayah); the reciter and style line (name, style, kbps, ayah), with the basmala as its own stop; the unavailable state; the loading state; and the setting for choosing the reciter stays in Settings. Quiet by default: the passage stays the hero, nothing loud, one amber accent (D1, D5). Phone and desktop both designed; icon buttons need 44 px targets (M4) and an accessible name; the media-session handlers stay.
 
 **Repeat behaviour (from the old app, `git show main:src/hooks/useRecitationPlayer.ts` and `cypress/e2e/recitation.cy.ts`):**
 
@@ -254,7 +259,7 @@ These are the seams of the rebuild plan. No new seam is added. Approving this pl
 - On with "Play whole passage" off: playback still stops at the end of each ayah in the middle of the passage, and still wraps at the true end of the passage.
 - A toggle button with `aria-pressed`, named "Repeat passage" (the old app said "Repeat the passage" and "Stop repeating the passage"). The choice is saved in the profile (a new `loop` boolean in settings, default `false`, tolerated when missing in saves and backups, no schema bump).
 
-**Tests, first (S1):** `playerReducer` cases for each rule above (a `loop` flag on the state or the `ended` and `next` actions); `defaultSettings` has `loop: false`; `sanitizeSettings` keeps a boolean and drops anything else. **(S3):** a save and a backup without `loop` still load. **(S5, in F11):** `audio.spec` covers repeat on and off with the stubbed audio, and that it survives a reload.
+**Tests, first (S1):** `stopWeights` and the arc layout (for the word counts in `audio-long-short-cases.png`: one stop is a full circle; 15, 129, 32, 28 gives the long ayah the most and no arc under the minimum; 1, 2, 2, 2 gives each at least the minimum; sizes add up to the circumference minus the gaps); `playerReducer` cases for each rule above (a `loop` flag on the state or the `ended` and `next` actions); `defaultSettings` has `loop: false`; `sanitizeSettings` keeps a boolean and drops anything else. **(S3):** a save and a backup without `loop` still load. **(S5, in F11):** `audio.spec` covers repeat on and off with the stubbed audio, and that it survives a reload.
 
 - **Removes:** whatever the chosen design makes redundant (the `fieldset` card, the always-visible slider and switch if the design tucks them away).
 - **Acceptance:** the owner has approved a design; the build and its tests are done in F11.
