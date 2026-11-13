@@ -15,8 +15,14 @@ export interface PlayerOptions {
   readonly resting: boolean;
 }
 
+export interface ClipProgress {
+  readonly subscribe: (listener: () => void) => () => void;
+  readonly read: () => number;
+}
+
 export interface Player {
   readonly state: PlayerState;
+  readonly progress: ClipProgress;
   readonly clip: AudioClip | undefined;
   readonly onBasmala: boolean;
   readonly play: () => void;
@@ -43,6 +49,26 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
   const ticket = useRef(0);
   const playingRef = useRef(false);
   const seenRestarts = useRef(0);
+  const fraction = useRef(0);
+  const listeners = useRef(new Set<() => void>());
+  const progress = useMemo<ClipProgress>(
+    () => ({
+      subscribe: (listener) => {
+        listeners.current.add(listener);
+        return () => listeners.current.delete(listener);
+      },
+      read: () => fraction.current,
+    }),
+    [],
+  );
+  const publish = useCallback((value: number) => {
+    if (fraction.current !== value) {
+      fraction.current = value;
+      for (const listener of listeners.current) {
+        listener();
+      }
+    }
+  }, []);
 
   const clip = clips[state.index];
   const url = clip === undefined ? undefined : ayahAudioUrl(reciter, clip.surah, clip.ayah);
@@ -90,13 +116,19 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
     }
     const onEnded = () => dispatch({ type: "ended" });
     const onError = () => dispatch({ type: "failed" });
+    const onTime = () =>
+      publish(Number.isFinite(target.duration) && target.duration > 0 ? target.currentTime / target.duration : 0);
     target.addEventListener("ended", onEnded);
     target.addEventListener("error", onError);
+    target.addEventListener("timeupdate", onTime);
+    target.addEventListener("loadstart", onTime);
     return () => {
       target.removeEventListener("ended", onEnded);
       target.removeEventListener("error", onError);
+      target.removeEventListener("timeupdate", onTime);
+      target.removeEventListener("loadstart", onTime);
     };
-  }, [audio]);
+  }, [audio, publish]);
 
   useEffect(() => {
     const target = audio();
@@ -158,10 +190,11 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
   }, [state.restarts]);
 
   useEffect(() => {
+    publish(0);
     if (passage !== null && element.current !== null && loaded.current !== null) {
       element.current.currentTime = 0;
     }
-  }, [passage]);
+  }, [passage, publish]);
 
   useEffect(() => {
     if (playing && nextUrl !== undefined) {
@@ -188,6 +221,7 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
 
   return {
     state,
+    progress,
     clip,
     onBasmala: passage?.basmala != null && state.index === 0,
     play,

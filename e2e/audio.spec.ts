@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { seedProfile } from "./helpers/profile.ts";
-import { doneText, shownText, surface, typeKeys } from "./helpers/typing.ts";
+import { savedSettings, seedProfile } from "./helpers/profile.ts";
+import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const SHORT = readFileSync(new URL("./fixtures/ayah.mp3", import.meta.url));
 const LONG = readFileSync(new URL("./fixtures/ayah-long.mp3", import.meta.url));
@@ -94,6 +94,14 @@ function player(page: Page) {
   return page.getByRole("group", { name: "Recitation audio" });
 }
 
+async function openPanel(page: Page): Promise<void> {
+  const opener = player(page).getByRole("button", { name: "Audio options" });
+  if ((await opener.getAttribute("aria-expanded")) !== "true") {
+    await opener.click();
+  }
+  await expect(opener).toHaveAttribute("aria-expanded", "true");
+}
+
 function status(page: Page) {
   return player(page).getByRole("status");
 }
@@ -116,6 +124,8 @@ test("the controls have names, Play and Pause are one button whose name changes,
   const pause = player(page).getByRole("button", { name: "Pause", exact: true });
   await expect(pause).toBeVisible();
   await expect(pause).not.toHaveAttribute("aria-pressed", /.*/);
+  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "false");
+  await openPanel(page);
   const mute = player(page).getByRole("button", { name: "Mute", exact: true });
   await expect(mute).toHaveAttribute("aria-pressed", "false");
   await mute.click();
@@ -292,6 +302,7 @@ test("the volume and the mute setting reach the audio itself", async ({ page }) 
   await spyAudio(page);
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
+  await openPanel(page);
   await player(page).getByRole("slider", { name: "Volume" }).press("Home");
   await expect.poll(async () => (await readLog(page)).volume.at(-1)).toBe(0);
   await player(page).getByRole("button", { name: "Mute", exact: true }).click();
@@ -315,7 +326,7 @@ test("when the passage is finished Play still plays: the pause was only a rest",
   await mockAudio(page, LONG);
   await seedProfile(page, { settings: { vocalization: "letters" } });
   await page.goto("/#/recitation/112/1");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(await shownText(page)));
   await expect(page.getByRole("heading", { level: 2 })).toBeVisible();
   const before = (await readLog(page)).plays;
@@ -324,25 +335,105 @@ test("when the passage is finished Play still plays: the pause was only a rest",
   await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThan(before);
 });
 
-test("a mouse click on the switch or the slider gives the typing field its focus back", async ({ page, isMobile }) => {
+test("a mouse click on a transport button gives the typing field its focus back, and the open panel keeps its own", async ({
+  page,
+  isMobile,
+}) => {
   test.skip(isMobile, "a touch screen keeps its keyboard closed");
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
   const field = page.getByRole("textbox", { name: "Type the text shown" });
-  await player(page).getByRole("switch", { name: "Play whole passage" }).click();
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
   await expect(field).toBeFocused();
-  await expect(player(page).getByRole("switch", { name: "Play whole passage" })).toBeChecked();
-  await player(page).getByRole("slider", { name: "Volume" }).focus();
+  await openPanel(page);
+  await expect(field).not.toBeFocused();
+  const whole = player(page).getByRole("switch", { name: "Play whole passage" });
+  await whole.click();
+  await expect(whole).toBeChecked();
   await expect(field).not.toBeFocused();
   await player(page).getByRole("slider", { name: "Volume" }).click();
-  await expect(field).toBeFocused();
+  await expect(player(page).getByRole("slider", { name: "Volume" })).toBeFocused();
+  expect((await savedSettings(page)).playWhole).toBe(true);
+});
+
+test("the speaker opens the Audio panel, and Escape, a click outside or leaving it with Tab close it", async ({
+  page,
+}) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  const opener = player(page).getByRole("button", { name: "Audio options" });
+  const panel = player(page).getByRole("group", { name: "Audio", exact: true });
+  await expect(opener).toHaveAttribute("aria-expanded", "false");
+  await expect(panel).toBeHidden();
+  await opener.click();
+  await expect(opener).toHaveAttribute("aria-expanded", "true");
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText(/Abdul Basit.*Murattal.*64 kbps/u);
+  await panel.getByRole("slider", { name: "Volume" }).focus();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await page.mouse.click(4, 4);
+  await expect(panel).toBeHidden();
+  await opener.click();
+  await panel.getByRole("switch", { name: "Play whole passage" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(panel).toBeHidden();
+});
+
+test("Repeat passage is a toggle that is saved in the settings and still on after a reload", async ({ page }) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  const repeat = player(page).getByRole("button", { name: "Repeat passage" });
+  await expect(repeat).toHaveAttribute("aria-pressed", "false");
+  await repeat.click();
+  await expect(repeat).toHaveAttribute("aria-pressed", "true");
+  expect((await savedSettings(page)).loop).toBe(true);
+  await page.reload();
+  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("with repeat on, the passage starts again from its first ayah when the last one ends, and keeps playing", async ({
+  page,
+}) => {
+  await mockAudio(page, SHORT);
+  await seedProfile(page, { settings: { playWhole: true, loop: true } });
+  await page.goto("/#/recitation/1/1");
+  await status(page).evaluate((element) => {
+    const heard: string[] = [];
+    Object.assign(window, { heard });
+    new MutationObserver(() => heard.push(element.textContent ?? "")).observe(element, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  });
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as { heard: string[] }).heard.filter((text) => /1:1$/.test(text)).length),
+    )
+    .toBeGreaterThanOrEqual(2);
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});
+
+test("the dial fills as the ayah plays, and its arcs cannot be pressed", async ({ page }) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  const dial = player(page).locator("[data-dial]");
+  await expect(dial).toHaveAttribute("data-fraction", "0.00");
+  await expect(dial.locator("> svg")).toHaveAttribute("aria-hidden", "true");
+  await expect(dial.getByRole("button")).toHaveCount(1);
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(async () => Number(await dial.getAttribute("data-fraction"))).toBeGreaterThan(0);
 });
 
 test("typing never starts audio, and audio never moves the cursor (Q5)", async ({ page }) => {
   const { requests } = await mockAudio(page, LONG);
   await seedProfile(page, { settings: { vocalization: "letters" } });
   await page.goto("/#/recitation/112/1");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   const keys = lettersOf(await shownText(page)).slice(0, 12);
   await typeKeys(page, keys.slice(0, 6));
   await page.waitForTimeout(300);
@@ -417,10 +508,10 @@ test("after a mouse click on a control the typing field has the focus again; a k
   } else {
     await expect(field).toBeFocused();
   }
-  const mute = player(page).getByRole("button", { name: "Mute", exact: true });
-  await mute.focus();
+  const next = player(page).getByRole("button", { name: "Next ayah" });
+  await next.focus();
   await page.keyboard.press("Enter");
-  await expect(mute).toBeFocused();
+  await expect(next).toBeFocused();
 });
 
 test("the browser's media controls are told what is playing", async ({ page }) => {
@@ -459,7 +550,7 @@ async function playButtonLabel(page: Page): Promise<string> {
       (element) =>
         element.closest("dialog") === null && element.querySelector("legend")?.textContent === "Recitation audio",
     );
-    return group?.querySelector("button.bg-accent .sr-only")?.textContent ?? "";
+    return group?.querySelector("[data-dial] button .sr-only")?.textContent ?? "";
   });
 }
 

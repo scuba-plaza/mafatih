@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
-import { doneText, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const KASRA = String.fromCodePoint(0x650);
 const SUKUN = String.fromCodePoint(0x652);
@@ -96,7 +96,7 @@ test("changing the language applies at once, turns the page right-to-left and ke
 }) => {
   await seedSettings(page, { customText: "بتن" });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   await openSettings(page);
   await dialog(page).getByRole("radio", { name: "العربية" }).check();
@@ -115,14 +115,14 @@ test("changing the language applies at once, turns the page right-to-left and ke
 test("changing the vocalization starts the lesson afresh with the new marks to type", async ({ page }) => {
   await seedSettings(page, { customText: BISMI, vocalization: "letters" });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   expect(await doneText(page)).toBe(`ب${KASRA}`);
   await openSettings(page);
   await dialog(page).getByRole("radio", { name: "Full", exact: true }).check();
   await closeSettings(page);
   expect(await doneText(page)).toBe("");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   expect(await doneText(page)).toBe("ب");
   expect((await savedSettings(page)).vocalization).toBe("full");
@@ -131,20 +131,20 @@ test("changing the vocalization starts the lesson afresh with the new marks to t
 test("a finished summary goes away when a new vocalization changes the lesson", async ({ page }) => {
   await seedSettings(page, { customText: "بت" });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب", "ت"]);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toBeFocused();
   await openSettings(page);
   await dialog(page).getByRole("radio", { name: "Letters only", exact: true }).check();
   await closeSettings(page);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Start typing" })).toBeVisible();
+  expect(await doneText(page)).toBe("");
 });
 
 test("turning off correction with Backspace keeps the lesson and applies from the next key", async ({ page }) => {
   await seedSettings(page, { customText: "بتن" });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   await openSettings(page);
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();

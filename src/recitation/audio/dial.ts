@@ -1,6 +1,14 @@
 import type { Passage, Span } from "../passage.ts";
 
-export const MIN_ARC = 15;
+export const RING_RADIUS = 45;
+export const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+export const MIN_ARC = 19;
+const GAP = 11;
+
+export interface Arc {
+  readonly start: number;
+  readonly length: number;
+}
 
 function wordsIn(passage: Passage, span: Span): number {
   const words = passage.prompt.shown
@@ -35,4 +43,15 @@ export function arcLengths(weights: readonly number[], total: number, floor: num
   const free = weights.reduce((sum, weight, index) => sum + (held.has(index) ? 0 : weight), 0);
   const room = total - held.size * floor;
   return weights.map((weight, index) => (held.has(index) ? floor : (room * weight) / free));
+}
+
+export function ringArcs(weights: readonly number[]): readonly Arc[] {
+  const gap = weights.length === 1 ? 0 : GAP;
+  const lengths = arcLengths(weights, RING_LENGTH - gap * weights.length, MIN_ARC);
+  let at = gap / 2;
+  return lengths.map((length) => {
+    const arc = { start: at, length };
+    at += length + gap;
+    return arc;
+  });
 }

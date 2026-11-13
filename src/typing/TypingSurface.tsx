@@ -15,6 +15,7 @@ const NO_SPANS: readonly TextSpan[] = [];
 const VISIBLE_SPACE = "\u2423";
 const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
+const OVERFLOW_TOLERANCE = 2;
 
 export interface TextSpan {
   readonly start: number;
@@ -204,7 +205,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       paintDone(paragraphs, current, doneUntil - block.start);
       paintSpans(APPARATUS_HIGHLIGHT, 1, paragraphs, blocks, apparatus);
       paintSpans(PLAYING_HIGHLIGHT, 2, paragraphs, blocks, playing === null ? NO_SPANS : [playing]);
-      setScrollable(container.scrollHeight > container.clientHeight);
+      setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = rect === undefined;
       if (rect === undefined) {

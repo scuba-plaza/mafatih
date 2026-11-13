@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { seedSettings } from "./helpers/profile.ts";
-import { doneText, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, typeKeys } from "./helpers/typing.ts";
 
 const LONG = "كتب من بيت كل يوم ".repeat(20).trim();
 const FONT_FILE = /\.woff2?$/;
@@ -53,7 +53,7 @@ async function settle(page: Page): Promise<void> {
 async function startCustom(page: Page): Promise<void> {
   await seedSettings(page, { customText: LONG });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await expect(page.getByRole("textbox")).toBeFocused();
 }
 

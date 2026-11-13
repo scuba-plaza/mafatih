@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import type { RecitationRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { unlockedMarks } from "~/practice/ladder.ts";
@@ -14,7 +14,7 @@ import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
 import { Player } from "./audio/Player.tsx";
 import { type Player as PlayerHandle, usePlayer } from "./audio/usePlayer.ts";
-import { PassageBar } from "./PassageBar.tsx";
+import { PassageFooter } from "./PassageFooter.tsx";
 import type { Passage } from "./passage.ts";
 import { surahName } from "./quran.ts";
 import { SurahMap } from "./SurahMap.tsx";
@@ -26,9 +26,10 @@ interface PassageLessonProps {
   readonly player: PlayerHandle;
   readonly describedBy: string;
   readonly onFinished: (finished: boolean) => void;
+  readonly refocus: RefObject<() => void>;
 }
 
-function PassageLesson({ passage, recitation, player, describedBy, onFinished }: PassageLessonProps) {
+function PassageLesson({ passage, recitation, player, describedBy, onFinished, refocus }: PassageLessonProps) {
   const { t, language, formatNumber, formatDuration } = useI18n();
   const { settings } = useProfile().profile;
   const checkpoints = useMemo(() => passage.ayat.map((ayah) => ayah.lastUnit), [passage]);
@@ -41,6 +42,13 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished }:
     onCheckpoint: recitation.recordAyah,
   });
   const { focus, session } = trainer;
+
+  useEffect(() => {
+    refocus.current = focus;
+    return () => {
+      refocus.current = () => undefined;
+    };
+  }, [focus, refocus]);
   const { continues, completions, endsTheOrder, meta } = recitation;
 
   useEffect(() => {
@@ -71,7 +79,6 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished }:
         describedBy={describedBy}
       />
       <LiveStats session={session} />
-      <Player player={player} settings={settings} surah={passage.surah} refocus={focus} />
       {metrics !== null && (
         <LessonSummary
           metrics={metrics}
@@ -107,12 +114,13 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished }:
 }
 
 function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
-  const { t, language } = useI18n();
+  const { t, language, formatNumber } = useI18n();
   const { settings, ladder } = useProfile().profile;
   const recitation = useRecitation(surah, ayah);
   const { meta, from, to, passage, failed } = recitation;
   const dialogOpen = useDialogOpen();
   const [lessonFinished, setLessonFinished] = useState(false);
+  const refocus = useRef<() => void>(() => undefined);
   const player = usePlayer({
     passage,
     reciter: settings.reciter,
@@ -125,33 +133,24 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   });
   const marksTyped = requiredMarks(settings.vocalization, unlockedMarks(ladder)).size > 0;
   const range = t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat });
+  const shortRange = from === to ? formatNumber(from) : `${formatNumber(from)}\u2013${formatNumber(to)}`;
+  const label = `${language === "ar" ? meta.name : meta.tname} \u00b7 ${shortRange}`;
+  const hintId = `hint-${meta.n}`;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div id={`passage-${meta.n}`}>
-        <PageHeading>
-          {language === "ar" ? (
-            meta.name
-          ) : (
-            <>
-              {meta.tname}{" "}
-              <span lang="ar" dir="rtl" className="font-normal">
-                {meta.name}
-              </span>
-            </>
-          )}
-        </PageHeading>
-        <p className="text-sm text-muted">{range}</p>
-      </div>
+    <div className="flex flex-1 flex-col gap-3">
+      <PageHeading quiet>
+        <span id={`passage-${meta.n}`}>{label}</span>
+      </PageHeading>
       <p role="status" className="sr-only">
         {t("bar.announce", { surah: surahName(meta, language), range })}
       </p>
-      <div>
-        <p className="text-sm text-muted">{t(marksTyped ? "recitation.hintMarks" : "recitation.hintLetters")}</p>
-        <p role="status" className="min-h-5 text-sm text-muted">
-          {passage === null && !failed ? t("recitation.loading") : ""}
-        </p>
-      </div>
+      <p id={hintId} className="sr-only">
+        {t(marksTyped ? "recitation.hintMarks" : "recitation.hintLetters")}
+      </p>
+      <p role="status" className="text-center text-sm text-muted empty:hidden">
+        {passage === null && !failed ? t("recitation.loading") : ""}
+      </p>
       {passage === null && !failed && <div aria-hidden="true" className="min-h-[40dvh]" />}
       {passage !== null && (
         <PassageLesson
@@ -159,12 +158,13 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
           passage={passage}
           recitation={recitation}
           player={player}
-          describedBy={`passage-${meta.n}`}
+          describedBy={`passage-${meta.n} ${hintId}`}
           onFinished={setLessonFinished}
+          refocus={refocus}
         />
       )}
       {failed && (
-        <div className="flex flex-col items-start gap-3">
+        <div className="flex flex-col items-center gap-3">
           <p role="alert" className="text-sm font-medium">
             {t("recitation.loadFailed")}
           </p>
@@ -173,13 +173,18 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
           </button>
         </div>
       )}
-      <PassageBar
+      <PassageFooter
         meta={meta}
         from={from}
         typed={recitation.typed}
         previous={recitation.previous}
         next={recitation.next}
         onGo={recitation.go}
+        audio={
+          passage === null ? null : (
+            <Player player={player} passage={passage} settings={settings} refocus={() => refocus.current()} />
+          )
+        }
       />
     </div>
   );

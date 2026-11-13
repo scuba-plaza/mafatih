@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { startTyping } from "./helpers/typing.ts";
 
 const KEY = "mafatih:profile:2";
 const NOT_SAVED = "Your progress can't be saved in this browser.";
@@ -177,7 +178,7 @@ test("when saving fails after a change the visitor is told, and the change still
   await page.goto("/#/custom");
   await expect(noticeArea(page)).toBeEmpty();
   await page.getByRole("textbox", { name: "Text to type" }).fill("بتن");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await expect(page.getByRole("region", { name: "Text to type" })).toContainText("بتن");
   await expect(page.getByText("Your progress can't be saved in this browser.")).toBeVisible();
 });

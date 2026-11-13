@@ -98,9 +98,9 @@ export function Shell({ page, banner, actions, children }: ShellProps) {
       <main
         ref={mainRef}
         tabIndex={-1}
-        className={`${GUTTER} pt-2 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6`}
+        className={`${GUTTER} flex flex-col pt-2 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6`}
       >
-        <div className={COLUMN}>{children}</div>
+        <div className={`${COLUMN} flex flex-1 flex-col`}>{children}</div>
       </main>
       <nav
         aria-label={navLabel}

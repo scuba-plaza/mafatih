@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { passageRange } from "./helpers/passage.ts";
 import { savedProfile, savedSettings, seedProfile } from "./helpers/profile.ts";
-import { doneText, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 interface SurahFile {
   readonly number: number;
@@ -46,6 +47,10 @@ function bar(page: Page) {
   return page.getByRole("group", { name: "Passage" });
 }
 
+async function openGoTo(page: Page): Promise<void> {
+  await bar(page).getByRole("button", { name: "Go to ayah" }).click();
+}
+
 const finished = (page: Page) => page.getByRole("heading", { level: 2, name: "Finished" });
 const completed = (page: Page) => page.getByRole("heading", { level: 2, name: /^Completed: / });
 
@@ -62,7 +67,7 @@ test("the home page is a map of all 114 surahs, each a link that says how much o
   await expectNoAxeViolations(page);
 });
 
-test("the map shows progress in words and a ring, a completed surah says so, and Continue resumes", async ({
+test("the map shows progress in words and a thin line, a completed surah says so, and Continue resumes", async ({
   page,
 }) => {
   await seedProfile(page, {
@@ -78,16 +83,21 @@ test("the map shows progress in words and a ring, a completed surah says so, and
   await expect(
     map(page)
       .getByRole("link", { name: /Yaseen/ })
-      .locator("svg[aria-hidden=true]"),
+      .locator("div[aria-hidden=true]"),
   ).toHaveCount(1);
+  await expect(
+    map(page)
+      .getByRole("link", { name: /Al-Faatiha/ })
+      .locator("div[aria-hidden=true]"),
+  ).toHaveCount(0);
   const resume = page.getByRole("link", { name: /^Continue with .*Yaseen.*, ayah 13/ });
   await expect(resume).toHaveAttribute("href", "#/recitation/36/13");
   await map(page)
     .getByRole("link", { name: /Yaseen/ })
     .click();
   await expect(page).toHaveURL(/#\/recitation\/36$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Yaseen يس");
-  await expect(page.getByText("Ayat 13 to 16 of 83", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Yaseen · 13–16");
+  await expect(passageRange(page, "Ayat 13 to 16 of 83")).toHaveCount(1);
 });
 
 test("the order setting puts the map in Mushaf order or with Juz ʿAmma first", async ({ page }) => {
@@ -120,7 +130,7 @@ test("the passage bar goes to the previous or next passage, across surahs, by bu
   await expect(bar(page)).toBeVisible();
   await bar(page).getByRole("button", { name: "Next passage" }).click();
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara البقرة");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara · 1–4");
   await expect(bar(page).getByRole("button", { name: "Next passage" })).toBeFocused();
   await bar(page).getByRole("button", { name: "Previous passage" }).click();
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
@@ -129,7 +139,7 @@ test("the passage bar goes to the previous or next passage, across surahs, by bu
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
   await page.keyboard.press("PageUp");
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
-  await expect(page.getByText("Ayat 5 to 7 of 7", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
 });
 
 test("Go to ayah is a labelled number field; a number outside the surah is brought into it; progress is in words", async ({
@@ -137,17 +147,15 @@ test("Go to ayah is a labelled number field; a number outside the surah is broug
 }) => {
   await seedProfile(page, { recitation: { position: null, surahs: { 2: { typed: [[1, 12]], completions: 0 } } } });
   await page.goto("/#/recitation/2/20");
+  await openGoTo(page);
   const field = bar(page).getByRole("spinbutton", { name: "Go to ayah" });
   await field.fill("255");
   await field.press("Enter");
   await expect(page).toHaveURL(/#\/recitation\/2\/255$/);
-  await expect(page.getByText("Ayat 255 to 258 of 286", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayat 255 to 258 of 286")).toHaveCount(1);
   await field.fill("999");
-  await bar(page).getByRole("button", { name: "Go" }).click();
+  await bar(page).getByRole("button", { name: "Go", exact: true }).click();
   await expect(page).toHaveURL(/#\/recitation\/2\/286$/);
-  const progress = bar(page).getByRole("progressbar", { name: "12 of 286 ayat typed" });
-  await expect(progress).toHaveJSProperty("value", 12);
-  await expect(progress).toHaveJSProperty("max", 286);
   await expect(bar(page).getByText("12 of 286 ayat typed")).toBeVisible();
   await expectNoAxeViolations(page);
 });
@@ -176,7 +184,7 @@ test("finishing a surah brings a quiet panel with its figures and Next surah, an
     settings: { vocalization: "letters", ayatPerLesson: 1 },
   });
   await page.goto("/#/recitation/108/3");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
   const heading = page.getByRole("heading", { level: 2, name: /^Completed: .*Al-Kawthar/ });
   await expect(heading).toBeFocused();
@@ -203,7 +211,7 @@ test("after the last surah of the order the panel says the order starts again, a
     settings: { vocalization: "letters", ayatPerLesson: 1 },
   });
   await page.goto("/#/recitation/114/6");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(naas, 6, 6));
   await expect(page.getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Next surah" })).toHaveCount(0);
@@ -215,7 +223,7 @@ test("a passage that ends the order without completing the surah also says it st
   const naas = surah(114);
   await seedProfile(page, { settings: { vocalization: "letters", ayatPerLesson: 1 } });
   await page.goto("/#/recitation/114/6");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(naas, 6, 6));
   await expect(finished(page)).toBeFocused();
   const summary = finished(page).locator("xpath=..");
@@ -229,7 +237,7 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   page,
 }) => {
   await page.goto("/#/recitation/1/1");
-  await expect(page.getByText("Ayat 1 to 4 of 7", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayat 1 to 4 of 7")).toHaveCount(1);
   await page.getByRole("button", { name: "Settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Recitation" });
@@ -238,7 +246,7 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   await expect(select).toHaveValue("4");
   await select.selectOption("2");
   await dialog.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByText("Ayat 1 to 2 of 7", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayat 1 to 2 of 7")).toHaveCount(1);
   expect((await savedSettings(page)).ayatPerLesson).toBe(2);
   expect(await doneText(page)).toBe("");
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 10 });
@@ -248,6 +256,7 @@ test("Go to ayah keeps the focus in the field, writes back the number it used an
   page,
 }) => {
   await page.goto("/#/recitation/2/20");
+  await openGoTo(page);
   const field = bar(page).getByRole("spinbutton", { name: "Go to ayah" });
   await field.fill("255");
   await field.press("Enter");
@@ -287,11 +296,16 @@ test("Next surah puts the focus in the typing field once; later moves from the b
     settings: { vocalization: "letters", ayatPerLesson: 1 },
   });
   await page.goto("/#/recitation/108/3");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
   await page.getByRole("button", { name: "Next surah" }).click();
   await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  });
   await bar(page).getByRole("button", { name: "Next passage" }).click();
   await expect(page).toHaveURL(/#\/recitation\/109\/2$/);
   await bar(page).getByRole("button", { name: "Previous passage" }).click();
@@ -316,7 +330,7 @@ test("retyping the last passage of a surah completed earlier ends with Finished,
     settings: { vocalization: "letters", ayatPerLesson: 1 },
   });
   await page.goto("/#/recitation/108/3");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
   await expect(finished(page)).toBeFocused();
   await expect(completed(page)).toHaveCount(0);
@@ -329,7 +343,7 @@ test("Type again after a completed surah starts a fresh count: a partial retype 
     settings: { vocalization: "letters", ayatPerLesson: 1 },
   });
   await page.goto("/#/recitation/108/3");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
   await expect(completed(page)).toBeFocused();
   await page.getByRole("button", { name: "Type again" }).click();
@@ -347,7 +361,7 @@ test("a surah finished from the middle of its passage hands on to the next surah
     settings: { vocalization: "letters", ayatPerLesson: 1 },
   });
   await page.goto("/#/recitation/108/1");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 1, 1, true));
   await expect(completed(page)).toBeFocused();
   await page.getByRole("button", { name: "Next surah" }).click();
@@ -359,7 +373,7 @@ test("another tab finishing the surah does not make a partial passage here read 
   const page = await context.newPage();
   await seedProfile(page, { settings: { vocalization: "letters", ayatPerLesson: 1 } });
   await page.goto("/#/recitation/108/1");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   const other = await context.newPage();
   await other.goto("/#/about");
   await other.evaluate(() => {
@@ -379,6 +393,7 @@ test("another tab finishing the surah does not make a partial passage here read 
 test("on the home page Tab goes from Settings to the Start link and then through the surahs in order", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
   await expect(map(page).getByRole("link")).toHaveCount(114);
   const focused = () =>
@@ -399,17 +414,36 @@ test("on the home page Tab goes from Settings to the Start link and then through
   expect((await focused()).text).toContain("Al-Baqara");
 });
 
-test("with forced colours the ring's arc and track use system colours and differ", async ({ page }) => {
+test("with forced colours the line's track and fill use system colours and differ", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await seedProfile(page, { recitation: { position: null, surahs: { 36: { typed: [[1, 12]], completions: 0 } } } });
   await page.goto("/");
-  const circles = map(page)
+  const track = map(page)
     .getByRole("link", { name: /Yaseen/ })
-    .locator("svg circle");
-  const strokes = await circles.evaluateAll((elements) => elements.map((element) => getComputedStyle(element).stroke));
-  expect(strokes).toHaveLength(2);
-  expect(strokes[0]).not.toBe(strokes[1]);
-  expect(strokes[1]).not.toBe("rgb(15, 118, 110)");
+    .locator("div[aria-hidden=true]");
+  const colours = await track.evaluate((element) => [
+    getComputedStyle(element).backgroundColor,
+    getComputedStyle(element.firstElementChild ?? element).backgroundColor,
+  ]);
+  expect(colours[0]).not.toBe(colours[1]);
+  expect(colours[1]).not.toBe("rgb(226, 176, 98)");
+});
+
+test("a surah completed with 95% accuracy has a star, one below that has none, and the tally counts both", async ({
+  page,
+}) => {
+  await seedProfile(page, {
+    recitation: {
+      position: null,
+      surahs: { 112: { typed: [], completions: 1, best: 0.97 }, 108: { typed: [], completions: 2, best: 0.9 } },
+    },
+  });
+  await page.goto("/");
+  await expect(page.getByText("2 of 114 surahs complete")).toBeVisible();
+  await expect(page.getByText("stars earned")).toHaveCount(1);
+  await expect(map(page).getByRole("link", { name: new RegExp(meta(112).tname) })).toContainText("Star earned");
+  await expect(map(page).getByRole("link", { name: new RegExp(meta(108).tname) })).not.toContainText("Star earned");
+  await expect(map(page).getByRole("link", { name: new RegExp(meta(108).tname) })).toContainText("Completed: 2");
 });
 
 test("while a surah loads the room for its lesson is kept, so the bar does not jump under a finger", async ({

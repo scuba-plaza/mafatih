@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { savedProfile, seedProfile } from "./helpers/profile.ts";
-import { doneText, shownText, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const MARKS = /[\u064B-\u0652\u0670]/g;
 const HOME_ROW = new Set([..."ايملبتنسكش"]);
@@ -16,7 +16,7 @@ function hud(page: Page) {
 }
 
 async function start(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
 }
 
 async function typeLesson(page: Page): Promise<string> {

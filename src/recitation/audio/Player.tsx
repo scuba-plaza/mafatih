@@ -1,23 +1,17 @@
-import { type PointerEvent, type ReactNode, useEffect, useId } from "react";
+import { type PointerEvent, useEffect, useMemo } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Settings } from "~/settings/settings.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
-import { Switch } from "~/ui/Switch.tsx";
+import type { Passage } from "../passage.ts";
 import { requireSurahMeta, surahName } from "../quran.ts";
+import { AudioPanel } from "./AudioPanel.tsx";
+import { Dial } from "./Dial.tsx";
+import { stopWeights } from "./dial.ts";
+import { NextIcon, PreviousIcon, RepeatIcon } from "./icons.tsx";
 import { reciterOf } from "./reciters.ts";
 import type { Player as PlayerHandle } from "./usePlayer.ts";
 
-const ICON_BUTTON = "flex min-h-11 min-w-11 items-center justify-center rounded-md border px-3";
-const SECONDARY = `${ICON_BUTTON} border-line bg-surface`;
-const PRIMARY = `${ICON_BUTTON} border-accent bg-accent text-on-accent`;
-
-function Icon({ children }: { children: ReactNode }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="currentColor">
-      {children}
-    </svg>
-  );
-}
+const ICON_BUTTON = "flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted";
 
 function finePointer(): boolean {
   return window.matchMedia("(pointer: fine)").matches;
@@ -25,19 +19,19 @@ function finePointer(): boolean {
 
 export interface PlayerProps {
   readonly player: PlayerHandle;
+  readonly passage: Passage;
   readonly settings: Settings;
-  readonly surah: number;
   readonly refocus: () => void;
 }
 
-export function Player({ player, settings, surah, refocus }: PlayerProps) {
-  const { t, language, formatPercent } = useI18n();
+export function Player({ player, passage, settings, refocus }: PlayerProps) {
+  const { t, language } = useI18n();
   const { update } = useProfile();
-  const volumeId = useId();
   const reciter = reciterOf(settings.reciter);
   const { clip, state } = player;
   const playing = state.status === "playing";
-  const meta = requireSurahMeta(surah);
+  const weights = useMemo(() => stopWeights(passage), [passage]);
+  const meta = requireSurahMeta(passage.surah);
 
   const change = (patch: Partial<Settings>) =>
     update((current) => ({ ...current, settings: { ...current.settings, ...patch } }));
@@ -62,6 +56,16 @@ export function Player({ player, settings, surah, refocus }: PlayerProps) {
             surah: clip.surah,
             ayah: clip.ayah,
           });
+
+  const position = { position: state.index + 1, count: state.count };
+  const caption =
+    state.status === "failed"
+      ? t("player.unavailable")
+      : state.status === "idle" || clip === undefined
+        ? t("player.listen")
+        : player.onBasmala
+          ? t("player.captionBasmala", position)
+          : t("player.caption", { ...position, ayah: clip.ayah });
 
   const title =
     clip === undefined
@@ -104,60 +108,42 @@ export function Player({ player, settings, surah, refocus }: PlayerProps) {
   );
 
   return (
-    <fieldset
-      onPointerUp={afterPointer}
-      className="flex min-w-0 flex-col gap-3 rounded-md border border-line bg-surface p-3"
-    >
+    <fieldset className="flex min-w-0 flex-col items-center">
       <legend className="sr-only">{t("player.label")}</legend>
-      <div dir="ltr" className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={previous} className={SECONDARY}>
-          <Icon>
-            <path d="M6 5h2v14H6zM20 5v14L9 12z" />
-          </Icon>
-          <span className="sr-only">{t("player.previous")}</span>
-        </button>
-        <button type="button" onClick={toggle} className={PRIMARY}>
-          <Icon>{playing ? <path d="M6 5h4v14H6zM14 5h4v14h-4z" /> : <path d="M7 4v16l13-8z" />}</Icon>
-          <span className="sr-only">{t(playing ? "player.pause" : "player.play")}</span>
-        </button>
-        <button type="button" onClick={next} className={SECONDARY}>
-          <Icon>
-            <path d="M16 5h2v14h-2zM4 5v14l11-7z" />
-          </Icon>
-          <span className="sr-only">{t("player.next")}</span>
-        </button>
+      <div dir="ltr" className="flex items-center gap-1">
         <button
           type="button"
-          aria-pressed={settings.muted}
-          onClick={() => change({ muted: !settings.muted })}
-          className={`${SECONDARY} aria-pressed:border-ink aria-pressed:bg-page`}
+          aria-pressed={settings.loop}
+          onClick={() => change({ loop: !settings.loop })}
+          onPointerUp={afterPointer}
+          className={`${ICON_BUTTON} aria-pressed:text-accent`}
         >
-          <Icon>
-            {settings.muted ? (
-              <path d="M3 9v6h4l5 4V5L7 9zM16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="2" />
-            ) : (
-              <path d="M3 9v6h4l5 4V5L7 9zM15 8a5 5 0 0 1 0 8" />
-            )}
-          </Icon>
-          <span className="sr-only">{t("player.mute")}</span>
+          <RepeatIcon />
+          <span className="sr-only">{t("player.repeat")}</span>
         </button>
-        <label htmlFor={volumeId} className="sr-only">
-          {t("player.volume")}
-        </label>
-        <input
-          id={volumeId}
-          type="range"
-          min={0}
-          max={100}
-          step={5}
-          value={Math.round(settings.volume * 100)}
-          aria-valuetext={formatPercent(settings.volume)}
-          onChange={(event) => change({ volume: Number(event.target.value) / 100 })}
-          className="h-11 min-w-24 flex-1 accent-accent"
+        <button type="button" onClick={previous} onPointerUp={afterPointer} className={ICON_BUTTON}>
+          <PreviousIcon />
+          <span className="sr-only">{t("player.previous")}</span>
+        </button>
+        <Dial
+          weights={weights}
+          current={state.status === "idle" ? null : state.index}
+          progress={player.progress}
+          playing={playing}
+          label={t(playing ? "player.pause" : "player.play")}
+          onToggle={toggle}
+          onPointerUp={afterPointer}
         />
+        <button type="button" onClick={next} onPointerUp={afterPointer} className={ICON_BUTTON}>
+          <NextIcon />
+          <span className="sr-only">{t("player.next")}</span>
+        </button>
+        <AudioPanel settings={settings} reciter={reciter} change={change} />
       </div>
-      <Switch label={t("player.whole")} checked={settings.playWhole} onChange={(playWhole) => change({ playWhole })} />
-      <p role="status" className="min-h-10 text-sm text-muted">
+      <p aria-hidden="true" data-dial-caption="" className="min-h-5 text-xs text-muted">
+        {caption}
+      </p>
+      <p role="status" className="sr-only">
         {line}
       </p>
     </fieldset>

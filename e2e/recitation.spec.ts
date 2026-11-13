@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { passageRange } from "./helpers/passage.ts";
 import { savedProfile, seedSettings } from "./helpers/profile.ts";
-import { doneText, shownText, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 interface SurahFile {
   readonly number: number;
@@ -52,7 +53,7 @@ async function apparatus(page: Page): Promise<string[]> {
 }
 
 async function start(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
 }
 
 const finished = (page: Page) => page.getByRole("heading", { level: 2, name: "Finished" });
@@ -61,11 +62,11 @@ const completed = (page: Page) => page.getByRole("heading", { level: 2, name: /^
 test("a surah opens at once, ready to type, with its first passage", async ({ page }) => {
   const fatiha = surah(1);
   await page.goto("/#/recitation/1");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Faatiha الفاتحة");
-  await expect(page.getByText("Ayat 1 to 4 of 7", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Faatiha · 1–4");
+  await expect(page.getByRole("status").filter({ hasText: "Ayat 1 to 4 of 7" })).toHaveCount(1);
   await expect(surface(page).locator("[data-block]")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(fatiha, 1, 4));
-  await expect(page.getByRole("button", { name: "Start typing" })).toBeVisible();
+  await expect(surface(page).locator("[data-caret]")).toBeVisible();
   await expectNoAxeViolations(page);
 });
 
@@ -92,7 +93,7 @@ for (const [vocalization, typesMarks] of [
 test("the basmala is a block of its own, typed before the first ayah", async ({ page }) => {
   const ikhlas = surah(112);
   await page.goto("/#/recitation/112");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Ikhlaas الإخلاص");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Ikhlaas · 1–4");
   const blocks = surface(page).locator("[data-block]");
   await expect(blocks).toHaveCount(2);
   await expect(blocks.first()).toHaveText(ikhlas.basmala ?? "");
@@ -133,9 +134,9 @@ test("the ayah signs are tinted as apparatus, never typed, and typing letters on
   await typeKeys(page, ["Backspace", ...keys.slice(30)]);
   await expect(completed(page)).toBeFocused();
   const profile = await savedProfile(page);
-  expect(profile.recitation).toEqual({
+  expect(profile.recitation).toMatchObject({
     position: { surah: 113, ayah: 1 },
-    surahs: { 112: { typed: [], completions: 1 } },
+    surahs: { 112: { typed: [], completions: 1, run: { correct: 0, total: 0, ms: 0 } } },
   });
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveCount(0);
@@ -163,10 +164,14 @@ test("progress is saved ayah by ayah, into recitation only, and a reload resumes
   await start(page);
   await typeKeys(page, [...lettersOf(fatiha, 1, 2), " ", ...lettersOf(fatiha, 3, 3).slice(0, 4)]);
   const profile = await savedProfile(page);
-  expect(profile.recitation).toEqual({
+  expect(profile.recitation).toMatchObject({
     position: { surah: 1, ayah: 3 },
-    surahs: { 1: { typed: [[1, 2]], completions: 0 } },
+    surahs: { 1: { typed: [[1, 2]], completions: 0, best: 0 } },
   });
+  const run = (profile.recitation as { surahs: Record<number, { run: { correct: number; total: number } }> }).surahs[1]
+    ?.run;
+  expect(run?.total).toBeGreaterThan(0);
+  expect(run?.correct).toBe(run?.total);
   expect(profile.ladder).toEqual({ unlocked: 10 });
   const stats = profile.stats as Record<string, Record<string, { attempts: number }>>;
   expect(stats.practice).toEqual({});
@@ -174,7 +179,7 @@ test("progress is saved ayah by ayah, into recitation only, and a reload resumes
   expect(stats.recitation?.ح?.attempts).toBe(3);
   expect(profile.history).toEqual([]);
   await page.reload();
-  await expect(page.getByText("Ayat 3 to 6 of 7", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayat 3 to 6 of 7")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(fatiha, 3, 6));
   expect(await doneText(page)).toBe("");
 });
@@ -208,32 +213,32 @@ test("a finished passage shows its summary, ignores further keys, and Next passa
   await next.click();
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
   expect(await page.evaluate(() => history.length)).toBe(entries);
-  await expect(page.getByText("Ayat 5 to 7 of 7", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(fatiha, 5, 7));
   await expect(finished(page)).toHaveCount(0);
   const field = page.getByRole("textbox", { name: "Type the text shown" });
   await expect(field).toBeFocused();
   await expect(field).toHaveAccessibleDescription(
-    `Al-Faatiha الفاتحة Ayat 5 to 7 of 7 ${fatiha.ayat[4]?.split(" ")[0]}`,
+    `Al-Faatiha · 5–7 Type the letters. Marks and ayah numbers are shown but not typed. ${fatiha.ayat[4]?.split(" ")[0]}`,
   );
   await typeKeys(page, lettersOf(fatiha, 5, 7));
   await expect(completed(page)).toBeFocused();
-  expect((await savedProfile(page)).recitation).toEqual({
+  expect((await savedProfile(page)).recitation).toMatchObject({
     position: { surah: 2, ayah: 1 },
-    surahs: { 1: { typed: [], completions: 1 } },
+    surahs: { 1: { typed: [], completions: 1, run: { correct: 0, total: 0, ms: 0 } } },
   });
 
   await page.getByRole("button", { name: "Next surah" }).click();
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara البقرة");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara · 1–4");
   await expect(surface(page).locator("[data-block]")).toHaveCount(2);
   await expect(field).toBeFocused();
-  await expect(field).toHaveAccessibleDescription(/Al-Baqara.*Ayat 1 to 4 of 286/);
+  await expect(field).toHaveAccessibleDescription(/Al-Baqara · 1–4 Type the letters/);
 
   await page.evaluate(() => {
     window.location.hash = "#/recitation/110";
   });
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("An-Nasr النصر");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("An-Nasr · 1–3");
   await expect(surface(page)).toBeVisible();
   await expect(field).not.toBeFocused();
 });
@@ -316,7 +321,7 @@ test("Type again starts the same passage over", async ({ page }) => {
 test("an address past the end of a surah shows its last ayah, and a single ayah is named as one", async ({ page }) => {
   await seedSettings(page, { ayatPerLesson: 1 });
   await page.goto("/#/recitation/1/99");
-  await expect(page.getByText("Ayah 7 of 7", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayah 7 of 7")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(surah(1), 7, 7));
 });
 
@@ -325,8 +330,8 @@ test("in the Arabic interface the surah has its Arabic name only and the page re
 }) => {
   await seedSettings(page, { language: "ar" });
   await page.goto("/#/recitation/36/21");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("يس");
-  await expect(page.getByText("الآيات ٢١ إلى ٢٤ من ٨٣", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("يس · ٢١–٢٤");
+  await expect(passageRange(page, "الآيات ٢١ إلى ٢٤ من ٨٣")).toHaveCount(1);
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.locator("[data-lesson-text]")).toHaveText(shownAyat(surah(36), 21, 24));
   await expectNoAxeViolations(page);
@@ -335,7 +340,7 @@ test("in the Arabic interface the surah has its Arabic name only and the page re
 test("a surah that cannot be loaded says so and offers to reload, which then works", async ({ page }) => {
   await page.route(/assets\/036-[^/]*\.js$/, (route) => route.abort());
   await page.goto("/#/recitation/36");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Yaseen يس");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Yaseen · 1–4");
   await expect(page.getByRole("alert")).toHaveText("The surah could not be loaded. Check your connection and reload.");
   await expect(surface(page)).toHaveCount(0);
   await expectNoAxeViolations(page);
@@ -354,7 +359,7 @@ test("the longest ayah renders, keeps the caret line in view, stays fast to type
   const measured = 160;
   await seedSettings(page, { ayatPerLesson: 1, vocalization: "letters" });
   await page.goto("/#/recitation/2/282");
-  await expect(page.getByText("Ayah 282 of 286", { exact: true })).toBeVisible();
+  await expect(passageRange(page, "Ayah 282 of 286")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(baqara, 282, 282));
   await start(page);
   await page.evaluate(() => {
@@ -409,7 +414,7 @@ test("a passage too long for its box can be scrolled from the keyboard, a short 
   await expect(text).toHaveAttribute("tabindex", "0");
   await expect(surface(page).getByRole("group", { name: "Scrollable text" })).toHaveCount(1);
   await expectNoAxeViolations(page);
-  await page.goto("/#/recitation/112");
+  await page.goto("/#/recitation/1/1");
   await expect(surface(page).locator("[data-lesson-text]")).toBeVisible();
   await expect(surface(page).locator("[data-lesson-text]")).not.toHaveAttribute("tabindex", /.*/);
   await expect(surface(page).getByRole("group", { name: "Scrollable text" })).toHaveCount(0);
