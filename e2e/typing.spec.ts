@@ -379,7 +379,7 @@ test("the lesson can be started, left, continued and finished from the keyboard 
   await expect(field(page)).toBeFocused();
   await typeKeys(page, ["ت", "ن"]);
   await expect(finished(page)).toBeFocused();
-  await expect(field(page)).toBeDisabled();
+  await expect(field(page)).toHaveAttribute("tabindex", "-1");
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Type again" })).toBeFocused();
 });

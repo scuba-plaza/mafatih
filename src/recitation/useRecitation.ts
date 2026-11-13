@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { replaceRoute } from "~/app/useRoute.ts";
 import { unlockedMarks } from "~/practice/ladder.ts";
 import { lessonOf, recordLesson } from "~/stats/history.ts";
@@ -60,6 +60,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
   const [loaded, setLoaded] = useState<{ readonly number: number; readonly surah: Surah | null } | null>(null);
   const [continuedAt, setContinuedAt] = useState<Position | null>(null);
   const [finished, setFinished] = useState<(SurahFinish & { readonly key: string }) | null>(null);
+  const finishedKey = useRef<string | null>(null);
 
   const shown = pinned.key === key ? pinned : pin();
   if (shown !== pinned) {
@@ -103,6 +104,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
         return;
       }
       const caught: { tally: RunTally | null } = { tally: null };
+      finishedKey.current = null;
       const next = update((current) => {
         const state = { stats: current.stats.recitation, recitation: current.recitation };
         const outcome = applyRecitationAyah(state, { surah: number, ayah: typedAyah }, samples, order);
@@ -110,11 +112,18 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
         return { ...current, stats: { ...current.stats, recitation: outcome.stats }, recitation: outcome.recitation };
       });
       if (caught.tally !== null) {
+        finishedKey.current = key;
         setFinished({ key, tally: caught.tally, completions: completionsOf(next.recitation, number) });
       }
     },
     [passage, number, order, update, key],
   );
+
+  const go = useCallback((position: Position) => {
+    replaceRoute({ page: "recitation", surah: position.surah, ayah: position.ayah });
+  }, []);
+
+  const next = positionAfter({ surah: number, ayah: to }, order);
 
   const recordPassage = useCallback(
     ({ metrics }: TrainerResult) => {
@@ -122,17 +131,16 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
         ...current,
         history: recordLesson(current.history, lessonOf("recitation", metrics, Date.now())),
       }));
+      if (finishedKey.current !== key) {
+        setContinuedAt(next);
+        go(next);
+      }
     },
-    [update],
+    [update, key, next, go],
   );
-
-  const go = useCallback((position: Position) => {
-    replaceRoute({ page: "recitation", surah: position.surah, ayah: position.ayah });
-  }, []);
 
   const finishesSurah = finish !== null;
   const lastAyah: Position = { surah: number, ayah: finishesSurah ? meta.ayat : to };
-  const next = positionAfter({ surah: number, ayah: to }, order);
   const target = finishesSurah ? positionAfter(lastAyah, order) : next;
 
   const advance = useCallback(() => {

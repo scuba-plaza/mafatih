@@ -3,7 +3,7 @@ import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { passageRange } from "./helpers/passage.ts";
 import { savedProfile, seedProfile } from "./helpers/profile.ts";
 import { lettersOf, surah } from "./helpers/quran.ts";
-import { startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const EMPTY_RUN = { correct: 0, total: 0, ms: 0 };
 
@@ -42,6 +42,20 @@ test("finishing a passage inside a surah opens the next one by itself: no summar
   const profile = await savedProfile(page);
   expect(profile.history).toHaveLength(1);
   expect(profile.recitation).toMatchObject({ position: { surah: 1, ayah: 5 } });
+});
+
+test("typing straight on past the end of a passage keeps the focus in the field and loses no key", async ({ page }) => {
+  const fatiha = surah(1);
+  await seedProfile(page, { settings: { vocalization: "letters" } });
+  await page.goto("/#/recitation/1");
+  await startTyping(page);
+  await typeKeys(page, lettersOf(fatiha, 1, 4));
+  expect(await page.evaluate(() => document.activeElement?.hasAttribute("data-typing-input"))).toBe(true);
+  const onward = lettersOf(fatiha, 5, 7).slice(0, 4);
+  await typeKeys(page, onward);
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+  await expect(field(page)).toBeFocused();
+  expect((await doneText(page)).replace(/[\u064B-\u065F\u0670]/gu, "")).toBe(onward.join(""));
 });
 
 test("finishing a surah opens the celebration with its figures, a star for 95% or better, and Continue goes on", async ({

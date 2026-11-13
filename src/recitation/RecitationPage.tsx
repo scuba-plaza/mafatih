@@ -20,8 +20,6 @@ import { SurahComplete } from "./SurahComplete.tsx";
 import { SurahMap } from "./SurahMap.tsx";
 import { type Recitation, useRecitation } from "./useRecitation.ts";
 
-const ADVANCE_DELAY_MS = 450;
-
 interface PassageLessonProps {
   readonly passage: Passage;
   readonly recitation: Recitation;
@@ -65,20 +63,6 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
     onFinished(finished);
     return () => onFinished(false);
   }, [finished, onFinished]);
-
-  const latestAdvance = useRef(advance);
-  useEffect(() => {
-    latestAdvance.current = advance;
-  });
-  const movesOn = finished && finish === null;
-
-  useEffect(() => {
-    if (!movesOn) {
-      return;
-    }
-    const timer = setTimeout(() => latestAdvance.current(), ADVANCE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [movesOn]);
 
   const again = () => {
     restartSurah();
@@ -154,7 +138,6 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
       {passage === null && !failed && <div aria-hidden="true" className="min-h-[40dvh]" />}
       {passage !== null && (
         <PassageLesson
-          key={`${passage.surah}:${passage.fromAyah}`}
           passage={passage}
           recitation={recitation}
           player={player}

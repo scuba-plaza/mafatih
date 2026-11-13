@@ -219,6 +219,15 @@ export function TypingSurface(props: TypingSurfaceProps) {
     return () => animation.cancel();
   }, [misses]);
 
+  const shownPrompt = useRef(session.prompt);
+  useLayoutEffect(() => {
+    if (shownPrompt.current !== session.prompt) {
+      shownPrompt.current = session.prompt;
+      caretLine.current = null;
+      textRef.current?.scrollTo(0, 0);
+    }
+  });
+
   useLayoutEffect(() => {
     const container = textRef.current;
     const caret = caretRef.current;
@@ -338,7 +347,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           ref={inputRef}
           aria-label={t("typing.inputLabel")}
           aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
-          disabled={complete}
+          tabIndex={complete ? -1 : undefined}
           data-typing-input=""
           className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"
         />

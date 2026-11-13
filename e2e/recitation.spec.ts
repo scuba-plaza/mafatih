@@ -151,7 +151,7 @@ test("progress is saved ayah by ayah, into recitation only, and a reload resumes
   expect(await doneText(page)).toBe("");
 });
 
-test("a finished passage ignores further keys, is saved once, and the next passage opens by itself across surahs", async ({
+test("a finished passage is saved once and the next passage opens at once, across surahs, with the field still focused", async ({
   page,
 }) => {
   const fatiha = surah(1);
@@ -160,15 +160,14 @@ test("a finished passage ignores further keys, is saved once, and the next passa
   await start(page);
   const entries = await page.evaluate(() => history.length);
   await typeKeys(page, lettersOf(fatiha, 1, 4));
-  await page.keyboard.insertText("ب");
-  expect(await doneText(page)).toBe(shownAyat(fatiha, 1, 4));
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+  expect(await doneText(page)).toBe("");
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
   const whenFinished = await savedProfile(page);
   const history = whenFinished.history as { mode: string; chars: number; accuracy: number }[];
   expect(history).toHaveLength(1);
   expect(history[0]).toMatchObject({ mode: "recitation", chars: lettersOf(fatiha, 1, 4).length, accuracy: 1 });
 
-  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
   expect(await page.evaluate(() => history.length)).toBe(entries);
   await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(fatiha, 5, 7));

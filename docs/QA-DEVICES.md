@@ -21,7 +21,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | A7 | Zoom the page text to 200 % in the browser settings. | No sideways scrolling; every control is still reachable and readable. | |
 | A8 | Recitation: play a passage, then lock the screen or open the system media controls. | Title and the play, pause controls show and work; the passage keeps playing with the screen locked. | |
 | A9 | Play an ayah, go offline, play the same ayah again. Then repeat in a private window. | Offline, the ayah heard before plays from the cache; in a private window playback still works (it may download again) and no error screen appears. | |
-| A10 | Recitation: finish a passage that is not the last of its surah, with the keyboard open. | After a moment the next passage opens by itself and the keyboard stays open. Audio that was playing carries on. | |
+| A10 | Recitation: finish a passage that is not the last of its surah, with the keyboard open. | The next passage opens at once by itself and the keyboard stays open; letters typed without stopping go into it. Audio that was playing carries on. | |
 | A11 | Recitation: finish a whole short surah (Al-Kawthar). | The celebration opens: the Arabic name with rays that keep bursting, the figures, a star at 95 % accuracy or better. On a phone it is a bottom sheet with a full-width Continue. With reduced motion it is still and the rays are not drawn. Continue and Type it again both work. | |
 | A12 | Before typing, press wrong keys, then the right first key. Hold a letter key down. | Wrong keys before the first right one count for nothing. A held key types one letter. | |
 | A13 | Open the site with `?lang=ar` added to the address, on a fresh browser. | It opens in Arabic, the address loses the parameter, and a reload stays in Arabic. | |
@@ -35,7 +35,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | I2 | Type with the Arabic keyboard, including a letter with a long-press mark (fatha, damma, kasra, shadda, sukun, tanween). | Each long-press mark is accepted when the lesson asks for it. | |
 | I3 | Press Backspace on an empty line and on a correct letter. | Nothing is lost; a correct letter is not deleted unless a mistake is pending. | |
 | I4 | Press Play on a passage after the audio has not been loaded yet. | The recitation starts on that first press. If it does not, unlock the audio element in the click handler with a short silent clip played before the first fetch. | |
-| I5 | Finish a Practice lesson with the keyboard open. | The next lesson appears and the keyboard stays open (the input is disabled for one render when a lesson ends). If the keyboard closes, stop disabling the input and ignore keys through the session instead. | |
+| I5 | Finish a Practice lesson with the keyboard open. | The next lesson appears and the keyboard stays open (the input is never disabled; a finished lesson only takes it out of the Tab order and the session ignores its keys). | |
 | I6 | Download a backup and restore it through the file picker. | Both work; the file opens from Files. | |
 | I7 | Optional (the site is not an offline app): add the site to the home screen. | The icon, the name and the colours are right; it opens without the browser bar. | |
 
