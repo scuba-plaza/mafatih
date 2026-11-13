@@ -5,8 +5,7 @@ import { Switch } from "~/ui/Switch.tsx";
 import { useDismissable } from "~/ui/useDismissable.ts";
 import { VolumeIcon } from "./icons.tsx";
 import type { Reciter } from "./reciters.ts";
-
-const ICON_BUTTON = "flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted";
+import { ICON_BUTTON, LATCHED } from "./styles.ts";
 
 export interface AudioPanelProps {
   readonly settings: Settings;
@@ -36,7 +35,7 @@ export function AudioPanel({ settings, reciter, change }: AudioPanelProps) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen(!open)}
-        className={`${ICON_BUTTON} ${open ? "text-accent" : ""}`}
+        className={`${ICON_BUTTON} ${LATCHED}`}
       >
         <VolumeIcon muted={settings.muted} />
         <span className="sr-only">{t("player.options")}</span>
@@ -44,7 +43,7 @@ export function AudioPanel({ settings, reciter, change }: AudioPanelProps) {
       <fieldset
         id={panelId}
         hidden={!open}
-        className="absolute end-0 bottom-full z-30 mb-3 w-64 rounded-2xl border border-line bg-surface p-4 shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:start-1/2 md:end-auto md:-translate-x-1/2 md:rtl:translate-x-1/2"
+        className="absolute end-0 bottom-full z-30 mb-3 w-64 rounded-2xl border border-line bg-surface p-4 shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:start-1/2 md:end-auto md:-translate-x-1/2"
       >
         <legend className="sr-only">{t("player.panel")}</legend>
         <div dir={language === "ar" ? "rtl" : "ltr"} className="flex flex-col gap-1">
@@ -56,7 +55,7 @@ export function AudioPanel({ settings, reciter, change }: AudioPanelProps) {
               type="button"
               aria-pressed={settings.muted}
               onClick={() => change({ muted: !settings.muted })}
-              className={`${ICON_BUTTON} aria-pressed:text-accent`}
+              className={`${ICON_BUTTON} ${LATCHED}`}
             >
               <VolumeIcon muted={settings.muted} />
               <span className="sr-only">{t("player.mute")}</span>

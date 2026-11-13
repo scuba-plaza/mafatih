@@ -47,10 +47,6 @@ function bar(page: Page) {
   return page.getByRole("group", { name: "Passage" });
 }
 
-async function openGoTo(page: Page): Promise<void> {
-  await bar(page).getByRole("button", { name: "Go to ayah" }).click();
-}
-
 const finished = (page: Page) => page.getByRole("heading", { level: 2, name: "Finished" });
 const completed = (page: Page) => page.getByRole("heading", { level: 2, name: /^Completed: / });
 
@@ -123,41 +119,21 @@ test("in the Arabic interface only the Arabic names show", async ({ page }) => {
   await expectNoAxeViolations(page);
 });
 
-test("the passage bar goes to the previous or next passage, across surahs, by button or Page Up and Page Down", async ({
+test("Page Down and Page Up in the footer go to the next and previous passage, across surahs, and keep the focus", async ({
   page,
 }) => {
   await page.goto("/#/recitation/1/5");
   await expect(bar(page)).toBeVisible();
-  await bar(page).getByRole("button", { name: "Next passage" }).click();
-  await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara · 1–4");
-  await expect(bar(page).getByRole("button", { name: "Next passage" })).toBeFocused();
-  await bar(page).getByRole("button", { name: "Previous passage" }).click();
-  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
-  await bar(page).getByRole("button", { name: "Next passage" }).focus();
+  const play = bar(page).getByRole("button", { name: "Play", exact: true });
+  await play.focus();
   await page.keyboard.press("PageDown");
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara · 1–4");
+  await expect(play).toBeFocused();
   await page.keyboard.press("PageUp");
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
   await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
-});
-
-test("Go to ayah is a labelled number field; a number outside the surah is brought into it; progress is in words", async ({
-  page,
-}) => {
-  await seedProfile(page, { recitation: { position: null, surahs: { 2: { typed: [[1, 12]], completions: 0 } } } });
-  await page.goto("/#/recitation/2/20");
-  await openGoTo(page);
-  const field = bar(page).getByRole("spinbutton", { name: "Go to ayah" });
-  await field.fill("255");
-  await field.press("Enter");
-  await expect(page).toHaveURL(/#\/recitation\/2\/255$/);
-  await expect(passageRange(page, "Ayat 255 to 258 of 286")).toHaveCount(1);
-  await field.fill("999");
-  await bar(page).getByRole("button", { name: "Go", exact: true }).click();
-  await expect(page).toHaveURL(/#\/recitation\/2\/286$/);
-  await expect(bar(page).getByText("12 of 286 ayat typed")).toBeVisible();
-  await expectNoAxeViolations(page);
+  await expect(bar(page).getByRole("button", { name: /previous passage|next passage|Go to ayah/i })).toHaveCount(0);
 });
 
 test("a first-time visitor is told in one line what is typed and what is not, without the layout moving", async ({
@@ -252,44 +228,7 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 10 });
 });
 
-test("Go to ayah keeps the focus in the field, writes back the number it used and says when it cannot use the input", async ({
-  page,
-}) => {
-  await page.goto("/#/recitation/2/20");
-  await openGoTo(page);
-  const field = bar(page).getByRole("spinbutton", { name: "Go to ayah" });
-  await field.fill("255");
-  await field.press("Enter");
-  await expect(page).toHaveURL(/#\/recitation\/2\/255$/);
-  await expect(field).toBeFocused();
-  await expect(field).toHaveValue("255");
-  for (const [typed, ayah] of [
-    ["0", 1],
-    ["-3", 1],
-    ["1.5", 1],
-    ["1e2", 100],
-    ["99999999999999999999", 286],
-  ] as const) {
-    await field.fill(typed);
-    await field.press("Enter");
-    await expect(page).toHaveURL(new RegExp(`#/recitation/2/${ayah}$`));
-    await expect(field, typed).toHaveValue(String(ayah));
-    await expect(field, typed).toBeFocused();
-  }
-  await field.fill("");
-  await field.press("Enter");
-  await expect(bar(page).getByRole("alert")).toHaveText("Enter a number from 1 to 286.");
-  await expect(field).toHaveAttribute("aria-invalid", "true");
-  await expect(field).toHaveAccessibleDescription("Enter a number from 1 to 286.");
-  await field.fill("5");
-  await field.press("Enter");
-  await expect(bar(page).getByRole("alert")).toHaveCount(0);
-  await expect(field).not.toHaveAttribute("aria-invalid", "true");
-});
-
-test("Next surah puts the focus in the typing field once; later moves from the bar leave it where it is", async ({
-  page,
-}) => {
+test("Next surah puts the focus in the typing field once", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
@@ -301,24 +240,15 @@ test("Next surah puts the focus in the typing field once; later moves from the b
   await page.getByRole("button", { name: "Next surah" }).click();
   await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
-  await page.evaluate(() => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-  });
-  await bar(page).getByRole("button", { name: "Next passage" }).click();
-  await expect(page).toHaveURL(/#\/recitation\/109\/2$/);
-  await bar(page).getByRole("button", { name: "Previous passage" }).click();
-  await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
-  await expect(bar(page).getByRole("button", { name: "Previous passage" })).toBeFocused();
 });
 
-test("moving to another passage from the bar is announced politely with the new range", async ({ page }) => {
+test("moving to another passage from the footer is announced politely with the new range", async ({ page }) => {
   await page.goto("/#/recitation/1/1");
   await expect(surface(page)).toBeVisible();
   const announced = page.getByRole("status").filter({ hasText: "Ayat 5 to 7 of 7" });
   await expect(announced).toHaveCount(0);
-  await bar(page).getByRole("button", { name: "Next passage" }).click();
+  await bar(page).getByRole("button", { name: "Play", exact: true }).focus();
+  await page.keyboard.press("PageDown");
   await expect(announced).toHaveCount(1);
   await expect(announced).toContainText("Al-Faatiha");
 });

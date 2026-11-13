@@ -49,7 +49,10 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
   const ticket = useRef(0);
   const playingRef = useRef(false);
   const seenRestarts = useRef(0);
-  const fraction = useRef(0);
+  const clipKey = passage === null ? "" : `${passage.surah}:${passage.fromAyah}:${state.index}:${state.restarts}`;
+  const currentKey = useRef(clipKey);
+  currentKey.current = clipKey;
+  const fraction = useRef({ key: clipKey, value: 0 });
   const listeners = useRef(new Set<() => void>());
   const progress = useMemo<ClipProgress>(
     () => ({
@@ -57,13 +60,14 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
         listeners.current.add(listener);
         return () => listeners.current.delete(listener);
       },
-      read: () => fraction.current,
+      read: () => (fraction.current.key === currentKey.current ? fraction.current.value : 0),
     }),
     [],
   );
   const publish = useCallback((value: number) => {
-    if (fraction.current !== value) {
-      fraction.current = value;
+    const key = currentKey.current;
+    if (fraction.current.key !== key || fraction.current.value !== value) {
+      fraction.current = { key, value };
       for (const listener of listeners.current) {
         listener();
       }

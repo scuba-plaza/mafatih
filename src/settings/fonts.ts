@@ -1,17 +1,17 @@
 export interface LessonFont {
   readonly id: string;
   readonly family: string;
-  readonly load: () => Promise<unknown>;
+  readonly load?: () => Promise<unknown>;
 }
 
 export const FONTS = [
   { id: "scheherazade", family: "Scheherazade New", load: () => import("@fontsource/scheherazade-new/arabic-400.css") },
   { id: "amiri", family: "Amiri", load: () => import("@fontsource/amiri/arabic-400.css") },
-  { id: "noto-naskh", family: "Noto Naskh Arabic", load: () => Promise.resolve() },
+  { id: "noto-naskh", family: "Noto Naskh Arabic" },
 ] as const satisfies readonly LessonFont[];
 
 export function loadFont(font: LessonFont): void {
-  font.load().catch(() => undefined);
+  font.load?.().catch(() => undefined);
 }
 
 export type FontId = (typeof FONTS)[number]["id"];

@@ -68,7 +68,10 @@ function SurahRow({ meta, progress }: { meta: SurahMeta; progress: RecitationPro
               <span className="sr-only">{t("map.starred")}</span>
             </>
           ) : completed > 0 ? (
-            <CheckIcon />
+            <>
+              <CheckIcon />
+              {typed > 0 && <span className="sr-only">{t("map.completed", { count: completed })}</span>}
+            </>
           ) : null}
         </span>
         <span className="text-sm text-muted">{detail}</span>

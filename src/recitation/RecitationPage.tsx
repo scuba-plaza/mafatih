@@ -120,6 +120,10 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const { meta, from, to, passage, failed } = recitation;
   const dialogOpen = useDialogOpen();
   const [lessonFinished, setLessonFinished] = useState(false);
+  const [shown, setShown] = useState(passage);
+  if (passage !== null && passage !== shown) {
+    setShown(passage);
+  }
   const refocus = useRef<() => void>(() => undefined);
   const player = usePlayer({
     passage,
@@ -175,14 +179,13 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
       )}
       <PassageFooter
         meta={meta}
-        from={from}
         typed={recitation.typed}
         previous={recitation.previous}
         next={recitation.next}
         onGo={recitation.go}
         audio={
-          passage === null ? null : (
-            <Player player={player} passage={passage} settings={settings} refocus={() => refocus.current()} />
+          shown === null ? null : (
+            <Player player={player} passage={shown} settings={settings} refocus={() => refocus.current()} />
           )
         }
       />

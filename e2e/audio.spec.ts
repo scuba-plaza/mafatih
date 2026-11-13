@@ -386,9 +386,12 @@ test("Repeat passage is a toggle that is saved in the settings and still on afte
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
   const repeat = player(page).getByRole("button", { name: "Repeat passage" });
+  const marker = () => repeat.evaluate((element) => getComputedStyle(element, "::after").opacity);
   await expect(repeat).toHaveAttribute("aria-pressed", "false");
+  expect(await marker()).toBe("0");
   await repeat.click();
   await expect(repeat).toHaveAttribute("aria-pressed", "true");
+  expect(await marker()).toBe("1");
   expect((await savedSettings(page)).loop).toBe(true);
   await page.reload();
   await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "true");
@@ -427,6 +430,34 @@ test("the dial fills as the ayah plays, and its arcs cannot be pressed", async (
   await expect(dial.getByRole("button")).toHaveCount(1);
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(async () => Number(await dial.getAttribute("data-fraction"))).toBeGreaterThan(0);
+});
+
+test("the dial's fill belongs to the ayah that is playing: stepping to another one while paused empties it", async ({
+  page,
+}) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  const dial = player(page).locator("[data-dial]");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(async () => Number(await dial.getAttribute("data-fraction"))).toBeGreaterThan(0);
+  await player(page).getByRole("button", { name: "Pause", exact: true }).click();
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(dial).toHaveAttribute("data-fraction", "0.00");
+});
+
+test("the Audio panel opens centred over the speaker in the Arabic interface too", async ({ page, isMobile }) => {
+  test.skip(isMobile, "on a phone the panel hangs from the screen edge");
+  await mockAudio(page, LONG);
+  await seedProfile(page, { settings: { language: "ar" } });
+  await page.goto("/#/recitation/1/1");
+  const arabic = page.getByRole("group", { name: "التلاوة الصوتية" });
+  const opener = arabic.getByRole("button", { name: "خيارات الصوت" });
+  await opener.click();
+  const panel = arabic.getByRole("group", { name: "الصوت", exact: true });
+  await expect(panel).toBeVisible();
+  const [openerBox, panelBox] = await Promise.all([opener.boundingBox(), panel.boundingBox()]);
+  const centre = (box: { x: number; width: number } | null) => (box?.x ?? 0) + (box?.width ?? 0) / 2;
+  expect(Math.abs(centre(openerBox) - centre(panelBox))).toBeLessThanOrEqual(2);
 });
 
 test("typing never starts audio, and audio never moves the cursor (Q5)", async ({ page }) => {

@@ -34,18 +34,6 @@ body:has([data-typing-input]:focus) [data-tabbar] {
   display: none;
 }
 
-@media (max-width: 47.99rem) and (max-height: 36rem) {
-  [data-dial-caption],
-  [data-footer-extras] {
-    display: none;
-  }
-
-  [data-dial] {
-    width: 3.5rem;
-    height: 3.5rem;
-  }
-}
-
 html:has(dialog[open]) {
   overflow: hidden;
 }

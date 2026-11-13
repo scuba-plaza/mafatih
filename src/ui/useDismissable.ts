@@ -16,25 +16,24 @@ export function useDismissable(
         close();
       }
     };
-    const closeOnEscape = (event: KeyboardEvent) => {
+    const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.stopPropagation();
         close();
         opener.current?.focus();
-      }
-    };
-    const leaves = (event: FocusEvent) => {
-      if (event.relatedTarget instanceof Node && !element.contains(event.relatedTarget)) {
-        close();
+      } else if (event.key === "Tab") {
+        setTimeout(() => {
+          if (!element.contains(document.activeElement)) {
+            close();
+          }
+        });
       }
     };
     document.addEventListener("pointerdown", outside, true);
-    element.addEventListener("keydown", closeOnEscape);
-    element.addEventListener("focusout", leaves);
+    element.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("pointerdown", outside, true);
-      element.removeEventListener("keydown", closeOnEscape);
-      element.removeEventListener("focusout", leaves);
+      element.removeEventListener("keydown", onKey);
     };
   }, [open, close, area, opener]);
 }

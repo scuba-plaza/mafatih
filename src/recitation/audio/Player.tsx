@@ -9,9 +9,8 @@ import { Dial } from "./Dial.tsx";
 import { stopWeights } from "./dial.ts";
 import { NextIcon, PreviousIcon, RepeatIcon } from "./icons.tsx";
 import { reciterOf } from "./reciters.ts";
+import { ICON_BUTTON, LATCHED } from "./styles.ts";
 import type { Player as PlayerHandle } from "./usePlayer.ts";
-
-const ICON_BUTTON = "flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted";
 
 function finePointer(): boolean {
   return window.matchMedia("(pointer: fine)").matches;
@@ -56,16 +55,6 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
             surah: clip.surah,
             ayah: clip.ayah,
           });
-
-  const position = { position: state.index + 1, count: state.count };
-  const caption =
-    state.status === "failed"
-      ? t("player.unavailable")
-      : state.status === "idle" || clip === undefined
-        ? t("player.listen")
-        : player.onBasmala
-          ? t("player.captionBasmala", position)
-          : t("player.caption", { ...position, ayah: clip.ayah });
 
   const title =
     clip === undefined
@@ -116,7 +105,7 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
           aria-pressed={settings.loop}
           onClick={() => change({ loop: !settings.loop })}
           onPointerUp={afterPointer}
-          className={`${ICON_BUTTON} aria-pressed:text-accent`}
+          className={`${ICON_BUTTON} ${LATCHED}`}
         >
           <RepeatIcon />
           <span className="sr-only">{t("player.repeat")}</span>
@@ -140,9 +129,6 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
         </button>
         <AudioPanel settings={settings} reciter={reciter} change={change} />
       </div>
-      <p aria-hidden="true" data-dial-caption="" className="min-h-5 text-xs text-muted">
-        {caption}
-      </p>
       <p role="status" className="sr-only">
         {line}
       </p>
