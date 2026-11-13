@@ -183,6 +183,8 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await page.goto("/#/custom");
   const bodyFont = await page.locator("body").evaluate((body) => getComputedStyle(body).fontFamily);
   await expect(lessonText(page)).toHaveCSS("font-family", /Scheherazade New/);
+  await expect(page.locator("body")).toHaveCSS("font-family", /^"Noto Naskh Arabic"/);
+  await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", /^"Noto Naskh Arabic"/);
   await openSettings(page);
   const samples = dialog(page).locator("[data-font-sample]");
   await expect(samples).toHaveCount(3);
@@ -200,6 +202,7 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
   await expect(lessonText(page)).toHaveCSS("font-family", /Amiri/);
   await expect(page.locator("body")).toHaveCSS("font-family", bodyFont);
+  await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", bodyFont);
   await expect(dialog(page).getByRole("heading", { name: "Settings" })).toHaveCSS("font-family", bodyFont);
   expect(await page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
 });

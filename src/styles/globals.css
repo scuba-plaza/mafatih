@@ -26,13 +26,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   [data-typing-surface]:not(:has(input:focus)) [data-caret] {
-    animation: caret-wait 1.2s step-end infinite;
+    animation: caret-wait 2.4s ease-in-out infinite;
   }
-}
-
-html[data-modality="keyboard"] [data-typing-surface]:has(input:focus) {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 4px;
 }
 
 html:has(dialog[open]) {
@@ -42,7 +37,7 @@ html:has(dialog[open]) {
 body {
   background-color: var(--color-page);
   color: var(--color-ink);
-  font-family: system-ui, "Segoe UI", "Noto Sans Arabic", "Geeza Pro", Tahoma, sans-serif;
+  font-family: "Noto Naskh Arabic", system-ui, "Segoe UI", "Geeza Pro", Tahoma, sans-serif;
 }
 
 a,

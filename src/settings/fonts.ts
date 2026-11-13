@@ -7,7 +7,7 @@ export interface LessonFont {
 export const FONTS = [
   { id: "scheherazade", family: "Scheherazade New", load: () => import("@fontsource/scheherazade-new/arabic-400.css") },
   { id: "amiri", family: "Amiri", load: () => import("@fontsource/amiri/arabic-400.css") },
-  { id: "noto-naskh", family: "Noto Naskh Arabic", load: () => import("@fontsource/noto-naskh-arabic/arabic-400.css") },
+  { id: "noto-naskh", family: "Noto Naskh Arabic", load: () => Promise.resolve() },
 ] as const satisfies readonly LessonFont[];
 
 export function loadFont(font: LessonFont): void {

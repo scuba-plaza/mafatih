@@ -196,14 +196,12 @@ test("there is no start button: clicking the text starts typing", async ({ page 
   expect(await doneText(page)).toBe("ب");
 });
 
-test("the text can be reached with Tab, shows a focus ring for the keyboard only, and Tab leaves it", async ({
-  page,
-}) => {
+test("the text can be reached with Tab and left with Tab, and no ring is drawn around it", async ({ page }) => {
   await open(page, { customText: "بتن" });
   await page.getByRole("heading", { level: 1 }).focus();
   await page.keyboard.press("Tab");
   await expect(field(page)).toBeFocused();
-  await expect(surface(page)).toHaveCSS("outline-style", "solid");
+  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
   await typeKeys(page, ["ب"]);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
@@ -217,6 +215,7 @@ test("while it waits the caret blinks, and while typing or with reduced motion i
   await open(page, { customText: "بتن" });
   const caret = surface(page).locator("[data-caret]");
   await expect(caret).toHaveCSS("animation-name", "caret-wait");
+  await expect(caret).toHaveCSS("animation-duration", "2.4s");
   await startTyping(page);
   await expect(caret).toHaveCSS("animation-name", "none");
   await page.emulateMedia({ reducedMotion: "reduce" });
