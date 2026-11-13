@@ -5,7 +5,6 @@ interface StoredAyah {
   readonly url: string;
   readonly blob: Blob;
   readonly bytes: number;
-  readonly at: number;
 }
 
 export interface AudioCacheUsage {
@@ -83,7 +82,7 @@ function createAudioCache(): AudioCache | null {
         : null;
     },
     put: async (url, blob) => {
-      const record: StoredAyah = { url, blob, bytes: blob.size, at: Date.now() };
+      const record: StoredAyah = { url, blob, bytes: blob.size };
       await run("readwrite", (store) => store.put(record));
     },
     usage: async () => {
