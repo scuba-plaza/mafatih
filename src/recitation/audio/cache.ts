@@ -17,7 +17,7 @@ export interface AudioCache {
   readonly get: (url: string) => Promise<Blob | null>;
   readonly put: (url: string, blob: Blob) => Promise<void>;
   readonly usage: () => Promise<AudioCacheUsage>;
-  readonly clear: () => Promise<void>;
+  readonly clear: () => Promise<boolean>;
 }
 
 function openDatabase(onLost: () => void): Promise<IDBDatabase | null> {
@@ -93,9 +93,7 @@ function createAudioCache(): AudioCache | null {
         bytes: (records ?? []).reduce((sum, record) => sum + (record.bytes || 0), 0),
       };
     },
-    clear: async () => {
-      await run("readwrite", (store) => store.clear());
-    },
+    clear: async () => (await run("readwrite", (store) => store.clear())) !== null,
   };
 }
 

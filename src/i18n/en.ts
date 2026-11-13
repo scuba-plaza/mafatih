@@ -164,6 +164,7 @@ export const en = {
   "audio.usage": "Saved recitations: {files} ({size})",
   "audio.delete": "Delete saved recitations",
   "audio.deleted": "Saved recitations were deleted.",
+  "audio.notDeleted": "The saved recitations could not be deleted.",
   "stats.mode": "Show statistics for",
   "stats.keys": "Keys in {mode}",
   "stats.key": "Key",

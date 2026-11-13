@@ -160,6 +160,7 @@ export const ar: Record<MessageKey, string> = {
   "audio.usage": "التلاوات المحفوظة: {files} ({size})",
   "audio.delete": "حذف التلاوات المحفوظة",
   "audio.deleted": "حُذفت التلاوات المحفوظة.",
+  "audio.notDeleted": "تعذّر حذف التلاوات المحفوظة.",
   "stats.mode": "اعرض إحصاءات",
   "stats.keys": "المفاتيح في {mode}",
   "stats.key": "المفتاح",

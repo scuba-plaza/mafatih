@@ -521,6 +521,24 @@ test("Settings shows how much is saved and Delete empties it", async ({ page }) 
   await expect(group.getByRole("status")).toHaveText("Saved recitations were deleted.");
 });
 
+test("when the saved recitations cannot be deleted Settings says so and keeps the count", async ({ page }) => {
+  await mockAudio(page, SHORT);
+  await page.addInitScript(() => {
+    IDBObjectStore.prototype.clear = () => {
+      throw new Error("locked");
+    };
+  });
+  await page.goto("/#/recitation/1/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Settings" }).click();
+  const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Recitation audio" });
+  await expect(group.getByText(/^Saved recitations: [1-9]\d* /)).toBeVisible();
+  await group.getByRole("button", { name: "Delete saved recitations" }).click();
+  await expect(group.getByRole("status")).toHaveText("The saved recitations could not be deleted.");
+  await expect(group.getByText(/^Saved recitations: [1-9]\d* /)).toBeVisible();
+});
+
 test("the reciter is chosen in Settings and the next recitation comes from that reciter", async ({ page }) => {
   const { requests } = await mockAudio(page, SHORT);
   const folders: string[] = [];

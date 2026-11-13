@@ -14,7 +14,10 @@ function memoryCache(initial: Record<string, Blob> = {}): AudioCache & { readonl
       store.set(url, blob);
     },
     usage: async () => ({ files: store.size, bytes: [...store.values()].reduce((sum, blob) => sum + blob.size, 0) }),
-    clear: async () => store.clear(),
+    clear: async () => {
+      store.clear();
+      return true;
+    },
   };
 }
 
@@ -76,7 +79,7 @@ test("with no store at all, or a store that fails, the ayah is still played", as
       throw new Error("full");
     },
     usage: async () => ({ files: 0, bytes: 0 }),
-    clear: async () => undefined,
+    clear: async () => false,
   };
   expect(await (await loadAyahBlob(URL_A, broken)).text()).toBe("audio");
 });

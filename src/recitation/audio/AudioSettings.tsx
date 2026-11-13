@@ -16,7 +16,7 @@ export interface AudioSettingsProps {
 export function AudioSettings({ settings, change }: AudioSettingsProps) {
   const { t, formatBytes } = useI18n();
   const [usage, setUsage] = useState(NO_USAGE);
-  const [deleted, setDeleted] = useState(false);
+  const [deleted, setDeleted] = useState<boolean | null>(null);
   const cache = sharedAudioCache();
 
   useEffect(() => {
@@ -32,9 +32,11 @@ export function AudioSettings({ settings, change }: AudioSettingsProps) {
   }, [cache]);
 
   const remove = async () => {
-    await cache?.clear();
-    setUsage(NO_USAGE);
-    setDeleted(true);
+    const done = (await cache?.clear()) ?? false;
+    if (done) {
+      setUsage(NO_USAGE);
+    }
+    setDeleted(done);
   };
 
   return (
@@ -56,7 +58,7 @@ export function AudioSettings({ settings, change }: AudioSettingsProps) {
             {t("audio.delete")}
           </button>
           <p role="status" className="min-h-5 text-sm text-muted">
-            {deleted ? t("audio.deleted") : ""}
+            {deleted === null ? "" : t(deleted ? "audio.deleted" : "audio.notDeleted")}
           </p>
         </div>
       )}
