@@ -309,6 +309,22 @@ test("the volume and the mute setting reach the audio itself", async ({ page }) 
   await expect.poll(async () => (await readLog(page)).muted.at(-1)).toBe(true);
 });
 
+test("Page Up and Page Down on the volume slider move the slider and leave the passage alone", async ({ page }) => {
+  await spyAudio(page);
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/5");
+  await openPanel(page);
+  const volume = player(page).getByRole("slider", { name: "Volume" });
+  await volume.focus();
+  await expect(volume).toHaveAttribute("aria-valuetext", "80%");
+  await page.keyboard.press("PageUp");
+  await expect(volume).toHaveAttribute("aria-valuetext", "90%");
+  await page.keyboard.press("PageDown");
+  await page.keyboard.press("PageDown");
+  await expect(volume).toHaveAttribute("aria-valuetext", "70%");
+  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
+});
+
 test("an error from the audio element is said plainly", async ({ page }) => {
   await spyAudio(page);
   await mockAudio(page, LONG);

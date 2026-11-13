@@ -17,6 +17,9 @@ export function PassageFooter({ meta, typed, previous, next, onGo, audio }: Pass
   const { t } = useI18n();
 
   const keys = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target instanceof HTMLInputElement && event.target.type === "range") {
+      return;
+    }
     if (event.key === "PageDown") {
       event.preventDefault();
       onGo(next);
