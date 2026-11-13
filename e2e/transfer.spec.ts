@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { savedProfile, seedProfile } from "./helpers/profile.ts";
 
 const STAT = { attempts: 9, hits: 9, timed: 9, meanMs: 300, recentAccuracy: 1 };
@@ -119,7 +120,11 @@ const FAILURES = [
 ] as const;
 
 for (const failure of FAILURES) {
-  test(`a file that is ${failure.name} gets its own alert tied to the field and changes nothing`, async ({ page }) => {
+  test(`a file that is ${failure.name} gets its own alert tied to the field and changes nothing`, async ({
+    browserName,
+    page,
+  }) => {
+    test.skip(browserName === "firefox" && failure.name === "too large", FIREFOX_PAGE_CRASH);
     await seedProfile(page, { ladder: { unlocked: 12 } });
     await page.goto("/#/practice");
     await openSettings(page);

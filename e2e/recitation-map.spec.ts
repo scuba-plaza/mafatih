@@ -423,7 +423,7 @@ test("while a surah loads the room for its lesson is kept, so the bar does not j
     await held;
     await route.continue();
   });
-  await page.goto("/#/recitation/36");
+  await page.goto("/#/recitation/36", { waitUntil: "commit" });
   await expect(bar(page)).toBeVisible();
   const loading = await bar(page).boundingBox();
   expect(loading?.y ?? 0).toBeGreaterThan(800 * 0.3);

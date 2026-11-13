@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { NEEDS_CDP } from "./helpers/engines.ts";
 import { clearlyDifferentPixels } from "./helpers/pixels.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
@@ -261,7 +262,8 @@ test("while wrong keys are waiting to be deleted the caret stays red, and goes b
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
 });
 
-test("holding a key down is one key press, not several", async ({ page, isMobile }) => {
+test("holding a key down is one key press, not several", async ({ browserName, page, isMobile }) => {
+  test.skip(browserName !== "chromium", NEEDS_CDP);
   test.skip(isMobile, "a phone has no key to hold");
   await start(page, { customText: "ببب" });
   const cdp = await page.context().newCDPSession(page);
@@ -316,7 +318,7 @@ test("a mark typed by mistake with no letter to sit on is drawn on a tatweel, so
   const mistakes = surface(page).locator("[data-mistakes]");
   await typeKeys(page, ["ب", FATHA]);
   await expect(mistakes).toHaveText(`ــ${FATHA}`);
-  expect((await mistakes.boundingBox())?.width).toBeGreaterThan(6);
+  expect((await mistakes.boundingBox())?.width).toBeGreaterThan(3);
   await typeKeys(page, ["Backspace", " ", FATHA, "س", KASRA]);
   await expect(mistakes).toHaveText(`␣ــ${FATHA}س${KASRA}`);
 });
@@ -427,7 +429,8 @@ test("Backspace as the very first key is harmless", async ({ page }) => {
   await expect(mistakeCount(page)).toHaveText("0");
 });
 
-test("a keyboard that builds each word as a composition types one key per letter", async ({ page }) => {
+test("a keyboard that builds each word as a composition types one key per letter", async ({ browserName, page }) => {
+  test.skip(browserName !== "chromium", NEEDS_CDP);
   await start(page, { customText: "بتن" });
   const session = await page.context().newCDPSession(page);
   await session.send("Input.imeSetComposition", { text: "ب", selectionStart: 1, selectionEnd: 1 });

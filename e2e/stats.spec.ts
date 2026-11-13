@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { seedProfile } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
 
@@ -76,7 +77,11 @@ test("a fresh profile says what to do instead of showing empty tables", async ({
   await expectNoAxeViolations(page);
 });
 
-test("the key table lists keys in ladder order with their speed, accuracy and attempts", async ({ page }) => {
+test("the key table lists keys in ladder order with their speed, accuracy and attempts", async ({
+  browserName,
+  page,
+}) => {
+  test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await seedProfile(page, PROFILE);
   await openPractice(page);
   const table = keys(page);
@@ -166,7 +171,11 @@ test("the mode of the last lesson is the one shown first", async ({ page }) => {
   await expect(modes(page).getByRole("radio", { name: "Practice" })).toBeChecked();
 });
 
-test("the last ten lessons are listed newest first with date, mode, speed and accuracy", async ({ page }) => {
+test("the last ten lessons are listed newest first with date, mode, speed and accuracy", async ({
+  browserName,
+  page,
+}) => {
+  test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await seedProfile(page, PROFILE);
   await page.goto("/#/stats");
   const table = recent(page);
@@ -206,7 +215,8 @@ test("with forced colours the bars are drawn in system colours and differ", asyn
   expect(colours[0]).not.toBe(colours[1]);
 });
 
-test("in the Arabic interface the labels and the digits are Arabic", async ({ page }) => {
+test("in the Arabic interface the labels and the digits are Arabic", async ({ browserName, page }) => {
+  test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await seedProfile(page, { ...PROFILE, settings: { language: "ar" } });
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("الإحصاءات");

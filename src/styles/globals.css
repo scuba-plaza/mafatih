@@ -6,6 +6,7 @@
 }
 
 @layer base {
+  a[href],
   button:not(:disabled),
   select:not(:disabled),
   input:is([type="checkbox"], [type="radio"], [type="range"]):not(:disabled),

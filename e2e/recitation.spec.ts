@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { NEEDS_CDP } from "./helpers/engines.ts";
 import { passageRange } from "./helpers/passage.ts";
 import { savedProfile, seedSettings } from "./helpers/profile.ts";
 import { lettersOf, shownAyat, sign, surah } from "./helpers/quran.ts";
@@ -228,7 +229,7 @@ test("while a surah loads a status says so, and the same region is left empty af
     await held;
     await route.continue();
   });
-  await page.goto("/#/recitation/36");
+  await page.goto("/#/recitation/36", { waitUntil: "commit" });
   const status = page.getByRole("main").getByRole("status").filter({ hasText: "Loading the surah…" });
   await expect(status).toHaveText("Loading the surah…");
   const region = await status.elementHandle();
@@ -310,8 +311,10 @@ test("a surah that cannot be loaded says so and offers to reload, which then wor
 });
 
 test("the longest ayah renders, keeps the caret line in view, stays fast to type and completes", async ({
+  browserName,
   page,
 }, testInfo) => {
+  test.skip(browserName !== "chromium", NEEDS_CDP);
   test.setTimeout(180_000);
   const baqara = surah(2);
   const keys = lettersOf(baqara, 282, 282);

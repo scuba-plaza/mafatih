@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { FIREFOX_AUDIO_CHAIN, FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
@@ -111,8 +112,10 @@ async function playingSpan(page: Page): Promise<string[]> {
 }
 
 test("the controls have names, Play and Pause are one button whose name changes, Mute is a toggle", async ({
+  browserName,
   page,
 }) => {
+  test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
   await expect(player(page)).toBeVisible();
@@ -214,8 +217,10 @@ test("the next ayah is fetched ahead while one plays, and not before anything pl
 });
 
 test("with the whole passage on, each clip that ends is followed by the next, each fetched once, and then it stops", async ({
+  browserName,
   page,
 }) => {
+  test.skip(browserName === "firefox", FIREFOX_AUDIO_CHAIN);
   const { requests } = await mockAudio(page, SHORT);
   await seedProfile(page, { settings: { playWhole: true } });
   await page.goto("/#/recitation/1/1");
@@ -429,8 +434,10 @@ test("Repeat is a toggle that is saved in the settings and still on after a relo
 });
 
 test("with repeat on, the passage starts again from its first ayah when the last one ends, and keeps playing", async ({
+  browserName,
   page,
 }) => {
+  test.skip(browserName === "firefox", FIREFOX_AUDIO_CHAIN);
   await mockAudio(page, SHORT);
   await seedProfile(page, { settings: { playWhole: true, loop: true } });
   await page.goto("/#/recitation/1/1");

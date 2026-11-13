@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { NEEDS_CDP } from "./helpers/engines.ts";
 import { seedSettings } from "./helpers/profile.ts";
 
 const PAGES = [
@@ -290,7 +291,11 @@ for (const language of ["en", "ar"] as const) {
       }
     });
 
-    test("a display cutout on one side pads that same side whatever the reading direction", async ({ page }) => {
+    test("a display cutout on one side pads that same side whatever the reading direction", async ({
+      browserName,
+      page,
+    }) => {
+      test.skip(browserName !== "chromium", NEEDS_CDP);
       await page.setViewportSize({ width: 390, height: 844 });
       const session = await page.context().newCDPSession(page);
       await session.send("Emulation.setSafeAreaInsetsOverride", { insets: { right: 40 } });

@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { FIREFOX_PAGE_CRASH, NEEDS_CDP } from "./helpers/engines.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -30,7 +31,8 @@ function lessonText(page: Page) {
   return surface(page).locator("[data-lesson-text]");
 }
 
-test("the Settings button opens a dialog with every setting in a named group", async ({ page }) => {
+test("the Settings button opens a dialog with every setting in a named group", async ({ browserName, page }) => {
+  test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await page.goto("/#/custom");
   await openSettings(page);
   const language = dialog(page).getByRole("group", { name: "Language" });
@@ -92,8 +94,10 @@ test("while the dialog is open the page behind it cannot be reached with Tab", a
 });
 
 test("changing the language applies at once, turns the page right-to-left and keeps the lesson where it was", async ({
+  browserName,
   page,
 }) => {
+  test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await seedSettings(page, { customText: "بتن" });
   await page.goto("/#/custom");
   await startTyping(page);
@@ -182,8 +186,8 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await page.goto("/#/custom");
   const bodyFont = await page.locator("body").evaluate((body) => getComputedStyle(body).fontFamily);
   await expect(lessonText(page)).toHaveCSS("font-family", /Scheherazade New/);
-  await expect(page.locator("body")).toHaveCSS("font-family", /^"Noto Naskh Arabic"/);
-  await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", /^"Noto Naskh Arabic"/);
+  await expect(page.locator("body")).toHaveCSS("font-family", /^"?Noto Naskh Arabic"?/);
+  await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", /^"?Noto Naskh Arabic"?/);
   await openSettings(page);
   const samples = dialog(page).locator("[data-font-sample]");
   await expect(samples).toHaveCount(3);
@@ -290,7 +294,11 @@ test("at 320 pixels with text at 200 percent the dialog still fits and its Done 
   await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport({ ratio: 1 });
 });
 
-test("on a landscape phone with a display cutout the dialog keeps its content out of the cutout", async ({ page }) => {
+test("on a landscape phone with a display cutout the dialog keeps its content out of the cutout", async ({
+  browserName,
+  page,
+}) => {
+  test.skip(browserName !== "chromium", NEEDS_CDP);
   const session = await page.context().newCDPSession(page);
   await session.send("Emulation.setSafeAreaInsetsOverride", { insets: { left: 44, right: 44 } });
   await page.setViewportSize({ width: 667, height: 375 });
@@ -316,8 +324,11 @@ test("the dialog always opens at its top, however far it was scrolled when it wa
 });
 
 test("while the dialog is open the page behind it does not scroll, and it scrolls again afterwards", async ({
+  browserName,
+  isMobile,
   page,
 }) => {
+  test.skip(isMobile && browserName === "webkit", "the mouse wheel is not available on mobile WebKit");
   await page.goto("/#/custom");
   await page.evaluate(() => {
     document.body.style.minHeight = "3000px";
@@ -413,7 +424,8 @@ for (const [language, locale, settingsName, appName] of [
 test.describe("Arabic", () => {
   test.use({ locale: "ar-EG", colorScheme: "dark" });
 
-  test("the dialog works in Arabic and in the dark scheme", async ({ page }) => {
+  test("the dialog works in Arabic and in the dark scheme", async ({ browserName, page }) => {
+    test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
     await page.goto("/#/custom");
     await page.getByRole("button", { name: "الإعدادات" }).click();
     const arabic = page.getByRole("dialog", { name: "الإعدادات" });

@@ -39,9 +39,14 @@ test("a page that throws is replaced by a screen with the problem, Reload and St
 
 test("a page that throws leaves its error in the console, so that it can be found", async ({ page }) => {
   const logged: string[] = [];
-  page.on("console", (message) => {
+  page.on("console", async (message) => {
     if (message.type() === "error") {
-      logged.push(message.text());
+      const detail = await Promise.all(
+        message
+          .args()
+          .map((argument) => argument.evaluate((value) => (value instanceof Error ? value.message : String(value)))),
+      );
+      logged.push(`${message.text()} ${detail.join(" ")}`);
     }
   });
   await showTheErrorScreen(page);
