@@ -43,6 +43,7 @@
 | D16 | Search and social images and favicons get a light touch | Not a redesign. Keep the old composition, which the owner liked, and make the colours, key style and amber accent coherent with Focus (Task F13b) |
 | D17 | A passage holds at most four ayat | The `Ayat per passage` setting is 1 to 4 (default 4). Nobody wants more on screen, and the audio position display needs a bounded, predictable number of stops. A saved value above 4 is read as 4. Done (2026-11-13) |
 | D18 | No underline on the ayah being recited | The wash stays, the 2 px underline is gone (`::highlight(mafatih-playing)`). The wavy underline under wrong letters stays: it is the non-colour cue for mistakes (A6). Done (2026-11-13) |
+| D19 | Audio controls shortlist (round 1, 2026-11-13) | The owner likes the Dial most and the Ayah Ruler next, and especially the ruler's volume panel. The dial's arcs are not clickable (previous and next are enough). Both designs show one stop per ayah, at most five (the basmala is a stop of its own, then up to four ayat). Round 2 shows the Dial's volume control and the long and short ayah cases |
 
 ## Superseded rules and waivers (record these in `docs/TECHNICAL.md` in Task F1)
 
