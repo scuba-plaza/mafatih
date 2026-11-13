@@ -22,8 +22,8 @@ const STRICT: SessionOptions = { requireBackspace: true };
 const LENIENT: SessionOptions = { requireBackspace: false };
 const BACKSPACE: Key = { kind: "backspace" };
 
-function start(shown: string, marks: ReadonlySet<string> = LETTERS, origin?: number): Session {
-  return createSession(buildPrompt(shown, marks), origin);
+function start(shown: string, marks: ReadonlySet<string> = LETTERS): Session {
+  return createSession(buildPrompt(shown, marks));
 }
 
 function press(session: Session, char: string, at: number, options: SessionOptions = STRICT): Session {
@@ -42,11 +42,24 @@ test("a wrong key before the first correct one is ignored: no mistake, no error,
   for (const options of [STRICT, LENIENT]) {
     const session = start("بت");
     const after = typeAll(session, ["س", "ش", "ص"], 1000, 100, options);
-    expect(after).toBe(session);
+    expect(after.cursor).toBe(session.cursor);
+    expect(after.startedAt).toBeNull();
     expect(view(after).mistakes).toBe("");
     expect(metricsOf(after).errors).toBe(0);
     expect(after.samples).toEqual([]);
   }
+});
+
+test("every wrong key before the first correct one is remembered as ignored, so that it can still be shown", () => {
+  let session = start("بت");
+  session = press(session, "س", 1000);
+  session = applyKey(session, BACKSPACE, 1100, STRICT);
+  session = press(session, "ش", 1200);
+  expect(session.ignored).toBe(2);
+  session = press(session, "ب", 1300);
+  session = press(session, "ض", 1400);
+  expect(session.ignored).toBe(2);
+  expect(session.errors).toBe(1);
 });
 
 test("the clock starts at the first correct key, not at an earlier wrong one", () => {
@@ -67,13 +80,6 @@ test("once the first character is right a wrong key counts as before", () => {
     expect(metricsOf(session).errors).toBe(1);
     expect(session.missed).toBe(true);
   }
-});
-
-test("a session started partway in waits for the right character there", () => {
-  const session = start("بتن", LETTERS, 1);
-  const waiting = press(session, "ب", 1000);
-  expect(waiting).toBe(session);
-  expect(press(session, "ت", 1000).cursor).toBe(2);
 });
 
 test("each correct key moves on to the next unit and the last one completes the session", () => {
@@ -333,22 +339,6 @@ test("before anything is typed there is no speed and nothing has gone wrong", ()
   expect(metricsOf(start("بت"))).toEqual({ elapsedMs: 0, typedChars: 0, cpm: 0, wpm: 0, accuracy: 1, errors: 0 });
 });
 
-test("a session can start partway in: earlier units are done and do not count as typed", () => {
-  let session = start("بتن", LETTERS, 2);
-  expect(session.cursor).toBe(2);
-  expect(view(session).doneUntil).toBe(2);
-  session = press(session, "ن", 0);
-  expect(isComplete(session)).toBe(true);
-  expect(metricsOf(session).typedChars).toBe(1);
-  expect(session.samples).toHaveLength(1);
-});
-
-test("a starting point outside the text is brought back inside it", () => {
-  expect(start("بت", LETTERS, -3).cursor).toBe(0);
-  expect(start("بت", LETTERS, 99).cursor).toBe(2);
-  expect(isComplete(start("بت", LETTERS, 99))).toBe(true);
-});
-
 test("a text with nothing to type is complete from the start", () => {
   const session = start("hello");
   expect(isComplete(session)).toBe(true);
@@ -444,16 +434,13 @@ test("a mark already typed is not accepted a second time", () => {
   expect(session.mistakes).toEqual([FATHA]);
 });
 
-test("the cursor always counts the prompt's own units, so a session can be resumed from it", () => {
+test("the cursor counts the prompt's own units, a lam-alef being one of them", () => {
   const prompt = buildPrompt("ب لا ت", LETTERS);
   let session = typeAll(createSession(prompt), ["ب", " ", "ل"], 0, 100);
   expect(session.cursor).toBe(2);
   expect(expectedText(session)).toBe("ا");
   session = press(session, "ا", 400);
   expect(session.cursor).toBe(3);
-  const resumed = typeAll(createSession(prompt, session.cursor), [" ", "ت"], 0, 100);
-  expect(isComplete(resumed)).toBe(true);
-  expect(metricsOf(resumed).typedChars).toBe(2);
 });
 
 test("the units keep the prompt's places in the text, whatever order and way they are typed in", () => {
@@ -502,9 +489,8 @@ test("time never runs backwards: an earlier timestamp is treated as the latest o
   expect(metricsOf(press(start("بت"), "ب", 1000), 200).elapsedMs).toBe(0);
 });
 
-test("a session that starts with nothing left to type is complete without ever having been finished", () => {
-  expect(start("بت", LETTERS, 2).finishedAt).toBeNull();
-  expect(start("بت", LETTERS, Number.NaN).cursor).toBe(0);
+test("a text with nothing to type is complete without ever having been finished", () => {
+  expect(start("hello").finishedAt).toBeNull();
 });
 
 test("turning the Backspace setting off drops mistakes that were pending, so nobody is stuck on hidden ones", () => {

@@ -203,7 +203,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
     loadFont(family);
   }, [family]);
 
-  const misses = session.errors;
+  const misses = session.errors + session.ignored;
 
   useEffect(() => {
     const element = caretRef.current;

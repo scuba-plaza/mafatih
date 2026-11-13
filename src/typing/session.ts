@@ -16,12 +16,12 @@ export interface SessionOptions {
 export interface Session {
   readonly prompt: Prompt;
   readonly units: readonly Unit[];
-  readonly origin: number;
   readonly cursor: number;
   readonly within: number;
   readonly mistakes: readonly string[];
   readonly missed: boolean;
   readonly errors: number;
+  readonly ignored: number;
   readonly samples: readonly Sample[];
   readonly startedAt: number | null;
   readonly finishedAt: number | null;
@@ -50,17 +50,16 @@ export const MAX_PENDING_MISTAKES = 10;
 
 const CHARS_PER_WORD = 5;
 
-export function createSession(prompt: Prompt, origin = 0): Session {
-  const start = Number.isFinite(origin) ? Math.max(0, Math.min(Math.trunc(origin), prompt.units.length)) : 0;
+export function createSession(prompt: Prompt): Session {
   return {
     prompt,
     units: prompt.units,
-    origin: start,
-    cursor: start,
+    cursor: 0,
     within: 0,
     mistakes: [],
     missed: false,
     errors: 0,
+    ignored: 0,
     samples: [],
     startedAt: null,
     finishedAt: null,
@@ -210,7 +209,7 @@ export function applyKey(session: Session, key: Key, at: number, options: Sessio
     return session;
   }
   if (session.startedAt === null && (key.kind === "backspace" || !opensRight(session, key.char))) {
-    return session;
+    return key.kind === "char" ? { ...session, ignored: session.ignored + 1 } : session;
   }
   const visible = options.requireBackspace || session.mistakes.length === 0 ? session : { ...session, mistakes: [] };
   if (key.kind === "backspace" && visible.mistakes.length === 0) {
@@ -227,7 +226,7 @@ export function metricsOf(session: Session, now?: number): Metrics {
   const live = now === undefined || isComplete(session) ? 0 : activeSince(session, timeOf(session, now));
   const elapsedMs = session.activeMs + live;
   const typedChars = session.units
-    .slice(session.origin, session.cursor)
+    .slice(0, session.cursor)
     .reduce((count, unit) => count + unit.text.length, session.within);
   const cpm = elapsedMs > 0 ? typedChars / (elapsedMs / 60_000) : 0;
   const firstTry = session.samples.filter((sample) => sample.correct).length;

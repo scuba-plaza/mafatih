@@ -193,15 +193,22 @@ test("the caret shakes and flashes once for every wrong key, which is exactly ho
   await expect(mistakeCount(page)).toHaveText("2");
 });
 
-test("a wrong key before the first correct character is ignored: no shake, no mistake, no clock", async ({ page }) => {
+test("a wrong key before the first correct character shakes the caret but counts for nothing: no mistake, no clock", async ({
+  page,
+}) => {
   await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
-  await typeKeys(page, ["س", "ش"]);
-  expect(await shakes(page)).toBe(0);
+  await typeKeys(page, ["س"]);
+  expect(await shakes(page)).toBe(1);
+  await expect.poll(() => shaking(page)).toBe(true);
+  await typeKeys(page, ["ش"]);
+  expect(await shakes(page)).toBe(2);
   await expect(flag(page)).toHaveCount(0);
+  await typeKeys(page, ["Backspace"]);
+  expect(await shakes(page)).toBe(2);
   await typeKeys(page, ["ب", "ت", "ن"]);
   await expect(mistakeCount(page)).toHaveText("0");
-  expect(await shakes(page)).toBe(0);
+  expect(await shakes(page)).toBe(2);
 });
 
 test("pressing on the text, leaving the field and coming back never replays a shake", async ({ page }) => {
