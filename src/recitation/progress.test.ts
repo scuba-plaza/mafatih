@@ -16,6 +16,7 @@ import {
   starredOf,
   startOf,
   typedAyat,
+  typingSpeed,
 } from "./progress.ts";
 
 function type(progress: RecitationProgress, surah: number, from: number, to: number): RecitationProgress {
@@ -237,4 +238,11 @@ test("a save from before runs and bests were kept loads with zeros, and nonsense
     run: { correct: 9, total: 10, ms: 3000 },
     best: 0.97,
   });
+});
+
+test("the speed of a run is the correct characters over the minutes it took, and nothing before it has any time", () => {
+  expect(typingSpeed({ correct: 300, total: 400, ms: 60_000 })).toBe(300);
+  expect(typingSpeed({ correct: 90, total: 90, ms: 30_000 })).toBe(180);
+  expect(typingSpeed({ correct: 0, total: 0, ms: 0 })).toBe(0);
+  expect(typingSpeed({ correct: 12, total: 12, ms: 0 })).toBe(0);
 });

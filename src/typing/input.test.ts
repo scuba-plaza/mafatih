@@ -23,6 +23,11 @@ test("a character added to the field is one key", () => {
   expect(diffInput(Z, `${Z}${FATHA}`)).toEqual(keys(FATHA));
 });
 
+test("the tatweel, which an Arabic keyboard types with Shift and J, is a key and not a foreign letter", () => {
+  const tatweel = String.fromCodePoint(0x640);
+  expect(diffInput(Z, `${Z}${tatweel}`)).toEqual(keys(tatweel));
+});
+
 test("digits and punctuation are keys, whatever script they come from", () => {
   for (const char of ["1", ".", "،", "؟", "١", "!"]) {
     expect(diffInput(Z, `${Z}${char}`), char).toEqual(keys(char));

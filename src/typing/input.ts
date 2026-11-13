@@ -9,7 +9,7 @@ export interface InputChange {
 export const INPUT_SENTINEL = "\u200B";
 
 const NO_BREAK_SPACE = /\u00A0/g;
-const LETTER_OF_ANOTHER_SCRIPT = /(?!\p{Script=Arabic})\p{L}/u;
+const LETTER_OF_ANOTHER_SCRIPT = /(?![\p{Script=Arabic}ـ])\p{L}/u;
 const NOT_A_KEY = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u;
 const BACKSPACE: Key = { kind: "backspace" };
 

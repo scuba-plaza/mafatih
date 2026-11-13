@@ -66,6 +66,12 @@ export function accuracyOf(tally: RunTally): number {
   return tally.total === 0 ? 0 : tally.correct / tally.total;
 }
 
+const MS_PER_MINUTE = 60_000;
+
+export function typingSpeed(tally: RunTally): number {
+  return tally.ms > 0 ? tally.correct / (tally.ms / MS_PER_MINUTE) : 0;
+}
+
 function covers(ranges: readonly AyahRange[], ayah: number): boolean {
   return ranges.some(([start, end]) => start <= ayah && ayah <= end);
 }

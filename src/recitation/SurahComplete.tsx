@@ -4,12 +4,11 @@ import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { announceDialogChange } from "~/ui/dialogs.ts";
 import { StarIcon } from "~/ui/StarIcon.tsx";
 import { PRIMARY_BUTTON, SHEET } from "~/ui/styles.ts";
-import { accuracyOf, completedSurahs, STAR_ACCURACY } from "./progress.ts";
+import { accuracyOf, completedSurahs, STAR_ACCURACY, typingSpeed } from "./progress.ts";
 import { SURAH_COUNT, type SurahMeta, surahName } from "./quran.ts";
 import type { SurahFinish } from "./useRecitation.ts";
 
 const RAYS = 18;
-const MINUTE_MS = 60_000;
 
 type RayStyle = CSSProperties & { "--angle": string; "--delay": string };
 
@@ -57,8 +56,7 @@ export function SurahComplete({ meta, finish, next, endsTheOrder, onContinue, on
 
   const accuracy = finish === null ? 0 : accuracyOf(finish.tally);
   const starred = accuracy >= STAR_ACCURACY;
-  const minutes = finish === null ? 0 : finish.tally.ms / MINUTE_MS;
-  const speed = minutes > 0 && finish !== null ? finish.tally.total / minutes : 0;
+  const speed = finish === null ? 0 : typingSpeed(finish.tally);
 
   return (
     <dialog
