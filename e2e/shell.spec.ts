@@ -99,21 +99,30 @@ for (const language of ["en", "ar"] as const) {
       expect(bar?.width).toBe(390);
     });
 
-    test("the bar at the bottom of a phone goes away while the typing field has focus and comes back after", async ({
+    test("the bar at the bottom of a phone stays while the typing field has focus, and goes away only while a soft keyboard is up", async ({
       page,
     }) => {
       await page.setViewportSize({ width: 390, height: 844 });
+      await page.addInitScript(() => {
+        const viewport = Object.assign(new EventTarget(), { height: window.innerHeight, width: window.innerWidth });
+        Object.defineProperty(window, "visualViewport", { value: viewport, configurable: true });
+        Object.assign(window, { fakeViewport: viewport });
+      });
       await seedSettings(page, { customText: "بتن", language });
       await page.goto("/#/custom");
       const nav = page.getByRole("navigation", { name: copy.nav });
       await expect(nav).toBeVisible();
       await page.locator("[data-typing-surface]").click();
+      await expect(nav).toBeVisible();
+      const resize = (height: number | "full") =>
+        page.evaluate((to) => {
+          const viewport = (window as unknown as { fakeViewport: EventTarget & { height: number } }).fakeViewport;
+          viewport.height = to === "full" ? window.innerHeight : to;
+          viewport.dispatchEvent(new Event("resize"));
+        }, height);
+      await resize(480);
       await expect(nav).toBeHidden();
-      await page.evaluate(() => {
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-      });
+      await resize("full");
       await expect(nav).toBeVisible();
     });
 

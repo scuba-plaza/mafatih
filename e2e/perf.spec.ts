@@ -83,16 +83,18 @@ test("Practice loads its words and no surah", async ({ page }) => {
   expect(requests.filter((path) => SURAH_CHUNK.test(path))).toEqual([]);
 });
 
-test("one font is loaded for the page, and the other two only when Settings is opened", async ({ page }) => {
+test("only the interface font is loaded for a page without a lesson, and the lesson fonts only when needed", async ({
+  page,
+}) => {
   const requests = requestsOf(page);
   await page.goto("/#/custom");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.waitForLoadState("networkidle");
   const before = new Set(requests.filter((path) => FONT_FILE.test(path)));
-  expect(before.size).toBeLessThanOrEqual(1);
+  expect(before.size).toBeLessThanOrEqual(2);
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(page.locator("[data-font-sample]")).toHaveCount(3);
-  await expect.poll(() => new Set(requests.filter((path) => FONT_FILE.test(path))).size).toBe(3);
+  await expect.poll(() => new Set(requests.filter((path) => FONT_FILE.test(path))).size).toBe(4);
 });
 
 test("typing a hundred and fifty characters never freezes the page for a fifth of a second and drops none", async ({

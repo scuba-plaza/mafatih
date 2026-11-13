@@ -13,7 +13,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | # | Step | Expected | Result |
 |---|------|----------|--------|
 | A1 | Open the site on a fresh profile. | The map of surahs shows at once; Practice offers a lesson of home-row words with no setup. | |
-| A2 | Type the first ayah of Al-Faatiha, including one deliberate mistake and its correction. | Typed text turns the accent colour, the mistake is shown until deleted, the lesson ends with a summary. | |
+| A2 | Type the first ayah of Al-Faatiha, including one deliberate wrong key and its correction. | Typed text brightens, the wrong key makes the caret flash red and shake once (red and ringed, without movement, when the system asks for reduced motion), and nothing else is written about it. | |
 | A3 | Turn the device to dark mode, then to forced or high-contrast colours where the system has them. | Text stays readable; the typed part, the marks that are not typed and the mistake are still told apart without colour. | |
 | A4 | Settings: change the font three times and the size to the largest step. | The lesson text changes at once, letters stay joined, nothing is clipped. | |
 | A5 | Settings, Backup and restore: download a backup, change a setting, restore the backup. | The file saves (check the Downloads list), the confirmation appears, the setting returns. | |
@@ -21,6 +21,11 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | A7 | Zoom the page text to 200 % in the browser settings. | No sideways scrolling; every control is still reachable and readable. | |
 | A8 | Recitation: play a passage, then lock the screen or open the system media controls. | Title and the play, pause controls show and work; the passage keeps playing with the screen locked. | |
 | A9 | Play an ayah, go offline, play the same ayah again. Then repeat in a private window. | Offline, the ayah heard before plays from the cache; in a private window playback still works (it may download again) and no error screen appears. | |
+| A10 | Recitation: finish a passage that is not the last of its surah, with the keyboard open. | After a moment the next passage opens by itself and the keyboard stays open. Audio that was playing carries on. | |
+| A11 | Recitation: finish a whole short surah (Al-Kawthar). | The celebration opens: the Arabic name with rays that keep bursting, the figures, a star at 95 % accuracy or better. On a phone it is a bottom sheet with a full-width Continue. With reduced motion it is still and the rays are not drawn. Continue and Type it again both work. | |
+| A12 | Before typing, press wrong keys, then the right first key. Hold a letter key down. | Wrong keys before the first right one count for nothing. A held key types one letter. | |
+| A13 | Open the site with `?lang=ar` added to the address, on a fresh browser. | It opens in Arabic, the address loses the parameter, and a reload stays in Arabic. | |
+| A14 | Tap the text on a phone, with no button first. | The keyboard opens and typing starts; while it is open the bottom tab bar is hidden and the audio row stays reachable. | |
 
 ## iOS Safari (iPhone), with the Arabic keyboard added
 

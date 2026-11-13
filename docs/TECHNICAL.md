@@ -114,6 +114,8 @@ The look of the app was redesigned in four mockup rounds; the approved mockups a
 - Finishing a passage inside a surah shows nothing: after 450 ms the next passage opens with the typing field focused, and audio that was playing carries on. Finishing a surah opens the celebration, whose Continue goes to the next surah and whose "Type it again" starts the surah over. There is no "Finished" or "Completed" summary on the Recitation page.
 - A lesson counts nothing until the first character is typed right: wrong keys before it are ignored (no mistake, no error, no clock), and the clock starts at that first right key. A key that is held down counts once: repeats of a character are ignored (Backspace still repeats, so wrong keys can be deleted quickly).
 - A wrong key is shown at the caret and nowhere else: the caret flashes red and shakes once for every counted error (red and ringed, without movement, under reduced motion), and stays red while wrong keys wait for Backspace. There is no "Mistake." line; screen readers get it as a visually hidden message.
+- The language can be asked for in the address: `?lang=ar` or `?lang=en` is read once at start-up (`takeLanguageFromAddress`), beats the saved and the browser's language, is saved like a choice in Settings (`openProfileInLanguage`) and is removed from the address. With storage blocked or newer data in the way the page still opens in that language and nothing is written.
+- Stats uses a segmented control for the mode (real radios) and shows the key table and the last-ten-lessons table side by side from `lg`.
 - The About page no longer has "How this site was made" or the "Source code" credit. Its link moved from the footer into Settings.
 
 Waivers and rules that changed with these decisions:

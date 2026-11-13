@@ -39,8 +39,10 @@
   }
 }
 
-body:has([data-typing-input]:focus) [data-tabbar] {
-  display: none;
+@media (max-width: 47.99rem) {
+  html {
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
 }
 
 @keyframes burst {

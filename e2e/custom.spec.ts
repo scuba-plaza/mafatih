@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { savedProfile, savedSettings, seedProfile, seedSettings } from "./helpers/profile.ts";
-import { doneText, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const NOTHING = "There is nothing to type in this text.";
 
@@ -56,7 +56,7 @@ test("starting saves the text and typing can begin at once, without another clic
 test("the finished summary gives speed, accuracy and mistakes, and offers to type again or edit", async ({ page }) => {
   await seedSettings(page, { customText: "بت" });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب", "س", "Backspace", "ت"]);
   const heading = page.getByRole("heading", { level: 2, name: "Finished" });
   await expect(heading).toBeFocused();
@@ -78,7 +78,7 @@ test("a finished Custom lesson is recorded in the Custom statistics and the hist
 }) => {
   await seedProfile(page, { settings: { customText: "بت" }, ladder: { unlocked: 12 } });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب", "س", "Backspace", "ت"]);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toBeFocused();
   const profile = await savedProfile(page);
@@ -120,7 +120,7 @@ test("the message about a refused text goes away as soon as the text is changed"
 test("a text saved in another tab never replaces the lesson being typed", async ({ page, context }) => {
   await seedSettings(page, { customText: "بتن" });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب", "ت"]);
   const other = await context.newPage();
   await other.goto("/#/custom");
@@ -145,7 +145,7 @@ test("a saved text is offered again after a reload, and waits for the typist to 
   await expect(surface(page)).toContainText("بت");
   await typeKeys(page, ["ب"]);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب", "ت"]);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toBeFocused();
 });
@@ -192,7 +192,7 @@ test("on Auto the marks to type are the ones unlocked in Practice, as in every o
   const fatha = String.fromCodePoint(0x64e);
   await seedProfile(page, { ladder: { unlocked: 37 }, settings: { customText: `ب${fatha}ت` } });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   expect(await doneText(page)).toBe("ب");
 });
@@ -201,7 +201,7 @@ test("on Auto a learner with no marks unlocked types letters only", async ({ pag
   const fatha = String.fromCodePoint(0x64e);
   await seedProfile(page, { settings: { customText: `ب${fatha}ت` } });
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
   await typeKeys(page, ["ب"]);
   expect(await doneText(page)).toBe(`ب${fatha}`);
 });

@@ -21,12 +21,12 @@
   - text: Correct mistakes with Backspace Wrong keys are shown until you delete them. When off, they are blocked instead.
   - group "Lesson font":
     - text: ""
-    - radio "Noto Naskh Arabic" [checked]
-    - text: Noto Naskh Arabic
-    - radio "Scheherazade New"
+    - radio "Scheherazade New" [checked]
     - text: Scheherazade New
     - radio "Amiri"
     - text: Amiri
+    - radio "Noto Naskh Arabic"
+    - text: Noto Naskh Arabic
   - text: Lesson text size
   - slider "Lesson text size": "3"
   - group "Recitation":
@@ -36,12 +36,6 @@
       - option "2"
       - option "3"
       - option "4" [selected]
-      - option "5"
-      - option "6"
-      - option "8"
-      - option /\d+/
-      - option /\d+/
-      - option /\d+/
     - group "Surah order":
       - text: ""
       - radio "Mushaf order" [checked]
@@ -68,3 +62,5 @@
     - status
   - button "Reset progress"
   - status
+  - link "About":
+    - /url: "#/about"

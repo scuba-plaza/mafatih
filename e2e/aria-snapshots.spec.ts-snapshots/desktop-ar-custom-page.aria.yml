@@ -2,7 +2,6 @@
   - heading "نص مخصص" [level=1]
   - region "النص المطلوب كتابته":
     - paragraph: بسم الله الرحمن الرحيم
-    - button "ابدأ الكتابة"
     - status
     - textbox "اكتب النص الظاهر"
     - status: بسم

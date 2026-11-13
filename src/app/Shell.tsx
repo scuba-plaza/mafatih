@@ -3,6 +3,7 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { TOUCH_TARGET } from "~/ui/styles.ts";
 import { PAGE_TITLES, type Page } from "./pages.ts";
 import { formatRoute, type Route } from "./routes.ts";
+import { useSoftKeyboard } from "./softKeyboard.ts";
 
 const WORDMARK = "مفاتيح";
 
@@ -55,6 +56,7 @@ export function Shell({ page, banner, actions, children }: ShellProps) {
   const title = (target: Page) => t(PAGE_TITLES[target]);
   const appName = t("app.name");
   const navLabel = t("nav.label");
+  const keyboardUp = useSoftKeyboard();
 
   useEffect(() => {
     document.title = `${t(PAGE_TITLES[page])} · ${appName}`;
@@ -104,6 +106,7 @@ export function Shell({ page, banner, actions, children }: ShellProps) {
       </main>
       <nav
         aria-label={navLabel}
+        hidden={keyboardUp}
         data-tabbar=""
         className="fixed inset-x-0 bottom-0 z-20 border-t border-faint bg-page pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:hidden"
       >

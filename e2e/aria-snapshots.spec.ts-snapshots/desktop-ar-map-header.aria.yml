@@ -1,6 +1,6 @@
 - banner:
   - button "انتقل إلى المحتوى"
-  - text: مفاتيح
+  - img "مفاتيح"
   - navigation "التنقل الرئيسي":
     - list:
       - listitem:

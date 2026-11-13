@@ -1,6 +1,6 @@
 - banner:
   - button "Skip to content"
-  - text: Mafatih
+  - img "Mafatih": مفاتيح
   - navigation "Main":
     - list:
       - listitem:

@@ -107,7 +107,6 @@ test("changing the language applies at once, turns the page right-to-left and ke
   await expect(arabic.getByRole("radio", { name: "English" })).not.toBeChecked();
   await expectNoAxeViolations(page);
   await arabic.getByRole("button", { name: "تم" }).click();
-  await expect(page.getByRole("button", { name: "تابع الكتابة" })).toBeVisible();
   expect(await doneText(page)).toBe("ب");
   expect((await savedSettings(page)).language).toBe("ar");
 });
@@ -149,7 +148,7 @@ test("turning off correction with Backspace keeps the lesson and applies from th
   await openSettings(page);
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
   await closeSettings(page);
-  await page.getByRole("button", { name: "Continue typing" }).click();
+  await startTyping(page);
   expect(await doneText(page)).toBe("ب");
   await typeKeys(page, ["س"]);
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
@@ -241,12 +240,16 @@ test("on a phone the dialog is a sheet along the bottom edge that scrolls inside
   await expectNoAxeViolations(page);
 });
 
+function centre(box: { y: number; height: number } | null): number {
+  return (box?.y ?? 0) + (box?.height ?? 0) / 2;
+}
+
 test("at 320 pixels nothing in the dialog or the header is cut off or scrolls sideways", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/#/custom");
   const settings = await opener(page).boundingBox();
-  const custom = await page.getByRole("link", { name: "Custom" }).boundingBox();
-  expect(settings?.y).toBe(custom?.y);
+  const mark = await page.getByRole("img", { name: "Mafatih" }).boundingBox();
+  expect(Math.abs(centre(settings) - centre(mark))).toBeLessThanOrEqual(4);
   expect(settings?.width).toBeGreaterThanOrEqual(44);
   expect(settings?.height).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
@@ -371,25 +374,26 @@ test("a font that cannot be loaded does not break the page", async ({ page }) =>
   await expect(dialog(page)).toBeVisible();
 });
 
-for (const [language, locale, settingsName] of [
-  ["English", "en-US", "Settings"],
-  ["Arabic", "ar-EG", "الإعدادات"],
+for (const [language, locale, settingsName, appName] of [
+  ["English", "en-US", "Settings", "Mafatih"],
+  ["Arabic", "ar-EG", "الإعدادات", "مفاتيح"],
 ] as const) {
   test.describe(`${language} header at 320 pixels`, () => {
     test.use({ locale });
 
-    test("the Settings button shares the navigation row even with wider letters than the system font's", async ({
+    test("the top bar keeps the wordmark and Settings on one row and the bottom bar its four links, even with wider letters than the system font's", async ({
       page,
     }) => {
       await page.setViewportSize({ width: 320, height: 568 });
       await page.goto("/#/custom");
       await addStyle(page, "body { letter-spacing: 0.04em; }");
       const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
-      const links = page.getByRole("navigation").getByRole("link");
-      const last = await links.last().boundingBox();
-      const first = await links.first().boundingBox();
-      expect(settings?.y).toBe(first?.y);
-      expect(last?.y).toBe(first?.y);
+      const mark = await page.getByRole("img", { name: appName }).boundingBox();
+      expect(Math.abs(centre(settings) - centre(mark))).toBeLessThanOrEqual(4);
+      const links = page.locator("[data-tabbar]").getByRole("link");
+      await expect(links).toHaveCount(4);
+      const rows = await links.evaluateAll((all) => all.map((link) => Math.round(link.getBoundingClientRect().y)));
+      expect(new Set(rows).size).toBe(1);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(
         0,
       );
@@ -400,8 +404,8 @@ for (const [language, locale, settingsName] of [
       await page.goto("/#/custom");
       await addStyle(page, "html { font-size: 150%; }");
       const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
-      const first = await page.getByRole("navigation").getByRole("link").first().boundingBox();
-      expect(settings?.y).toBe(first?.y);
+      const mark = await page.getByRole("img", { name: appName }).boundingBox();
+      expect(Math.abs(centre(settings) - centre(mark))).toBeLessThanOrEqual(4);
     });
   });
 }
