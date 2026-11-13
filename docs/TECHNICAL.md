@@ -101,15 +101,19 @@ The look of the app was redesigned in four mockup rounds; the approved mockups a
 
 - Dark only. There is no light theme and no theme setting; the page ignores `prefers-color-scheme`. Background `#08090b`.
 - Passage first: centred text with no box, plain-text nav, a quiet outline keyboard. One amber accent (`#e2b062`) marks the caret, the next key, the primary action, progress and stars. The next key uses the "halo" style. There are no finger-zone colours; the finger caption under the keyboard stays and is controlled by "Show which finger to use".
-- Scheherazade New is the default lesson font. Amiri and Noto Naskh Arabic stay selectable in Settings.
+- Scheherazade New is the default value of the lesson font setting. Amiri and Noto Naskh Arabic stay selectable in Settings. The setting changes the lesson text only. The guide keyboard and all other text use a fixed interface font: Noto Naskh Arabic (400 and 600, loaded with the page) for Arabic and the system font for Latin.
 - There is no "Start typing" pill. The text is the way in: tap or click it, or Tab to it. The caret blinks while it waits. Custom's form button labelled "Start typing" is a form submit and stays.
 - On phones the layout is looser: a top bar with the wordmark and a settings icon, a bottom tab bar that is hidden while the phone keyboard is up, one row of icon controls, no "N of M ayat" line.
 - The surah-complete celebration and the star system of the old app return, in amber: rays that keep bursting until the card is closed, a glowing name, and a star for a surah completed with 95% accuracy or better. Reduced motion gets a static card.
+- No ring is drawn around the typing text when it is reached with Tab. The caret is the cue: it fades softly (2.4 s) while the text waits and stands still while typing. Every other control keeps the focus ring.
+- The audio controls are being redesigned (a showcase round before they are rebuilt), and the old player's repeat toggle returns: a saved `loop` setting that restarts the passage after its last ayah.
+- The search and social images and the favicons get a light touch to match the new look: same composition, new background, amber accent and outlined keycaps.
 - The About page no longer has "How this site was made" or the "Source code" credit. Its link moved from the footer into Settings.
 
 Waivers and rules that changed with these decisions:
 
 - The untyped lesson text (`--color-upcoming`, `#5b5d61`, about 3.0 : 1) is below the 4.5 : 1 text-contrast rule. This is an owner decision. The token test pins a 3.0 : 1 floor, and axe's colour-contrast rule excludes the lesson text only. Every other text keeps 4.5 : 1 and every control outline 3 : 1.
+- The rule that every focus indicator is visible (A4) does not apply to the typing text, by the owner's decision.
 - The rule "no celebration or scoring on Qur'an content" is reversed for surah completion only. Still no sound, no emoji, no confetti, and nothing is shown while typing.
 - The Arabic copy for the new strings is not human verified, like the rest of the Arabic copy.
 

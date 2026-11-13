@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SKILLS, invoked with the Skill tool at the start of every task and kept in force for the whole task: **`tdd`** and **`laws-of-simplicity`**. Execute task by task with the **Task loop** below. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Replace the current look of Mafatih with the "Focus" design the owner chose in four mockup rounds: dark only, passage first, almost no chrome, one amber accent. Along the way: remove the "Start typing" pill and the finger-zone colours, make Scheherazade New the default font, bring back the old app's surah-complete celebration and star system, and trim two sections from the About page.
+**Goal:** Replace the current look of Mafatih with the "Focus" design the owner chose in four mockup rounds: dark only, passage first, almost no chrome, one amber accent. Along the way: remove the "Start typing" pill and the finger-zone colours, make Scheherazade New the default lesson font, bring back the old app's surah-complete celebration and star system, redesign the audio controls (keeping the old player's repeat toggle), trim two sections from the About page, and bring the search and social images and the favicons in line with the new look.
 
 **Architecture:** No engine rewrite. The typing engine, the CSS Custom Highlight API painting, storage, i18n and routing stay. Work is (1) a new design-token layer, (2) a restyled shell and UI primitives, (3) the typing surface and guide keyboard without a pill and without tints, (4) one small data addition (best accuracy per surah) that powers stars, (5) a new surah-complete dialog, (6) the remaining pages restyled, (7) tests and docs updated to match.
 
@@ -30,19 +30,24 @@
 | D3 | Background | `#08090b` |
 | D4 | Untyped text is darker than anything shown so far | `#5b5d61`, about 3.0 : 1 on the background (see Waivers) |
 | D5 | Next-key marker is the "halo" style, in amber | No finger-zone colours at all. The finger caption under the keyboard stays (setting "Show which finger to use" now controls only the caption) |
-| D6 | Fonts | All three kept (Scheherazade New, Amiri, Noto Naskh Arabic). **Scheherazade New is the default.** Changeable in Settings as today |
+| D6 | Fonts | All three kept (Scheherazade New, Amiri, Noto Naskh Arabic). **Scheherazade New is the default value of the lesson font setting**, changeable in Settings as today. **The setting changes the lesson text only** (Recitation, Practice and Custom lessons). The guide keyboard and every other piece of text ignore it and use a fixed interface font: Noto Naskh Arabic for Arabic (wordmark, keyboard letters, surah names, Arabic interface text) and the system font for Latin. A reader who wants one font everywhere sets the lesson font to match |
 | D7 | The "Start typing" pill is removed | Tap or click the text to start, or Tab to it. While it waits, the amber caret blinks at the first letter and the next key glows. No hint text, no auto-focus (Custom's form button labelled "Start typing" stays: it is a form submit, not the pill) |
 | D8 | Mobile is looser | No "12 of 83 ayat" line on phones. Top bar is the wordmark and a settings icon; the four pages sit in a bottom tab bar that is hidden while the phone keyboard is up; one row of icon controls; no empty progress bars in the list |
 | D9 | Surah-complete celebration and the star system return | Behaviour and timings of the old app (`git show origin/main:src/components/SurahComplete.tsx`, `src/styles/globals.css`), colours restricted to amber. **The rays keep bursting until the card is closed** (the old app stopped after two bursts). Star = a surah completed with 95% accuracy or better |
 | D10 | About page loses two sections | "How this site was made" and the "Source code" credit (label, note and GitHub link) |
 | D11 | About link moves into Settings | Footer is removed. A link at the bottom of the Settings dialog opens the existing About page |
 | D12 | Verification | Unit tests, typecheck and lint on every step; Playwright on the specs a task changes; the full gate (`pnpm verify`) once at the end, with ARIA baselines regenerated |
+| D13 | Answers at checkpoint C1 | The wordmark uses the fixed interface font (Noto Naskh Arabic), not the lesson font. **No focus ring around the typing text** (the caret is the cue: it blinks while the text waits and stands still while typing). The waiting caret is calmer: a 2.4 s soft fade instead of a hard 1.2 s blink |
+| D14 | Audio controls are redesigned | The owner dislikes the current controls. Before any other remaining task, a showcase round of very different directions (Task A1), then a second round that improves the pick. The build is part of Task F11 |
+| D15 | The old player's repeat toggle returns | A "Repeat passage" toggle (see Task A1 for its exact behaviour, taken from the old app). Remembered in the profile like the other audio settings |
+| D16 | Search and social images and favicons get a light touch | Not a redesign. Keep the old composition, which the owner liked, and make the colours, key style and amber accent coherent with Focus (Task F13b) |
 
 ## Superseded rules and waivers (record these in `docs/TECHNICAL.md` in Task F1)
 
 - **A5 (contrast) waiver, owner, 2026-11-12:** the untyped lesson text (`--color-upcoming`) is about 3.0 : 1, below the 4.5 : 1 text rule. Everything else keeps 4.5 : 1 (text) and 3 : 1 (UI). The token test guards a 3.0 : 1 floor so it cannot get darker by accident, and axe's `color-contrast` rule excludes the lesson text only.
 - **A5 "light and dark" becomes dark only.** Light-scheme e2e variants are deleted, not skipped.
 - **Q3 (no celebration or scoring on Qur'an content) is reversed by the owner for surah completion only.** Amber rays, a glowing name and a star. Still no sound, no emoji, no confetti, nothing shown while typing, and `prefers-reduced-motion` gets a static card.
+- **A4 (visible focus indicator) waiver for the typing text, owner, 2026-11-13:** no ring is drawn around the typing text when it is reached with Tab. The caret is the focus cue (it blinks while the text waits and stands still while typing). Every other control keeps the 2 px focus ring. The `data-modality` flag and its tracker were removed.
 - **Arabic copy for the new strings is not human verified**, like the rest of the Arabic copy (the existing note in README and About stands).
 
 ## Design tokens (final)
@@ -114,7 +119,7 @@ These are the seams of the rebuild plan. No new seam is added. Approving this pl
 
 > You are an adversarial reviewer. Review only the changes since the previous checkpoint against this plan's Decisions, the mockups in `docs/design/focus/`, and the contracts below. Assume the code is wrong until you have tried to break it. Run it where you can (`pnpm dev`, Playwright). Prioritise **fidelity to the mockups and UI/UX coherence**, then ARIA correctness, correctness, test quality (implementation-coupled or tautological tests are findings), simplicity (dead code, speculative options, anything removable, anything the plan says must be deleted that is still there), i18n parity (en/ar) and the respect rules. Report findings only. Do not edit files.
 >
-> **Accessibility contract (cite as A#):** A1 landmarks and one `h1` per page, heading order never skips; A2 skip link, `aria-current="page"` on the active nav item; A3 everything operable by keyboard in a logical order that matches the visual order in LTR and RTL, no keyboard trap (Tab always leaves the typing input); A4 visible focus indicator of at least 3:1, shown for keyboard focus; A5 text contrast of at least 4.5:1 and UI contrast of at least 3:1 in the single dark theme, except the waived untyped lesson text; A6 information never conveyed by colour alone (the next key is also bold and named in the caption; the star has text); A7 native elements before ARIA, every control has an accessible name; A8 dialogs are native `<dialog>` with `aria-labelledby`, Escape closes, focus returns to the opener; A9 live regions are polite and sparse, never per keystroke; A10 correct `lang` and `dir` on mixed-language fragments, logical CSS properties only (`ms-`, `me-`, `ps-`, `pe-`, `start`, `end`), except safe-area padding; A11 `prefers-reduced-motion` honoured (static card, no rays, solid caret); A12 nothing lost at 200% text or 320 px width; forced-colors mode still usable.
+> **Accessibility contract (cite as A#):** A1 landmarks and one `h1` per page, heading order never skips; A2 skip link, `aria-current="page"` on the active nav item; A3 everything operable by keyboard in a logical order that matches the visual order in LTR and RTL, no keyboard trap (Tab always leaves the typing input); A4 visible focus indicator of at least 3:1, shown for keyboard focus (the typing text is exempt by the owner's waiver, D13: its caret is the cue); A5 text contrast of at least 4.5:1 and UI contrast of at least 3:1 in the single dark theme, except the waived untyped lesson text; A6 information never conveyed by colour alone (the next key is also bold and named in the caption; the star has text); A7 native elements before ARIA, every control has an accessible name; A8 dialogs are native `<dialog>` with `aria-labelledby`, Escape closes, focus returns to the opener; A9 live regions are polite and sparse, never per keystroke; A10 correct `lang` and `dir` on mixed-language fragments, logical CSS properties only (`ms-`, `me-`, `ps-`, `pe-`, `start`, `end`), except safe-area padding; A11 `prefers-reduced-motion` honoured (static card, no rays, solid caret); A12 nothing lost at 200% text or 320 px width; forced-colors mode still usable.
 >
 > **Mobile contract (cite as M#):** M1 designed at 320×568 first, `min-width` breakpoints only (`sm` 480, `md` 768, `lg` 1024); M2 viewport meta unchanged (never disables zoom); M3 `dvh`/`svh`, one flexible scroll region, no `visualViewport` JavaScript; M4 touch targets of at least 44×44 px, `touch-action: manipulation`; M5 `env(safe-area-inset-*)` respected, including the bottom tab bar; M6 the typing input stays inside the surface at 16 px or larger; M7 dialogs are bottom sheets below `md`; M8 landscape phone with the keyboard open still shows the current line.
 >
@@ -174,14 +179,14 @@ These are the seams of the rebuild plan. No new seam is added. Approving this pl
 
 **Tests (S5), first, in `e2e/typing.spec.ts`:**
 1. Clicking the text region focuses the typing input and the next typed key advances the caret.
-2. Tab from the heading reaches the typing input (named "Type the text shown"); a ring is visible (A4); Tab again leaves it (A3).
+2. Tab from the heading reaches the typing input (named "Type the text shown"); no ring is drawn (D13); Tab again leaves it (A3).
 3. With the input unfocused the caret element exists and has the waiting animation; with `prefers-reduced-motion: reduce` it has none.
 4. No element named "Start typing" or "Continue typing" exists on Recitation and Practice (Custom's form button keeps its name).
 5. Tapping the text on `chromium-mobile` focuses the input (M6).
 
 - [ ] Delete the pill button. Put the click handler on the surface (`onClick`, so scrolling gestures do not start typing).
 - [ ] The hidden input becomes a Tab stop (`tabIndex` 0) with its existing label and description.
-- [ ] Focus ring only for keyboard-initiated focus. Keep it small: one flag on `document.documentElement` (`data-modality="keyboard"` set on `Tab` keydown, removed on pointerdown), and a CSS rule on the surface. No new hook file unless it is shared.
+- [x] Focus ring only for keyboard-initiated focus. **Superseded by D13 after C1:** the ring, the `data-modality` flag and `src/app/inputModality.ts` were removed.
 - [ ] Waiting caret: a slow blink while the surface is unfocused and not complete, solid while focused, solid under reduced motion.
 - [ ] Surface visual: no border, no background, no radius; text centred; a bottom fade where the region scrolls. The mistake state keeps its wavy underline and the polite "Mistake." status; the red border goes.
 - [ ] Add `startTyping(page)` to `e2e/helpers/typing.ts` (clicks the "Text to type" region). Do not edit the other specs yet (Task F14).
@@ -222,7 +227,34 @@ These are the seams of the rebuild plan. No new seam is added. Approving this pl
 - [ ] Updates on each keystroke, never on a timer, so nothing ticks and nothing is announced (`aria-hidden`, A9). Hidden below `md` (D8).
 - **Removes:** nothing. **Acceptance:** line matches the mockup, absent on a 390 px viewport.
 
-> **Checkpoint C1:** typing screen, desktop and phone, English and Arabic, idle and typing. Decide with the owner: wordmark font (Naskh, or the default lesson font to avoid extra bytes), focus-ring weight while typing, caret blink speed.
+> **Checkpoint C1 (done 2026-11-13):** typing screen, desktop and phone, English and Arabic, idle and typing, shown to the owner. Answers (D6, D13): the lesson font setting only changes the lesson text, everything else keeps a fixed interface font; the wordmark is not in the lesson font; no focus ring around the typing text; a calmer waiting caret. Implemented in the commit after C1 (`main.tsx` loads Noto Naskh Arabic 400 and 600 eagerly, `body` font stack starts with it, `caret-wait` is 2.4 s ease-in-out).
+
+### Phase B2: Audio controls (the owner asked for this before the other remaining tasks)
+
+#### Task A1: Audio controls redesign
+
+**Why:** the owner does not like the current audio controls (a bordered card with a button row, a volume slider, a switch and a status line). They also want back the **repeat toggle of the old player**.
+
+**Process (design, not code):**
+
+1. **Round 1:** four or five very different directions, rendered as real mockups on the Focus passage page (desktop and phone, collapsed and expanded where relevant), each containing every control below. Shown to the owner as screenshots. The owner picks one.
+2. **Round 2:** improve the pick, again as screenshots, until the owner approves. Mockups go to `docs/design/focus/` once approved.
+3. **Build:** inside Task F11, to the approved design.
+
+**Every design must hold these controls and states:** play and pause; previous and next ayah; the position in the passage (which ayah is playing); **repeat passage (toggle)**; mute and volume; "play whole passage" (off means stop at the end of each ayah); the reciter and style line (name, style, kbps, ayah), with the basmala as its own stop; the unavailable state; the loading state; and the setting for choosing the reciter stays in Settings. Quiet by default: the passage stays the hero, nothing loud, one amber accent (D1, D5). Phone and desktop both designed; icon buttons need 44 px targets (M4) and an accessible name; the media-session handlers stay.
+
+**Repeat behaviour (from the old app, `git show main:src/hooks/useRecitationPlayer.ts` and `cypress/e2e/recitation.cy.ts`):**
+
+- Off (default): the passage plays to its last ayah and stops there.
+- On: when the last ayah ends the passage starts again from its first stop (the basmala when the passage opens the surah) and keeps playing.
+- On: Next on the last stop wraps to the first stop and stays paused. Previous keeps its rule (restart the ayah after two seconds, else step back).
+- On with "Play whole passage" off: playback still stops at the end of each ayah in the middle of the passage, and still wraps at the true end of the passage.
+- A toggle button with `aria-pressed`, named "Repeat passage" (the old app said "Repeat the passage" and "Stop repeating the passage"). The choice is saved in the profile (a new `loop` boolean in settings, default `false`, tolerated when missing in saves and backups, no schema bump).
+
+**Tests, first (S1):** `playerReducer` cases for each rule above (a `loop` flag on the state or the `ended` and `next` actions); `defaultSettings` has `loop: false`; `sanitizeSettings` keeps a boolean and drops anything else. **(S3):** a save and a backup without `loop` still load. **(S5, in F11):** `audio.spec` covers repeat on and off with the stubbed audio, and that it survives a reload.
+
+- **Removes:** whatever the chosen design makes redundant (the `fieldset` card, the always-visible slider and switch if the design tucks them away).
+- **Acceptance:** the owner has approved a design; the build and its tests are done in F11.
 
 ### Phase C: Stars data, shell, primitives, Recitation pages
 
@@ -285,16 +317,16 @@ export interface RecitationOutcome { readonly stats: KeyStats; readonly recitati
 
 **Surah list (`SurahMap`):** a single column, `max-w-2xl`: a title, a tally line ("2 of 114 surahs complete", star, "1 star"), the Continue card with the primary button, then one row per surah: number, name with its meta line, Arabic name, a thin amber progress line, and one mark: ★ if starred, ✓ if completed. On phones a row has no empty progress bar and shows a single mark (see `mobile-typing-home.png`). A line explains the rule: "Finish a surah to complete it. Hold 95% accuracy to earn a star." (hidden on phones).
 
-**Passage page:** the page heading `h1` is the small spaced label ("YASEEN · 13–16"); on phones it has no second line (D8). The two hint sentences become screen-reader-only text referenced by the input's description. Footer from `md` up: progress rail, "12 of 83 ayat", the Listen pill, Previous and Next passage. On phones: the thin rail, then one row of icon controls (previous passage, listen, next passage), icon only while the phone keyboard is up.
+**Passage page:** the page heading `h1` is the small spaced label ("YASEEN · 13–16"); on phones it has no second line (D8). The two hint sentences become screen-reader-only text referenced by the input's description. Footer from `md` up: progress rail, "12 of 83 ayat", the audio controls (A1), Previous and Next passage. On phones: the thin rail, then one row of icon controls (previous passage, audio, next passage), icon only while the phone keyboard is up.
 
-**Not in the mockups, proposed here and decided at C2:** "Go to ayah" and the extra audio controls (previous and next ayah, mute, volume, play whole passage, reciter line). Proposal: the Listen pill has a chevron that opens a small panel with the audio controls; "Go to ayah" lives behind the progress text as a disclosure containing the existing number field and Go button. Both keep every current accessible name so the existing audio and map specs still apply.
+**Audio controls:** built to the design the owner approves in Task A1, including the repeat toggle and the `loop` setting. **"Go to ayah" is not in the mockups and is decided at C2:** proposal, it lives behind the progress text as a disclosure containing the existing number field and Go button. Both keep every current accessible name so the existing audio and map specs still apply.
 
-**Tests (S5), first:** the list shows ★ on a starred surah and ✓ without ★ on a completed one (seeded profile); no empty bars for not-started surahs at 390 px; no "of 83 ayat" text visible at 390 px; the audio and go-to-ayah specs pass with the new controls.
+**Tests (S5), first:** the list shows ★ on a starred surah and ✓ without ★ on a completed one (seeded profile); no empty bars for not-started surahs at 390 px; no "of 83 ayat" text visible at 390 px; the audio and go-to-ayah specs pass with the new controls, and repeat works as in A1.
 
 - **Removes:** the `Ring` SVG and card grid, the bordered `PassageBar` fieldset and `Player` card, the visible hint sentences, the `typed` text on phones.
 - **Acceptance:** `recitation-map.spec`, `recitation.spec` and `audio.spec` green.
 
-> **Checkpoint C2:** shell, list, passage page footer, expanded player and go-to-ayah panels, desktop and phone, English and Arabic. Owner decides the panel designs.
+> **Checkpoint C2:** shell, list, passage page footer, the built audio controls and the go-to-ayah panel, desktop and phone, English and Arabic. Owner decides the go-to-ayah panel.
 
 ### Phase D: Celebration
 
@@ -335,6 +367,28 @@ Animation (all in `globals.css`, only inside `@media (prefers-reduced-motion: no
 
 > **Checkpoint C4:** every page at 1440 and 390, English and Arabic, with the Settings dialog and the About page.
 
+#### Task F13b: Search and social images and favicons (D16)
+
+**Goal:** a light touch, not a redesign. The owner liked the current images. Keep the composition and make them coherent with Focus.
+
+**What exists:** `public/og-image.png` (1200×630: warm near-black `#1c1917`, the Arabic wordmark in white with a sky-blue caret bar, "Mafatih" and the tagline in white and grey, four keycaps with one lit in sky blue), `public/favicon.svg` and `favicon.ico` (a rounded `#1c1917` tile with a white letter and a sky-blue underline bar), `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`. `index.html` holds the `<title>`, description, `og:*` and `twitter:*` tags and the JSON-LD block; `site.webmanifest` already uses `#08090b` (F2).
+
+**The touches:**
+
+- Background `#08090b` (the page colour) and keycap faces `#101114` with the `line` outline, so they read as the app's outlined keyboard.
+- Replace the sky-blue accent (the caret bar, the lit key, the favicon underline) with the amber `#e2b062`; the lit key gets the halo (amber wash, amber border, soft glow).
+- Wordmark in Noto Naskh Arabic at the same size and place, ink `#ebe8e2`; the Latin name and tagline keep their place, tagline in the muted grey `#8f9299`.
+- Same four keycaps and the same layout, so it still looks like the same site.
+- Favicon: same tile and letter with the new background and an amber bar; check it at 16 and 32 px. Apple touch icon and the three manifest icons follow; the maskable icon keeps its safe zone.
+- Text in `index.html`, the JSON-LD and the manifest is unchanged unless it contradicts the new copy. `og:image:alt` is updated if the picture's content changes.
+
+**Process:** render the new images from a throwaway script (HTML to PNG with Playwright, SVG for the favicon, `sharp` or Playwright for the PNG sizes; nothing added to the dependencies). Show before and after for the OG image and the favicon at 16, 32 and 180 px to the owner together with C4.
+
+**Tests (S1):** the existing `scripts/site.test.ts` stays green (every file referenced exists; sizes are right); add one assertion that the theme colour and manifest background match the page token. The images are checked by eye.
+
+- **Removes:** the old images (overwritten), nothing else.
+- **Acceptance:** the owner approves the new images; `pnpm check`, `pnpm test` green.
+
 ### Phase F: Tests, baselines, docs
 
 #### Task F14: End-to-end sweep and baselines
@@ -343,7 +397,7 @@ Animation (all in `globals.css`, only inside `@media (prefers-reduced-motion: no
 
 - [ ] Replace every `getByRole("button", { name: "Start typing" }).click()` on Recitation, Practice and the Custom lesson with `startTyping(page)` (about 50 call sites in 12 specs). Custom's form button keeps its name.
 - [ ] `a11y-matrix`: dark only; the lesson text is excluded from the `color-contrast` rule only; 320 px and 200% text sweeps stay (with the wide font); axe in English and Arabic.
-- [ ] `keyboard-walk`: new tab order, bottom tab bar, no footer, ring visible for keyboard focus only.
+- [ ] `keyboard-walk`: new tab order, bottom tab bar, no footer; every control but the typing text shows its focus ring.
 - [ ] `perf.spec`: re-measure with Scheherazade as default; change a threshold only with a measurement written in the commit message.
 - [ ] Regenerate the ARIA baselines (`pnpm exec playwright test aria-snapshots --update-snapshots`), then read every changed baseline for unintended changes before committing them.
 - **Removes:** all pill clicks, all light-scheme loops, stale baselines.
