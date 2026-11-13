@@ -91,9 +91,10 @@ test("with repeat on, a passage of one clip starts that clip over when it ends",
   expect(single.restarts).toBe(1);
 });
 
-test("with repeat on but not the whole passage, each clip still stops at its end, and the last one starts the passage over", () => {
+test("with repeat on but not the whole passage, the clip that ends plays again, whichever one it is", () => {
   const first = run([{ type: "loop", value: true }, { type: "play" }, { type: "ended" }]);
-  expect(first).toMatchObject({ status: "paused", index: 0 });
+  expect(first).toMatchObject({ status: "playing", index: 0 });
+  expect(first.restarts).toBe(1);
   const last = run([
     { type: "loop", value: true },
     { type: "play" },
@@ -101,7 +102,14 @@ test("with repeat on but not the whole passage, each clip still stops at its end
     { type: "next" },
     { type: "next" },
   ]);
-  expect(run([{ type: "ended" }], last)).toMatchObject({ status: "playing", index: 0 });
+  const again = run([{ type: "ended" }, { type: "ended" }], last);
+  expect(again).toMatchObject({ status: "playing", index: 3 });
+  expect(again.restarts).toBe(last.restarts + 2);
+});
+
+test("with repeat off, or with nothing loaded, a clip that ends does not play again", () => {
+  expect(run([{ type: "play" }, { type: "ended" }])).toMatchObject({ status: "paused", index: 0, restarts: 0 });
+  expect(run([{ type: "loop", value: true }, { type: "ended" }], initialPlayer(0)).status).not.toBe("playing");
 });
 
 test("with repeat on, Next on the last clip goes round to the first and changes nothing else", () => {

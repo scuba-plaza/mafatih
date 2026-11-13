@@ -1,5 +1,7 @@
 - main:
+  - button "Previous passage"
   - heading "Al-Faatiha · 1–4" [level=1]
+  - button "Next passage"
   - status: ⁨Al-Faatiha⁩. ⁨Ayat 1 to 4 of 7⁩
   - paragraph: Type the letters. Marks and ayah numbers are shown but not typed.
   - region "Text to type":
@@ -12,7 +14,7 @@
     - paragraph: 0 of 7 ayat typed
     - group "Recitation audio":
       - text: ""
-      - button "Repeat passage"
+      - button "Repeat ayah"
       - button "Previous ayah"
       - button "Play"
       - button "Next ayah"

@@ -154,6 +154,7 @@ export const en = {
   "player.unavailable": "Recitation unavailable",
   "player.basmala": "Basmala",
   "player.repeat": "Repeat passage",
+  "player.repeatAyah": "Repeat ayah",
   "player.options": "Audio options",
   "player.panel": "Audio",
   "player.reciter": "{reciter} · {style} · {kbps} kbps",

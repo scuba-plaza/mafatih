@@ -150,6 +150,7 @@ export const ar: Record<MessageKey, string> = {
   "player.unavailable": "التلاوة غير متاحة",
   "player.basmala": "البسملة",
   "player.repeat": "تكرار المقطع",
+  "player.repeatAyah": "تكرار الآية",
   "player.options": "خيارات الصوت",
   "player.panel": "الصوت",
   "player.reciter": "{reciter} · {style} · {kbps} كيلوبت في الثانية",

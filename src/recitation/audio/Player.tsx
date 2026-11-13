@@ -113,7 +113,7 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
           className={`${ICON_BUTTON} ${LATCHED}`}
         >
           <RepeatIcon />
-          <span className="sr-only">{t("player.repeat")}</span>
+          <span className="sr-only">{t(settings.playWhole ? "player.repeat" : "player.repeatAyah")}</span>
         </button>
         <button
           type="button"

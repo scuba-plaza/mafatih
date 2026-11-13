@@ -124,7 +124,7 @@ test("the controls have names, Play and Pause are one button whose name changes,
   const pause = player(page).getByRole("button", { name: "Pause", exact: true });
   await expect(pause).toBeVisible();
   await expect(pause).not.toHaveAttribute("aria-pressed", /.*/);
-  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "false");
+  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toHaveAttribute("aria-pressed", "false");
   await openPanel(page);
   const mute = player(page).getByRole("button", { name: "Mute", exact: true });
   await expect(mute).toHaveAttribute("aria-pressed", "false");
@@ -332,7 +332,7 @@ test("pressing an audio button leaves the focus in the typing field, with a mous
   await startTyping(page);
   const field = page.getByRole("textbox", { name: "Type the text shown" });
   await expect(field).toBeFocused();
-  for (const name of ["Repeat passage", "Next ayah", "Previous ayah", "Play"]) {
+  for (const name of ["Repeat ayah", "Next ayah", "Previous ayah", "Play"]) {
     await player(page).getByRole("button", { name, exact: true }).click();
     await expect(field, name).toBeFocused();
   }
@@ -413,10 +413,10 @@ test("the speaker opens the Audio panel, and Escape, a click outside or leaving 
   await expect(panel).toBeHidden();
 });
 
-test("Repeat passage is a toggle that is saved in the settings and still on after a reload", async ({ page }) => {
+test("Repeat is a toggle that is saved in the settings and still on after a reload", async ({ page }) => {
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
-  const repeat = player(page).getByRole("button", { name: "Repeat passage" });
+  const repeat = player(page).getByRole("button", { name: "Repeat ayah" });
   const marker = () => repeat.evaluate((element) => getComputedStyle(element, "::after").opacity);
   await expect(repeat).toHaveAttribute("aria-pressed", "false");
   expect(await marker()).toBe("0");
@@ -425,7 +425,7 @@ test("Repeat passage is a toggle that is saved in the settings and still on afte
   expect(await marker()).toBe("1");
   expect((await savedSettings(page)).loop).toBe(true);
   await page.reload();
-  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "true");
+  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("with repeat on, the passage starts again from its first ayah when the last one ends, and keeps playing", async ({
@@ -450,6 +450,29 @@ test("with repeat on, the passage starts again from its first ayah when the last
     )
     .toBeGreaterThanOrEqual(2);
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});
+
+test("with repeat on and not the whole passage, the ayah that ends plays again", async ({ page }) => {
+  await spyAudio(page);
+  await mockAudio(page, SHORT);
+  await seedProfile(page, { settings: { playWhole: false, loop: true } });
+  await page.goto("/#/recitation/1/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThanOrEqual(3);
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).toContainText("1:1");
+});
+
+test("the repeat button says what it repeats: the ayah, or the passage when the whole passage is played", async ({
+  page,
+}) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toBeVisible();
+  await openPanel(page);
+  await player(page).getByRole("switch", { name: "Play whole passage" }).check();
+  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toBeVisible();
+  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toHaveCount(0);
 });
 
 test("the dial fills as the ayah plays, and its arcs cannot be pressed", async ({ page }) => {

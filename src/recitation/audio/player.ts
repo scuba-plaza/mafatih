@@ -59,8 +59,13 @@ function wrapped(state: PlayerState): PlayerState {
 }
 
 function ended(state: PlayerState): PlayerState {
-  if (state.loop && state.count > 0 && onLast(state)) {
-    return { ...wrapped(state), status: "playing" };
+  if (state.loop && state.count > 0) {
+    if (!state.whole) {
+      return { ...state, status: "playing", restarts: state.restarts + 1 };
+    }
+    if (onLast(state)) {
+      return { ...wrapped(state), status: "playing" };
+    }
   }
   if (!state.whole) {
     return { ...state, status: "paused" };
