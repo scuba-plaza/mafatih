@@ -30,19 +30,23 @@ export function useTypingInput({ onKey, onWrongLayout }: TypingInputOptions): Ty
     caretToEnd(input);
   };
 
+  const commit = (input: HTMLInputElement, at: number) => {
+    const change = diffInput(previous.current, input.value);
+    for (const key of change.keys) {
+      onKey(key, at);
+    }
+    if (change.wrongLayout) {
+      onWrongLayout();
+    }
+  };
+
   const onInput = (event: FormEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const native = event.nativeEvent;
     const typed = native instanceof InputEvent ? native : undefined;
     const forwardDelete = typed !== undefined && FORWARD_DELETE.test(typed.inputType);
     if (document.activeElement === input && !forwardDelete) {
-      const change = diffInput(previous.current, input.value);
-      for (const key of change.keys) {
-        onKey(key, native.timeStamp);
-      }
-      if (change.wrongLayout) {
-        onWrongLayout();
-      }
+      commit(input, native.timeStamp);
     }
     if (typed?.isComposing === true) {
       previous.current = input.value;
@@ -73,7 +77,13 @@ export function useTypingInput({ onKey, onWrongLayout }: TypingInputOptions): Ty
           event.preventDefault();
         }
       },
-      onCompositionEnd: (event) => reset(event.currentTarget),
+      onCompositionEnd: (event) => {
+        const input = event.currentTarget;
+        if (document.activeElement === input) {
+          commit(input, event.timeStamp);
+        }
+        reset(input);
+      },
       onFocus: (event) => {
         reset(event.currentTarget);
         setFocused(true);

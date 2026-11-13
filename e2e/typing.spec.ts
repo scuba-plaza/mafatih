@@ -433,6 +433,33 @@ test("a keyboard that builds each word as a composition types one key per letter
   await expect(mistakeCount(page)).toHaveText("0");
 });
 
+test("a composition that ends before its last input event, as in Firefox, still types its letter once", async ({
+  page,
+}) => {
+  await start(page, { customText: "بتن" });
+  await field(page).evaluate((input: HTMLInputElement) => {
+    const sentinel = "\u200B";
+    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    input.dispatchEvent(
+      new InputEvent("beforeinput", {
+        bubbles: true,
+        inputType: "insertCompositionText",
+        data: "ب",
+        isComposing: true,
+      }),
+    );
+    input.value = `${sentinel}ب`;
+    input.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "ب" }));
+    input.dispatchEvent(
+      new InputEvent("input", { bubbles: true, inputType: "insertCompositionText", isComposing: false }),
+    );
+  });
+  expect(await doneText(page)).toBe("ب");
+  await typeKeys(page, ["ت", "ن"]);
+  await expect(mistakeCount(page)).toHaveText("0");
+  expect(await doneText(page)).toBe("بتن");
+});
+
 test("leaving the text pauses typing, and clicking it again continues where it stopped", async ({ page }) => {
   await open(page, { customText: "بتن" });
   await startTyping(page);
