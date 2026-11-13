@@ -31,3 +31,21 @@ export async function clearlyDifferentPixels(page: Page, first: Buffer, second: 
     [first.toString("base64"), second.toString("base64")] as const,
   );
 }
+
+export async function brightestPixel(page: Page, image: Buffer): Promise<number> {
+  return page.evaluate(async (data) => {
+    const bytes = Uint8Array.from(atob(data), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d");
+    if (context === null) {
+      throw new Error("no canvas");
+    }
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let brightest = 0;
+    for (let index = 0; index < pixels.length; index += 4) {
+      brightest = Math.max(brightest, ((pixels[index] ?? 0) + (pixels[index + 1] ?? 0) + (pixels[index + 2] ?? 0)) / 3);
+    }
+    return brightest;
+  }, image.toString("base64"));
+}

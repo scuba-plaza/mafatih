@@ -5,12 +5,10 @@ import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
+import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import type { Trainer } from "./useTrainer.ts";
 
-const DONE_HIGHLIGHT = "mafatih-done";
-const APPARATUS_HIGHLIGHT = "mafatih-apparatus";
-const PLAYING_HIGHLIGHT = "mafatih-playing";
 const NO_SPANS: readonly TextSpan[] = [];
 const VISIBLE_SPACE = "\u2423";
 const MARK_CARRIER = "\u0640\u0640";
@@ -30,11 +28,6 @@ const MISS_STILL: Keyframe[] = [
   { offset: 0, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING },
   { offset: 0.99, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING },
 ];
-
-export interface TextSpan {
-  readonly start: number;
-  readonly end: number;
-}
 
 function blocksOf(session: Session): TextSpan[] {
   const edges = [0, ...session.prompt.breaks, session.prompt.shown.length];
@@ -96,31 +89,6 @@ function highlightRegistry(): HighlightRegistry | undefined {
   return typeof CSS === "undefined" ? undefined : CSS.highlights;
 }
 
-function paintDone(paragraphs: readonly HTMLElement[], blockIndex: number, local: number): void {
-  const highlights = highlightRegistry();
-  if (highlights === undefined) {
-    return;
-  }
-  const first = paragraphs[0];
-  const current = paragraphs[blockIndex];
-  if (first === undefined || current === undefined) {
-    highlights.delete(DONE_HIGHLIGHT);
-    return;
-  }
-  const range = document.createRange();
-  range.setStart(first, 0);
-  const mistakes = current.querySelector("[data-mistakes]");
-  const text = current.firstChild;
-  if (mistakes !== null) {
-    range.setEndBefore(mistakes);
-  } else if (text instanceof Text) {
-    range.setEnd(text, Math.min(local, text.data.length));
-  } else {
-    range.setEnd(current, 0);
-  }
-  highlights.set(DONE_HIGHLIGHT, new Highlight(range));
-}
-
 function locate(paragraph: HTMLElement, local: number, edge: "start" | "end"): readonly [Text, number] | undefined {
   let remaining = local;
   for (const node of paragraph.childNodes) {
@@ -134,38 +102,41 @@ function locate(paragraph: HTMLElement, local: number, edge: "start" | "end"): r
   return undefined;
 }
 
-function paintSpans(
-  name: string,
-  priority: number,
-  paragraphs: readonly HTMLElement[],
-  blocks: readonly TextSpan[],
-  spans: readonly TextSpan[],
-): void {
+function rangeOf(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], run: TextSpan): Range | undefined {
+  const index = blocks.findIndex((block) => run.start >= block.start && run.end <= block.end);
+  const paragraph = paragraphs[index];
+  const offset = blocks[index]?.start ?? 0;
+  const from = paragraph === undefined ? undefined : locate(paragraph, run.start - offset, "start");
+  const to = paragraph === undefined ? undefined : locate(paragraph, run.end - offset, "end");
+  if (from === undefined || to === undefined) {
+    return undefined;
+  }
+  const range = document.createRange();
+  range.setStart(...from);
+  range.setEnd(...to);
+  return range;
+}
+
+function paint(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], runs: readonly PaintRun[]): void {
   const highlights = highlightRegistry();
   if (highlights === undefined) {
     return;
   }
-  const ranges = spans.flatMap((span) => {
-    const index = blocks.findIndex((block) => span.start >= block.start && span.end <= block.end);
-    const paragraph = paragraphs[index];
-    const offset = blocks[index]?.start ?? 0;
-    const from = paragraph === undefined ? undefined : locate(paragraph, span.start - offset, "start");
-    const to = paragraph === undefined ? undefined : locate(paragraph, span.end - offset, "end");
-    if (from === undefined || to === undefined) {
-      return [];
+  const ranges = new Map<HighlightName, Range[]>();
+  for (const run of runs) {
+    const range = rangeOf(paragraphs, blocks, run);
+    if (range !== undefined) {
+      ranges.set(run.name, [...(ranges.get(run.name) ?? []), range]);
     }
-    const range = document.createRange();
-    range.setStart(...from);
-    range.setEnd(...to);
-    return [range];
-  });
-  if (ranges.length === 0) {
-    highlights.delete(name);
-    return;
   }
-  const highlight = new Highlight(...ranges);
-  highlight.priority = priority;
-  highlights.set(name, highlight);
+  for (const name of HIGHLIGHT_NAMES) {
+    const painted = ranges.get(name);
+    if (painted === undefined) {
+      highlights.delete(name);
+    } else {
+      highlights.set(name, new Highlight(...painted));
+    }
+  }
 }
 
 export interface TypingSurfaceProps {
@@ -241,9 +212,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       if (block === undefined || paragraph === undefined) {
         return;
       }
-      paintDone(paragraphs, current, doneUntil - block.start);
-      paintSpans(APPARATUS_HIGHLIGHT, 1, paragraphs, blocks, apparatus);
-      paintSpans(PLAYING_HIGHLIGHT, 2, paragraphs, blocks, playing === null ? NO_SPANS : [playing]);
+      paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
       setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = rect === undefined;
@@ -279,9 +248,9 @@ export function TypingSurface(props: TypingSurfaceProps) {
     return () => {
       observer.disconnect();
       document.fonts.removeEventListener("loadingdone", place);
-      highlightRegistry()?.delete(DONE_HIGHLIGHT);
-      highlightRegistry()?.delete(APPARATUS_HIGHLIGHT);
-      highlightRegistry()?.delete(PLAYING_HIGHLIGHT);
+      for (const name of HIGHLIGHT_NAMES) {
+        highlightRegistry()?.delete(name);
+      }
     };
   }, []);
 

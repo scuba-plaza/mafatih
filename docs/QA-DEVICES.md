@@ -76,6 +76,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | # | Step | Expected | Result |
 |---|------|----------|--------|
 | B1 | Firefox, Safari, Chrome, Edge: type part of a lesson. | Typed letters change colour (the CSS Custom Highlight API); if a browser does not support it, record which and what is shown instead. | |
+| B1a | Safari on an iPhone or iPad: open a surah that starts with the basmala and type nothing. Then type a few letters of the first ayah and press Play so that the ayah you are typing is the one being heard. | The basmala is dim like the rest, with the caret at its start. The letters already typed in the ayah being heard stay bright inside the wash; only the letters still to type are dim. | |
 | B2 | Same browsers: Arabic joins correctly in all three fonts. | No broken joins, no marks on the wrong letter. | |
 | B3 | Screen reader (VoiceOver or NVDA) on About, Stats and Settings. | Headings, tables, groups and the status messages read sensibly; the mark names are spoken. | |
 | B4 | Firefox, Safari, Chrome and Edge: finish a Practice lesson, then start typing the next one without clicking. | Focus never leaves the typing input when a lesson ends (the input is disabled for one render); the next lesson takes keys at once. If a browser blurs it, stop disabling the input and ignore keys through the session instead. | |

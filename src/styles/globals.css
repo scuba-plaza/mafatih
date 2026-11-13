@@ -174,12 +174,28 @@ button {
   color: var(--color-apparatus);
 }
 
-::highlight(mafatih-playing) {
+::highlight(mafatih-done-playing) {
+  color: var(--color-ink);
+}
+
+::highlight(mafatih-apparatus-playing) {
+  color: var(--color-apparatus);
+}
+
+::highlight(mafatih-upcoming-playing) {
+  color: var(--color-upcoming);
+}
+
+::highlight(mafatih-done-playing),
+::highlight(mafatih-apparatus-playing),
+::highlight(mafatih-upcoming-playing) {
   background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 @media (forced-colors: active) {
-  ::highlight(mafatih-playing) {
+  ::highlight(mafatih-done-playing),
+  ::highlight(mafatih-apparatus-playing),
+  ::highlight(mafatih-upcoming-playing) {
     background-color: Highlight;
     color: HighlightText;
   }

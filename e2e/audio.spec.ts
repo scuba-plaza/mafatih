@@ -2,8 +2,11 @@ import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
+import { brightestPixel } from "./helpers/pixels.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
-import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { surah } from "./helpers/quran.ts";
+import { addStyle } from "./helpers/style.ts";
+import { doneText, paintedTwice, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 const SHORT = readFileSync(new URL("./fixtures/ayah.mp3", import.meta.url));
 const LONG = readFileSync(new URL("./fixtures/ayah-long.mp3", import.meta.url));
@@ -107,8 +110,14 @@ function status(page: Page) {
   return player(page).getByRole("status");
 }
 
+const PLAYING_HIGHLIGHTS = ["mafatih-done-playing", "mafatih-apparatus-playing", "mafatih-upcoming-playing"];
+
 async function playingSpan(page: Page): Promise<string[]> {
-  return page.evaluate(() => [...(CSS.highlights.get("mafatih-playing") ?? [])].map((range) => range.toString()));
+  return page.evaluate((names) => {
+    const ranges = names.flatMap((name) => [...(CSS.highlights.get(name) ?? [])] as Range[]);
+    const inOrder = ranges.sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
+    return inOrder.length === 0 ? [] : [inOrder.map((range) => range.toString()).join("")];
+  }, PLAYING_HIGHLIGHTS);
 }
 
 test("the controls have names, Play and Pause are one button whose name changes, Mute is a toggle", async ({
@@ -180,7 +189,7 @@ test("the ayah being recited is marked in the text by colour and by background, 
     .locator("[data-block]")
     .first()
     .evaluate((block) => {
-      const style = getComputedStyle(block, "::highlight(mafatih-playing)");
+      const style = getComputedStyle(block, "::highlight(mafatih-upcoming-playing)");
       return { colour: style.color, background: style.backgroundColor, underline: style.textDecorationLine };
     });
   expect(colours.background).not.toBe("rgba(0, 0, 0, 0)");
@@ -543,6 +552,58 @@ test("typing never starts audio, and audio never moves the cursor (Q5)", async (
   expect(await doneText(page)).toBe(typed);
   await typeKeys(page, keys.slice(6, 9));
   expect((await doneText(page)).length).toBeGreaterThan(typed.length);
+});
+
+async function expectTypedPartBright(page: Page): Promise<void> {
+  expect(await paintedTwice(page)).toBe(0);
+  await addStyle(page, "[data-caret]{visibility:hidden}");
+  const caret = await surface(page).locator("[data-caret]").boundingBox();
+  const frame = await surface(page).locator("[data-lesson-text]").boundingBox();
+  expect(caret).not.toBeNull();
+  expect(frame).not.toBeNull();
+  const typedPart = {
+    x: (caret?.x ?? 0) + 4,
+    y: caret?.y ?? 0,
+    width: (frame?.x ?? 0) + (frame?.width ?? 0) - (caret?.x ?? 0) - 4,
+    height: caret?.height ?? 0,
+  };
+  expect(await brightestPixel(page, await page.screenshot({ clip: typedPart }))).toBeGreaterThan(200);
+}
+
+test("the typed part of the ayah being heard stays painted as typed, and no letter is painted twice", async ({
+  page,
+}) => {
+  await mockAudio(page, LONG);
+  await seedProfile(page, { settings: { vocalization: "letters" } });
+  await page.goto("/#/recitation/112/1");
+  await startTyping(page);
+  const keys = lettersOf(await shownText(page));
+  await typeKeys(page, keys.slice(0, 27));
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(() => playingSpan(page)).toHaveLength(1);
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(status(page)).toContainText("112:1");
+  await expect.poll(async () => (await playingSpan(page))[0]).toBe(surah(112).ayat[0]);
+  await expectTypedPartBright(page);
+});
+
+test("with the first ayah typed, the typed start of the second ayah being heard stays painted as typed", async ({
+  page,
+}) => {
+  await mockAudio(page, LONG);
+  await seedProfile(page, { settings: { vocalization: "letters" } });
+  await page.goto("/#/recitation/1/1");
+  await startTyping(page);
+  const keys = lettersOf(await shownText(page));
+  await typeKeys(page, keys.slice(0, 28));
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(() => playingSpan(page)).toHaveLength(1);
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(status(page)).toContainText("1:2");
+  await expect.poll(async () => (await playingSpan(page))[0]).toBe(surah(1).ayat[1]);
+  await expectTypedPartBright(page);
 });
 
 test("a recitation that cannot be fetched is said plainly and the lesson stays typeable (Q6)", async ({ page }) => {

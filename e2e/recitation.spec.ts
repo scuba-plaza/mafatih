@@ -2,9 +2,11 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
 import { passageRange } from "./helpers/passage.ts";
+import { clearlyDifferentPixels } from "./helpers/pixels.ts";
 import { savedProfile, seedSettings } from "./helpers/profile.ts";
 import { lettersOf, shownAyat, sign, surah } from "./helpers/quran.ts";
-import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { addStyle } from "./helpers/style.ts";
+import { doneText, paintedTwice, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
 declare global {
   interface Window {
@@ -27,6 +29,31 @@ async function start(page: Page): Promise<void> {
 }
 
 const card = (page: Page) => page.getByRole("dialog", { name: /complete$/ });
+
+test("before a key is typed the basmala is painted like the text to come and not like text already typed", async ({
+  page,
+}) => {
+  await page.goto("/#/recitation/108");
+  await expect(surface(page)).toBeVisible();
+  await addStyle(page, "[data-caret]{visibility:hidden}");
+  await page.evaluate(() => document.fonts.ready);
+  const basmala = surface(page).locator("[data-block]").first();
+  const marked = await basmala.screenshot();
+  await page.evaluate(() => CSS.highlights.clear());
+  const plain = await basmala.screenshot();
+  expect(await clearlyDifferentPixels(page, marked, plain)).toBeLessThan(30);
+});
+
+test("typing past an ayah sign leaves every letter painted by one highlight and no other", async ({ page }) => {
+  const kawthar = surah(108);
+  await seedSettings(page, { vocalization: "letters" });
+  await page.goto("/#/recitation/108");
+  await start(page);
+  const keys = lettersOf(kawthar, 1, 2, true);
+  await typeKeys(page, keys.slice(0, lettersOf(kawthar, 1, 1, true).length + 3));
+  expect((await apparatus(page)).length).toBeGreaterThan(0);
+  expect(await paintedTwice(page)).toBe(0);
+});
 
 test("a surah opens at once, ready to type, with its first passage", async ({ page }) => {
   const fatiha = surah(1);
