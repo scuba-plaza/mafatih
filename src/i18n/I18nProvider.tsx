@@ -9,13 +9,16 @@ import {
   formatPercent,
   type Language,
   type MessageParams,
+  type PluralMessage,
   translate,
+  translatePlural,
 } from "./i18n.ts";
 
 export interface I18n {
   language: Language;
   direction: "ltr" | "rtl";
   t: (key: MessageKey, params?: MessageParams) => string;
+  plural: (key: PluralMessage, count: number, params?: MessageParams) => string;
   formatNumber: (value: number) => string;
   formatPercent: (ratio: number) => string;
   formatDuration: (ms: number) => string;
@@ -31,6 +34,7 @@ export function I18nProvider({ language, children }: { language: Language; child
       language,
       direction: directionOf(language),
       t: (key, params) => translate(language, key, params),
+      plural: (key, count, params) => translatePlural(language, key, count, params),
       formatNumber: (value) => formatNumber(language, value),
       formatPercent: (ratio) => formatPercent(language, ratio),
       formatDuration: (ms) => formatDuration(language, ms),

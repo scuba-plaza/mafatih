@@ -35,17 +35,17 @@ function CheckIcon() {
 }
 
 function SurahRow({ meta, progress }: { meta: SurahMeta; progress: RecitationProgress }) {
-  const { t, language, formatNumber } = useI18n();
+  const { t, plural, language, formatNumber } = useI18n();
   const typed = typedAyat(progress, meta.n);
   const completed = completionsOf(progress, meta.n);
   const starred = starredOf(progress, meta.n);
   const fraction = typed > 0 ? typed / meta.ayat : completed > 0 ? 1 : 0;
   const detail =
     typed > 0
-      ? t("map.typed", { typed, total: meta.ayat })
+      ? plural("map.typed", meta.ayat, { typed, total: meta.ayat })
       : completed > 0
         ? t("map.completed", { count: completed })
-        : t("map.ayat", { count: meta.ayat });
+        : plural("map.ayat", meta.ayat, { count: meta.ayat });
   return (
     <a
       href={formatRoute({ page: "recitation", surah: meta.n, ayah: null })}

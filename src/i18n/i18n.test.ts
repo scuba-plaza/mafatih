@@ -14,6 +14,7 @@ import {
   languageFromSearch,
   placeholdersOf,
   translate,
+  translatePlural,
 } from "./i18n.ts";
 
 const english: Readonly<Record<string, string>> = en;
@@ -96,6 +97,39 @@ test("a number that is not finite is an error, never shown to the user", () => {
   expect(() => formatNumber("ar", Number.POSITIVE_INFINITY)).toThrow(RangeError);
   expect(() => formatPercent("ar", Number.NaN)).toThrow(RangeError);
   expect(() => fillMessage("en", "{n} keys", { n: Number.NaN })).toThrow(RangeError);
+});
+
+test("English counts ayat as one ayah or many ayat", () => {
+  expect(translatePlural("en", "map.ayat", 1, { count: 1 })).toBe("1 ayah");
+  for (const count of [0, 2, 3, 7, 286]) {
+    expect(translatePlural("en", "map.ayat", count, { count }), String(count)).toBe(`${count} ayat`);
+  }
+  expect(translatePlural("en", "map.typed", 7, { typed: 2, total: 7 })).toBe("2 of 7 ayat typed");
+});
+
+test("Arabic counts ayat as the language does: آية, آيتان, آيات from 3 to 10, then آية again", () => {
+  expect(translatePlural("ar", "map.ayat", 1, { count: 1 })).toBe("١ آية");
+  expect(translatePlural("ar", "map.ayat", 2, { count: 2 })).toBe("٢ آيتان");
+  for (const [count, shown] of [
+    [3, "٣"],
+    [7, "٧"],
+    [10, "١٠"],
+  ] as const) {
+    expect(translatePlural("ar", "map.ayat", count, { count }), String(count)).toBe(`${shown} آيات`);
+  }
+  for (const [count, shown] of [
+    [0, "٠"],
+    [11, "١١"],
+    [99, "٩٩"],
+    [286, "٢٨٦"],
+  ] as const) {
+    expect(translatePlural("ar", "map.ayat", count, { count }), String(count)).toBe(`${shown} آية`);
+  }
+});
+
+test("the plural of a message that holds two numbers follows the one that counts the nouns", () => {
+  expect(translatePlural("ar", "map.typed", 7, { typed: 2, total: 7 })).toBe("تمت كتابة ٢ من ٧ آيات");
+  expect(translatePlural("ar", "map.typed", 286, { typed: 40, total: 286 })).toBe("تمت كتابة ٤٠ من ٢٨٦ آية");
 });
 
 test("the placeholders of a message are listed in order", () => {

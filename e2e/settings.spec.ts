@@ -337,7 +337,7 @@ test("a switch shows its state by where its thumb stands, in both reading direct
     page
       .getByRole("dialog")
       .getByRole("switch", {
-        name: language === "en" ? "Correct mistakes with Backspace" : "تصحيح الأخطاء بمفتاح الحذف",
+        name: language === "en" ? "Correct mistakes with Backspace" : "تصحيح الأخطاء بمفتاح الحذف الخلفي",
       })
       .evaluate((element) => {
         const shift = getComputedStyle(element, "::before").translate;
@@ -349,7 +349,7 @@ test("a switch shows its state by where its thumb stands, in both reading direct
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
   await expect.poll(() => thumb("en")).toBe(0);
   await dialog(page).getByRole("radio", { name: "العربية" }).check();
-  await page.getByRole("dialog").getByRole("switch", { name: "تصحيح الأخطاء بمفتاح الحذف" }).check();
+  await page.getByRole("dialog").getByRole("switch", { name: "تصحيح الأخطاء بمفتاح الحذف الخلفي" }).check();
   await expect.poll(() => thumb("ar")).toBe(-16);
 });
 

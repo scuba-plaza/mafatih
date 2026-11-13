@@ -19,6 +19,13 @@ const WHOLE_PERCENTAGES: Record<Language, Intl.NumberFormat> = {
   ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { style: "percent", maximumFractionDigits: 0 }),
 };
 
+const PLURAL_RULES: Record<Language, Intl.PluralRules> = {
+  en: new Intl.PluralRules("en"),
+  ar: new Intl.PluralRules("ar"),
+};
+
+export type PluralMessage = "map.ayat" | "map.typed";
+
 const PLACEHOLDER = /\{(\w+)\}/g;
 
 const FIRST_STRONG_ISOLATE = "\u2068";
@@ -119,4 +126,15 @@ export function fillMessage(language: Language, template: string, params: Messag
 
 export function translate(language: Language, key: MessageKey, params?: MessageParams): string {
   return fillMessage(language, CATALOGS[language][key], params);
+}
+
+export function translatePlural(
+  language: Language,
+  base: PluralMessage,
+  count: number,
+  params?: MessageParams,
+): string {
+  const category = PLURAL_RULES[language].select(finite(count));
+  const key: MessageKey = `${base}.${category === "zero" ? "other" : category}`;
+  return translate(language, key, params);
 }

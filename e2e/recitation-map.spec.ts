@@ -119,6 +119,16 @@ test("in the Arabic interface only the Arabic names show", async ({ page }) => {
   await expectNoAxeViolations(page);
 });
 
+test("the ayat counts on the map are written as Arabic counts them: آيات from 3 to 10, آية from 11", async ({
+  page,
+}) => {
+  await seedProfile(page, { settings: { language: "ar" } });
+  await page.goto("/");
+  const links = page.getByRole("list", { name: "السور" }).getByRole("link");
+  await expect(links.nth(0)).toContainText("٧ آيات");
+  await expect(links.nth(1)).toContainText("٢٨٦ آية");
+});
+
 test("Page Down and Page Up in the footer go to the next and previous passage, across surahs, and keep the focus", async ({
   page,
 }) => {
