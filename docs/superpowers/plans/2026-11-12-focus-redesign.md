@@ -41,6 +41,8 @@
 | D14 | Audio controls are redesigned | The owner dislikes the current controls. Before any other remaining task, a showcase round of very different directions (Task A1), then a second round that improves the pick. The build is part of Task F11 |
 | D15 | The old player's repeat toggle returns | A "Repeat passage" toggle (see Task A1 for its exact behaviour, taken from the old app). Remembered in the profile like the other audio settings |
 | D16 | Search and social images and favicons get a light touch | Not a redesign. Keep the old composition, which the owner liked, and make the colours, key style and amber accent coherent with Focus (Task F13b) |
+| D17 | A passage holds at most four ayat | The `Ayat per passage` setting is 1 to 4 (default 4). Nobody wants more on screen, and the audio position display needs a bounded, predictable number of stops. A saved value above 4 is read as 4. Done (2026-11-13) |
+| D18 | No underline on the ayah being recited | The wash stays, the 2 px underline is gone (`::highlight(mafatih-playing)`). The wavy underline under wrong letters stays: it is the non-colour cue for mistakes (A6). Done (2026-11-13) |
 
 ## Superseded rules and waivers (record these in `docs/TECHNICAL.md` in Task F1)
 

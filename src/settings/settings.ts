@@ -23,7 +23,7 @@ export interface Settings {
   readonly playWhole: boolean;
 }
 
-export const AYAT_PER_PASSAGE: readonly number[] = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20];
+export const AYAT_PER_PASSAGE: readonly number[] = [1, 2, 3, 4];
 
 const DEFAULT_AYAT_PER_LESSON = 4;
 const DEFAULT_VOLUME = 0.8;
@@ -42,10 +42,7 @@ function clampAyatPerLesson(value: unknown): number {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return DEFAULT_AYAT_PER_LESSON;
   }
-  const within = Math.min(Math.max(value, AYAT_PER_PASSAGE[0] ?? 1), AYAT_PER_PASSAGE.at(-1) ?? 20);
-  return AYAT_PER_PASSAGE.reduce((nearest, size) =>
-    Math.abs(size - within) < Math.abs(nearest - within) ? size : nearest,
-  );
+  return Math.min(Math.max(Math.round(value), 1), AYAT_PER_PASSAGE.length);
 }
 
 function clampVolume(value: unknown): number {

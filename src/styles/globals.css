@@ -60,8 +60,6 @@ button {
 
 ::highlight(mafatih-playing) {
   background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
 }
 
 @media (forced-colors: active) {

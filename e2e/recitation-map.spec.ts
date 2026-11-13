@@ -234,7 +234,7 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Recitation" });
   const select = group.getByRole("combobox", { name: "Ayat per passage" });
-  await expect(select.getByRole("option")).toHaveCount(10);
+  await expect(select.getByRole("option")).toHaveCount(4);
   await expect(select).toHaveValue("4");
   await select.selectOption("2");
   await dialog.getByRole("button", { name: "Done" }).click();

@@ -66,7 +66,7 @@ Browser tests serve the build with `vite preview` on port 4173 and run in two Ch
 
 ## Recitation
 
-Surah data is split into one chunk per surah. A passage is a run of ayat (1 to 20 per setting). Progress per surah is a list of typed ayah ranges plus a completion count, with a resume position. Audio comes from EveryAyah (`https://everyayah.com/data/<reciter>/<SSS><AAA>.mp3`), is fetched when needed (the next ayah is prefetched), kept by URL in IndexedDB (`mafatih.audio`; Settings shows its size and clears it) and de-duplicated while in flight, and is played from a blob URL through one element with Media Session support. The basmala clip plays first when a passage opens a surah that has one.
+Surah data is split into one chunk per surah. A passage is a run of ayat (1 to 4 per setting; a saved larger number is read as 4). Progress per surah is a list of typed ayah ranges plus a completion count, with a resume position. Audio comes from EveryAyah (`https://everyayah.com/data/<reciter>/<SSS><AAA>.mp3`), is fetched when needed (the next ayah is prefetched), kept by URL in IndexedDB (`mafatih.audio`; Settings shows its size and clears it) and de-duplicated while in flight, and is played from a blob URL through one element with Media Session support. The basmala clip plays first when a passage opens a surah that has one.
 
 ## Storage
 
@@ -106,6 +106,8 @@ The look of the app was redesigned in four mockup rounds; the approved mockups a
 - On phones the layout is looser: a top bar with the wordmark and a settings icon, a bottom tab bar that is hidden while the phone keyboard is up, one row of icon controls, no "N of M ayat" line.
 - The surah-complete celebration and the star system of the old app return, in amber: rays that keep bursting until the card is closed, a glowing name, and a star for a surah completed with 95% accuracy or better. Reduced motion gets a static card.
 - No ring is drawn around the typing text when it is reached with Tab. The caret is the cue: it fades softly (2.4 s) while the text waits and stands still while typing. Every other control keeps the focus ring.
+- A passage holds at most four ayat. The owner's experience is that nobody wants more on screen at once, and it makes any per-ayah display (the audio position) predictable. Older saves with a larger number are read as four.
+- Nothing in a lesson is underlined while its ayah is recited: the ayah being recited is marked by a background wash only. (Wrong letters are still drawn with a wavy underline, so a mistake never depends on colour alone.)
 - The audio controls are being redesigned (a showcase round before they are rebuilt), and the old player's repeat toggle returns: a saved `loop` setting that restarts the passage after its last ayah.
 - The search and social images and the favicons get a light touch to match the new look: same composition, new background, amber accent and outlined keycaps.
 - The About page no longer has "How this site was made" or the "Source code" credit. Its link moved from the footer into Settings.

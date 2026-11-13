@@ -37,7 +37,7 @@ test("valid saved settings are kept", () => {
     showKeyboard: false,
     fingerGuide: false,
     customText: "بسم الله",
-    ayatPerLesson: 8,
+    ayatPerLesson: 3,
     surahOrder: "juz-amma",
     reciter: "mujawwad",
     volume: 0.35,
@@ -105,14 +105,13 @@ test("the keyboard guide and its finger guide stay on unless they were really tu
   }
 });
 
-test("a passage holds one of the offered numbers of ayat: any other number snaps to the nearest, a non-number falls back to four", () => {
+test("a passage holds one to four ayat: more snaps down to four, fractions round, a non-number falls back to four", () => {
   const perLesson = (value: unknown) => sanitizeSettings({ ayatPerLesson: value }, ENGLISH).ayatPerLesson;
-  expect(AYAT_PER_PASSAGE).toEqual([1, 2, 3, 4, 5, 6, 8, 10, 15, 20]);
-  expect(AYAT_PER_PASSAGE.map(perLesson)).toEqual([...AYAT_PER_PASSAGE]);
-  expect([0, -3, 21, 400, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map(perLesson)).toEqual([
-    1, 1, 20, 20, 20, 1,
-  ]);
-  expect([7, 9, 12, 13, 2.7].map(perLesson)).toEqual([6, 8, 10, 15, 3]);
+  expect(AYAT_PER_PASSAGE).toEqual([1, 2, 3, 4]);
+  expect(AYAT_PER_PASSAGE.map(perLesson)).toEqual([1, 2, 3, 4]);
+  expect([5, 8, 20, 400, Number.POSITIVE_INFINITY].map(perLesson)).toEqual([4, 4, 4, 4, 4]);
+  expect([0, -3, Number.NEGATIVE_INFINITY].map(perLesson)).toEqual([1, 1, 1]);
+  expect([1.4, 2.7, 3.4].map(perLesson)).toEqual([1, 3, 3]);
   expect(["5", null, Number.NaN, undefined, {}].map(perLesson)).toEqual([4, 4, 4, 4, 4]);
 });
 

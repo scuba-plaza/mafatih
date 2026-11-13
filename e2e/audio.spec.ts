@@ -171,7 +171,7 @@ test("the ayah being recited is marked in the text by colour and by background, 
       return { colour: style.color, background: style.backgroundColor, underline: style.textDecorationLine };
     });
   expect(colours.background).not.toBe("rgba(0, 0, 0, 0)");
-  expect(colours.underline).toContain("underline");
+  expect(colours.underline).toBe("none");
   expect(await shownText(page)).toBe(before);
   await player(page).getByRole("button", { name: "Pause", exact: true }).click();
   await expect.poll(() => playingSpan(page)).toHaveLength(0);

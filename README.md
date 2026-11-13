@@ -15,7 +15,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. It has two 
 
 ## What you can do
 
-- **Recitation:** a map of the 114 surahs with your progress, passages of 1 to 20 ayat, previous and next passage, go to an ayah, a quiet panel when you complete a surah, and audio (Murattal or Mujawwad) with play and pause, previous and next ayah, volume, mute and "play the whole passage".
+- **Recitation:** a map of the 114 surahs with your progress, passages of 1 to 4 ayat, previous and next passage, go to an ayah, a quiet panel when you complete a surah, and audio (Murattal or Mujawwad) with play and pause, previous and next ayah, volume, mute and "play the whole passage".
 - **Practice:** a ladder of 44 keys (36 letters and 8 marks), a short readout of what you are working on, and lessons of everyday words built for the keys you have unlocked.
 - **Custom:** paste any Arabic text (up to 5,000 characters) and type it.
 - **Stats:** time per key, how often you were right first time and the attempts, for each mode, and your last ten lessons.
