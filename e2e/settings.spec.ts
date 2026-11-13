@@ -342,12 +342,12 @@ test("a switch shows its state by where its thumb stands, in both reading direct
       });
   await page.goto("/#/custom");
   await openSettings(page);
-  expect(await thumb("en")).toBe(20);
+  expect(await thumb("en")).toBe(16);
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
   await expect.poll(() => thumb("en")).toBe(0);
   await dialog(page).getByRole("radio", { name: "العربية" }).check();
   await page.getByRole("dialog").getByRole("switch", { name: "تصحيح الأخطاء بمفتاح الحذف" }).check();
-  await expect.poll(() => thumb("ar")).toBe(-20);
+  await expect.poll(() => thumb("ar")).toBe(-16);
 });
 
 test("with forced colours a switch is the browser's own checkbox again", async ({ page }) => {
