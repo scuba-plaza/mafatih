@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { seedSettings } from "./helpers/profile.ts";
-import { typeKeys } from "./helpers/typing.ts";
+import { startTyping, typeKeys } from "./helpers/typing.ts";
 
 const FATHA = String.fromCodePoint(0x64e);
 
@@ -19,7 +19,7 @@ async function dueKeys(page: Page): Promise<string[]> {
 async function start(page: Page, settings: Record<string, unknown>): Promise<void> {
   await seedSettings(page, settings);
   await page.goto("/#/custom");
-  await page.getByRole("button", { name: "Start typing" }).click();
+  await startTyping(page);
 }
 
 function background(page: Page, code: string): Promise<string> {
@@ -68,15 +68,15 @@ test.describe("with a wide screen and a mouse", () => {
     expect(await dueKeys(page)).toEqual(["KeyF"]);
   });
 
-  test("the finger guide tints the keys by finger and names the finger for the next key", async ({ page }) => {
+  test("every key is drawn alike, and the caption names the finger for the next key", async ({ page }) => {
     await start(page, { customText: "بتن" });
     await expect(guide(page).getByText("Left index finger")).toBeVisible();
-    expect(await background(page, "KeyA")).not.toBe(await background(page, "KeyS"));
-    expect(await background(page, "KeyF")).toBe(await background(page, "KeyJ"));
+    expect(await background(page, "KeyA")).toBe(await background(page, "KeyS"));
+    expect(await background(page, "KeyS")).toBe(await background(page, "KeyL"));
     await expectNoAxeViolations(page);
   });
 
-  test("without the finger guide the keys are plain and no finger is named", async ({ page }) => {
+  test("without the finger guide the caption goes and the keys do not change", async ({ page }) => {
     await start(page, { customText: "بتن", fingerGuide: false });
     await expect(guide(page)).toBeVisible();
     expect(await dueKeys(page)).toEqual(["KeyF"]);
@@ -131,14 +131,21 @@ test.describe("with a wide screen and a mouse", () => {
     expect((await box("KeyA")).x).toBeGreaterThan((await box("KeyQ")).x);
   });
 
-  test("a due key is drawn with a thick border, not by colour alone", async ({ page }) => {
+  test("a due key is drawn bold and with a glow, not by colour alone", async ({ page }) => {
     await start(page, { customText: "بت" });
-    const border = (code: string) =>
+    const look = (code: string) =>
       guide(page)
         .locator(`[data-key="${code}"]`)
-        .evaluate((key) => getComputedStyle(key).borderTopWidth);
-    expect(await border("KeyF")).toBe("4px");
-    expect(await border("KeyJ")).toBe("1px");
+        .evaluate((key) => {
+          const style = getComputedStyle(key);
+          return { weight: style.fontWeight, glow: style.boxShadow };
+        });
+    const due = await look("KeyF");
+    const plain = await look("KeyJ");
+    expect(due.weight).toBe("700");
+    expect(plain.weight).toBe("400");
+    expect(due.glow).not.toBe("none");
+    expect(plain.glow).toBe("none");
   });
 
   test("below the medium width there is no guide", async ({ page }) => {

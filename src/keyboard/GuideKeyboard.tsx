@@ -2,7 +2,7 @@ import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { carriedMark } from "~/text/arabic.ts";
 import { expectedText, type Session, type SessionOptions } from "~/typing/session.ts";
-import { type Digit, type Finger, fingerOf } from "./fingers.ts";
+import type { Finger } from "./fingers.ts";
 import { guideFor } from "./guide.ts";
 import { type KeyCap, WIN101_CAPS } from "./layout101.ts";
 
@@ -20,7 +20,7 @@ interface Row {
 
 const KEY_PX = 44;
 const KEY_GAP_PX = 4;
-const KEY_FACE_PX = KEY_PX - KEY_GAP_PX;
+const KEY_FACE_PX = 36;
 const BACKSPACE_SYMBOL = "⌫";
 const SHIFT_SYMBOL = "⇧";
 const ENTER_SYMBOL = "↵";
@@ -38,16 +38,6 @@ const FINGER_MESSAGES: Readonly<Record<string, MessageKey>> = {
   "right-ring": "finger.rightRing",
   "right-pinky": "finger.rightPinky",
   "both-thumb": "finger.thumb",
-};
-
-const FIXED_DIGITS: Readonly<Record<string, Digit>> = { Backspace: "pinky", ShiftLeft: "pinky", ShiftRight: "pinky" };
-
-const TINTS: Readonly<Record<Digit, string>> = {
-  pinky: "bg-finger-pinky",
-  ring: "bg-finger-ring",
-  middle: "bg-finger-middle",
-  index: "bg-finger-index",
-  thumb: "bg-surface",
 };
 
 function capsOf(row: number): Slot[] {
@@ -107,21 +97,18 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
     >
       {ROWS.map((row) => (
         <div key={row.slots[0]?.code} className="flex" style={{ paddingLeft: row.lead * KEY_PX }}>
-          {row.slots.map((slot) => {
-            const digit = fingerGuide ? (fingerOf(slot.code)?.digit ?? FIXED_DIGITS[slot.code]) : undefined;
-            return (
-              <div
-                key={slot.code}
-                lang="ar"
-                data-key={slot.code}
-                data-due={guide.keys.has(slot.code) ? "" : undefined}
-                className={`flex shrink-0 items-center justify-center rounded border border-line text-lg leading-none text-ink data-due:border-4 data-due:border-ink data-due:font-bold ${digit === undefined ? "bg-surface" : TINTS[digit]}`}
-                style={{ width: slot.units * KEY_PX - KEY_GAP_PX, height: KEY_FACE_PX, margin: KEY_GAP_PX / 2 }}
-              >
-                {legendOf(slot, guide.shifted)}
-              </div>
-            );
-          })}
+          {row.slots.map((slot) => (
+            <div
+              key={slot.code}
+              lang="ar"
+              data-key={slot.code}
+              data-due={guide.keys.has(slot.code) ? "" : undefined}
+              className="flex shrink-0 items-center justify-center rounded-md border border-line text-lg leading-none text-muted data-due:halo data-due:font-bold"
+              style={{ width: slot.units * KEY_PX - KEY_GAP_PX, height: KEY_FACE_PX, margin: KEY_GAP_PX / 2 }}
+            >
+              {legendOf(slot, guide.shifted)}
+            </div>
+          ))}
         </div>
       ))}
       {fingerGuide && <p className="h-6 text-center text-sm text-muted">{caption}</p>}
