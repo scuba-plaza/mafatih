@@ -65,8 +65,8 @@ export function defaultSettings(preferredLanguages: readonly string[]): Settings
     reciter: DEFAULT_RECITER,
     volume: DEFAULT_VOLUME,
     muted: false,
-    playWhole: false,
-    loop: false,
+    playWhole: true,
+    loop: true,
   };
 }
 
@@ -89,7 +89,7 @@ export function sanitizeSettings(raw: unknown, preferredLanguages: readonly stri
     reciter: isReciterId(raw.reciter) ? raw.reciter : defaults.reciter,
     volume: clampVolume(raw.volume),
     muted: raw.muted === true,
-    playWhole: raw.playWhole === true,
-    loop: raw.loop === true,
+    playWhole: raw.playWhole !== false,
+    loop: raw.loop !== false,
   };
 }

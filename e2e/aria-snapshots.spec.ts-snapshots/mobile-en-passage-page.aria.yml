@@ -14,7 +14,7 @@
     - paragraph: 0 of 7 ayat typed
     - group "Recitation audio":
       - text: ""
-      - button "Repeat ayah"
+      - button "Repeat passage" [pressed]
       - button "Previous ayah"
       - button "Play"
       - button "Next ayah"

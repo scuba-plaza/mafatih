@@ -18,8 +18,8 @@ const DEFAULTS = {
   reciter: "murattal",
   volume: 0.8,
   muted: false,
-  playWhole: false,
-  loop: false,
+  playWhole: true,
+  loop: true,
 };
 
 test("the defaults: errors must be corrected with Backspace, vocalization follows progress", () => {
@@ -141,13 +141,30 @@ test("the volume is a number from nothing to full, brought into range, and 80 pe
   expect(["0.5", null, Number.NaN, undefined, {}].map(volume)).toEqual([0.8, 0.8, 0.8, 0.8, 0.8]);
 });
 
-test("only a real true mutes the recitation, plays the whole passage or repeats it", () => {
-  const flags = (value: unknown) => {
-    const { muted, playWhole, loop } = sanitizeSettings({ muted: value, playWhole: value, loop: value }, ENGLISH);
-    return [muted, playWhole, loop];
-  };
-  expect(flags(true)).toEqual([true, true, true]);
+test("only a real true mutes the recitation", () => {
+  const muted = (value: unknown) => sanitizeSettings({ muted: value }, ENGLISH).muted;
+  expect(muted(true)).toBe(true);
   for (const junk of ["true", 1, null, {}, undefined, false]) {
-    expect(flags(junk), String(junk)).toEqual([false, false, false]);
+    expect(muted(junk), String(junk)).toBe(false);
   }
+});
+
+test("the whole passage is played unless a saved false says otherwise", () => {
+  const whole = (saved: object) => sanitizeSettings(saved, ENGLISH).playWhole;
+  expect(whole({ playWhole: false })).toBe(false);
+  expect(whole({ playWhole: true })).toBe(true);
+  for (const junk of ["false", 0, null, {}, undefined]) {
+    expect(whole({ playWhole: junk }), String(junk)).toBe(true);
+  }
+  expect(whole({})).toBe(true);
+});
+
+test("the recitation repeats unless a saved false says otherwise", () => {
+  const loop = (saved: object) => sanitizeSettings(saved, ENGLISH).loop;
+  expect(loop({ loop: false })).toBe(false);
+  expect(loop({ loop: true })).toBe(true);
+  for (const junk of ["false", 0, null, {}, undefined]) {
+    expect(loop({ loop: junk }), String(junk)).toBe(true);
+  }
+  expect(loop({})).toBe(true);
 });

@@ -127,7 +127,7 @@ test("the controls have names, Play and Pause are one button whose name changes,
   const pause = player(page).getByRole("button", { name: "Pause", exact: true });
   await expect(pause).toBeVisible();
   await expect(pause).not.toHaveAttribute("aria-pressed", /.*/);
-  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toHaveAttribute("aria-pressed", "false");
+  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "true");
   await openPanel(page);
   const mute = player(page).getByRole("button", { name: "Mute", exact: true });
   await expect(mute).toHaveAttribute("aria-pressed", "false");
@@ -138,9 +138,9 @@ test("the controls have names, Play and Pause are one button whose name changes,
   await volume.press("Home");
   await expect(volume).toHaveAttribute("aria-valuetext", "0%");
   const whole = player(page).getByRole("switch", { name: "Play whole passage" });
-  await expect(whole).not.toBeChecked();
-  await whole.check();
   await expect(whole).toBeChecked();
+  await whole.uncheck();
+  await expect(whole).not.toBeChecked();
   await expectNoAxeViolations(page);
 });
 
@@ -193,6 +193,7 @@ test("the ayah being recited is marked in the text by colour and by background, 
 test("each ayah is fetched once: after a reload only the saved copy can supply it", async ({ page }) => {
   const { requests } = await mockAudio(page, SHORT);
   const count = (file: string) => requests.filter((name) => name === file).length;
+  await seedProfile(page, { settings: { playWhole: false, loop: false } });
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(() => count("001001.mp3")).toBe(1);
@@ -222,7 +223,7 @@ test("with the whole passage on, each clip that ends is followed by the next, ea
 }) => {
   test.skip(browserName === "firefox", FIREFOX_AUDIO_CHAIN);
   const { requests } = await mockAudio(page, SHORT);
-  await seedProfile(page, { settings: { playWhole: true } });
+  await seedProfile(page, { settings: { playWhole: true, loop: false } });
   await page.goto("/#/recitation/1/1");
   await status(page).evaluate((element) => {
     const heard: string[] = [];
@@ -337,7 +338,7 @@ test("pressing an audio button leaves the focus in the typing field, with a mous
   await startTyping(page);
   const field = page.getByRole("textbox", { name: "Type the text shown" });
   await expect(field).toBeFocused();
-  for (const name of ["Repeat ayah", "Next ayah", "Previous ayah", "Play"]) {
+  for (const name of ["Repeat passage", "Next ayah", "Previous ayah", "Play"]) {
     await player(page).getByRole("button", { name, exact: true }).click();
     await expect(field, name).toBeFocused();
   }
@@ -384,12 +385,13 @@ test("a mouse click on a transport button gives the typing field its focus back,
   await openPanel(page);
   await expect(field).not.toBeFocused();
   const whole = player(page).getByRole("switch", { name: "Play whole passage" });
-  await whole.click();
   await expect(whole).toBeChecked();
+  await whole.click();
+  await expect(whole).not.toBeChecked();
   await expect(field).not.toBeFocused();
   await player(page).getByRole("slider", { name: "Volume" }).click();
   await expect(player(page).getByRole("slider", { name: "Volume" })).toBeFocused();
-  expect((await savedSettings(page)).playWhole).toBe(true);
+  expect((await savedSettings(page)).playWhole).toBe(false);
 });
 
 test("the speaker opens the Audio panel, and Escape, a click outside or leaving it with Tab close it", async ({
@@ -418,19 +420,21 @@ test("the speaker opens the Audio panel, and Escape, a click outside or leaving 
   await expect(panel).toBeHidden();
 });
 
-test("Repeat is a toggle that is saved in the settings and still on after a reload", async ({ page }) => {
+test("Repeat is on from the start, is a toggle that is saved in the settings, and is still off after a reload", async ({
+  page,
+}) => {
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
-  const repeat = player(page).getByRole("button", { name: "Repeat ayah" });
+  const repeat = player(page).getByRole("button", { name: "Repeat passage" });
   const marker = () => repeat.evaluate((element) => getComputedStyle(element, "::after").opacity);
-  await expect(repeat).toHaveAttribute("aria-pressed", "false");
-  expect(await marker()).toBe("0");
-  await repeat.click();
   await expect(repeat).toHaveAttribute("aria-pressed", "true");
   expect(await marker()).toBe("1");
-  expect((await savedSettings(page)).loop).toBe(true);
+  await repeat.click();
+  await expect(repeat).toHaveAttribute("aria-pressed", "false");
+  expect(await marker()).toBe("0");
+  expect((await savedSettings(page)).loop).toBe(false);
   await page.reload();
-  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toHaveAttribute("aria-pressed", "true");
+  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveAttribute("aria-pressed", "false");
 });
 
 test("with repeat on, the passage starts again from its first ayah when the last one ends, and keeps playing", async ({
@@ -475,11 +479,11 @@ test("the repeat button says what it repeats: the ayah, or the passage when the 
 }) => {
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
-  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toBeVisible();
-  await openPanel(page);
-  await player(page).getByRole("switch", { name: "Play whole passage" }).check();
   await expect(player(page).getByRole("button", { name: "Repeat passage" })).toBeVisible();
-  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toHaveCount(0);
+  await openPanel(page);
+  await player(page).getByRole("switch", { name: "Play whole passage" }).uncheck();
+  await expect(player(page).getByRole("button", { name: "Repeat ayah" })).toBeVisible();
+  await expect(player(page).getByRole("button", { name: "Repeat passage" })).toHaveCount(0);
 });
 
 test("the dial fills as the ayah plays, and its arcs cannot be pressed", async ({ page }) => {
@@ -554,6 +558,7 @@ test("a recitation that cannot be fetched is said plainly and the lesson stays t
 
 test("Settings shows how much is saved and Delete empties it", async ({ page }) => {
   await mockAudio(page, SHORT);
+  await seedProfile(page, { settings: { playWhole: false, loop: false } });
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
@@ -656,6 +661,7 @@ test("when the saved recitations cannot be deleted Settings says so and keeps th
       throw new Error("locked");
     };
   });
+  await seedProfile(page, { settings: { playWhole: false, loop: false } });
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();

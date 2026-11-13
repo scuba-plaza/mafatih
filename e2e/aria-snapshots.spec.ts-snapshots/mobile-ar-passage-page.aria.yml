@@ -14,7 +14,7 @@
     - paragraph: تمت كتابة ٠ من ٧ آيات
     - group "التلاوة الصوتية":
       - text: ""
-      - button "تكرار الآية"
+      - button "تكرار المقطع" [pressed]
       - button "الآية السابقة"
       - button "تشغيل"
       - button "الآية التالية"
