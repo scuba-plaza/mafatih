@@ -20,11 +20,11 @@ export interface RecitationOutcome extends RecitationState {
   readonly finished: RunTally | null;
 }
 
-function tallyOf(samples: readonly Sample[]): RunTally {
+function tallyOf(samples: readonly Sample[], ms: number): RunTally {
   return {
     correct: samples.filter((sample) => sample.correct).length,
     total: samples.length,
-    ms: Math.round(samples.reduce((sum, sample) => sum + (sample.latencyMs ?? 0), 0)),
+    ms: Number.isFinite(ms) ? Math.max(0, Math.round(ms)) : 0,
   };
 }
 
@@ -33,8 +33,9 @@ export function applyRecitationAyah(
   position: Position,
   samples: readonly Sample[],
   order: SurahOrder,
+  ms: number,
 ): RecitationOutcome {
-  const tally = tallyOf(samples);
+  const tally = tallyOf(samples, ms);
   const progress = recordAyah(state.recitation, position, order, tally);
   const recorded = progress !== state.recitation;
   const completed = completionsOf(progress, position.surah) > completionsOf(state.recitation, position.surah);

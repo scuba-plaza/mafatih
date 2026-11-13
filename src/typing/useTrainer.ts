@@ -25,7 +25,7 @@ export interface TrainerConfig {
   readonly options: SessionOptions;
   readonly onComplete?: (result: TrainerResult) => void;
   readonly checkpoints?: readonly number[];
-  readonly onCheckpoint?: (index: number, samples: readonly Sample[]) => void;
+  readonly onCheckpoint?: (index: number, samples: readonly Sample[], ms: number) => void;
 }
 
 export interface Trainer {
@@ -50,7 +50,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   const checkpointsRef = useRef(checkpoints);
   const onCheckpointRef = useRef(onCheckpoint);
   const reported = useRef<Session | null>(null);
-  const passed = useRef({ prompt, checkpoints: 0, samples: 0 });
+  const passed = useRef({ prompt, checkpoints: 0, samples: 0, activeMs: 0 });
 
   useEffect(() => {
     optionsRef.current = options;
@@ -92,7 +92,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   useEffect(() => {
     const marks = checkpointsRef.current;
     if (passed.current.prompt !== session.prompt) {
-      passed.current = { prompt: session.prompt, checkpoints: 0, samples: 0 };
+      passed.current = { prompt: session.prompt, checkpoints: 0, samples: 0, activeMs: 0 };
     }
     for (
       let index = passed.current.checkpoints;
@@ -100,8 +100,14 @@ export function useTrainer(config: TrainerConfig): Trainer {
       index += 1
     ) {
       const samples = session.samples.slice(passed.current.samples);
-      passed.current = { prompt: session.prompt, checkpoints: index + 1, samples: session.samples.length };
-      onCheckpointRef.current?.(index, samples);
+      const ms = session.activeMs - passed.current.activeMs;
+      passed.current = {
+        prompt: session.prompt,
+        checkpoints: index + 1,
+        samples: session.samples.length,
+        activeMs: session.activeMs,
+      };
+      onCheckpointRef.current?.(index, samples, ms);
     }
   }, [session]);
 
@@ -115,7 +121,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   const focus = useCallback(() => inputRef.current?.focus(), [inputRef]);
 
   const restart = useCallback(() => {
-    passed.current = { prompt: passed.current.prompt, checkpoints: 0, samples: 0 };
+    passed.current = { prompt: passed.current.prompt, checkpoints: 0, samples: 0, activeMs: 0 };
     flushSync(() => setSession((current) => createSession(current.prompt)));
     inputRef.current?.focus();
   }, [inputRef]);

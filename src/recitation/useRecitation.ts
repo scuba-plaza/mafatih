@@ -39,7 +39,7 @@ export interface Recitation {
   readonly next: Position;
   readonly target: Position;
   readonly endsTheOrder: boolean;
-  readonly recordAyah: (index: number, samples: readonly Sample[]) => void;
+  readonly recordAyah: (index: number, samples: readonly Sample[], ms: number) => void;
   readonly recordPassage: (result: TrainerResult) => void;
   readonly go: (position: Position, focusField?: boolean) => void;
   readonly advance: () => void;
@@ -98,7 +98,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
   );
 
   const recordAyah = useCallback(
-    (index: number, samples: readonly Sample[]) => {
+    (index: number, samples: readonly Sample[], ms: number) => {
       const typedAyah = passage?.ayat[index]?.ayah;
       if (typedAyah === undefined) {
         return;
@@ -107,7 +107,7 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
       finishedKey.current = null;
       const next = update((current) => {
         const state = { stats: current.stats.recitation, recitation: current.recitation };
-        const outcome = applyRecitationAyah(state, { surah: number, ayah: typedAyah }, samples, order);
+        const outcome = applyRecitationAyah(state, { surah: number, ayah: typedAyah }, samples, order, ms);
         caught.tally = outcome.finished;
         return { ...current, stats: { ...current.stats, recitation: outcome.stats }, recitation: outcome.recitation };
       });
