@@ -23,7 +23,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. It has two 
 
 ## Sharing a link in Arabic
 
-Add `?lang=ar` to the address, for example `https://example.com/?lang=ar`, and the site opens in Arabic and remembers it for that browser. `?lang=en` does the same for English.
+Add `?lang=ar` to the address, for example `https://example.com/?lang=ar`, and the site opens in Arabic and remembers it for that browser. `?lang=en` does the same for English. It also works after the route, as in `https://example.com/#/recitation/1?lang=ar`.
 
 ## Before you start
 

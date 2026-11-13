@@ -25,7 +25,7 @@ function recitation(parts: readonly string[]): Route {
 }
 
 export function parseRoute(hash: string): Route {
-  const [page, ...rest] = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  const [page, ...rest] = (hash.split("?")[0] ?? "").replace(/^#\/?/, "").split("/").filter(Boolean);
   if (page === "recitation") {
     return recitation(rest);
   }

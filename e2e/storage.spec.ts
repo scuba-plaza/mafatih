@@ -203,6 +203,17 @@ test.describe("the language asked for in the link", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   });
 
+  test("can also be written after the route, as in #/recitation/1?lang=ar", async ({ page }) => {
+    await page.goto("/#/recitation/1?lang=ar");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("الفاتحة");
+    expect(new URL(page.url()).hash).toBe("#/recitation/1");
+    expect(new URL(page.url()).search).toBe("");
+    expect((await savedSettings(page)).language).toBe("ar");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  });
+
   test("a language chosen in Settings afterwards is not undone by a reload", async ({ page }) => {
     await page.goto("/?lang=ar#/practice");
     await page.getByRole("button", { name: "الإعدادات" }).click();

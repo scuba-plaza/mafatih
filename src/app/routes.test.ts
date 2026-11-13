@@ -16,6 +16,13 @@ test("a recitation address names a surah and optionally an ayah", () => {
   expect(parseRoute("#/recitation/114/6/")).toEqual({ page: "recitation", surah: 114, ayah: 6 });
 });
 
+test("a query after the route in the hash is not part of the route", () => {
+  expect(parseRoute("#/recitation/36?lang=ar")).toEqual({ page: "recitation", surah: 36, ayah: null });
+  expect(parseRoute("#/recitation/36/21?lang=ar&x=1")).toEqual({ page: "recitation", surah: 36, ayah: 21 });
+  expect(parseRoute("#/practice?lang=en")).toEqual({ page: "practice" });
+  expect(parseRoute("#/?lang=ar")).toEqual(HOME);
+});
+
 test("a surah outside 1 to 114 falls back to the surah map", () => {
   expect(parseRoute("#/recitation/0")).toEqual(HOME);
   expect(parseRoute("#/recitation/115")).toEqual(HOME);
