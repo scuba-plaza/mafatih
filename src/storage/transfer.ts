@@ -1,57 +1,78 @@
-import { type Profile, parseProfileOrNull } from "~/storage/profile.ts";
+import { isRecord } from "~/lib/guards.ts";
+import { type Profile, sanitizeProfile } from "./profile.ts";
 
-export const OVERWRITE_WARNING =
-  "This replaces everything saved on this device — progress, statistics, recitation and settings — with the imported data. It cannot be undone.\n\nContinue?";
+export const MAX_IMPORT_BYTES = 2_000_000;
 
-function toBase64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+const APP = "mafatih";
+const SCHEMA = 2;
+const LEGACY_SCHEMA = 1;
+
+export type ImportFailure = "too-large" | "not-json" | "not-a-backup" | "wrong-version";
+
+export type ImportResult =
+  | { readonly ok: true; readonly profile: Profile }
+  | { readonly ok: false; readonly reason: ImportFailure };
+
+export interface Backup {
+  readonly filename: string;
+  readonly json: string;
+}
+
+function twoDigits(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function dayOf(date: Date): string {
+  return `${date.getFullYear()}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())}`;
+}
+
+function refuse(reason: ImportFailure): ImportResult {
+  return { ok: false, reason };
+}
+
+function isUnversionedOldExport(envelope: Readonly<Record<string, unknown>>): boolean {
+  const { app, schema, progress, stats, settings, history, recitation } = envelope;
+  return (
+    app === undefined &&
+    schema === undefined &&
+    isRecord(progress) &&
+    isRecord(stats) &&
+    isRecord(settings) &&
+    Array.isArray(history) &&
+    isRecord(recitation)
+  );
+}
+
+export function exportProfile(profile: Profile, now: Date): Backup {
+  const envelope = { app: APP, schema: SCHEMA, exportedAt: now.toISOString(), profile };
+  return { filename: `mafatih-backup-${dayOf(now)}.json`, json: JSON.stringify(envelope) };
+}
+
+export function importProfile(text: string, preferredLanguages: readonly string[]): ImportResult {
+  if (new Blob([text]).size > MAX_IMPORT_BYTES) {
+    return refuse("too-large");
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function fromBase64Url(value: string): Uint8Array {
-  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-export function encodeProfile(profile: Profile): string {
-  return toBase64Url(new TextEncoder().encode(JSON.stringify(profile)));
-}
-
-export function decodeProfile(data: string): Profile | null {
+  let envelope: unknown;
   try {
-    return parseProfileOrNull(new TextDecoder().decode(fromBase64Url(data)));
+    envelope = JSON.parse(text);
   } catch {
-    return null;
+    return refuse("not-json");
   }
-}
-
-export function transferLink(profile: Profile): string {
-  const url = new URL(window.location.href);
-  url.hash = `/import/${encodeProfile(profile)}`;
-  return url.toString();
-}
-
-export function exportFilename(at: Date = new Date()): string {
-  return `mafatih-progress-${at.toISOString().slice(0, 10)}.json`;
-}
-
-export function profileBlob(profile: Profile): Blob {
-  return new Blob([JSON.stringify(profile, null, 2)], { type: "application/json" });
-}
-
-export function downloadProfile(profile: Profile): void {
-  const url = URL.createObjectURL(profileBlob(profile));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = exportFilename();
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  if (!isRecord(envelope)) {
+    return refuse("not-a-backup");
+  }
+  const { app, schema, profile } = envelope;
+  if (isUnversionedOldExport(envelope)) {
+    return refuse("wrong-version");
+  }
+  const oldAppExport = app === undefined && schema === LEGACY_SCHEMA;
+  if ((app !== APP && !oldAppExport) || typeof schema !== "number") {
+    return refuse("not-a-backup");
+  }
+  if (schema !== SCHEMA) {
+    return refuse("wrong-version");
+  }
+  return isRecord(profile)
+    ? { ok: true, profile: sanitizeProfile(profile, preferredLanguages) }
+    : refuse("not-a-backup");
 }

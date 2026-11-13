@@ -1,0 +1,66 @@
+- dialog "Settings":
+  - heading "Settings" [level=2]
+  - button "Done"
+  - group "Language":
+    - text: ""
+    - radio "English" [checked]
+    - text: English
+    - radio "العربية"
+    - text: العربية
+  - group "Vocalization":
+    - text: ""
+    - radio "Auto" [checked]
+    - text: Auto Asks only for the marks you have unlocked in Practice.
+    - radio "Letters only"
+    - text: Letters only Marks are shown but not typed.
+    - radio "Harakat"
+    - text: Harakat Type fatha, damma, kasra, shadda and sukun.
+    - radio "Full"
+    - text: Full Type every mark, tanween included.
+  - switch "Correct mistakes with Backspace" [checked]
+  - text: Correct mistakes with Backspace Wrong keys are shown until you delete them. When off, they are blocked instead.
+  - group "Lesson font":
+    - text: ""
+    - radio "Scheherazade New" [checked]
+    - text: Scheherazade New
+    - radio "Amiri"
+    - text: Amiri
+    - radio "Noto Naskh Arabic"
+    - text: Noto Naskh Arabic
+  - text: Lesson text size
+  - slider "Lesson text size": "3"
+  - group "Recitation":
+    - text: Recitation Ayat per passage
+    - combobox "Ayat per passage":
+      - option "1"
+      - option "2"
+      - option "3"
+      - option "4" [selected]
+    - group "Surah order":
+      - text: ""
+      - radio "Mushaf order" [checked]
+      - text: Mushaf order From Al-Faatiha to An-Naas.
+      - radio "Juz ʿAmma first"
+      - text: Juz ʿAmma first The short surahs from An-Naas back to An-Naba, then Al-Faatiha onwards.
+  - group "Recitation audio":
+    - text: ""
+    - group "Reciter":
+      - text: ""
+      - radio "Murattal" [checked]
+      - text: Murattal Measured and paced for learning.
+      - radio "Mujawwad"
+      - text: Mujawwad Melodic and ornamented.
+    - paragraph: "Saved recitations: 0 (⁨0 kB⁩)"
+    - button "Delete saved recitations"
+    - status
+  - group "Backup and restore":
+    - text: ""
+    - paragraph: Save your progress and settings to a file, or bring them back from one. Nothing leaves this device unless you send the file yourself.
+    - button "Download backup"
+    - button "Restore from a backup file"
+    - text: Restore from a backup file
+    - status
+  - button "Reset progress"
+  - status
+  - link "About":
+    - /url: "#/about"

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
@@ -11,16 +11,15 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node", "cypress", "vite/client"],
-    "paths": { "~/*": ["./src/*"], "~generated/*": ["./generated/*"] }
+    "types": ["node", "vite/client"],
+    "paths": { "~/*": ["./src/*"] }
   },
-  "include": ["src", "scripts", "cypress", "vite.config.ts"],
+  "include": ["src", "e2e"],
   "exclude": ["node_modules", "dist"]
 }

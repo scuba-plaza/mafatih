@@ -1,9 +1,9 @@
 node_modules
 dist
 generated
-cypress/screenshots
-cypress/videos
-cypress/downloads
+test-results
+playwright-report
 *.tsbuildinfo
 .DS_Store
 .idea
+.claude/worktrees

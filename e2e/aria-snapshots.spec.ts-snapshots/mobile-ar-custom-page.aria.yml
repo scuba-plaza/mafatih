@@ -1,0 +1,8 @@
+- main:
+  - heading "نص مخصص" [level=1]
+  - region "النص المطلوب كتابته":
+    - paragraph: بسم الله الرحمن الرحيم
+    - status
+    - textbox "اكتب النص الظاهر"
+    - status: بسم
+  - button "تعديل النص"

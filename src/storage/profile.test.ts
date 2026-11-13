@@ -1,145 +1,364 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
-import { DEFAULT_RECITER, DEFAULT_VOLUME } from "~/engine/audio/reciters.ts";
-import { DEFAULT_FONT, DEFAULT_FONT_SIZE } from "~/engine/fonts.ts";
-import { DEFAULT_CUSTOM_TEXT } from "~/engine/lessons/custom.ts";
-import { DEFAULT_AYAT_PER_LESSON } from "~/engine/lessons/lesson.ts";
-import { defaultProfile, defaultSettings, parseProfile, sanitizeSettings } from "~/storage/profile.ts";
+import { expect, test } from "vitest";
+import {
+  eraseProfile,
+  type KeyValueStore,
+  openProfile,
+  openProfileInLanguage,
+  type Profile,
+  STORAGE_KEY,
+  UNREADABLE_KEY,
+} from "./profile.ts";
 
-test("a fresh profile types Noto Naskh at the default size", () => {
-  const settings = defaultSettings();
-  assert.equal(settings.font, DEFAULT_FONT);
-  assert.equal(settings.fontSize, DEFAULT_FONT_SIZE);
-});
+const ENGLISH = ["en-US"];
+const ARABIC = ["ar-EG", "en"];
+const OTHER_DEFAULTS = {
+  font: "scheherazade",
+  fontSize: 40,
+  vocalization: "auto",
+  requireBackspace: true,
+  showKeyboard: true,
+  fingerGuide: true,
+  customText: "",
+  ayatPerLesson: 4,
+  surahOrder: "mushaf",
+  reciter: "murattal",
+  volume: 0.8,
+  muted: false,
+  playWhole: false,
+  loop: false,
+} as const;
+const NO_PROGRESS = {
+  ladder: { unlocked: 10 },
+  stats: { practice: {}, recitation: {}, custom: {} },
+  history: [],
+  recitation: { position: null, surahs: {} },
+} as const;
+const ENGLISH_DEFAULTS: Profile = { schema: 2, settings: { language: "en", ...OTHER_DEFAULTS }, ...NO_PROGRESS };
+const ARABIC_PROFILE: Profile = { schema: 2, settings: { language: "ar", ...OTHER_DEFAULTS }, ...NO_PROGRESS };
 
-test("every setting survives a round trip through storage", () => {
-  const profile = defaultProfile();
-  const stored = {
-    ...profile,
-    settings: {
-      ...profile.settings,
-      tierOverride: "full" as const,
-      customText: "الحمد\nلله",
-      font: "amiri" as const,
-      fontSize: 64,
-      surahOrder: "juz-amma" as const,
-      ayatPerLesson: 10,
-      showKeyboard: false,
-      showFingers: false,
-      reciter: "mujawwad" as const,
-      volume: 0.35,
-      muted: true,
-      autoAdvance: false,
-      loop: true,
+interface MemoryStore extends KeyValueStore {
+  readonly data: Map<string, string>;
+  readonly read: string[];
+}
+
+function memoryStore(initial: Record<string, string> = {}): MemoryStore {
+  const data = new Map(Object.entries(initial));
+  const read: string[] = [];
+  return {
+    data,
+    read,
+    getItem: (key) => {
+      read.push(key);
+      return data.get(key) ?? null;
+    },
+    setItem: (key, value) => {
+      data.set(key, value);
+    },
+    removeItem: (key) => {
+      data.delete(key);
     },
   };
-  assert.deepEqual(parseProfile(JSON.stringify(stored)).settings, stored.settings);
-});
+}
 
-test("missing settings fall back rather than yielding undefined", () => {
-  const stored = { ...defaultProfile(), settings: { font: "amiri" } };
-  const settings = parseProfile(JSON.stringify(stored)).settings;
-  assert.equal(settings.font, "amiri");
-  assert.equal(settings.fontSize, DEFAULT_FONT_SIZE);
-  assert.equal(settings.showKeyboard, true);
-  assert.equal(settings.reciter, DEFAULT_RECITER);
-  assert.equal(settings.volume, DEFAULT_VOLUME);
-  assert.equal(settings.muted, false);
-  assert.equal(settings.loop, false);
-  assert.equal(settings.customText, DEFAULT_CUSTOM_TEXT);
-});
+function holding(stored: string): MemoryStore {
+  return memoryStore({ [STORAGE_KEY]: stored });
+}
 
-test("a profile with only some settings keeps its progress and gains the defaults", () => {
-  const before = {
-    progress: { unlockedCount: 12, tier: "core", focus: null },
-    stats: {},
-    history: [{ at: 1, cpm: 90, accuracy: 0.97, errors: 2, chars: 180, tier: "core" }],
-    settings: { font: "amiri", fontSize: 44, showKeyboard: false },
+function failing(thrown: unknown): () => never {
+  return () => {
+    throw thrown;
   };
-  const profile = parseProfile(JSON.stringify(before));
-  assert.equal(profile.progress.unlockedCount, 12);
-  assert.equal(profile.history.length, 1);
-  assert.equal(profile.settings.reciter, DEFAULT_RECITER);
-  assert.equal(profile.settings.volume, DEFAULT_VOLUME);
-  assert.equal(profile.settings.muted, false);
-  assert.equal(profile.settings.autoAdvance, true);
-  assert.equal(profile.settings.loop, false);
-  assert.equal(profile.settings.customText, DEFAULT_CUSTOM_TEXT);
-  assert.equal(profile.settings.ayatPerLesson, DEFAULT_AYAT_PER_LESSON);
+}
+
+test("the profile and the copy of unreadable data are kept under versioned keys", () => {
+  expect(STORAGE_KEY).toBe("mafatih:profile:2");
+  expect(UNREADABLE_KEY).toBe("mafatih:profile:2:unreadable");
 });
 
-test("hand-edited nonsense in storage cannot break a setting", () => {
-  const settings = sanitizeSettings({
-    tierOverride: "extreme",
-    font: "comic sans",
-    fontSize: "enormous",
-    surahOrder: "alphabetical",
-    ayatPerLesson: "all of them",
-    showKeyboard: "yes",
-    showFingers: "sometimes",
-    reciter: "abdulbasit",
-    volume: "loud",
-    muted: "kinda",
-    autoAdvance: "sure",
-    loop: "forever",
-    customText: 42,
+test("a first visit starts with default settings in the visitor's language", () => {
+  const opened = openProfile(memoryStore(), ENGLISH);
+  expect(opened.profile).toEqual(ENGLISH_DEFAULTS);
+  expect(opened.notice).toBeNull();
+  expect(openProfile(memoryStore(), ARABIC).profile.settings.language).toBe("ar");
+});
+
+test("the visitor's languages may be missing or nonsense: English is the fallback", () => {
+  for (const languages of [[], ["", "zz", "-"], ["fr-FR"]]) {
+    expect(openProfile(memoryStore(), languages).profile).toEqual(ENGLISH_DEFAULTS);
+  }
+});
+
+test("a saved profile is read back as it was, whatever the browser's language is now", () => {
+  const store = memoryStore();
+  expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBeNull();
+  expect(JSON.parse(store.data.get("mafatih:profile:2") ?? "")).toEqual({
+    schema: 2,
+    settings: {
+      language: "ar",
+      font: "scheherazade",
+      fontSize: 40,
+      vocalization: "auto",
+      requireBackspace: true,
+      showKeyboard: true,
+      fingerGuide: true,
+      customText: "",
+      ayatPerLesson: 4,
+      surahOrder: "mushaf",
+      reciter: "murattal",
+      volume: 0.8,
+      muted: false,
+      playWhole: false,
+      loop: false,
+    },
+    ladder: { unlocked: 10 },
+    stats: { practice: {}, recitation: {}, custom: {} },
+    history: [],
+    recitation: { position: null, surahs: {} },
   });
-  assert.deepEqual(settings, defaultSettings());
+  const reopened = openProfile(store, ENGLISH);
+  expect(reopened.profile).toEqual(ARABIC_PROFILE);
+  expect(reopened.notice).toBeNull();
 });
 
-test("a stored custom text is kept verbatim but capped", () => {
-  assert.equal(sanitizeSettings({ customText: "  الحمد\nلله  " }).customText, "  الحمد\nلله  ");
-  assert.equal(sanitizeSettings({ customText: "ا".repeat(9000) }).customText.length, 5000);
+test("the schema number is compared as a number", () => {
+  expect(openProfile(holding('{"schema":2.0,"settings":{"language":"ar"}}'), ENGLISH).profile).toEqual(ARABIC_PROFILE);
 });
 
-test("a font size stored off-step snaps to an offered step", () => {
-  assert.equal(sanitizeSettings({ fontSize: 45 }).fontSize, 44);
+test("saved data that cannot be understood is replaced by defaults, and the visitor is told", () => {
+  const unreadable = ["{not json", "5", "null", "[]", '"text"', "{}", '{"schema":1,"settings":{"language":"ar"}}'];
+  for (const stored of [...unreadable, '{"schema":"2"}', '{"schema":[2]}', '{"schema":true}', '{"schema":"3"}']) {
+    const opened = openProfile(holding(stored), ENGLISH);
+    expect(opened.profile, stored).toEqual(ENGLISH_DEFAULTS);
+    expect(opened.notice, stored).toBe("reset");
+  }
 });
 
-test("unreadable storage falls back to a fresh profile", () => {
-  assert.deepEqual(parseProfile("{not json"), defaultProfile());
-  assert.deepEqual(parseProfile("[1, 2]"), defaultProfile());
-  assert.deepEqual(parseProfile(null), defaultProfile());
+test("unreadable data is copied aside before anything can overwrite it", () => {
+  const store = holding("{not json");
+  const opened = openProfile(store, ENGLISH);
+  expect(store.data.get("mafatih:profile:2:unreadable")).toBe("{not json");
+  expect(opened.save(ARABIC_PROFILE)).toBeNull();
+  expect(store.data.get("mafatih:profile:2:unreadable")).toBe("{not json");
+  expect(openProfile(store, ENGLISH).profile).toEqual(ARABIC_PROFILE);
 });
 
-test("hand-edited progress and history are repaired", () => {
-  const profile = parseProfile(
-    JSON.stringify({
-      progress: { unlockedCount: 900, tier: "legendary" },
-      history: [
-        { at: 1, cpm: 90, accuracy: 3, errors: 2, chars: 180, tier: "core" },
-        { at: 2, cpm: "fast", accuracy: 0.9, errors: 0, chars: 10, tier: "none" },
-        { at: 3, cpm: 50, tier: "unknown" },
-        "garbage",
-      ],
-    }),
+test("a copy that cannot be written does not stop the app from starting fresh", () => {
+  const store: KeyValueStore = {
+    getItem: () => "{not json",
+    setItem: failing(new DOMException("full", "QuotaExceededError")),
+    removeItem: () => undefined,
+  };
+  const opened = openProfile(store, ENGLISH);
+  expect(opened.profile).toEqual(ENGLISH_DEFAULTS);
+  expect(opened.notice).toBe("reset");
+});
+
+test("progress saved by a newer version is left alone: the app runs on defaults and never writes over it", () => {
+  const newer = '{"schema":3,"settings":{"language":"ar"},"future":true}';
+  const store = holding(newer);
+  const opened = openProfile(store, ENGLISH);
+  expect(opened.profile).toEqual(ENGLISH_DEFAULTS);
+  expect(opened.notice).toBe("newer");
+  expect(opened.save(ARABIC_PROFILE)).toBe("newer");
+  expect([...store.data]).toEqual([["mafatih:profile:2", newer]]);
+});
+
+test("a setting with an invalid value falls back to its default without discarding the rest", () => {
+  const opened = openProfile(holding('{"schema":2,"settings":{"language":"fr"}}'), ARABIC);
+  expect(opened.profile).toEqual(ARABIC_PROFILE);
+  expect(opened.notice).toBeNull();
+  expect(openProfile(holding('{"schema":2,"settings":"nope"}'), ENGLISH).profile).toEqual(ENGLISH_DEFAULTS);
+  expect(openProfile(holding('{"schema":2}'), ENGLISH).profile).toEqual(ENGLISH_DEFAULTS);
+});
+
+test("unknown and dangerous keys in saved data are never copied into the profile", () => {
+  const stored =
+    '{"schema":2,"extra":1,"__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}},' +
+    '"settings":{"language":"ar","__proto__":{"language":"en"},"constructor":1,"prototype":2,"x":1}}';
+  const { profile } = openProfile(holding(stored), ENGLISH);
+  expect(profile).toEqual(ARABIC_PROFILE);
+  expect(Object.keys(profile)).toEqual(["schema", "settings", "ladder", "stats", "history", "recitation"]);
+  expect(Object.keys(profile.settings).sort()).toEqual(
+    [
+      "ayatPerLesson",
+      "customText",
+      "fingerGuide",
+      "font",
+      "fontSize",
+      "language",
+      "loop",
+      "muted",
+      "playWhole",
+      "reciter",
+      "requireBackspace",
+      "showKeyboard",
+      "surahOrder",
+      "vocalization",
+      "volume",
+    ].sort(),
   );
-  assert.equal(profile.progress.unlockedCount, 36);
-  assert.equal(profile.progress.tier, "none");
-  assert.deepEqual(profile.history, [
-    { at: 1, cpm: 90, accuracy: 1, errors: 2, chars: 180, tier: "core" },
-    { at: 2, cpm: 0, accuracy: 0.9, errors: 0, chars: 10, tier: "none" },
-  ]);
-  assert.equal(parseProfile(JSON.stringify({ progress: { unlockedCount: 2 } })).progress.unlockedCount, 6);
+  expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
 });
 
-test("the recitation progress survives a round trip", () => {
-  const stored = {
-    ...defaultProfile(),
+test("the old version's data is never read", () => {
+  const store = memoryStore({ "mafatih.profile": '{"settings":{"language":"ar"}}' });
+  expect(openProfile(store, ENGLISH).profile.settings.language).toBe("en");
+  expect(store.read).toEqual(["mafatih:profile:2"]);
+  expect(store.data.get("mafatih.profile")).toBe('{"settings":{"language":"ar"}}');
+});
+
+test("when the browser refuses access to storage the app runs on defaults and says nothing can be saved", () => {
+  const refused = failing(new DOMException("denied", "SecurityError"));
+  const stores = [
+    { getItem: refused, setItem: refused, removeItem: refused },
+    { getItem: failing("not an error object"), setItem: refused, removeItem: refused },
+    null,
+  ];
+  for (const store of stores) {
+    const opened = openProfile(store, ARABIC);
+    expect(opened.profile).toEqual(ARABIC_PROFILE);
+    expect(opened.notice).toBe("unavailable");
+    expect(opened.save(ENGLISH_DEFAULTS)).toBe("unavailable");
+  }
+});
+
+test("a store that hands back something other than text is treated as unreadable", () => {
+  for (const value of [5, {}, undefined]) {
+    const store = { getItem: () => value, setItem: () => undefined } as unknown as KeyValueStore;
+    expect(openProfile(store, ENGLISH).profile, String(value)).toEqual(ENGLISH_DEFAULTS);
+  }
+});
+
+test("when saving fails the visitor is told, and nothing is thrown", () => {
+  const store: KeyValueStore = {
+    getItem: () => null,
+    setItem: failing(new DOMException("full", "QuotaExceededError")),
+    removeItem: () => undefined,
+  };
+  expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBe("unavailable");
+});
+
+test("every setting and all progress survive being saved and opened again", () => {
+  const store = memoryStore();
+  const changed: Profile = {
+    schema: 2,
+    settings: {
+      language: "ar",
+      font: "amiri",
+      fontSize: 56,
+      vocalization: "full",
+      requireBackspace: false,
+      showKeyboard: false,
+      fingerGuide: false,
+      customText: "بسم الله",
+      ayatPerLesson: 2,
+      surahOrder: "juz-amma",
+      reciter: "mujawwad",
+      volume: 0.25,
+      muted: true,
+      playWhole: true,
+      loop: true,
+    },
+    ladder: { unlocked: 12 },
+    stats: {
+      practice: { ش: { attempts: 9, hits: 8, timed: 8, meanMs: 512.5, recentAccuracy: 0.9 } },
+      recitation: { لا: { attempts: 1, hits: 1, timed: 0, meanMs: 0, recentAccuracy: 1 } },
+      custom: {},
+    },
+    history: [{ at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 65_000, accuracy: 0.97 }],
     recitation: {
-      position: { surah: 2, ayah: 17 },
+      position: { surah: 36, ayah: 13 },
       surahs: {
-        "112": {
-          run: { typed: [], chars: 0, keystrokes: 0, errors: 0, elapsedMs: 0 },
-          resume: 1,
-          completions: 1,
-          bestAccuracy: 0.97,
-          bestCpm: 120,
-          completedAt: 5,
-        },
+        1: { typed: [], completions: 2, run: { correct: 0, total: 0, ms: 0 }, best: 0.97 },
+        36: { typed: [[1, 12]], completions: 0, run: { correct: 40, total: 44, ms: 15_000 }, best: 0 },
       },
     },
   };
-  const profile = parseProfile(JSON.stringify(stored));
-  assert.deepEqual(profile.recitation, stored.recitation);
+  openProfile(store, ENGLISH).save(changed);
+  expect(openProfile(store, ENGLISH).profile).toEqual(changed);
+});
+
+test("broken progress falls back on its own: the settings and the rest of the progress are kept", () => {
+  const stat = { attempts: 2, hits: 2, timed: 2, meanMs: 400, recentAccuracy: 1 };
+  const lesson = { at: 5, mode: "custom", chars: 10, ms: 4000, accuracy: 1 };
+  const stored = JSON.stringify({
+    schema: 2,
+    settings: { language: "ar" },
+    ladder: { unlocked: "many" },
+    stats: { practice: { ب: stat, ت: "broken" }, recitation: 5, extra: { ب: stat } },
+    history: [lesson, { ...lesson, mode: "quiz" }],
+    recitation: { position: { surah: 1, ayah: 99 }, surahs: { 1: { typed: [[2, 3]], completions: "many" } } },
+  });
+  const { profile, notice } = openProfile(holding(stored), ENGLISH);
+  expect(notice).toBeNull();
+  expect(profile).toEqual({
+    ...ARABIC_PROFILE,
+    stats: { practice: { ب: stat }, recitation: {}, custom: {} },
+    history: [lesson],
+    recitation: {
+      position: null,
+      surahs: { 1: { typed: [[2, 3]], completions: 0, run: { correct: 0, total: 0, ms: 0 }, best: 0 } },
+    },
+  });
+  expect(
+    openProfile(holding('{"schema":2,"ladder":{"unlocked":99},"stats":[],"history":{}}'), ENGLISH).profile,
+  ).toEqual({
+    ...ENGLISH_DEFAULTS,
+    ladder: { unlocked: 44 },
+  });
+});
+
+test("erasing removes the saved profile and nothing else, and a fresh open then starts from the defaults", () => {
+  const store = memoryStore({ [STORAGE_KEY]: JSON.stringify(ARABIC_PROFILE), other: "kept", [UNREADABLE_KEY]: "old" });
+  eraseProfile(store);
+  expect([...store.data.keys()].sort()).toEqual(["other", UNREADABLE_KEY].sort());
+  expect(openProfile(store, ENGLISH).profile).toEqual(ENGLISH_DEFAULTS);
+});
+
+test("erasing does not throw when the store refuses, or when there is no store", () => {
+  const refusing: KeyValueStore = {
+    ...memoryStore(),
+    removeItem: failing(new DOMException("denied", "SecurityError")),
+  };
+  expect(() => eraseProfile(refusing)).not.toThrow();
+  expect(() => eraseProfile(null)).not.toThrow();
+});
+
+test("a language asked for in the address beats the saved one and the browser's, and is saved like a choice in Settings", () => {
+  const store = holding(JSON.stringify(ENGLISH_DEFAULTS));
+  const opened = openProfileInLanguage(store, ENGLISH, "ar");
+  expect(opened.profile.settings.language).toBe("ar");
+  expect(opened.notice).toBeNull();
+  expect(JSON.parse(store.data.get(STORAGE_KEY) ?? "{}").settings.language).toBe("ar");
+  expect(openProfile(store, ENGLISH).profile.settings.language).toBe("ar");
+});
+
+test("no language asked for, or the one already in use, writes nothing", () => {
+  const stored = JSON.stringify(ARABIC_PROFILE);
+  const store = holding(stored);
+  expect(openProfileInLanguage(store, ENGLISH, null).profile.settings.language).toBe("ar");
+  expect(openProfileInLanguage(store, ENGLISH, "ar").profile.settings.language).toBe("ar");
+  expect(store.data.get(STORAGE_KEY)).toBe(stored);
+});
+
+test("a first visit through a link in Arabic starts in Arabic and keeps its progress settings at their defaults", () => {
+  const store = memoryStore();
+  const opened = openProfileInLanguage(store, ENGLISH, "ar");
+  expect(opened.profile).toEqual(ARABIC_PROFILE);
+  expect(JSON.parse(store.data.get(STORAGE_KEY) ?? "{}").settings.language).toBe("ar");
+});
+
+test("progress saved by a newer version stays untouched, while this visit still opens in the language asked for", () => {
+  const newer = '{"schema":3,"settings":{"language":"en"}}';
+  const store = holding(newer);
+  const opened = openProfileInLanguage(store, ENGLISH, "ar");
+  expect(opened.profile.settings.language).toBe("ar");
+  expect(opened.notice).toBe("newer");
+  expect(store.data.get(STORAGE_KEY)).toBe(newer);
+});
+
+test("when storage is refused the language asked for still applies, and the visitor is told nothing is saved", () => {
+  const opened = openProfileInLanguage(null, ENGLISH, "ar");
+  expect(opened.profile.settings.language).toBe("ar");
+  expect(opened.notice).toBe("unavailable");
 });

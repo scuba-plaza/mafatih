@@ -1,0 +1,38 @@
+- main:
+  - heading "About" [level=1]
+  - region "What you type":
+    - heading "What you type" [level=2]
+    - paragraph: Mafatih means "keys". It teaches touch typing in Arabic. In Recitation you type the Qur'an, passage by passage, exactly as it is written. In Practice you drill everyday words, with their marks, until each key is under your fingers.
+    - paragraph: "The Qur'an is only ever shown whole and in order, and only in Recitation, from the Tanzil text without changes. Practice never uses it: its words are everyday vocabulary."
+  - region "Privacy":
+    - heading "Privacy" [level=2]
+    - paragraph: Mafatih has no accounts, cookies or analytics. Your progress and settings stay in this browser, in local storage. Recitation audio you have played, or that is about to play, is kept in the browser's IndexedDB so that it plays again without downloading. The only request to another site is for that audio, from EveryAyah, which sees your address as any site you visit does. Mafatih sends nothing else about you. Backup and restore in Settings makes a file that you keep yourself.
+  - region "Credits":
+    - heading "Credits" [level=2]
+    - term: Qur'an text
+    - definition:
+      - text: Simple text, version 1.1, under Creative Commons Attribution 3.0. Copied without changes; each surah file keeps the copyright notice of the Tanzil Project.
+      - link "Tanzil Project":
+        - /url: https://tanzil.net
+    - term: Recitation audio
+    - definition:
+      - text: Abdul Basit ʿAbd us-Samad, Murattal and Mujawwad.
+      - link "EveryAyah":
+        - /url: https://everyayah.com
+    - term: Practice words
+    - definition:
+      - text: /Made from the English Wiktionary \(extract built ⁨Oct \d+, \d+⁩\), under Creative Commons Attribution-ShareAlike 4\.0 and the GNU Free Documentation License, and from a list of word frequencies, under Creative Commons Attribution-ShareAlike 4\.0\./
+      - link "Wiktionary via kaikki.org":
+        - /url: https://kaikki.org/dictionary/Arabic/
+      - link "FrequencyWords":
+        - /url: https://github.com/hermitdave/FrequencyWords
+    - term: Fonts
+    - definition:
+      - text: Noto Naskh Arabic, Amiri and Scheherazade New, under the SIL Open Font License.
+      - link "Fontsource":
+        - /url: https://fontsource.org
+    - term: Keyboard layout
+    - definition:
+      - text: /The key table follows the Windows Arabic \(\d+\) layout\./
+      - link /Microsoft Arabic \(\d+\) keyboard/:
+        - /url: https://learn.microsoft.com/en-us/globalization/keyboards/kbda1

@@ -1,0 +1,12 @@
+- region "Your progress":
+  - term: Keys unlocked
+  - definition: /\d+ of \d+/
+  - term: Newest key
+  - definition: و
+  - term: Accuracy
+  - definition: Not yet
+  - term: Time per key
+  - definition: Not yet
+  - term: Last lesson
+  - definition: Not yet
+  - status

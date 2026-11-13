@@ -1,0 +1,21 @@
+@theme {
+  --color-*: initial;
+  --color-page: #08090b;
+  --color-surface: #101114;
+  --color-ink: #ebe8e2;
+  --color-muted: #8f9299;
+  --color-upcoming: #5b5d61;
+  --color-apparatus: #8f9299;
+  --color-line: #23262b;
+  --color-edge: #6b6f77;
+  --color-faint: #14161a;
+  --color-accent: #e2b062;
+  --color-on-accent: #1a1408;
+  --color-danger: #fca5a5;
+  --color-focus: #93c5fd;
+
+  --breakpoint-*: initial;
+  --breakpoint-sm: 30rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+}

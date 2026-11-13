@@ -1,0 +1,8 @@
+- main:
+  - heading "Custom" [level=1]
+  - region "Text to type":
+    - paragraph: بسم الله الرحمن الرحيم
+    - status
+    - textbox "Type the text shown"
+    - status: بسم
+  - button "Edit text"

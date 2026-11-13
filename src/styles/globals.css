@@ -1,32 +1,48 @@
 @import "tailwindcss";
-@import "@fontsource/scheherazade-new/arabic-400.css";
-@import "@fontsource/noto-naskh-arabic/arabic-400.css";
-@import "@fontsource/amiri/arabic-400.css";
+@import "./tokens.css";
 
-@theme {
-  --font-arabic: var(--font-arabic-active, "Noto Naskh Arabic", serif);
+:root {
+  color-scheme: dark;
 }
 
 @layer base {
-  :root {
-    color-scheme: light dark;
+  a[href],
+  button:not(:disabled),
+  select:not(:disabled),
+  input:is([type="checkbox"], [type="radio"], [type="range"]):not(:disabled),
+  label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)) {
+    cursor: pointer;
   }
+}
 
-  body {
-    @apply m-0 p-0 bg-stone-50 text-stone-900 antialiased;
-    font-family: "DejaVu Sans", system-ui, sans-serif;
+@utility halo {
+  border-color: color-mix(in srgb, var(--color-accent) 80%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent),
+    0 0 22px 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+@keyframes caret-wait {
+  0%,
+  100% {
+    opacity: 1;
   }
-
-  @media (prefers-color-scheme: dark) {
-    body {
-      @apply bg-stone-950 text-stone-100;
-    }
+  50% {
+    opacity: 0.15;
   }
+}
 
-  [lang="ar"] {
-    direction: rtl;
-    font-family: var(--font-arabic);
-    unicode-bidi: isolate;
+@media (prefers-reduced-motion: no-preference) {
+  [data-typing-surface]:not(:has(input:focus)) [data-caret] {
+    animation: caret-wait 2.4s ease-in-out infinite;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  html {
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 }
 
@@ -39,14 +55,14 @@
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-6.5rem) scaleY(1);
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-5.5rem) scaleY(1);
     opacity: 0;
   }
 }
 
 @keyframes rise {
   0% {
-    transform: translateY(0.75rem) scale(0.96);
+    transform: translateY(0.75rem) scale(0.97);
     opacity: 0;
   }
   100% {
@@ -61,30 +77,117 @@
     text-shadow: 0 0 0 transparent;
   }
   50% {
-    text-shadow: 0 0 1.5rem rgb(251 191 36 / 0.55);
+    text-shadow: 0 0 1.5rem color-mix(in srgb, var(--color-accent) 55%, transparent);
   }
 }
 
-.burst-ray {
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    scale: 0.92;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+
+@keyframes starpop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.celebration-ray {
   opacity: 0;
-  animation: burst 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay, 0ms) 2 both;
+  background-color: var(--color-accent);
 }
 
-.surah-complete-card {
-  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+.celebration-ray:nth-child(3n) {
+  background-color: color-mix(in srgb, var(--color-accent), white 45%);
 }
 
-.surah-complete-name {
-  animation: glow 2.4s ease-in-out 0.3s 2;
+.celebration-halo {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent);
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .celebration-ray {
+    animation: burst 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay, 0ms) infinite both;
+  }
+
+  .celebration-card {
+    animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+
+  .celebration-name {
+    animation: glow 2.4s ease-in-out infinite;
+  }
+
+  .celebration-halo {
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  .celebration-star {
+    animation: starpop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) 0.5s both;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .burst-ray {
+  .celebration-ray {
     display: none;
   }
+}
 
-  .surah-complete-card,
-  .surah-complete-name {
-    animation: none;
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: "Noto Naskh Arabic", system-ui, "Segoe UI", "Geeza Pro", Tahoma, sans-serif;
+}
+
+a,
+button {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+::highlight(mafatih-done) {
+  color: var(--color-ink);
+}
+
+::highlight(mafatih-apparatus) {
+  color: var(--color-apparatus);
+}
+
+::highlight(mafatih-playing) {
+  background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+@media (forced-colors: active) {
+  ::highlight(mafatih-playing) {
+    background-color: Highlight;
+    color: HighlightText;
+  }
+}
+
+@media (forced-colors: active) {
+  ::highlight(mafatih-done),
+  ::highlight(mafatih-apparatus) {
+    color: GrayText;
   }
 }

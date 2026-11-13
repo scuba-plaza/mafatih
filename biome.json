@@ -5,12 +5,15 @@
     "includes": [
       "./src/**",
       "./scripts/**",
-      "./cypress/**",
+      "./e2e/**",
+      "!**/*.aria.yml",
+      "./index.html",
       "./biome.json",
-      "./cypress.config.mjs",
       "./package.json",
       "./tsconfig.json",
-      "./vite.config.ts"
+      "./vite.config.ts",
+      "./playwright.config.ts",
+      "./tsconfig.node.json"
     ]
   },
   "linter": {
@@ -19,17 +22,24 @@
       "preset": "recommended",
       "correctness": {
         "noUnusedImports": "error",
-        "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "off"
+        "noUnusedVariables": "error"
       },
-      "performance": { "noBarrelFile": "off" },
-      "suspicious": { "noArrayIndexKey": "off" },
-      "style": { "useBlockStatements": "error", "noParameterAssign": "off" }
+      "suspicious": {
+        "noExplicitAny": "error"
+      },
+      "style": {
+        "useBlockStatements": "error"
+      }
     }
   },
+  "overrides": [
+    {
+      "includes": ["./src/ui/Switch.tsx"],
+      "linter": { "rules": { "a11y": { "useAriaPropsForRole": "off" } } }
+    }
+  ],
   "formatter": {
     "enabled": true,
-    "formatWithErrors": false,
     "indentWidth": 2,
     "indentStyle": "space",
     "lineEnding": "lf",
@@ -37,7 +47,15 @@
   },
   "assist": {
     "enabled": true,
-    "actions": { "source": { "organizeImports": "on" } }
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
-  "css": { "parser": { "tailwindDirectives": true } }
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }
