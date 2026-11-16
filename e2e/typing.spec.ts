@@ -418,6 +418,47 @@ test("leaving the field blurs the text again, and a finished lesson is never blu
   await expect(lessonText(page)).toHaveCSS("filter", "none");
 });
 
+async function countBlurs(page: Page): Promise<void> {
+  await field(page).evaluate((element) => {
+    element.dataset.blurs = "0";
+    element.addEventListener("blur", () => {
+      element.dataset.blurs = String(Number(element.dataset.blurs ?? "0") + 1);
+    });
+  });
+}
+
+test("clicking, double-clicking or dragging across the text never takes the focus away or selects it", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "a mouse is needed to drag");
+  await start(page, { customText: "بتن كتب من بيت كل يوم" });
+  await countBlurs(page);
+  await lessonText(page).click({ position: { x: 40, y: 20 } });
+  await lessonText(page).dblclick({ position: { x: 40, y: 20 } });
+  await lessonText(page).click({ position: { x: 40, y: 20 }, clickCount: 3 });
+  const box = await lessonText(page).boundingBox();
+  await page.mouse.move((box?.x ?? 0) + 20, (box?.y ?? 0) + 30);
+  await page.mouse.down();
+  await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) - 20, (box?.y ?? 0) + 30, { steps: 6 });
+  await page.mouse.up();
+  await expect(field(page)).toHaveAttribute("data-blurs", "0");
+  await expect(field(page)).toBeFocused();
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+});
+
+test("tapping the text while it is focused never takes the focus away", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "a touch screen is needed to tap");
+  await start(page, { customText: "بتن كتب من بيت كل يوم" });
+  await countBlurs(page);
+  await lessonText(page).tap({ position: { x: 40, y: 20 } });
+  await lessonText(page).tap({ position: { x: 60, y: 30 } });
+  await expect(field(page)).toHaveAttribute("data-blurs", "0");
+  await expect(field(page)).toBeFocused();
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+});
+
 test("the text can be reached with Tab and left with Tab, and no ring is drawn around it", async ({ page }) => {
   await open(page, { customText: "بتن" });
   await page.getByRole("heading", { level: 1 }).focus();

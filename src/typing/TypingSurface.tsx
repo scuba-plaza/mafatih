@@ -269,8 +269,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
 
   useEffect(() => {
     const section = sectionRef.current;
+    const keepFocus = (event: MouseEvent) => event.preventDefault();
     section?.addEventListener("click", focus);
-    return () => section?.removeEventListener("click", focus);
+    section?.addEventListener("mousedown", keepFocus);
+    return () => {
+      section?.removeEventListener("click", focus);
+      section?.removeEventListener("mousedown", keepFocus);
+    };
   }, [focus]);
 
   useEffect(() => {
@@ -305,7 +310,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className={`relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere${paused ? " blur-[6px]" : ""}`}
+          className={`relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere select-none${paused ? " blur-[6px]" : ""}`}
           style={{
             fontFamily: `"${family.family}", serif`,
             fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
