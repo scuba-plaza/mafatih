@@ -7,6 +7,8 @@ test.use({
   launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH, ignoreDefaultArgs: ["--hide-scrollbars"] },
 });
 
+test.skip(({ browserName }) => browserName !== "chromium", "the launch options below only exist in Chromium");
+
 test("the passage window has no scrollbar", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "the viewport and launch options are set here");
   await seedSettings(page, {});
