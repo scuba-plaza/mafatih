@@ -92,7 +92,8 @@ test("a wrong key appears at the cursor, in order, with the expected text still 
   const mistakes = surface(page).locator("[data-mistakes]");
   await expect(mistakes).toHaveText("سش");
   await expect(mistakes).toHaveAttribute("aria-hidden", "true");
-  await expect(mistakes).toHaveCSS("text-decoration-style", "wavy");
+  await expect(mistakes).toHaveCSS("text-decoration-line", "none");
+  await expect(mistakes).toHaveCSS("color", DANGER);
 });
 
 test("the right key is also a mistake until the wrong ones are deleted with Backspace", async ({ page }) => {
@@ -431,6 +432,58 @@ test("the text can be reached with Tab and left with Tab, and no ring is drawn a
   await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
 });
 
+test("the caret is only shown while the text is focused", async ({ page }) => {
+  await open(page, { customText: "بتن" });
+  const caret = surface(page).locator("[data-caret]");
+  await expect(caret).toBeHidden();
+  await startTyping(page);
+  await expect(caret).toBeVisible();
+  await page.mouse.click(4, 4);
+  await expect(caret).toBeHidden();
+});
+
+test("the caret is a thin line", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await expect(surface(page).locator("[data-caret]")).toHaveCSS("width", "1.5px");
+});
+
+test("the caret is solid while typing and blinks with a fade once the typist pauses", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  const caret = surface(page).locator("[data-caret]");
+  await typeKeys(page, ["ب"]);
+  await expect(caret).not.toHaveAttribute("data-idle", "");
+  await expect(caret).toHaveCSS("animation-name", "none");
+  await expect(caret).toHaveAttribute("data-idle", "");
+  await expect(caret).toHaveCSS("animation-name", "caret-blink");
+  await expect(caret).toHaveCSS("animation-duration", "1.1s");
+  const opacityAt = (time: number) =>
+    caret.evaluate((element, at) => {
+      const blink = element
+        .getAnimations()
+        .find((candidate) => candidate instanceof CSSAnimation && candidate.animationName === "caret-blink");
+      blink?.pause();
+      if (blink !== undefined) {
+        blink.currentTime = at;
+      }
+      return Number(getComputedStyle(element).opacity);
+    }, time);
+  expect(await opacityAt(100)).toBe(1);
+  const fading = await opacityAt(495);
+  expect(fading).toBeGreaterThan(0.05);
+  expect(fading).toBeLessThan(0.95);
+  expect(await opacityAt(700)).toBe(0);
+  await typeKeys(page, ["ت"]);
+  await expect(caret).not.toHaveAttribute("data-idle", "");
+});
+
+test("with reduced motion the caret never blinks", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await start(page, { customText: "بتن" });
+  const caret = surface(page).locator("[data-caret]");
+  await expect(caret).toHaveAttribute("data-idle", "");
+  await expect(caret).toHaveCSS("animation-name", "none");
+});
+
 test("while it waits the caret blinks, and while typing or with reduced motion it stands still", async ({ page }) => {
   await open(page, { customText: "بتن" });
   const caret = surface(page).locator("[data-caret]");
@@ -464,7 +517,7 @@ test("typing on a Latin layout is explained instead of being counted as mistakes
   await start(page, { customText: "بتن" });
   await typeKeys(page, ["a", "b"]);
   await expect(surface(page).getByRole("alert")).toHaveText(
-    "Your keyboard is not typing Arabic. Switch it to the Arabic layout.",
+    /^Your keyboard is not typing Arabic\. Switch to the Arabic \(101\) layout\. On a Mac, choose \u2068Arabic – PC\u2069\.$/,
   );
   expect(await shownText(page)).toBe("بتن");
   await expectNoAxeViolations(page);
@@ -550,15 +603,15 @@ test("leaving the text pauses typing, and clicking it again continues where it s
   await expect(mistakeCount(page)).toHaveText("0");
 });
 
-test("untyped text is dim and typed text is bright", async ({ page }) => {
+test("text still to be typed is a little brighter than text already typed, and both stay subtle", async ({ page }) => {
   await start(page, { customText: "بتن" });
   const untyped = await lessonText(page).evaluate((element) => getComputedStyle(element).color);
-  expect(untyped).toBe("rgb(91, 93, 97)");
+  expect(untyped).toBe("rgb(143, 146, 153)");
   await typeKeys(page, ["ب"]);
   const typed = await lessonText(page).evaluate(
     (element) => getComputedStyle(element, "::highlight(mafatih-done)").color,
   );
-  expect(typed).toBe("rgb(235, 232, 226)");
+  expect(typed).toBe("rgb(91, 93, 97)");
 });
 
 test("a quiet line under the text shows speed, accuracy, mistakes and time on a wide screen", async ({

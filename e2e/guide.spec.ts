@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { seedSettings } from "./helpers/profile.ts";
+import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { startTyping, typeKeys } from "./helpers/typing.ts";
 
 const FATHA = String.fromCodePoint(0x64e);
@@ -74,6 +74,83 @@ test.describe("with a wide screen and a mouse", () => {
     expect(await background(page, "KeyA")).toBe(await background(page, "KeyS"));
     expect(await background(page, "KeyS")).toBe(await background(page, "KeyL"));
     await expectNoAxeViolations(page);
+  });
+
+  test("there is room between the text and the keyboard, and between the keyboard and the finger hint", async ({
+    page,
+  }) => {
+    await start(page, { customText: "بتن" });
+    const text = await page.locator("[data-lesson-text]").boundingBox();
+    const keyboard = await guide(page).boundingBox();
+    const space = await guide(page).locator('[data-key="Space"]').boundingBox();
+    const hint = await guide(page).getByText("Left index finger").boundingBox();
+    expect((keyboard?.y ?? 0) - ((text?.y ?? 0) + (text?.height ?? 0))).toBeGreaterThanOrEqual(36);
+    expect((hint?.y ?? 0) - ((space?.y ?? 0) + (space?.height ?? 0))).toBeGreaterThanOrEqual(12);
+  });
+
+  test("the space bar names the layout the guide follows, in English and in Arabic", async ({ page }) => {
+    await start(page, { customText: "بتن" });
+    await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic (101)");
+  });
+
+  test("the space bar names the layout in the Arabic interface too", async ({ page }) => {
+    await seedSettings(page, { customText: "بتن", language: "ar" });
+    await page.goto("/#/custom");
+    await expect(guide(page).locator('[data-key="Space"]')).toHaveText("العربية (101)");
+  });
+
+  test("Settings says which layout to choose, and what a Mac calls it", async ({ page }) => {
+    await start(page, { customText: "بتن" });
+    await page.getByRole("button", { name: "Settings" }).click();
+    const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
+    await expect(group).toContainText("Mafatih follows the Arabic (101) layout.");
+    await expect(group).toContainText(/On a Mac, choose the layout called \u2068Arabic – PC\u2069\./);
+  });
+
+  test("with the letters off the keys are blank, except the lit key, the symbols and the layout name", async ({
+    page,
+  }) => {
+    await start(page, { customText: "بتن", keyLabels: false });
+    await expect(guide(page).locator('[data-key="KeyQ"]')).toHaveText("");
+    await expect(guide(page).locator('[data-key="Digit1"]')).toHaveText("");
+    await expect(guide(page).locator('[data-key="KeyF"]')).toHaveText("ب");
+    await expect(guide(page).locator('[data-key="Backspace"]')).toHaveText("⌫");
+    await expect(guide(page).locator('[data-key="ShiftLeft"]')).toHaveText("⇧");
+    await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic (101)");
+    await typeKeys(page, ["ب"]);
+    await expect(guide(page).locator('[data-key="KeyF"]')).toHaveText("");
+    await expect(guide(page).locator('[data-key="KeyJ"]')).toHaveText("ت");
+  });
+
+  test("with the delay on nothing is lit at first, and the key and the finger appear after three seconds", async ({
+    page,
+  }) => {
+    await start(page, { customText: "بتن", delayedHint: true });
+    expect(await dueKeys(page)).toEqual([]);
+    await expect(guide(page).getByText("Left index finger")).toHaveCount(0);
+    await expect.poll(() => dueKeys(page), { timeout: 6000 }).toEqual(["KeyF"]);
+    await expect(guide(page).getByText("Left index finger")).toBeVisible();
+    await typeKeys(page, ["ب"]);
+    await expect.poll(() => dueKeys(page)).toEqual([]);
+    await expect(guide(page).getByText("Left index finger")).toHaveCount(0);
+  });
+
+  test("a wrong key lights the next key at once, even with the delay on", async ({ page }) => {
+    await start(page, { customText: "بتن", delayedHint: true });
+    await typeKeys(page, ["ب", "س"]);
+    await expect.poll(() => dueKeys(page)).toEqual(["Backspace"]);
+    await typeKeys(page, ["Backspace"]);
+    await expect.poll(() => dueKeys(page)).toEqual(["KeyJ"]);
+  });
+
+  test("the key labels and the delayed hint are switched in Settings and remembered", async ({ page }) => {
+    await start(page, { customText: "بتن" });
+    await page.getByRole("button", { name: "Settings" }).click();
+    const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
+    await group.getByRole("switch", { name: "Show letters on the keys" }).uncheck();
+    await expect(guide(page).locator('[data-key="KeyQ"]')).toHaveText("");
+    await group.getByRole("switch", { name: "Show the next key after a pause" }).check();
+    expect(await savedSettings(page)).toMatchObject({ keyLabels: false, delayedHint: true });
   });
 
   test("without the finger guide the caption goes and the keys do not change", async ({ page }) => {
