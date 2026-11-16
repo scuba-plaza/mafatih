@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFitScreen } from "~/app/fitScreen.tsx";
+import { useChrome } from "~/app/useChrome.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { lessonOf, recordLesson } from "~/stats/history.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
@@ -16,6 +17,7 @@ import { loadWords, type PracticeWord } from "./words.ts";
 function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
   const { profile, update } = useProfile();
   const { settings, stats } = profile;
+  const textOnly = useChrome().chrome === "text-only";
   const { unlocked } = profile.ladder;
   const [seed, setSeed] = useState(Date.now);
   const [last, setLast] = useState<LastLesson | null>(null);
@@ -59,6 +61,7 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
         stats={stats.practice}
         vocalization={settings.vocalization}
         last={noPractice ? null : last}
+        hidden={textOnly}
       />
       <TypingSurface trainer={trainer} settings={settings} />
     </>
@@ -67,6 +70,7 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
 
 export function PracticePage() {
   useFitScreen();
+  const { chrome } = useChrome();
   const { t } = useI18n();
   const [words, setWords] = useState<readonly PracticeWord[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -77,7 +81,7 @@ export function PracticePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div>
+      <div className={chrome === "full" ? undefined : "sr-only"}>
         <PageHeading>{t("nav.practice")}</PageHeading>
         <p className="text-sm text-muted">{t("practice.subtitle")}</p>
         <p role="status" className="text-sm text-muted empty:hidden">

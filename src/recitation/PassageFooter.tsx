@@ -14,7 +14,7 @@ export function PassageFooter({ meta, typed, audio, hidden = false }: PassageFoo
   const { t, plural } = useI18n();
 
   return (
-    <fieldset hidden={hidden} className="mt-auto flex min-w-0 flex-col gap-3 pt-6">
+    <fieldset hidden={hidden} data-footer="" className="mt-auto flex min-w-0 flex-col gap-3 pt-6">
       <legend className="sr-only">{t("bar.label")}</legend>
       <Rail value={typed / meta.ayat} />
       <div className="grid grid-cols-1 gap-y-1 md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-x-4">

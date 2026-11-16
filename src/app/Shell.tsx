@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { TOUCH_TARGET } from "~/ui/styles.ts";
-import { useIsFitScreen } from "./fitScreen.tsx";
+import { useFitMinHeight, useIsFitScreen } from "./fitScreen.tsx";
 import { PAGE_TITLES, type Page } from "./pages.ts";
 import { formatRoute, type Route } from "./routes.ts";
 import { useSoftKeyboard } from "./softKeyboard.ts";
@@ -61,6 +61,7 @@ export function Shell({ page, view, banner, actions, children }: ShellProps) {
   const navLabel = t("nav.label");
   const keyboardUp = useSoftKeyboard();
   const fit = useIsFitScreen();
+  const fitMinHeight = useFitMinHeight();
   const { chrome, reserve } = useChrome();
 
   useEffect(() => {
@@ -77,6 +78,8 @@ export function Shell({ page, view, banner, actions, children }: ShellProps) {
 
   return (
     <div
+      data-shell=""
+      style={fit && fitMinHeight !== null ? { minHeight: fitMinHeight } : undefined}
       className={
         fit
           ? "grid h-dvh grid-cols-1 grid-rows-[auto_auto_minmax(0,1fr)_auto]"

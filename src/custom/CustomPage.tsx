@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFitScreen } from "~/app/fitScreen.tsx";
+import { useChrome } from "~/app/useChrome.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { unlockedMarks } from "~/practice/ladder.ts";
 import { lessonOf, recordLesson } from "~/stats/history.ts";
@@ -95,6 +96,7 @@ interface LessonProps {
 
 function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
   useFitScreen();
+  const textOnly = useChrome().chrome === "text-only";
   const { t } = useI18n();
   const { profile, update } = useProfile();
   const { settings } = profile;
@@ -115,8 +117,14 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {shortened && <p className="text-sm text-muted">{t("custom.shortened", { limit: CUSTOM_TEXT_LIMIT })}</p>}
-      <TypingSurface trainer={trainer} settings={settings} footer={<LiveStats session={session} />} />
+      {shortened && !textOnly && (
+        <p className="text-sm text-muted">{t("custom.shortened", { limit: CUSTOM_TEXT_LIMIT })}</p>
+      )}
+      <TypingSurface
+        trainer={trainer}
+        settings={settings}
+        footer={textOnly ? undefined : <LiveStats session={session} />}
+      />
       {isComplete(session) ? (
         <LessonSummary metrics={metricsOf(session)}>
           <button type="button" onClick={trainer.restart} className={PRIMARY_BUTTON}>
@@ -127,7 +135,7 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
           </button>
         </LessonSummary>
       ) : (
-        <div>
+        <div hidden={textOnly}>
           <button type="button" onClick={onEdit} className={BUTTON}>
             {t("custom.edit")}
           </button>
@@ -148,10 +156,13 @@ export function CustomPage() {
   const required = useMemo(() => requiredMarks(vocalization, unlockedMarks({ unlocked })), [vocalization, unlocked]);
   const prompt = useMemo(() => buildPrompt(text, required), [text, required]);
   const editing = mode === "editing" || !hasSomethingToType(prompt);
+  const { chrome } = useChrome();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <PageHeading>{t("nav.custom")}</PageHeading>
+      <div className={chrome === "full" ? undefined : "sr-only"}>
+        <PageHeading>{t("nav.custom")}</PageHeading>
+      </div>
       {editing ? (
         <TextForm
           initial={customText}

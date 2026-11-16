@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useReportFitMinHeight } from "~/app/fitScreen.tsx";
 import { useChrome } from "~/app/useChrome.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GUIDE_QUERY, GuideKeyboard, guideHeight } from "~/keyboard/GuideKeyboard.tsx";
@@ -171,11 +172,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const [scrollable, setScrollable] = useState(false);
   const wantsGuide = useMediaQuery(GUIDE_QUERY) && settings.showKeyboard;
   const textOnly = useChrome().chrome === "text-only";
+  const reportMinHeight = useReportFitMinHeight();
   const { showGuide, windowHeight } = useStageFit(
     { stage: stageRef, section: sectionRef, text: textRef, guide: guideRef },
     wantsGuide,
     guideHeight(settings.fingerGuide),
     textOnly ? 1 : MIN_WINDOW_LINES,
+    reportMinHeight,
   );
   const scrollRegion = scrollable
     ? ({ tabIndex: 0, role: "group", "aria-label": t("typing.scrollable") } as const)
@@ -261,7 +264,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         container.scrollIntoView({ block: "nearest" });
         container.scrollTo({ top, behavior: calm ? "auto" : "smooth" });
       }
-      caretLine.current = y;
+      caretLine.current = focused ? y : null;
     };
     placeRef.current = place;
     place();

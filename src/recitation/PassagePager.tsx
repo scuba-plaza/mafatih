@@ -33,7 +33,7 @@ function Chevron({ toward }: { readonly toward: "start" | "end" }) {
 export function PassagePager({ previous, next, onGo, children, hidden = false }: PassagePagerProps) {
   const { t } = useI18n();
   return (
-    <div hidden={hidden} className="flex items-center justify-center gap-1">
+    <div hidden={hidden} data-pager="" className="flex items-center justify-center gap-1">
       <button type="button" aria-keyshortcuts="PageUp" onClick={() => onGo(previous)} className={ICON_BUTTON}>
         <Chevron toward="start" />
         <span className="sr-only">{t("pager.previous")}</span>

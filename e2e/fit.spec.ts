@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { expectOneScreen, openSoftKeyboard } from "./helpers/fit.ts";
+import { expectLayoutIntact, expectOneScreen, openSoftKeyboard } from "./helpers/fit.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -138,22 +138,60 @@ test.describe("an iPad with the keyboard up", () => {
 test.describe("a landscape phone with the keyboard up", () => {
   test.use({ viewport: { width: 812, height: 375 }, hasTouch: true, isMobile: true });
 
-  test("shows only the text", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
-    await emulatePlatform(page, "iphone");
-    await open(page, "#/recitation/1");
-    await openSoftKeyboard(page, 0.43);
-    await expect(page.getByRole("button", { name: "Previous passage" })).toBeHidden();
-    await expect(page.getByRole("group", { name: "Passage" })).toBeHidden();
-    await expect(page.locator("[data-live-stats]")).toHaveCount(0);
-    const room = await lessonWindow(page).evaluate((element) => {
-      const style = getComputedStyle(element);
-      return element.clientHeight - Number.parseFloat(style.paddingTop) - Number.parseFloat(style.lineHeight);
+  for (const entry of ENTRIES) {
+    test(`shows only the text: ${entry.name}`, async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+      await emulatePlatform(page, "iphone");
+      await open(page, entry.hash, entry.settings);
+      const [first] = [...(await shownText(page))].filter((character) => /[ء-ي]/.test(character));
+      await typeKeys(page, [first ?? "ب"]);
+      await openSoftKeyboard(page, 0.43);
+      await expect(page.locator("[data-live-stats]")).toHaveCount(0);
+      if (entry.player) {
+        await expect(page.getByRole("button", { name: "Previous passage" })).toBeHidden();
+        await expect(page.getByRole("group", { name: "Passage" })).toBeHidden();
+      }
+      const room = await lessonWindow(page).evaluate((element) => {
+        const style = getComputedStyle(element);
+        return element.clientHeight - Number.parseFloat(style.paddingTop) - Number.parseFloat(style.lineHeight);
+      });
+      expect(room).toBeGreaterThanOrEqual(-1);
+      await expectOneScreen(page, {
+        header: false,
+        player: false,
+        pager: false,
+        guide: false,
+        tabBar: false,
+        reserve: APPLE_BAR,
+      });
     });
-    expect(room).toBeGreaterThanOrEqual(-1);
-    await expectOneScreen(page, { header: false, player: false, guide: false, tabBar: false, reserve: APPLE_BAR });
-  });
+  }
 });
+
+const REALISTIC: readonly Keyboard[] = [
+  { name: "iPhone SE in Safari", width: 375, height: 548, share: 0.38, apple: true },
+  { name: "iPhone 12 mini in Safari", width: 375, height: 629, share: 0.38, apple: true },
+  { name: "Android in Chrome", width: 360, height: 672, share: 0.3, apple: false },
+];
+
+for (const phone of REALISTIC) {
+  test.describe(`${phone.name} with the keyboard up`, () => {
+    test.use({ viewport: { width: phone.width, height: phone.height }, hasTouch: true, isMobile: true });
+
+    for (const entry of ENTRIES) {
+      test(`nothing overlaps: ${entry.name} on ${phone.name}`, async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+        if (phone.apple) {
+          await emulatePlatform(page, "iphone");
+        }
+        await open(page, entry.hash, entry.settings);
+        await openSoftKeyboard(page, phone.share);
+        await expect(page.locator("header > div")).toBeHidden();
+        await expectLayoutIntact(page);
+      });
+    }
+  });
+}
 
 test.describe("phones when the keyboard goes away", () => {
   test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
@@ -241,25 +279,69 @@ for (const size of [
   });
 }
 
-for (const fontSize of [28, 72]) {
+for (const [fontSize, guideShown] of [
+  [28, true],
+  [72, false],
+] as const) {
   test.describe(`font size ${fontSize}`, () => {
     test.use({ viewport: { width: 1366, height: 768 } });
 
-    test("the keyboard guide never overlaps the text", async ({ page }, testInfo) => {
+    test(`the keyboard guide is ${guideShown ? "shown" : "hidden"} and never overlaps the text`, async ({
+      page,
+    }, testInfo) => {
       test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
       await open(page, "#/recitation/1", { fontSize });
-      const gap = await page.evaluate(() => {
+      const facts = await page.evaluate(() => {
         const guide = document.querySelector("[data-guide-keyboard]");
         const lesson = document.querySelector("[data-lesson-text]");
+        if (lesson === null) {
+          return null;
+        }
+        const style = getComputedStyle(lesson);
+        const lines = (lesson.clientHeight - Number.parseFloat(style.paddingTop)) / Number.parseFloat(style.lineHeight);
         const shown = guide !== null && getComputedStyle(guide).display !== "none";
-        return shown && lesson !== null
-          ? guide.getBoundingClientRect().top - lesson.getBoundingClientRect().bottom
-          : null;
+        return {
+          shown,
+          lines,
+          gap:
+            shown && guide !== null ? guide.getBoundingClientRect().top - lesson.getBoundingClientRect().bottom : null,
+        };
       });
-      expect(gap === null || gap >= 32 - 1).toBe(true);
+      expect(facts?.shown).toBe(guideShown);
+      expect(facts?.lines).toBeGreaterThanOrEqual(1.99);
+      if (facts?.gap !== null && facts?.gap !== undefined) {
+        expect(facts.gap).toBeGreaterThanOrEqual(31);
+      }
     });
   });
 }
+
+test.describe("after the text re-wraps while the field is not focused", () => {
+  test.use({ viewport: { width: 1366, height: 768 } });
+
+  test("the caret is back inside the window once the text is clicked", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+    await open(page, LONG_PASSAGE);
+    const letters = [...(await shownText(page))].filter((character) => /[ء-ي ]/.test(character));
+    await typeKeys(page, letters.slice(0, 160));
+    await page.getByRole("button", { name: "Settings" }).click();
+    const dialog = page.getByRole("dialog", { name: "Settings" });
+    await dialog.getByRole("slider", { name: "Lesson text size" }).focus();
+    await page.keyboard.press("End");
+    await dialog.getByRole("button", { name: "Done" }).click();
+    await startTyping(page);
+    const lesson = lessonWindow(page);
+    await expect
+      .poll(async () => {
+        const box = await lesson.boundingBox();
+        const caret = await surface(page).locator("[data-caret]").boundingBox();
+        return (
+          box !== null && caret !== null && caret.y >= box.y - 1 && caret.y + caret.height <= box.y + box.height + 1
+        );
+      })
+      .toBe(true);
+  });
+});
 
 test.describe("the stage", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
@@ -297,19 +379,31 @@ test.describe("pages that are not typing views", () => {
   }
 });
 
-test.describe("a window too small for everything", () => {
-  test.use({ viewport: { width: 640, height: 360 } });
+const TOO_SMALL = [
+  { width: 640, height: 360 },
+  { width: 911, height: 433 },
+];
 
-  test("falls back to page scroll with every control reachable", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
-    await open(page, "#/recitation/1");
-    const play = page.getByRole("button", { name: "Play", exact: true });
-    await play.scrollIntoViewIfNeeded();
-    const uncovered = await play.evaluate((button) => {
-      const rect = button.getBoundingClientRect();
-      const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-      return top !== null && button.contains(top);
-    });
-    expect(uncovered).toBe(true);
+for (const size of TOO_SMALL) {
+  test.describe(`a ${size.width}x${size.height} window`, () => {
+    test.use({ viewport: size });
+
+    for (const entry of ENTRIES) {
+      test(`scrolls instead of overlapping: ${entry.name}`, async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+        await open(page, entry.hash, entry.settings);
+        await expectLayoutIntact(page);
+        if (entry.player) {
+          const play = page.getByRole("button", { name: "Play", exact: true });
+          await play.scrollIntoViewIfNeeded();
+          const uncovered = await play.evaluate((button) => {
+            const rect = button.getBoundingClientRect();
+            const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return top !== null && button.contains(top);
+          });
+          expect(uncovered).toBe(true);
+        }
+      });
+    }
   });
-});
+}
