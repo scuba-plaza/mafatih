@@ -12,6 +12,8 @@ const DEFAULTS = {
   requireBackspace: true,
   showKeyboard: true,
   fingerGuide: true,
+  keyLabels: true,
+  delayedHint: false,
   customText: "",
   ayatPerLesson: 4,
   surahOrder: "mushaf",
@@ -37,6 +39,8 @@ test("valid saved settings are kept", () => {
     requireBackspace: false,
     showKeyboard: false,
     fingerGuide: false,
+    keyLabels: false,
+    delayedHint: true,
     customText: "بسم الله",
     ayatPerLesson: 3,
     surahOrder: "juz-amma",
@@ -167,4 +171,13 @@ test("the recitation repeats unless a saved false says otherwise", () => {
     expect(loop({ loop: junk }), String(junk)).toBe(true);
   }
   expect(loop({})).toBe(true);
+});
+
+test("the key labels stay on unless they were switched off, and the delayed hint stays off unless it was switched on", () => {
+  expect(sanitizeSettings({ keyLabels: false }, ENGLISH).keyLabels).toBe(false);
+  expect(sanitizeSettings({ keyLabels: "no" }, ENGLISH).keyLabels).toBe(true);
+  expect(sanitizeSettings({ keyLabels: 0 }, ENGLISH).keyLabels).toBe(true);
+  expect(sanitizeSettings({ delayedHint: true }, ENGLISH).delayedHint).toBe(true);
+  expect(sanitizeSettings({ delayedHint: "yes" }, ENGLISH).delayedHint).toBe(false);
+  expect(sanitizeSettings({ delayedHint: 1 }, ENGLISH).delayedHint).toBe(false);
 });
