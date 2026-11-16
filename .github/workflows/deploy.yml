@@ -45,8 +45,18 @@ jobs:
           path: dist
 
   engines:
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    name: engines (${{ matrix.project }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: firefox
+            browser: firefox
+          - project: webkit
+            browser: webkit
+          - project: webkit-mobile
+            browser: webkit
     permissions:
       contents: read
     steps:
@@ -58,8 +68,8 @@ jobs:
           runtime: node@24
           cache: true
 
-      - name: Install all browsers
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Install the browser
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Give the browsers an audio device
         run: |
@@ -71,13 +81,13 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run the suite in every engine
-        run: pnpm exec playwright test
+      - name: Run the whole suite in ${{ matrix.project }}
+        run: pnpm exec playwright test --project=${{ matrix.project }}
         env:
           PW_FULL: "1"
 
   deploy:
-    needs: build
+    needs: [build, engines]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
