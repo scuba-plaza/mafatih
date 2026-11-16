@@ -77,6 +77,32 @@ test.describe("with a wide screen and a mouse", () => {
     await expectNoAxeViolations(page);
   });
 
+  test("while the text waits to be activated no key is lit and no finger is named", async ({ page }) => {
+    await seedSettings(page, { customText: "بتن" });
+    await page.goto("/#/custom");
+    await expect(page.getByRole("button", { name: /to activate/ })).toBeVisible();
+    await expect(guide(page)).toBeVisible();
+    expect(await dueKeys(page)).toEqual([]);
+    await expect(guide(page).getByText("Left index finger")).toHaveCount(0);
+    await startTyping(page);
+    expect(await dueKeys(page)).toEqual(["KeyF"]);
+    await expect(guide(page).getByText("Left index finger")).toBeVisible();
+    await page.mouse.click(4, 4);
+    await expect(page.getByRole("button", { name: /to activate/ })).toBeVisible();
+    await expect.poll(() => dueKeys(page)).toEqual([]);
+    await expect(guide(page).getByText("Left index finger")).toHaveCount(0);
+  });
+
+  test("with the delay on, activating the text starts the wait again", async ({ page }) => {
+    await seedSettings(page, { customText: "بتن", delayedHint: true });
+    await page.goto("/#/custom");
+    await expect(page.getByRole("button", { name: /to activate/ })).toBeVisible();
+    await page.waitForTimeout(3500);
+    await startTyping(page);
+    expect(await dueKeys(page)).toEqual([]);
+    await expect.poll(() => dueKeys(page), { timeout: 6000 }).toEqual(["KeyF"]);
+  });
+
   test("there is room between the text and the keyboard, and between the keyboard and the finger hint", async ({
     page,
   }) => {

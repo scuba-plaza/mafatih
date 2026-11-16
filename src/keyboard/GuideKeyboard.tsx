@@ -92,17 +92,18 @@ export interface GuideKeyboardProps {
   readonly fingerGuide: boolean;
   readonly keyLabels: boolean;
   readonly delayedHint: boolean;
+  readonly paused: boolean;
 }
 
-export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delayedHint }: GuideKeyboardProps) {
+export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delayedHint, paused }: GuideKeyboardProps) {
   const { t } = useI18n();
   const deleting = options.requireBackspace && session.mistakes.length > 0;
   const revealed = useRevealAfter(
-    `${session.cursor}:${session.within}`,
+    `${session.cursor}:${session.within}:${paused}`,
     delayedHint ? HINT_DELAY_MS : 0,
     session.missed || session.mistakes.length > 0,
   );
-  const guide = revealed ? guideFor(expectedText(session), deleting) : NOTHING_DUE;
+  const guide = revealed && !paused ? guideFor(expectedText(session), deleting) : NOTHING_DUE;
   const layoutName = useLayoutName();
   const name = fingerName(guide.finger);
   const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);

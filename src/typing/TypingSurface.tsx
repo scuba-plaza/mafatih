@@ -379,6 +379,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           fingerGuide={settings.fingerGuide}
           keyLabels={settings.keyLabels}
           delayedHint={settings.delayedHint}
+          paused={paused}
         />
       )}
     </>
