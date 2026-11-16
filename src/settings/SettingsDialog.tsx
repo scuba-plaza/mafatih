@@ -125,6 +125,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           checked={settings.fingerGuide}
           onChange={(fingerGuide) => change({ fingerGuide })}
         />
+        <Switch
+          label={t("settings.keyLabels")}
+          checked={settings.keyLabels}
+          onChange={(keyLabels) => change({ keyLabels })}
+        />
+        <Switch
+          label={t("settings.delayedHint")}
+          hint={t("settings.delayedHintHint")}
+          checked={settings.delayedHint}
+          onChange={(delayedHint) => change({ delayedHint })}
+        />
         <p className="text-sm text-muted">{t("settings.layoutHint", { mac: MAC_LAYOUT_NAME })}</p>
       </fieldset>
       <RecitationSettings settings={settings} change={change} />

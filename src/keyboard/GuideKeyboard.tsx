@@ -3,8 +3,9 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { carriedMark } from "~/text/arabic.ts";
 import { expectedText, type Session, type SessionOptions } from "~/typing/session.ts";
 import type { Finger } from "./fingers.ts";
-import { guideFor } from "./guide.ts";
+import { type Guide, guideFor } from "./guide.ts";
 import { type KeyCap, WIN101_CAPS } from "./layout101.ts";
+import { useRevealAfter } from "./useRevealAfter.ts";
 
 interface Slot {
   readonly code: string;
@@ -28,6 +29,8 @@ const ENTER_SYMBOL = "↵";
 const SPACE_UNITS = 6;
 const ROW_UNITS = 15;
 const WIDE_KEYS: Readonly<Record<string, number>> = { Backslash: 1.5 };
+const HINT_DELAY_MS = 3000;
+const NOTHING_DUE: Guide = { keys: new Set(), shifted: false, finger: undefined };
 
 const FINGER_MESSAGES: Readonly<Record<string, MessageKey>> = {
   "left-pinky": "finger.leftPinky",
@@ -64,12 +67,15 @@ const ROWS: readonly Row[] = [
   { lead: (ROW_UNITS - SPACE_UNITS) / 2, slots: [{ code: "Space", units: SPACE_UNITS, layout: true }] },
 ];
 
-function legendOf(slot: Slot, shifted: boolean, layoutName: string): string {
+function legendOf(slot: Slot, shifted: boolean, layoutName: string, labelled: boolean): string {
   if (slot.layout === true) {
     return layoutName;
   }
   if (slot.symbol !== undefined) {
     return slot.symbol;
+  }
+  if (!labelled) {
+    return "";
   }
   const legend = shifted ? (slot.cap?.shift ?? "") : (slot.cap?.base ?? "");
   return carriedMark(legend);
@@ -83,12 +89,19 @@ export interface GuideKeyboardProps {
   readonly session: Session;
   readonly options: SessionOptions;
   readonly fingerGuide: boolean;
+  readonly keyLabels: boolean;
+  readonly delayedHint: boolean;
 }
 
-export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardProps) {
+export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delayedHint }: GuideKeyboardProps) {
   const { t } = useI18n();
   const deleting = options.requireBackspace && session.mistakes.length > 0;
-  const guide = guideFor(expectedText(session), deleting);
+  const revealed = useRevealAfter(
+    `${session.cursor}:${session.within}`,
+    delayedHint ? HINT_DELAY_MS : 0,
+    session.missed || session.mistakes.length > 0,
+  );
+  const guide = revealed ? guideFor(expectedText(session), deleting) : NOTHING_DUE;
   const layoutName = t("guide.layout");
   const name = fingerName(guide.finger);
   const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
@@ -111,7 +124,7 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
               className={`flex shrink-0 items-center justify-center rounded-md border border-line leading-none text-muted data-due:halo data-due:font-bold ${slot.layout === true ? "text-sm" : "text-lg"}`}
               style={{ width: slot.units * KEY_PX - KEY_GAP_PX, height: KEY_FACE_PX, margin: KEY_GAP_PX / 2 }}
             >
-              {legendOf(slot, guide.shifted, layoutName)}
+              {legendOf(slot, guide.shifted, layoutName, keyLabels || guide.keys.has(slot.code))}
             </div>
           ))}
         </div>

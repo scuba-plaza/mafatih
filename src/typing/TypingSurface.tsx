@@ -372,7 +372,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
         </p>
       </section>
       {settings.showKeyboard && (
-        <GuideKeyboard session={session} options={options} fingerGuide={settings.fingerGuide} />
+        <GuideKeyboard
+          session={session}
+          options={options}
+          fingerGuide={settings.fingerGuide}
+          keyLabels={settings.keyLabels}
+          delayedHint={settings.delayedHint}
+        />
       )}
     </>
   );
