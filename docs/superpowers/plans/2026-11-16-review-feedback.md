@@ -37,7 +37,7 @@
 - Clicking the audio buttons or pager must not flash the blur (they keep focus today). Pinned in Task 1.
 - A caret that is hidden while unfocused must not break the shake animation, the miss colour or scroll centring. Pinned in Task 3.
 - Saved profiles and backups made before the new settings exist must restore with the defaults. Pinned in Task 6.
-- Unlock all letters must leave marks locked and still produce a full, varied lesson at rung 36 (newest key is the rare `آ`). Pinned in Task 7.
+- Unlock all letters must leave marks locked, and a lesson at rung 36 (newest key is the rare `آ`) must stay full length (already covered by `lesson.test.ts`). Pinned in Task 7.
 
 ## File Structure
 
@@ -173,10 +173,10 @@
 **Interfaces:**
 - Produces: `unlockAllLetters(progress: LadderProgress): LadderProgress` and `LETTERS_END` (index of the first mark rung, 36). Messages `settings.unlockLetters`, `settings.unlockQuestion`, `settings.unlockWarning`, `settings.unlockConfirm`, `settings.unlockKeep`, `settings.unlockDone`.
 
-- [ ] **Step 1: Write the failing unit tests.** `ladder.test.ts`: from `{ unlocked: 10 }` the result is `{ unlocked: 36 }`; from 40 it stays 40; applying it twice equals applying it once; `sanitizeProgress` returns the result unchanged; `unlockedMarks({ unlocked: 36 })` is empty. `lesson.test.ts`: with the real word list at `unlocked: 36` and each vocalization, `buildPracticeLesson` returns a prompt with at least 30 typed units and at least 4 distinct words.
+- [ ] **Step 1: Write the failing unit tests.** `ladder.test.ts`: from `{ unlocked: 10 }` the result is `{ unlocked: 36 }`; from 40 it stays 40; applying it twice equals applying it once; `sanitizeProgress` returns the result unchanged; `unlockedMarks({ unlocked: 36 })` is empty. `lesson.test.ts` already proves that a lesson at `unlocked: 36` is full length and uses only unlocked letters, so no new lesson test is needed.
 - [ ] **Step 2:** Run `pnpm exec vitest run src/practice`. Expected: FAIL.
 - [ ] **Step 3: Implement** `unlockAllLetters` and `LETTERS_END` in `ladder.ts`.
-- [ ] **Step 4:** Run the unit tests. Expected: PASS. If the lesson test shows short lessons dominated by `آ` words, fix the generator's fallback before continuing.
+- [ ] **Step 4:** Run the unit tests. Expected: PASS.
 - [ ] **Step 5: Write the failing browser test** in `settings.spec.ts`: "Unlock all letters asks first, then unlocks every letter and keeps the marks locked": press the button, see the question, choose the keep option and nothing changes (Practice HUD still "10 of 44"); repeat and confirm, the HUD shows "36 of 44" and a status says all letters are unlocked; the button is disabled afterwards.
 - [ ] **Step 6:** Run it. Expected: FAIL.
 - [ ] **Step 7: Implement** `UnlockLetters.tsx` mirroring `ResetProgress.tsx` (button, `ConfirmChoice`, status line, focus restore), disabled when `ladder.unlocked >= LETTERS_END`, and render it above `ResetProgress` in `SettingsDialog`.
