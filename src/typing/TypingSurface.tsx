@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
+import { MAC_LAYOUT_NAME } from "~/keyboard/layout101.ts";
 import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
@@ -344,7 +345,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         </p>
         {wrongLayout && (
           <p role="alert" className="px-4 py-1 text-center text-sm font-medium">
-            {t("typing.wrongLayout")}
+            {t("typing.wrongLayout", { mac: MAC_LAYOUT_NAME })}
           </p>
         )}
         <input

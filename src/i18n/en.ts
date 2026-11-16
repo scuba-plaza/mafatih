@@ -49,7 +49,8 @@ export const en = {
   "typing.activateTouch": "Tap to activate…",
   "typing.mistake": "Mistake.",
   "typing.mistakeBackspace": "Mistake. Press Backspace.",
-  "typing.wrongLayout": "Your keyboard is not typing Arabic. Switch it to the Arabic layout.",
+  "typing.wrongLayout":
+    "Your keyboard is not typing Arabic. Switch to the Arabic (101) layout. On a Mac, choose {mac}.",
   "custom.textHint": "Paste or write any Arabic text.",
   "custom.edit": "Edit text",
   "custom.nothingToType": "There is nothing to type in this text.",
@@ -211,6 +212,8 @@ export const en = {
   "settings.guide": "Keyboard guide",
   "settings.showKeyboard": "Show the keyboard",
   "settings.fingerGuide": "Show which finger to use",
+  "settings.layoutHint": "Mafatih follows the Arabic (101) layout. On a Mac, choose the layout called {mac}.",
+  "guide.layout": "Arabic (101)",
   "finger.leftPinky": "Left little finger",
   "finger.leftRing": "Left ring finger",
   "finger.leftMiddle": "Left middle finger",

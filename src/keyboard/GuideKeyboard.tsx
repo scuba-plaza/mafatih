@@ -11,6 +11,7 @@ interface Slot {
   readonly units: number;
   readonly cap?: KeyCap;
   readonly symbol?: string;
+  readonly layout?: true;
 }
 
 interface Row {
@@ -60,10 +61,13 @@ const ROWS: readonly Row[] = [
       { code: "ShiftRight", units: 2.75, symbol: SHIFT_SYMBOL },
     ],
   },
-  { lead: (ROW_UNITS - SPACE_UNITS) / 2, slots: [{ code: "Space", units: SPACE_UNITS, symbol: "" }] },
+  { lead: (ROW_UNITS - SPACE_UNITS) / 2, slots: [{ code: "Space", units: SPACE_UNITS, layout: true }] },
 ];
 
-function legendOf(slot: Slot, shifted: boolean): string {
+function legendOf(slot: Slot, shifted: boolean, layoutName: string): string {
+  if (slot.layout === true) {
+    return layoutName;
+  }
   if (slot.symbol !== undefined) {
     return slot.symbol;
   }
@@ -85,6 +89,7 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
   const { t } = useI18n();
   const deleting = options.requireBackspace && session.mistakes.length > 0;
   const guide = guideFor(expectedText(session), deleting);
+  const layoutName = t("guide.layout");
   const name = fingerName(guide.finger);
   const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
 
@@ -100,13 +105,13 @@ export function GuideKeyboard({ session, options, fingerGuide }: GuideKeyboardPr
           {row.slots.map((slot) => (
             <div
               key={slot.code}
-              lang="ar"
+              lang={slot.layout === true ? undefined : "ar"}
               data-key={slot.code}
               data-due={guide.keys.has(slot.code) ? "" : undefined}
-              className="flex shrink-0 items-center justify-center rounded-md border border-line text-lg leading-none text-muted data-due:halo data-due:font-bold"
+              className={`flex shrink-0 items-center justify-center rounded-md border border-line leading-none text-muted data-due:halo data-due:font-bold ${slot.layout === true ? "text-sm" : "text-lg"}`}
               style={{ width: slot.units * KEY_PX - KEY_GAP_PX, height: KEY_FACE_PX, margin: KEY_GAP_PX / 2 }}
             >
-              {legendOf(slot, guide.shifted)}
+              {legendOf(slot, guide.shifted, layoutName)}
             </div>
           ))}
         </div>

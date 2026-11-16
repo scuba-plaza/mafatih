@@ -2,6 +2,7 @@ import { useEffect, useId } from "react";
 import { formatRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Language } from "~/i18n/i18n.ts";
+import { MAC_LAYOUT_NAME } from "~/keyboard/layout101.ts";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
 import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
 import { BackupRestore } from "~/storage/BackupRestore.tsx";
@@ -124,6 +125,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           checked={settings.fingerGuide}
           onChange={(fingerGuide) => change({ fingerGuide })}
         />
+        <p className="text-sm text-muted">{t("settings.layoutHint", { mac: MAC_LAYOUT_NAME })}</p>
       </fieldset>
       <RecitationSettings settings={settings} change={change} />
       <AudioSettings settings={settings} change={change} />
