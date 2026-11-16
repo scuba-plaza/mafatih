@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { emulatePlatform } from "./helpers/platform.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { startTyping, typeKeys } from "./helpers/typing.ts";
 
@@ -99,12 +100,28 @@ test.describe("with a wide screen and a mouse", () => {
     await expect(guide(page).locator('[data-key="Space"]')).toHaveText("العربية (101)");
   });
 
-  test("Settings says which layout to choose, and what a Mac calls it", async ({ page }) => {
+  test("Settings says what the layout is called on this system", async ({ page }) => {
     await start(page, { customText: "بتن" });
     await page.getByRole("button", { name: "Settings" }).click();
     const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
-    await expect(group).toContainText("Mafatih follows the Arabic (101) layout.");
-    await expect(group).toContainText(/On a Mac, choose the layout called \u2068Arabic – PC\u2069\./);
+    await expect(group).toContainText(
+      /Mafatih follows the standard Arabic PC layout\. In your system settings it is called \u2068Arabic \(101\)\u2069\./,
+    );
+  });
+
+  test("on a Mac the space bar and Settings use the Mac's name for the layout", async ({ page }) => {
+    await emulatePlatform(page, "mac");
+    await start(page, { customText: "بتن" });
+    await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic – PC");
+    await page.getByRole("button", { name: "Settings" }).click();
+    const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
+    await expect(group).toContainText(/In your system settings it is called \u2068Arabic – PC\u2069\./);
+  });
+
+  test("on Windows the layout is called Arabic (101)", async ({ page }) => {
+    await emulatePlatform(page, "windows");
+    await start(page, { customText: "بتن" });
+    await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic (101)");
   });
 
   test("with the letters off the keys are blank, except the lit key, the symbols and the layout name", async ({

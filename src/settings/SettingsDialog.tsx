@@ -2,7 +2,7 @@ import { useEffect, useId } from "react";
 import { formatRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Language } from "~/i18n/i18n.ts";
-import { MAC_LAYOUT_NAME } from "~/keyboard/layout101.ts";
+import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
 import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
 import { BackupRestore } from "~/storage/BackupRestore.tsx";
@@ -33,6 +33,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const { profile, update } = useProfile();
   const { settings } = profile;
   const sizeId = useId();
+  const layoutName = useLayoutName();
 
   useEffect(() => {
     if (open) {
@@ -137,7 +138,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           checked={settings.delayedHint}
           onChange={(delayedHint) => change({ delayedHint })}
         />
-        <p className="text-sm text-muted">{t("settings.layoutHint", { mac: MAC_LAYOUT_NAME })}</p>
+        <p className="text-sm text-muted">{t("settings.layoutHint", { layout: layoutName })}</p>
       </fieldset>
       <RecitationSettings settings={settings} change={change} />
       <AudioSettings settings={settings} change={change} />

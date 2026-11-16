@@ -5,6 +5,7 @@ import { expectedText, type Session, type SessionOptions } from "~/typing/sessio
 import type { Finger } from "./fingers.ts";
 import { type Guide, guideFor } from "./guide.ts";
 import { type KeyCap, WIN101_CAPS } from "./layout101.ts";
+import { useLayoutName } from "./useLayoutName.ts";
 import { useRevealAfter } from "./useRevealAfter.ts";
 
 interface Slot {
@@ -102,7 +103,7 @@ export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delaye
     session.missed || session.mistakes.length > 0,
   );
   const guide = revealed ? guideFor(expectedText(session), deleting) : NOTHING_DUE;
-  const layoutName = t("guide.layout");
+  const layoutName = useLayoutName();
   const name = fingerName(guide.finger);
   const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
 

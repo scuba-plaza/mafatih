@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
 import { clearlyDifferentPixels } from "./helpers/pixels.ts";
+import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -501,11 +502,20 @@ test("the lesson can be started, left, continued and finished from the keyboard 
   await expect(page.getByRole("button", { name: "Type again" })).toBeFocused();
 });
 
+test("on a Mac the wrong-layout alert uses the Mac's name for the layout", async ({ page }) => {
+  await emulatePlatform(page, "mac");
+  await start(page, { customText: "بتن" });
+  await typeKeys(page, ["a"]);
+  await expect(surface(page).getByRole("alert")).toHaveText(
+    /^Your keyboard is not typing Arabic\. Switch to the \u2068Arabic – PC\u2069 layout\.$/,
+  );
+});
+
 test("typing on a Latin layout is explained instead of being counted as mistakes", async ({ page }) => {
   await start(page, { customText: "بتن" });
   await typeKeys(page, ["a", "b"]);
   await expect(surface(page).getByRole("alert")).toHaveText(
-    /^Your keyboard is not typing Arabic\. Switch to the Arabic \(101\) layout\. On a Mac, choose \u2068Arabic – PC\u2069\.$/,
+    /^Your keyboard is not typing Arabic\. Switch to the \u2068Arabic \(101\)\u2069 layout\.$/,
   );
   expect(await shownText(page)).toBe("بتن");
   await expectNoAxeViolations(page);

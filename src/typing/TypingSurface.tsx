@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
-import { MAC_LAYOUT_NAME } from "~/keyboard/layout101.ts";
+import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
@@ -154,6 +154,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy } = props;
   const { font, fontSize } = settings;
   const { t } = useI18n();
+  const layoutName = useLayoutName();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
   const sectionRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -355,7 +356,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         </p>
         {wrongLayout && (
           <p role="alert" className="px-4 py-1 text-center text-sm font-medium">
-            {t("typing.wrongLayout", { mac: MAC_LAYOUT_NAME })}
+            {t("typing.wrongLayout", { layout: layoutName })}
           </p>
         )}
         <input
