@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { TOUCH_TARGET } from "~/ui/styles.ts";
+import { useIsFitScreen } from "./fitScreen.tsx";
 import { PAGE_TITLES, type Page } from "./pages.ts";
 import { formatRoute, type Route } from "./routes.ts";
 import { useSoftKeyboard } from "./softKeyboard.ts";
@@ -58,6 +59,7 @@ export function Shell({ page, view, banner, actions, children }: ShellProps) {
   const appName = t("app.name");
   const navLabel = t("nav.label");
   const keyboardUp = useSoftKeyboard();
+  const fit = useIsFitScreen();
 
   useEffect(() => {
     document.title = `${t(PAGE_TITLES[page])} · ${appName}`;
@@ -72,7 +74,13 @@ export function Shell({ page, view, banner, actions, children }: ShellProps) {
   }, [view]);
 
   return (
-    <div className="grid min-h-dvh grid-cols-1 grid-rows-[auto_auto_1fr]">
+    <div
+      className={
+        fit
+          ? "grid h-dvh grid-cols-1 grid-rows-[auto_auto_minmax(0,1fr)_auto]"
+          : "grid min-h-dvh grid-cols-1 grid-rows-[auto_auto_1fr]"
+      }
+    >
       <header className={`${GUTTER} pt-[env(safe-area-inset-top)]`}>
         <button
           type="button"
@@ -101,15 +109,15 @@ export function Shell({ page, view, banner, actions, children }: ShellProps) {
       <main
         ref={mainRef}
         tabIndex={-1}
-        className={`${GUTTER} flex flex-col pt-2 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8`}
+        className={`${GUTTER} flex flex-col pt-2 md:pb-8 ${fit ? "min-h-0 pb-2" : "pb-[calc(5rem+env(safe-area-inset-bottom))]"}`}
       >
-        <div className={`${COLUMN} flex flex-1 flex-col`}>{children}</div>
+        <div className={`${COLUMN} flex flex-1 flex-col${fit ? " min-h-0" : ""}`}>{children}</div>
       </main>
       <nav
         aria-label={navLabel}
         hidden={keyboardUp}
         data-tabbar=""
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-faint bg-page pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:hidden"
+        className={`${fit ? "" : "fixed inset-x-0 bottom-0 z-20 "}border-t border-faint bg-page pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:hidden`}
       >
         <ul className="flex">
           <PageLinks page={page} linkClass={TAB_LINK} title={title} />

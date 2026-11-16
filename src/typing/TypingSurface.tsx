@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
 import { useLayoutName } from "~/keyboard/useLayoutName.ts";
@@ -148,10 +148,11 @@ export interface TypingSurfaceProps {
   readonly apparatus?: readonly TextSpan[];
   readonly playing?: TextSpan | null;
   readonly describedBy?: string;
+  readonly footer?: ReactNode;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy } = props;
+  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy, footer } = props;
   const { font, fontSize } = settings;
   const { t } = useI18n();
   const layoutName = useLayoutName();
@@ -226,9 +227,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
-      const limit = Number.parseFloat(getComputedStyle(container).maxHeight);
-      const clipped = Number.isFinite(limit) && container.clientHeight >= limit - 1;
-      setScrollable(clipped && container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
+      setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = !focused || rect === undefined;
       if (rect === undefined) {
@@ -304,19 +303,22 @@ export function TypingSurface(props: TypingSurfaceProps) {
   }, [paused, focus]);
 
   return (
-    <>
-      <section ref={sectionRef} aria-label={t("typing.text")} data-typing-surface="" className="relative cursor-text">
+    <div data-stage="" className="flex min-h-0 flex-1 flex-col justify-center-safe gap-3">
+      <section
+        ref={sectionRef}
+        aria-label={t("typing.text")}
+        data-typing-surface=""
+        className="relative flex min-h-[calc(4em+0.75rem)] cursor-text flex-col"
+        style={{ fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))` }}
+      >
         <div
           ref={textRef}
           lang="ar"
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className={`relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere select-none${paused ? " blur-[6px]" : ""}`}
-          style={{
-            fontFamily: `"${family.family}", serif`,
-            fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
-          }}
+          className={`relative min-h-0 ${scrollable ? "overflow-y-auto" : "overflow-y-clip"} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere select-none${paused ? " blur-[6px]" : ""}`}
+          style={{ fontFamily: `"${family.family}", serif` }}
         >
           {blocks.map((block, index) => (
             <p key={block.start} data-block="">
@@ -389,6 +391,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           paused={paused}
         />
       )}
-    </>
+      {footer}
+    </div>
   );
 }

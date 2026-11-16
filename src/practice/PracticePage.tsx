@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFitScreen } from "~/app/fitScreen.tsx";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { lessonOf, recordLesson } from "~/stats/history.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
@@ -65,6 +66,7 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
 }
 
 export function PracticePage() {
+  useFitScreen();
   const { t } = useI18n();
   const [words, setWords] = useState<readonly PracticeWord[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -74,7 +76,7 @@ export function PracticePage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div>
         <PageHeading>{t("nav.practice")}</PageHeading>
         <p className="text-sm text-muted">{t("practice.subtitle")}</p>
