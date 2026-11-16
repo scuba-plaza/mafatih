@@ -18,6 +18,7 @@ export interface HudProps {
   readonly stats: KeyStats;
   readonly vocalization: Vocalization;
   readonly last: LastLesson | null;
+  readonly hidden?: boolean;
 }
 
 function Item({ label, children }: { label: string; children: ReactNode }) {
@@ -29,7 +30,7 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function Hud({ progress, stats, vocalization, last }: HudProps) {
+export function Hud({ progress, stats, vocalization, last, hidden = false }: HudProps) {
   const { t, formatPercent } = useI18n();
   const total = LADDER.rungs.length;
   const finished = progress.unlocked >= total;
@@ -46,7 +47,7 @@ export function Hud({ progress, stats, vocalization, last }: HudProps) {
       : t("hud.unlockedKey", { key: unlockedName === undefined ? unlockedKey.char : t(unlockedName) });
 
   return (
-    <section aria-label={t("hud.label")} className="flex flex-col gap-3">
+    <section hidden={hidden} aria-label={t("hud.label")} className="flex flex-col gap-3">
       <dl className="flex flex-wrap gap-x-8 gap-y-3">
         <Item label={t("hud.keys")}>{t("hud.keysValue", { count: progress.unlocked, total })}</Item>
         {rung !== undefined && (

@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
-import { clearlyDifferentPixels } from "./helpers/pixels.ts";
+import { brightestPixel, clearlyDifferentPixels } from "./helpers/pixels.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
@@ -159,21 +159,38 @@ async function caretColour(page: Page): Promise<string> {
   return caret(page).evaluate((element) => getComputedStyle(element).backgroundColor);
 }
 
+interface Shake {
+  readonly moves: boolean;
+  readonly ring: string;
+  readonly colour: string;
+}
+
 async function countShakes(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const original = Element.prototype.animate;
-    Object.assign(window, { shakes: 0 });
+    Object.assign(window, { shakes: [] });
     Element.prototype.animate = function (keyframes, options) {
-      if (typeof options === "object" && options.id === "caret-miss") {
-        Object.assign(window, { shakes: (window as unknown as { shakes: number }).shakes + 1 });
+      const animation = original.call(this, keyframes, options);
+      if (typeof options === "object" && options.id === "caret-miss" && this.hasAttribute("data-caret")) {
+        const style = getComputedStyle(this);
+        const list = (window as unknown as { shakes: Shake[] }).shakes;
+        list.push({
+          moves: Array.isArray(keyframes) && keyframes.some((frame) => "translate" in frame),
+          ring: style.boxShadow,
+          colour: style.backgroundColor,
+        });
       }
-      return original.call(this, keyframes, options);
+      return animation;
     };
   });
 }
 
+async function shakeLog(page: Page): Promise<Shake[]> {
+  return page.evaluate(() => (window as unknown as { shakes: Shake[] }).shakes);
+}
+
 async function shakes(page: Page): Promise<number> {
-  return page.evaluate(() => (window as unknown as { shakes: number }).shakes);
+  return (await shakeLog(page)).length;
 }
 
 function shaking(page: Page): Promise<boolean> {
@@ -188,16 +205,15 @@ test("the caret shakes and flashes once for every wrong key, which is exactly ho
   await typeKeys(page, ["ب"]);
   expect(await shakes(page)).toBe(0);
   await typeKeys(page, ["س"]);
-  expect(await shakes(page)).toBe(1);
-  await expect.poll(() => shaking(page)).toBe(true);
+  await expect.poll(() => shakes(page)).toBe(1);
   const said = await flag(page).boundingBox();
   expect(said?.width).toBeLessThanOrEqual(1);
   expect(said?.height).toBeLessThanOrEqual(1);
   await typeKeys(page, ["ش"]);
-  expect(await shakes(page)).toBe(2);
+  await expect.poll(() => shakes(page)).toBe(2);
   await typeKeys(page, ["ت", "ن"]);
-  expect(await shakes(page)).toBe(2);
   await expect(mistakeCount(page)).toHaveText("2");
+  expect(await shakes(page)).toBe(2);
 });
 
 test("a wrong key before the first correct character shakes the caret but counts for nothing: no mistake, no clock", async ({
@@ -206,13 +222,11 @@ test("a wrong key before the first correct character shakes the caret but counts
   await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["س"]);
-  expect(await shakes(page)).toBe(1);
-  await expect.poll(() => shaking(page)).toBe(true);
+  await expect.poll(() => shakes(page)).toBe(1);
   await typeKeys(page, ["ش"]);
-  expect(await shakes(page)).toBe(2);
+  await expect.poll(() => shakes(page)).toBe(2);
   await expect(flag(page)).toHaveCount(0);
   await typeKeys(page, ["Backspace"]);
-  expect(await shakes(page)).toBe(2);
   await typeKeys(page, ["ب", "ت", "ن"]);
   await expect(mistakeCount(page)).toHaveText("0");
   expect(await shakes(page)).toBe(2);
@@ -222,7 +236,7 @@ test("pressing on the text, leaving the field and coming back never replays a sh
   await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["ب", "س"]);
-  expect(await shakes(page)).toBe(1);
+  await expect.poll(() => shakes(page)).toBe(1);
   await expect.poll(() => shaking(page)).toBe(false);
   await page.mouse.click(4, 4);
   await expect(field(page)).not.toBeFocused();
@@ -236,21 +250,14 @@ test("pressing on the text, leaving the field and coming back never replays a sh
 
 test("with reduced motion the caret does not move, but it still turns red and gets a ring", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["ب", "س"]);
-  const style = await caret(page).evaluate((element) => {
-    const animation = element.getAnimations().find((candidate) => candidate.id === "caret-miss");
-    const frames = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes() ?? [];
-    const computed = getComputedStyle(element);
-    return {
-      moves: frames.some((frame) => "translate" in frame),
-      ring: computed.boxShadow,
-      colour: computed.backgroundColor,
-    };
-  });
-  expect(style.moves).toBe(false);
-  expect(style.ring).toBe(`${DANGER} 0px 0px 0px 2px`);
-  expect(style.colour).toBe(DANGER);
+  await expect.poll(() => shakes(page)).toBe(1);
+  const [style] = await shakeLog(page);
+  expect(style?.moves).toBe(false);
+  expect(style?.ring).toBe(`${DANGER} 0px 0px 0px 2px`);
+  expect(style?.colour).toBe(DANGER);
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
 });
 
@@ -474,16 +481,19 @@ test("the text can be reached with Tab and left with Tab, and no ring is drawn a
   await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
 });
 
-test("a passage only a few pixels taller than its box is not a scroll region", async ({ page }) => {
+test("a passage a pixel or two taller than its window, from rounding, is not a scroll region", async ({ page }) => {
   await seedSettings(page, { language: "en" });
   await page.goto("/#/recitation/1");
   await expect(surface(page)).toBeVisible();
-  await addStyle(page, "[data-lesson-text] p:last-of-type{margin-bottom:-8px}");
+  await addStyle(page, "[data-lesson-text] p:last-of-type{margin-bottom:-1px}");
   await startTyping(page);
   await typeKeys(page, ["ب"]);
   const overflow = await lessonText(page).evaluate((element) => element.scrollHeight - element.clientHeight);
-  expect(overflow).toBeGreaterThan(2);
+  expect(overflow).toBeGreaterThan(0);
+  expect(overflow).toBeLessThanOrEqual(2);
   await expect(page.getByRole("group", { name: "Scrollable text" })).toHaveCount(0);
+  await page.keyboard.press("Shift+Tab");
+  await expect(lessonText(page)).not.toBeFocused();
 });
 
 test("the caret is only shown while the text is focused", async ({ page }) => {
@@ -663,6 +673,32 @@ test("text still to be typed is a little brighter than text already typed, and b
     (element) => getComputedStyle(element, "::highlight(mafatih-done)").color,
   );
   expect(typed).toBe("rgb(91, 93, 97)");
+});
+
+test("typed letters are really drawn darker than the letters still to be typed, in every engine", async ({ page }) => {
+  await start(page, { customText: "بتن كتب" });
+  await typeKeys(page, ["ب", "ت", "ن"]);
+  await addStyle(page, "[data-caret]{visibility:hidden}");
+  const [typed, untyped] = await lessonText(page).evaluate((element) => {
+    const node = element.querySelector("[data-block]")?.firstChild;
+    if (node === null || node === undefined) {
+      return [];
+    }
+    const middle = (from: number, to: number) => {
+      const range = document.createRange();
+      range.setStart(node, from);
+      range.setEnd(node, to);
+      const box = range.getBoundingClientRect();
+      return { x: box.x + box.width / 4, y: box.y + box.height * 0.3, width: box.width / 2, height: box.height * 0.4 };
+    };
+    return [middle(0, 3), middle(4, node.textContent?.length ?? 4)];
+  });
+  expect(typed).toBeDefined();
+  expect(untyped).toBeDefined();
+  const brightnessOf = async (clip: typeof typed) => brightestPixel(page, await page.screenshot({ clip }));
+  await expect.poll(() => brightnessOf(typed), { timeout: 5000 }).toBeLessThan(120);
+  expect(await brightnessOf(typed)).toBeGreaterThan(70);
+  expect(await brightnessOf(untyped)).toBeGreaterThan(130);
 });
 
 test("a quiet line under the text shows speed, accuracy, mistakes and time on a wide screen", async ({

@@ -1,21 +1,25 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useReportFitMinHeight } from "~/app/fitScreen.tsx";
+import { useChrome } from "~/app/useChrome.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
-import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
+import { GUIDE_QUERY, GuideKeyboard, guideHeight } from "~/keyboard/GuideKeyboard.tsx";
 import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
+import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
+import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
+import { useStageFit } from "./useStageFit.ts";
 import type { Trainer } from "./useTrainer.ts";
 
 const NO_SPANS: readonly TextSpan[] = [];
 const VISIBLE_SPACE = "\u2423";
 const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
-const OVERFLOW_TOLERANCE = 2;
 const MISS_RING = "0 0 0 2px var(--color-danger)";
 const CARET_IDLE_MS = 250;
 
@@ -148,10 +152,11 @@ export interface TypingSurfaceProps {
   readonly apparatus?: readonly TextSpan[];
   readonly playing?: TextSpan | null;
   readonly describedBy?: string;
+  readonly footer?: ReactNode;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy } = props;
+  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy, footer } = props;
   const { font, fontSize } = settings;
   const { t } = useI18n();
   const layoutName = useLayoutName();
@@ -161,8 +166,20 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const caretRef = useRef<HTMLSpanElement>(null);
   const caretLine = useRef<number | null>(null);
   const placeRef = useRef<() => void>(() => undefined);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const guideRef = useRef<HTMLDivElement>(null);
   const nextWordId = useId();
   const [scrollable, setScrollable] = useState(false);
+  const wantsGuide = useMediaQuery(GUIDE_QUERY) && settings.showKeyboard;
+  const textOnly = useChrome().chrome === "text-only";
+  const reportMinHeight = useReportFitMinHeight();
+  const { showGuide, windowHeight } = useStageFit(
+    { stage: stageRef, section: sectionRef, text: textRef, guide: guideRef },
+    wantsGuide,
+    guideHeight(settings.fingerGuide),
+    textOnly ? 1 : MIN_WINDOW_LINES,
+    reportMinHeight,
+  );
   const scrollRegion = scrollable
     ? ({ tabIndex: 0, role: "group", "aria-label": t("typing.scrollable") } as const)
     : {};
@@ -226,9 +243,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
-      const limit = Number.parseFloat(getComputedStyle(container).maxHeight);
-      const clipped = Number.isFinite(limit) && container.clientHeight >= limit - 1;
-      setScrollable(clipped && container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
+      setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = !focused || rect === undefined;
       if (rect === undefined) {
@@ -241,11 +256,15 @@ export function TypingSurface(props: TypingSurfaceProps) {
       caret.style.height = `${rect.height}px`;
       if (focused && caretLine.current !== y) {
         const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const top = y - (container.clientHeight - rect.height) / 2;
+        const style = getComputedStyle(container);
+        const lineHeight = toPixels(style.lineHeight);
+        const padTop = toPixels(style.paddingTop);
+        const row = caretRow(wholeLines(container.clientHeight, lineHeight, padTop));
+        const top = caretScrollTop(y, rect.height, row, lineHeight, padTop);
         container.scrollIntoView({ block: "nearest" });
         container.scrollTo({ top, behavior: calm ? "auto" : "smooth" });
       }
-      caretLine.current = y;
+      caretLine.current = focused ? y : null;
     };
     placeRef.current = place;
     place();
@@ -256,7 +275,10 @@ export function TypingSurface(props: TypingSurfaceProps) {
     if (container === null) {
       return;
     }
-    const place = () => placeRef.current();
+    const place = () => {
+      caretLine.current = null;
+      placeRef.current();
+    };
     const observer = new ResizeObserver(place);
     observer.observe(container);
     document.fonts.addEventListener("loadingdone", place);
@@ -304,19 +326,22 @@ export function TypingSurface(props: TypingSurfaceProps) {
   }, [paused, focus]);
 
   return (
-    <>
-      <section ref={sectionRef} aria-label={t("typing.text")} data-typing-surface="" className="relative cursor-text">
+    <div ref={stageRef} data-stage="" className="flex min-h-0 flex-1 flex-col justify-center-safe gap-3">
+      <section
+        ref={sectionRef}
+        aria-label={t("typing.text")}
+        data-typing-surface=""
+        className={`relative flex cursor-text flex-col ${textOnly ? "min-h-[calc(2em+0.75rem)]" : "min-h-[calc(4em+0.75rem)]"}`}
+        style={{ fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))` }}
+      >
         <div
           ref={textRef}
           lang="ar"
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className={`relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere select-none${paused ? " blur-[6px]" : ""}`}
-          style={{
-            fontFamily: `"${family.family}", serif`,
-            fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
-          }}
+          className={`relative min-h-0 ${scrollable ? "overflow-y-auto" : "overflow-y-clip"} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere${paused ? " blur-[6px]" : ""}`}
+          style={{ fontFamily: `"${family.family}", serif`, height: windowHeight ?? undefined }}
         >
           {blocks.map((block, index) => (
             <p key={block.start} data-block="">
@@ -387,8 +412,11 @@ export function TypingSurface(props: TypingSurfaceProps) {
           keyLabels={settings.keyLabels}
           delayedHint={settings.delayedHint}
           paused={paused}
+          hidden={!(wantsGuide && showGuide)}
+          ref={guideRef}
         />
       )}
-    </>
+      {footer}
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 const SYSTEMS = {
   mac: { platform: "MacIntel", hint: "macOS" },
   windows: { platform: "Win32", hint: "Windows" },
+  iphone: { platform: "iPhone", hint: "" },
 } as const;
 
 export async function emulatePlatform(page: Page, system: keyof typeof SYSTEMS): Promise<void> {

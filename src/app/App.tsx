@@ -9,6 +9,7 @@ import { ProfileProvider, useProfile } from "~/storage/ProfileProvider.tsx";
 import { StorageNotice } from "~/storage/StorageNotice.tsx";
 import { AboutPage } from "./AboutPage.tsx";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
+import { FitScreenProvider } from "./fitScreen.tsx";
 import type { Route } from "./routes.ts";
 import { Shell } from "./Shell.tsx";
 import { useRoute } from "./useRoute.ts";
@@ -38,9 +39,11 @@ function Pages() {
   return (
     <I18nProvider language={profile.settings.language}>
       <ErrorBoundary>
-        <Shell page={route.page} view={viewOf(route)} banner={<StorageNotice />} actions={<SettingsButton />}>
-          <PageContent route={route} />
-        </Shell>
+        <FitScreenProvider>
+          <Shell page={route.page} view={viewOf(route)} banner={<StorageNotice />} actions={<SettingsButton />}>
+            <PageContent route={route} />
+          </Shell>
+        </FitScreenProvider>
       </ErrorBoundary>
     </I18nProvider>
   );

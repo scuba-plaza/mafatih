@@ -318,6 +318,7 @@ test("Previous on the first clip rewinds it once; pausing and playing afterwards
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThan(0);
   await player(page).getByRole("button", { name: "Previous ayah" }).click();
   await expect.poll(async () => (await readLog(page)).currentTime).toEqual([0]);
   await player(page).getByRole("button", { name: "Pause", exact: true }).click();
@@ -583,12 +584,15 @@ async function expectTypedPartPaintedAsTyped(page: Page): Promise<void> {
         .map((box) => ({ x: box.x + box.width / 4, y: box.y, width: box.width / 2, height: box.height }));
     });
   expect(fragments.length).toBeGreaterThan(0);
-  let brightest = 0;
-  for (const clip of fragments) {
-    brightest = Math.max(brightest, await brightestPixel(page, await page.screenshot({ clip })));
-  }
-  expect(brightest).toBeGreaterThan(70);
-  expect(brightest).toBeLessThan(120);
+  const brightest = async () => {
+    let best = 0;
+    for (const clip of fragments) {
+      best = Math.max(best, await brightestPixel(page, await page.screenshot({ clip })));
+    }
+    return best;
+  };
+  await expect.poll(brightest, { timeout: 5000 }).toBeLessThan(120);
+  expect(await brightest()).toBeGreaterThan(70);
 }
 
 test("the typed part of the ayah being heard stays painted as typed, and no letter is painted twice", async ({

@@ -1,5 +1,7 @@
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { useFitScreen } from "~/app/fitScreen.tsx";
 import type { RecitationRoute } from "~/app/routes.ts";
+import { useChrome } from "~/app/useChrome.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { unlockedMarks } from "~/practice/ladder.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
@@ -32,6 +34,7 @@ interface PassageLessonProps {
 
 function PassageLesson({ passage, recitation, player, describedBy, onFinished, refocus }: PassageLessonProps) {
   const { settings } = useProfile().profile;
+  const textOnly = useChrome().chrome === "text-only";
   const checkpoints = useMemo(() => passage.ayat.map((ayah) => ayah.lastUnit), [passage]);
   const signs = useMemo(() => passage.ayat.map((ayah) => ayah.sign), [passage]);
   const trainer = useTrainer({
@@ -80,8 +83,8 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
         apparatus={signs}
         playing={player.state.status === "playing" ? (player.clip?.span ?? null) : null}
         describedBy={describedBy}
+        footer={textOnly ? undefined : <LiveStats session={session} />}
       />
-      <LiveStats session={session} />
       <SurahComplete
         meta={meta}
         finish={finish}
@@ -95,6 +98,8 @@ function PassageLesson({ passage, recitation, player, describedBy, onFinished, r
 }
 
 function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
+  useFitScreen();
+  const textOnly = useChrome().chrome === "text-only";
   const { t, language, formatNumber } = useI18n();
   const { settings, ladder } = useProfile().profile;
   const recitation = useRecitation(surah, ayah);
@@ -144,8 +149,8 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   }, [go, next, previous]);
 
   return (
-    <div ref={pageRef} className="flex flex-1 flex-col gap-3">
-      <PassagePager previous={recitation.previous} next={recitation.next} onGo={recitation.go}>
+    <div ref={pageRef} className="flex min-h-0 flex-1 flex-col gap-3">
+      <PassagePager previous={recitation.previous} next={recitation.next} onGo={recitation.go} hidden={textOnly}>
         <PageHeading quiet>
           <span id={`passage-${meta.n}`}>{label}</span>
         </PageHeading>
@@ -181,6 +186,7 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
         </div>
       )}
       <PassageFooter
+        hidden={textOnly}
         meta={meta}
         typed={recitation.typed}
         audio={
