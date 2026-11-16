@@ -17,6 +17,7 @@ const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
 const OVERFLOW_TOLERANCE = 2;
 const MISS_RING = "0 0 0 2px var(--color-danger)";
+const CARET_IDLE_MS = 250;
 
 const MISS_SHAKE: Keyframe[] = [
   { offset: 0, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING, translate: "0 0" },
@@ -178,6 +179,14 @@ export function TypingSurface(props: TypingSurfaceProps) {
   }, [family]);
 
   const misses = session.errors + session.ignored;
+  const activity = `${doneUntil}:${mistakes}:${misses}:${focused}`;
+  const [settled, setSettled] = useState("");
+  const idle = settled === activity;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(activity), CARET_IDLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [activity]);
 
   useEffect(() => {
     const element = caretRef.current;
@@ -218,7 +227,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
       setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
-      caret.hidden = rect === undefined;
+      caret.hidden = !focused || rect === undefined;
       if (rect === undefined) {
         return;
       }
@@ -309,7 +318,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
                   <span
                     data-mistakes=""
                     aria-hidden="true"
-                    className="inline-block max-w-full text-danger underline decoration-wavy underline-offset-4 [unicode-bidi:isolate]"
+                    className="inline-block max-w-full text-danger [unicode-bidi:isolate]"
                   >
                     {drawnMistakes(mistakes)}
                   </span>
@@ -325,7 +334,8 @@ export function TypingSurface(props: TypingSurfaceProps) {
             aria-hidden="true"
             data-caret=""
             data-pending={mistakes === "" ? undefined : ""}
-            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none data-pending:bg-danger forced-colors:bg-[CanvasText]"
+            data-idle={idle ? "" : undefined}
+            className="pointer-events-none absolute top-0 left-0 w-[1.5px] bg-accent forced-color-adjust-none data-pending:bg-danger forced-colors:bg-[CanvasText]"
             hidden
           />
         </div>

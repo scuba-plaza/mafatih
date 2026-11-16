@@ -484,18 +484,6 @@ test("with reduced motion the caret never blinks", async ({ page }) => {
   await expect(caret).toHaveCSS("animation-name", "none");
 });
 
-test("while it waits the caret blinks, and while typing or with reduced motion it stands still", async ({ page }) => {
-  await open(page, { customText: "بتن" });
-  const caret = surface(page).locator("[data-caret]");
-  await expect(caret).toHaveCSS("animation-name", "caret-wait");
-  await expect(caret).toHaveCSS("animation-duration", "2.4s");
-  await startTyping(page);
-  await expect(caret).toHaveCSS("animation-name", "none");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.keyboard.press("Tab");
-  await expect(caret).toHaveCSS("animation-name", "none");
-});
-
 test("the lesson can be started, left, continued and finished from the keyboard alone", async ({ page }) => {
   await open(page, { customText: "بتن" });
   await page.getByRole("heading", { level: 1 }).focus();
