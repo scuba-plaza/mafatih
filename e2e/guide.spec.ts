@@ -256,6 +256,39 @@ test.describe("with a wide screen and a mouse", () => {
     expect(plain.glow).toBe("none");
   });
 
+  for (const [width, height, gap] of [
+    [1366, 768, 38],
+    [1920, 1080, 54],
+  ] as const) {
+    test(`the keyboard sits clear of the text at ${width}x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await seedSettings(page, {});
+      await page.goto("/#/recitation/1");
+      await startTyping(page);
+      const distance = await page.evaluate(() => {
+        const keyboard = document.querySelector("[data-guide-keyboard]");
+        const lesson = document.querySelector("[data-lesson-text]");
+        return keyboard === null || lesson === null
+          ? Number.NaN
+          : keyboard.getBoundingClientRect().top - lesson.getBoundingClientRect().bottom;
+      });
+      expect(distance).toBeGreaterThanOrEqual(32);
+      expect(Math.abs(distance - gap)).toBeLessThanOrEqual(1);
+    });
+  }
+
+  test("the finger hint sits 12 px under the keyboard", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await start(page, { customText: "بت" });
+    const space = await guide(page).evaluate((keyboard) => {
+      const rows = keyboard.children;
+      const lastRow = rows[rows.length - 2]?.getBoundingClientRect();
+      const hint = rows[rows.length - 1]?.getBoundingClientRect();
+      return lastRow === undefined || hint === undefined ? Number.NaN : hint.top - lastRow.bottom;
+    });
+    expect(Math.abs(space - 12)).toBeLessThanOrEqual(1);
+  });
+
   test("below the medium width there is no guide", async ({ page }) => {
     await page.setViewportSize({ width: 700, height: 800 });
     await start(page, { customText: "بتن" });

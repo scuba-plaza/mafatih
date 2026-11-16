@@ -1,4 +1,5 @@
 export const MIN_WINDOW_LINES = 2;
+export const OVERFLOW_TOLERANCE = 2;
 
 export interface StageMetrics {
   readonly stage: number;

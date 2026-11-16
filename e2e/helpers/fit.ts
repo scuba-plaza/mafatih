@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 export interface OneScreen {
   readonly header: boolean;
   readonly player: boolean;
-  readonly guide: boolean;
+  readonly guide: boolean | "either";
   readonly tabBar?: boolean;
   readonly reserve?: number;
 }
@@ -61,7 +61,7 @@ export async function expectOneScreen(page: Page, expected: OneScreen): Promise<
   expect(overflow, "no ancestor may hide overflow, or this check could never fail").not.toContain("hidden");
   expect(overflow).not.toContain("clip");
 
-  const expectations: ReadonlyArray<readonly [string, boolean, number]> = [
+  const expectations: ReadonlyArray<readonly [string, boolean | "either", number]> = [
     ["header", expected.header, 0],
     ["window", true, reserve],
     ["guide", expected.guide, reserve],
@@ -69,7 +69,10 @@ export async function expectOneScreen(page: Page, expected: OneScreen): Promise<
   ];
   for (const [name, shown, bottomReserve] of expectations) {
     const box = regions[name];
-    if (!shown) {
+    if (shown === "either" && box === null) {
+      continue;
+    }
+    if (shown === false) {
       expect(box, `${name} must not be on screen`).toBeNull();
       continue;
     }

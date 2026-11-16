@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { carriedMark } from "~/text/arabic.ts";
@@ -31,6 +32,8 @@ const SPACE_UNITS = 6;
 const ROW_UNITS = 15;
 const WIDE_KEYS: Readonly<Record<string, number>> = { Backslash: 1.5 };
 const HINT_DELAY_MS = 3000;
+const HINT_ROW_PX = 36;
+export const GUIDE_QUERY = "(min-width: 48rem) and (pointer: fine)";
 const NOTHING_DUE: Guide = { keys: new Set(), shifted: false, finger: undefined };
 
 const FINGER_MESSAGES: Readonly<Record<string, MessageKey>> = {
@@ -68,6 +71,10 @@ const ROWS: readonly Row[] = [
   { lead: (ROW_UNITS - SPACE_UNITS) / 2, slots: [{ code: "Space", units: SPACE_UNITS, layout: true }] },
 ];
 
+export function guideHeight(fingerGuide: boolean): number {
+  return ROWS.length * (KEY_FACE_PX + KEY_GAP_PX) + (fingerGuide ? HINT_ROW_PX : 0);
+}
+
 function legendOf(slot: Slot, shifted: boolean, layoutName: string, labelled: boolean): string {
   if (slot.layout === true) {
     return layoutName;
@@ -93,9 +100,20 @@ export interface GuideKeyboardProps {
   readonly keyLabels: boolean;
   readonly delayedHint: boolean;
   readonly paused: boolean;
+  readonly hidden: boolean;
+  readonly ref?: RefObject<HTMLDivElement | null>;
 }
 
-export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delayedHint, paused }: GuideKeyboardProps) {
+export function GuideKeyboard({
+  session,
+  options,
+  fingerGuide,
+  keyLabels,
+  delayedHint,
+  paused,
+  hidden,
+  ref,
+}: GuideKeyboardProps) {
   const { t } = useI18n();
   const deleting = options.requireBackspace && session.mistakes.length > 0;
   const revealed = useRevealAfter(
@@ -110,10 +128,12 @@ export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delaye
 
   return (
     <div
+      ref={ref}
+      hidden={hidden}
       aria-hidden="true"
       dir="ltr"
       data-guide-keyboard=""
-      className="mx-auto hidden w-[660px] max-w-full select-none flex-col md:pointer-fine:flex"
+      className="mx-auto mt-[clamp(1.25rem,calc(5dvh-0.75rem),2.75rem)] flex w-[660px] max-w-full select-none flex-col"
     >
       {ROWS.map((row) => (
         <div key={row.slots[0]?.code} className="flex" style={{ paddingLeft: row.lead * KEY_PX }}>
@@ -131,7 +151,7 @@ export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delaye
           ))}
         </div>
       ))}
-      {fingerGuide && <p className="h-6 text-center text-sm text-muted">{caption}</p>}
+      {fingerGuide && <p className="mt-3 h-6 text-center text-sm text-muted">{caption}</p>}
     </div>
   );
 }

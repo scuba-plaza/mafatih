@@ -24,6 +24,8 @@ const AT_REST: readonly Size[] = [
   { width: 390, height: 844, touch: true },
   { width: 412, height: 915, touch: true },
   { width: 820, height: 1180, touch: true },
+  { width: 1280, height: 720, touch: false },
+  { width: 1366, height: 650, touch: false },
   { width: 1366, height: 768, touch: false },
   { width: 1920, height: 1080, touch: false },
   { width: 2560, height: 1300, touch: false },
@@ -37,6 +39,17 @@ const ENTRIES: readonly Entry[] = [
 ];
 
 const LONG_PASSAGE = "#/recitation/2/255";
+const KEYBOARD_GUIDE: Readonly<Record<string, Readonly<Record<string, boolean>>>> = {
+  "1280x720": { "passage 1": false, "passage 2:255": false },
+  "1366x650": { "passage 1": false, "passage 2:255": false },
+  "1366x768": { "passage 1": true, "passage 2:255": true },
+  "1920x1080": { "passage 1": true, "passage 2:255": true, practice: true, "custom practice": true },
+  "2560x1300": { "passage 1": true, "passage 2:255": true, practice: true, "custom practice": true },
+};
+
+function guideExpectation(size: Size, entry: Entry): boolean | "either" {
+  return size.touch ? false : (KEYBOARD_GUIDE[`${size.width}x${size.height}`]?.[entry.name] ?? "either");
+}
 const SMALL_PHONE = { width: 375, height: 420 };
 
 function lessonWindow(page: Page) {
@@ -62,7 +75,7 @@ for (const size of AT_REST) {
       test(`fits one screen: ${entry.name} at ${size.width}x${size.height}`, async ({ page }, testInfo) => {
         test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the matrix sets its own viewport and touch");
         await open(page, entry.hash, entry.settings);
-        await expectOneScreen(page, { header: true, player: entry.player, guide: !size.touch });
+        await expectOneScreen(page, { header: true, player: entry.player, guide: guideExpectation(size, entry) });
       });
     }
   });
@@ -90,6 +103,60 @@ test.describe("long passages", () => {
       .toBe(true);
   });
 });
+
+for (const size of [
+  { width: 1366, height: 768 },
+  { width: 1920, height: 1080 },
+]) {
+  test.describe(`whole lines at ${size.width}x${size.height}`, () => {
+    test.use({ viewport: size });
+
+    test("a long passage window shows whole lines only, with the caret on its row", async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+      await open(page, LONG_PASSAGE);
+      const letters = [...(await shownText(page))].filter((character) => /[ء-ي ]/.test(character));
+      await typeKeys(page, letters.slice(0, 160));
+      const lesson = lessonWindow(page);
+      const measure = () =>
+        lesson.evaluate((element) => {
+          const style = getComputedStyle(element);
+          const lineHeight = Number.parseFloat(style.lineHeight);
+          const padTop = Number.parseFloat(style.paddingTop);
+          const frame = element.getBoundingClientRect();
+          const caret = document.querySelector("[data-caret]")?.getBoundingClientRect();
+          const lines = (frame.height - padTop) / lineHeight;
+          const row =
+            caret === undefined
+              ? Number.NaN
+              : (caret.top - frame.top - padTop - (lineHeight - caret.height) / 2) / lineHeight;
+          return { lines, row };
+        });
+      await expect.poll(async () => Math.abs((await measure()).lines % 1)).toBeLessThan(0.02);
+      const { lines } = await measure();
+      await expect.poll(async () => Math.abs((await measure()).row - (lines >= 3 ? 1 : 0))).toBeLessThan(0.05);
+    });
+  });
+}
+
+for (const fontSize of [28, 72]) {
+  test.describe(`font size ${fontSize}`, () => {
+    test.use({ viewport: { width: 1366, height: 768 } });
+
+    test("the keyboard guide never overlaps the text", async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+      await open(page, "#/recitation/1", { fontSize });
+      const gap = await page.evaluate(() => {
+        const guide = document.querySelector("[data-guide-keyboard]");
+        const lesson = document.querySelector("[data-lesson-text]");
+        const shown = guide !== null && getComputedStyle(guide).display !== "none";
+        return shown && lesson !== null
+          ? guide.getBoundingClientRect().top - lesson.getBoundingClientRect().bottom
+          : null;
+      });
+      expect(gap === null || gap >= 32 - 1).toBe(true);
+    });
+  });
+}
 
 test.describe("the stage", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
