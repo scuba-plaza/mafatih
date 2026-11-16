@@ -688,11 +688,10 @@ test("typed letters are really drawn darker than the letters still to be typed, 
   });
   expect(typed).toBeDefined();
   expect(untyped).toBeDefined();
-  const typedBrightness = await brightestPixel(page, await page.screenshot({ clip: typed }));
-  const untypedBrightness = await brightestPixel(page, await page.screenshot({ clip: untyped }));
-  expect(typedBrightness).toBeGreaterThan(70);
-  expect(typedBrightness).toBeLessThan(120);
-  expect(untypedBrightness).toBeGreaterThan(130);
+  const brightnessOf = async (clip: typeof typed) => brightestPixel(page, await page.screenshot({ clip }));
+  await expect.poll(() => brightnessOf(typed), { timeout: 5000 }).toBeLessThan(120);
+  expect(await brightnessOf(typed)).toBeGreaterThan(70);
+  expect(await brightnessOf(untyped)).toBeGreaterThan(130);
 });
 
 test("a quiet line under the text shows speed, accuracy, mistakes and time on a wide screen", async ({
