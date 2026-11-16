@@ -135,6 +135,8 @@
 
 ### Task 5: Spacing
 
+> Reverted after review: the user preferred the keyboard guide's original spacing, so none of this task remains in the code, tests or `TECHNICAL.md`.
+
 **Files:**
 - Modify: `src/keyboard/GuideKeyboard.tsx`, `e2e/guide.spec.ts`
 

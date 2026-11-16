@@ -103,18 +103,6 @@ test.describe("with a wide screen and a mouse", () => {
     await expect.poll(() => dueKeys(page), { timeout: 6000 }).toEqual(["KeyF"]);
   });
 
-  test("there is room between the text and the keyboard, and between the keyboard and the finger hint", async ({
-    page,
-  }) => {
-    await start(page, { customText: "بتن" });
-    const text = await page.locator("[data-lesson-text]").boundingBox();
-    const keyboard = await guide(page).boundingBox();
-    const space = await guide(page).locator('[data-key="Space"]').boundingBox();
-    const hint = await guide(page).getByText("Left index finger").boundingBox();
-    expect((keyboard?.y ?? 0) - ((text?.y ?? 0) + (text?.height ?? 0))).toBeGreaterThanOrEqual(36);
-    expect((hint?.y ?? 0) - ((space?.y ?? 0) + (space?.height ?? 0))).toBeGreaterThanOrEqual(12);
-  });
-
   test("the space bar names the layout the guide follows, in English and in Arabic", async ({ page }) => {
     await start(page, { customText: "بتن" });
     await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic (101)");

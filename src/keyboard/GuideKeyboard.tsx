@@ -113,7 +113,7 @@ export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delaye
       aria-hidden="true"
       dir="ltr"
       data-guide-keyboard=""
-      className="mx-auto mt-6 hidden w-[660px] max-w-full select-none flex-col md:pointer-fine:flex"
+      className="mx-auto hidden w-[660px] max-w-full select-none flex-col md:pointer-fine:flex"
     >
       {ROWS.map((row) => (
         <div key={row.slots[0]?.code} className="flex" style={{ paddingLeft: row.lead * KEY_PX }}>
@@ -131,7 +131,7 @@ export function GuideKeyboard({ session, options, fingerGuide, keyLabels, delaye
           ))}
         </div>
       ))}
-      {fingerGuide && <p className="mt-3 h-6 text-center text-sm text-muted">{caption}</p>}
+      {fingerGuide && <p className="h-6 text-center text-sm text-muted">{caption}</p>}
     </div>
   );
 }
