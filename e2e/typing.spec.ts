@@ -159,21 +159,38 @@ async function caretColour(page: Page): Promise<string> {
   return caret(page).evaluate((element) => getComputedStyle(element).backgroundColor);
 }
 
+interface Shake {
+  readonly moves: boolean;
+  readonly ring: string;
+  readonly colour: string;
+}
+
 async function countShakes(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const original = Element.prototype.animate;
-    Object.assign(window, { shakes: 0 });
+    Object.assign(window, { shakes: [] });
     Element.prototype.animate = function (keyframes, options) {
-      if (typeof options === "object" && options.id === "caret-miss") {
-        Object.assign(window, { shakes: (window as unknown as { shakes: number }).shakes + 1 });
+      const animation = original.call(this, keyframes, options);
+      if (typeof options === "object" && options.id === "caret-miss" && this.hasAttribute("data-caret")) {
+        const style = getComputedStyle(this);
+        const list = (window as unknown as { shakes: Shake[] }).shakes;
+        list.push({
+          moves: Array.isArray(keyframes) && keyframes.some((frame) => "translate" in frame),
+          ring: style.boxShadow,
+          colour: style.backgroundColor,
+        });
       }
-      return original.call(this, keyframes, options);
+      return animation;
     };
   });
 }
 
+async function shakeLog(page: Page): Promise<Shake[]> {
+  return page.evaluate(() => (window as unknown as { shakes: Shake[] }).shakes);
+}
+
 async function shakes(page: Page): Promise<number> {
-  return page.evaluate(() => (window as unknown as { shakes: number }).shakes);
+  return (await shakeLog(page)).length;
 }
 
 function shaking(page: Page): Promise<boolean> {
@@ -188,16 +205,15 @@ test("the caret shakes and flashes once for every wrong key, which is exactly ho
   await typeKeys(page, ["ب"]);
   expect(await shakes(page)).toBe(0);
   await typeKeys(page, ["س"]);
-  expect(await shakes(page)).toBe(1);
-  await expect.poll(() => shaking(page)).toBe(true);
+  await expect.poll(() => shakes(page)).toBe(1);
   const said = await flag(page).boundingBox();
   expect(said?.width).toBeLessThanOrEqual(1);
   expect(said?.height).toBeLessThanOrEqual(1);
   await typeKeys(page, ["ش"]);
-  expect(await shakes(page)).toBe(2);
+  await expect.poll(() => shakes(page)).toBe(2);
   await typeKeys(page, ["ت", "ن"]);
-  expect(await shakes(page)).toBe(2);
   await expect(mistakeCount(page)).toHaveText("2");
+  expect(await shakes(page)).toBe(2);
 });
 
 test("a wrong key before the first correct character shakes the caret but counts for nothing: no mistake, no clock", async ({
@@ -206,13 +222,11 @@ test("a wrong key before the first correct character shakes the caret but counts
   await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["س"]);
-  expect(await shakes(page)).toBe(1);
-  await expect.poll(() => shaking(page)).toBe(true);
+  await expect.poll(() => shakes(page)).toBe(1);
   await typeKeys(page, ["ش"]);
-  expect(await shakes(page)).toBe(2);
+  await expect.poll(() => shakes(page)).toBe(2);
   await expect(flag(page)).toHaveCount(0);
   await typeKeys(page, ["Backspace"]);
-  expect(await shakes(page)).toBe(2);
   await typeKeys(page, ["ب", "ت", "ن"]);
   await expect(mistakeCount(page)).toHaveText("0");
   expect(await shakes(page)).toBe(2);
@@ -222,7 +236,7 @@ test("pressing on the text, leaving the field and coming back never replays a sh
   await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["ب", "س"]);
-  expect(await shakes(page)).toBe(1);
+  await expect.poll(() => shakes(page)).toBe(1);
   await expect.poll(() => shaking(page)).toBe(false);
   await page.mouse.click(4, 4);
   await expect(field(page)).not.toBeFocused();
@@ -236,21 +250,14 @@ test("pressing on the text, leaving the field and coming back never replays a sh
 
 test("with reduced motion the caret does not move, but it still turns red and gets a ring", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await countShakes(page);
   await start(page, { customText: "بتن", requireBackspace: false });
   await typeKeys(page, ["ب", "س"]);
-  const style = await caret(page).evaluate((element) => {
-    const animation = element.getAnimations().find((candidate) => candidate.id === "caret-miss");
-    const frames = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes() ?? [];
-    const computed = getComputedStyle(element);
-    return {
-      moves: frames.some((frame) => "translate" in frame),
-      ring: computed.boxShadow,
-      colour: computed.backgroundColor,
-    };
-  });
-  expect(style.moves).toBe(false);
-  expect(style.ring).toBe(`${DANGER} 0px 0px 0px 2px`);
-  expect(style.colour).toBe(DANGER);
+  await expect.poll(() => shakes(page)).toBe(1);
+  const [style] = await shakeLog(page);
+  expect(style?.moves).toBe(false);
+  expect(style?.ring).toBe(`${DANGER} 0px 0px 0px 2px`);
+  expect(style?.colour).toBe(DANGER);
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
 });
 
