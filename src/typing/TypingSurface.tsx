@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useChrome } from "~/app/useChrome.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GUIDE_QUERY, GuideKeyboard, guideHeight } from "~/keyboard/GuideKeyboard.tsx";
 import { useLayoutName } from "~/keyboard/useLayoutName.ts";
@@ -10,7 +11,7 @@ import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
-import { caretRow, caretScrollTop, OVERFLOW_TOLERANCE, wholeLines } from "./stage.ts";
+import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, wholeLines } from "./stage.ts";
 import { useStageFit } from "./useStageFit.ts";
 import type { Trainer } from "./useTrainer.ts";
 
@@ -169,10 +170,12 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const nextWordId = useId();
   const [scrollable, setScrollable] = useState(false);
   const wantsGuide = useMediaQuery(GUIDE_QUERY) && settings.showKeyboard;
+  const textOnly = useChrome().chrome === "text-only";
   const { showGuide, windowHeight } = useStageFit(
     { stage: stageRef, section: sectionRef, text: textRef, guide: guideRef },
     wantsGuide,
     guideHeight(settings.fingerGuide),
+    textOnly ? 1 : MIN_WINDOW_LINES,
   );
   const scrollRegion = scrollable
     ? ({ tabIndex: 0, role: "group", "aria-label": t("typing.scrollable") } as const)
@@ -325,7 +328,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         ref={sectionRef}
         aria-label={t("typing.text")}
         data-typing-surface=""
-        className="relative flex min-h-[calc(4em+0.75rem)] cursor-text flex-col"
+        className={`relative flex cursor-text flex-col ${textOnly ? "min-h-[calc(2em+0.75rem)]" : "min-h-[calc(4em+0.75rem)]"}`}
         style={{ fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))` }}
       >
         <div

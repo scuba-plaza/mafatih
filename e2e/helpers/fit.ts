@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { surface } from "./typing.ts";
 
 export interface OneScreen {
   readonly header: boolean;
@@ -96,4 +97,13 @@ export async function expectOneScreen(page: Page, expected: OneScreen): Promise<
     });
     expect(uncovered, "nothing covers the play button").toBe(true);
   }
+}
+
+export async function openSoftKeyboard(page: Page, share: number): Promise<void> {
+  const size = page.viewportSize();
+  if (size === null) {
+    throw new Error("the page has no viewport to shrink");
+  }
+  await surface(page).click();
+  await page.setViewportSize({ width: size.width, height: Math.round(size.height * (1 - share)) });
 }

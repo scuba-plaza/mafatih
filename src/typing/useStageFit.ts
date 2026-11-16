@@ -22,7 +22,7 @@ function visibleHeight(element: Element): number {
   return getComputedStyle(element).display === "none" ? 0 : element.getBoundingClientRect().height;
 }
 
-function planOf(parts: StageParts, wanted: boolean, guide: number): StageFit | null {
+function planOf(parts: StageParts, wanted: boolean, guide: number, minLines: number): StageFit | null {
   const stage = parts.stage.current;
   const section = parts.section.current;
   const text = parts.text.current;
@@ -44,17 +44,17 @@ function planOf(parts: StageParts, wanted: boolean, guide: number): StageFit | n
   if (text.scrollHeight <= available + OVERFLOW_TOLERANCE) {
     return { showGuide, windowHeight: null };
   }
-  const lines = Math.max(MIN_WINDOW_LINES, wholeLines(available, lineHeight, padTop));
+  const lines = Math.max(minLines, wholeLines(available, lineHeight, padTop));
   return { showGuide, windowHeight: windowHeight(lines, lineHeight, padTop) };
 }
 
-export function useStageFit(parts: StageParts, wanted: boolean, guide: number): StageFit {
+export function useStageFit(parts: StageParts, wanted: boolean, guide: number, minLines = MIN_WINDOW_LINES): StageFit {
   const [fit, setFit] = useState<StageFit>({ showGuide: wanted, windowHeight: null });
   const measureRef = useRef<() => void>(() => undefined);
 
   useLayoutEffect(() => {
     measureRef.current = () => {
-      const next = planOf(parts, wanted, guide);
+      const next = planOf(parts, wanted, guide, minLines);
       if (next !== null) {
         setFit((previous) =>
           previous.showGuide === next.showGuide && previous.windowHeight === next.windowHeight ? previous : next,

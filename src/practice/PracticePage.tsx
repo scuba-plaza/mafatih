@@ -80,7 +80,7 @@ export function PracticePage() {
       <div>
         <PageHeading>{t("nav.practice")}</PageHeading>
         <p className="text-sm text-muted">{t("practice.subtitle")}</p>
-        <p role="status" className="min-h-5 text-sm text-muted">
+        <p role="status" className="text-sm text-muted empty:hidden">
           {words === null && !failed ? t("practice.loading") : ""}
         </p>
       </div>

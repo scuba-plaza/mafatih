@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
-import { expectOneScreen } from "./helpers/fit.ts";
+import { expectOneScreen, openSoftKeyboard } from "./helpers/fit.ts";
+import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
@@ -80,6 +81,108 @@ for (const size of AT_REST) {
     }
   });
 }
+
+interface Keyboard {
+  readonly name: string;
+  readonly width: number;
+  readonly height: number;
+  readonly share: number;
+  readonly apple: boolean;
+}
+
+const KEYBOARD_UP: readonly Keyboard[] = [
+  { name: "iPhone 12 mini", width: 375, height: 812, share: 0.38, apple: true },
+  { name: "iPhone SE", width: 375, height: 667, share: 0.38, apple: true },
+  { name: "Pixel 7", width: 412, height: 915, share: 0.3, apple: false },
+];
+
+const APPLE_BAR = 64;
+
+for (const phone of KEYBOARD_UP) {
+  test.describe(`${phone.name} with the keyboard up`, () => {
+    test.use({ viewport: { width: phone.width, height: phone.height }, hasTouch: true, isMobile: true });
+
+    for (const entry of ENTRIES) {
+      test(`fits one screen with the keyboard up: ${entry.name} on ${phone.name}`, async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the matrix sets its own viewport and touch");
+        if (phone.apple) {
+          await emulatePlatform(page, "iphone");
+        }
+        await open(page, entry.hash, entry.settings);
+        await openSoftKeyboard(page, phone.share);
+        await expect(page.locator("header > div")).toBeHidden();
+        await expectOneScreen(page, {
+          header: false,
+          player: entry.player,
+          guide: false,
+          tabBar: false,
+          reserve: phone.apple ? APPLE_BAR : 0,
+        });
+      });
+    }
+  });
+}
+
+test.describe("an iPad with the keyboard up", () => {
+  test.use({ viewport: { width: 820, height: 1180 }, hasTouch: true });
+
+  test("keeps the header", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+    await open(page, "#/recitation/1");
+    await openSoftKeyboard(page, 0.3);
+    await expect(page.locator("header > div")).toBeVisible();
+    await expectOneScreen(page, { header: true, player: true, guide: false });
+  });
+});
+
+test.describe("a landscape phone with the keyboard up", () => {
+  test.use({ viewport: { width: 812, height: 375 }, hasTouch: true, isMobile: true });
+
+  test("shows only the text", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+    await emulatePlatform(page, "iphone");
+    await open(page, "#/recitation/1");
+    await openSoftKeyboard(page, 0.43);
+    await expect(page.getByRole("button", { name: "Previous passage" })).toBeHidden();
+    await expect(page.getByRole("group", { name: "Passage" })).toBeHidden();
+    await expect(page.locator("[data-live-stats]")).toHaveCount(0);
+    const room = await lessonWindow(page).evaluate((element) => {
+      const style = getComputedStyle(element);
+      return element.clientHeight - Number.parseFloat(style.paddingTop) - Number.parseFloat(style.lineHeight);
+    });
+    expect(room).toBeGreaterThanOrEqual(-1);
+    await expectOneScreen(page, { header: false, player: false, guide: false, tabBar: false, reserve: APPLE_BAR });
+  });
+});
+
+test.describe("phones when the keyboard goes away", () => {
+  test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
+
+  test("the header comes back", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+    await open(page, "#/recitation/1");
+    await openSoftKeyboard(page, 0.38);
+    await expect(page.locator("header > div")).toBeHidden();
+    await page.setViewportSize({ width: 375, height: 667 });
+    await expect(page.locator("header > div")).toBeVisible();
+  });
+
+  test("Settings opened on a phone is never hidden under a collapsed header", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+    await open(page, "#/recitation/1");
+    await page.getByRole("button", { name: "Settings" }).click();
+    const dialog = page.getByRole("dialog", { name: "Settings" });
+    await expect(dialog).toBeVisible();
+    const field = dialog.locator("input").first();
+    await field.focus();
+    await expect(field).toBeFocused();
+    await page.setViewportSize({ width: 375, height: 413 });
+    await expect(page.locator("[data-tabbar]")).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await expect(field).toBeFocused();
+    await expect(page.locator("header > div")).toBeVisible();
+  });
+});
 
 test.describe("long passages", () => {
   test.use({ viewport: { width: 1366, height: 768 } });
