@@ -199,6 +199,21 @@ test("the ayah being recited is marked in the text by colour and by background, 
   await expect.poll(() => playingSpan(page)).toHaveLength(0);
 });
 
+test("pressing the audio buttons keeps the field focused and the text sharp", async ({ page }) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  await startTyping(page);
+  const field = page.getByRole("textbox", { name: "Type the text shown" });
+  const text = surface(page).locator("[data-lesson-text]");
+  await expect(field).toBeFocused();
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(field).toBeFocused();
+  await expect(text).toHaveCSS("filter", "none");
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(field).toBeFocused();
+  await expect(text).toHaveCSS("filter", "none");
+});
+
 test("each ayah is fetched once: after a reload only the saved copy can supply it", async ({ page }) => {
   const { requests } = await mockAudio(page, SHORT);
   const count = (file: string) => requests.filter((name) => name === file).length;

@@ -45,6 +45,8 @@ export const en = {
   "live.speed": "{value} cpm",
   "live.errors": "Errors {value}",
   "typing.start": "Start typing",
+  "typing.activate": "Click or press Enter to activate…",
+  "typing.activateTouch": "Tap to activate…",
   "typing.mistake": "Mistake.",
   "typing.mistakeBackspace": "Mistake. Press Backspace.",
   "typing.wrongLayout": "Your keyboard is not typing Arabic. Switch it to the Arabic layout.",

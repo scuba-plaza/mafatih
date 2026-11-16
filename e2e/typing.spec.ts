@@ -45,6 +45,10 @@ function lessonText(page: Page) {
   return surface(page).locator("[data-lesson-text]");
 }
 
+function activateButton(page: Page, name = "Click or press Enter to activate…") {
+  return surface(page).getByRole("button", { name });
+}
+
 async function caretBox(page: Page): Promise<{ x: number; y: number; height: number }> {
   const box = await surface(page).locator("[data-caret]").boundingBox();
   return { x: box?.x ?? Number.NaN, y: box?.y ?? Number.NaN, height: box?.height ?? 0 };
@@ -347,6 +351,69 @@ test("there is no start button: clicking the text starts typing", async ({ page 
   await expect(field(page)).toBeFocused();
   await typeKeys(page, ["ب"]);
   expect(await doneText(page)).toBe("ب");
+});
+
+test("while the text is not focused it is blurred and a button offers to activate it", async ({ page, isMobile }) => {
+  test.skip(isMobile, "phones are told to tap");
+  await open(page, { customText: "بتن" });
+  await expect(activateButton(page)).toBeVisible();
+  await expect(lessonText(page)).toHaveCSS("filter", /blur\(6px\)/);
+  await startTyping(page);
+  await expect(field(page)).toBeFocused();
+  await expect(activateButton(page)).toHaveCount(0);
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+});
+
+test("on a phone the button tells the learner to tap", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "only phones are told to tap");
+  await open(page, { customText: "بتن" });
+  await expect(activateButton(page, "Tap to activate…")).toBeVisible();
+  await expect(lessonText(page)).toHaveCSS("filter", /blur\(6px\)/);
+});
+
+test("clicking the button, clicking the text and pressing Enter each activate the lesson", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Enter needs a hardware keyboard");
+  await open(page, { customText: "بتن" });
+  await activateButton(page).click();
+  await expect(field(page)).toBeFocused();
+  await page.reload();
+  await expect(surface(page)).toBeVisible();
+  await lessonText(page).click({ position: { x: 12, y: 12 } });
+  await expect(field(page)).toBeFocused();
+  await page.reload();
+  await expect(surface(page)).toBeVisible();
+  await page.getByRole("heading", { level: 1 }).focus();
+  await page.keyboard.press("Enter");
+  await expect(field(page)).toBeFocused();
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe("ب");
+});
+
+test("Enter on a control is left to that control and does not activate the lesson", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Enter needs a hardware keyboard");
+  await open(page, { customText: "بتن" });
+  await page.getByRole("button", { name: "Settings" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+  await expect(field(page)).not.toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeHidden();
+  await expect(field(page)).not.toBeFocused();
+});
+
+test("leaving the field blurs the text again, and a finished lesson is never blurred", async ({ page }) => {
+  await start(page, { customText: "بت" });
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+  await page.mouse.click(4, 4);
+  await expect(field(page)).not.toBeFocused();
+  await expect(lessonText(page)).toHaveCSS("filter", /blur\(6px\)/);
+  await startTyping(page);
+  await typeKeys(page, ["ب", "ت"]);
+  await expect(finished(page)).toBeVisible();
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
 });
 
 test("the text can be reached with Tab and left with Tab, and no ring is drawn around it", async ({ page }) => {

@@ -5,6 +5,7 @@ import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
+import { activatesOnEnter, isOnControl } from "./activation.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import type { Trainer } from "./useTrainer.ts";
@@ -169,6 +170,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const current = cursorBlock(blocks, doneUntil);
   const family = FONTS.find((candidate) => candidate.id === font) ?? FONTS[0];
   const flagged = options.requireBackspace ? mistakes !== "" : session.missed;
+  const paused = !focused && !complete;
 
   useEffect(() => {
     loadFont(family);
@@ -260,6 +262,29 @@ export function TypingSurface(props: TypingSurfaceProps) {
     return () => section?.removeEventListener("click", focus);
   }, [focus]);
 
+  useEffect(() => {
+    if (!paused) {
+      return;
+    }
+    const activate = (event: KeyboardEvent) => {
+      const pressed = {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        altKey: event.altKey,
+        repeat: event.repeat,
+        isComposing: event.isComposing,
+        onControl: isOnControl(event.target),
+      };
+      if (activatesOnEnter(pressed)) {
+        event.preventDefault();
+        focus();
+      }
+    };
+    document.addEventListener("keydown", activate);
+    return () => document.removeEventListener("keydown", activate);
+  }, [paused, focus]);
+
   return (
     <>
       <section ref={sectionRef} aria-label={t("typing.text")} data-typing-surface="" className="relative cursor-text">
@@ -269,7 +294,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className="relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere"
+          className={`relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere${paused ? " blur-[6px]" : ""}`}
           style={{
             fontFamily: `"${family.family}", serif`,
             fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
@@ -303,6 +328,15 @@ export function TypingSurface(props: TypingSurfaceProps) {
             hidden
           />
         </div>
+        {paused && (
+          <button
+            type="button"
+            className="absolute top-1/2 left-1/2 z-10 min-h-11 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink"
+          >
+            <span className="pointer-coarse:hidden">{t("typing.activate")}</span>
+            <span className="hidden pointer-coarse:inline">{t("typing.activateTouch")}</span>
+          </button>
+        )}
         <p role="status" className="sr-only">
           {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
         </p>

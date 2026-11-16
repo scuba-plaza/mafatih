@@ -46,6 +46,8 @@ export const ar: Record<MessageKey, string> = {
   "live.speed": "{value} حرف/د",
   "live.errors": "الأخطاء {value}",
   "typing.start": "ابدأ الكتابة",
+  "typing.activate": "انقر أو اضغط مفتاح الإدخال للتفعيل…",
+  "typing.activateTouch": "المس للتفعيل…",
   "typing.mistake": "خطأ.",
   "typing.mistakeBackspace": "خطأ. اضغط مفتاح الحذف الخلفي.",
   "typing.wrongLayout": "لوحة مفاتيحك لا تكتب بالعربية. بدّلها إلى التخطيط العربي.",
