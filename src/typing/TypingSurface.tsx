@@ -340,7 +340,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className={`relative min-h-0 ${scrollable ? "overflow-y-auto" : "overflow-y-clip"} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere select-none${paused ? " blur-[6px]" : ""}`}
+          className={`relative min-h-0 ${scrollable ? "overflow-y-auto" : "overflow-y-clip"} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere${paused ? " blur-[6px]" : ""}`}
           style={{ fontFamily: `"${family.family}", serif`, height: windowHeight ?? undefined }}
         >
           {blocks.map((block, index) => (

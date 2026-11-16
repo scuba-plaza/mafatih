@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
-import { clearlyDifferentPixels } from "./helpers/pixels.ts";
+import { brightestPixel, clearlyDifferentPixels } from "./helpers/pixels.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
@@ -666,6 +666,33 @@ test("text still to be typed is a little brighter than text already typed, and b
     (element) => getComputedStyle(element, "::highlight(mafatih-done)").color,
   );
   expect(typed).toBe("rgb(91, 93, 97)");
+});
+
+test("typed letters are really drawn darker than the letters still to be typed, in every engine", async ({ page }) => {
+  await start(page, { customText: "بتن كتب" });
+  await typeKeys(page, ["ب", "ت", "ن"]);
+  await addStyle(page, "[data-caret]{visibility:hidden}");
+  const [typed, untyped] = await lessonText(page).evaluate((element) => {
+    const node = element.querySelector("[data-block]")?.firstChild;
+    if (node === null || node === undefined) {
+      return [];
+    }
+    const middle = (from: number, to: number) => {
+      const range = document.createRange();
+      range.setStart(node, from);
+      range.setEnd(node, to);
+      const box = range.getBoundingClientRect();
+      return { x: box.x + box.width / 4, y: box.y + box.height * 0.3, width: box.width / 2, height: box.height * 0.4 };
+    };
+    return [middle(0, 3), middle(4, node.textContent?.length ?? 4)];
+  });
+  expect(typed).toBeDefined();
+  expect(untyped).toBeDefined();
+  const typedBrightness = await brightestPixel(page, await page.screenshot({ clip: typed }));
+  const untypedBrightness = await brightestPixel(page, await page.screenshot({ clip: untyped }));
+  expect(typedBrightness).toBeGreaterThan(70);
+  expect(typedBrightness).toBeLessThan(120);
+  expect(untypedBrightness).toBeGreaterThan(130);
 });
 
 test("a quiet line under the text shows speed, accuracy, mistakes and time on a wide screen", async ({
