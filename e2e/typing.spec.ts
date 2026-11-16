@@ -474,6 +474,18 @@ test("the text can be reached with Tab and left with Tab, and no ring is drawn a
   await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
 });
 
+test("a passage only a few pixels taller than its box is not a scroll region", async ({ page }) => {
+  await seedSettings(page, { language: "en" });
+  await page.goto("/#/recitation/1");
+  await expect(surface(page)).toBeVisible();
+  await addStyle(page, "[data-lesson-text] p:last-of-type{margin-bottom:-8px}");
+  await startTyping(page);
+  await typeKeys(page, ["ب"]);
+  const overflow = await lessonText(page).evaluate((element) => element.scrollHeight - element.clientHeight);
+  expect(overflow).toBeGreaterThan(2);
+  await expect(page.getByRole("group", { name: "Scrollable text" })).toHaveCount(0);
+});
+
 test("the caret is only shown while the text is focused", async ({ page }) => {
   await open(page, { customText: "بتن" });
   const caret = surface(page).locator("[data-caret]");

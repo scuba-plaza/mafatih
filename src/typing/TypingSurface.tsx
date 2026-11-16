@@ -226,7 +226,9 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
-      setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
+      const limit = Number.parseFloat(getComputedStyle(container).maxHeight);
+      const clipped = Number.isFinite(limit) && container.clientHeight >= limit - 1;
+      setScrollable(clipped && container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = !focused || rect === undefined;
       if (rect === undefined) {
