@@ -259,7 +259,7 @@ test("Unlock all letters asks first, then unlocks every letter and leaves the ma
   await expect(keep).toBeFocused();
   await keep.click();
   await expect(group).toHaveCount(0);
-  expect((await savedProfile(page)).ladder).toEqual({ unlocked: 10 });
+  await expect(hud(page).getByText("10 of 44")).toBeVisible();
   await dialog.getByRole("button", { name: "Unlock all letters" }).click();
   await dialog
     .getByRole("group", { name: "Unlock all letters?" })

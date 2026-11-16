@@ -90,6 +90,13 @@ export const en = {
   "settings.resetConfirm": "Reset",
   "settings.keepProgress": "Keep my progress",
   "settings.resetDone": "Progress was reset.",
+  "settings.unlockLetters": "Unlock all letters",
+  "settings.unlockQuestion": "Unlock all letters?",
+  "settings.unlockWarning":
+    "Practice will use every letter from now on. Marks stay locked. Reset progress takes you back to the start.",
+  "settings.unlockKeep": "Not now",
+  "settings.unlockConfirm": "Unlock",
+  "settings.unlockDone": "All letters are unlocked.",
   "backup.title": "Backup and restore",
   "backup.hint":
     "Save your progress and settings to a file, or bring them back from one. Nothing leaves this device unless you send the file yourself.",

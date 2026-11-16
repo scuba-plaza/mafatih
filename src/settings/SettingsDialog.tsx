@@ -13,6 +13,7 @@ import { Switch } from "~/ui/Switch.tsx";
 import { clampFontSize, FONT_SIZES, FONTS, type FontId, loadFont } from "./fonts.ts";
 import { ResetProgress } from "./ResetProgress.tsx";
 import type { Settings } from "./settings.ts";
+import { UnlockLetters } from "./UnlockLetters.tsx";
 
 const LANGUAGES = [
   { value: "en", label: "English", lang: "en" },
@@ -141,6 +142,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       <RecitationSettings settings={settings} change={change} />
       <AudioSettings settings={settings} change={change} />
       <BackupRestore />
+      <UnlockLetters />
       <ResetProgress />
       <a
         href={formatRoute({ page: "about" })}

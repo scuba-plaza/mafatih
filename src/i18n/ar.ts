@@ -89,6 +89,13 @@ export const ar: Record<MessageKey, string> = {
   "settings.resetConfirm": "إعادة الضبط",
   "settings.keepProgress": "أبقِ تقدّمي",
   "settings.resetDone": "أُعيد ضبط التقدم.",
+  "settings.unlockLetters": "فتح كل الحروف",
+  "settings.unlockQuestion": "فتح كل الحروف؟",
+  "settings.unlockWarning":
+    "سيستخدم التمرين كل الحروف من الآن. تبقى الحركات مقفلة. إعادة ضبط التقدم تعيدك إلى البداية.",
+  "settings.unlockKeep": "ليس الآن",
+  "settings.unlockConfirm": "افتح",
+  "settings.unlockDone": "تم فتح كل الحروف.",
   "backup.title": "النسخ الاحتياطي والاستعادة",
   "backup.hint": "احفظ تقدمك وإعداداتك في ملف، أو استعدها من ملف. لا يغادر شيء هذا الجهاز ما لم ترسل الملف بنفسك.",
   "backup.download": "تنزيل نسخة احتياطية",
