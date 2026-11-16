@@ -343,6 +343,27 @@ test.describe("after the text re-wraps while the field is not focused", () => {
   });
 });
 
+test.describe("a stylesheet that arrives late", () => {
+  test.use({ viewport: { width: 320, height: 568 } });
+
+  for (const fontSize of [28, 72]) {
+    test(`does not crash the page at font size ${fontSize}`, async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== DESKTOP_PROJECT && testInfo.project.name !== "webkit", "engines share this");
+      await page.route("**/*.css", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await route.continue();
+      });
+      await seedSettings(page, { customText: CUSTOM_TEXT, fontSize });
+      await page.goto("/#/custom");
+      await expect(lessonWindow(page)).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText("Something went wrong")).toHaveCount(0);
+      await expect
+        .poll(() => lessonWindow(page).evaluate((element) => Number.parseFloat(getComputedStyle(element).lineHeight)))
+        .toBeGreaterThan(20);
+    });
+  }
+});
+
 test.describe("the stage", () => {
   test.use({ viewport: { width: 1920, height: 1080 } });
 

@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { fitsGuide, OVERFLOW_TOLERANCE, wholeLines, windowHeight } from "./stage.ts";
+import { fitsGuide, OVERFLOW_TOLERANCE, toPixels, wholeLines, windowHeight } from "./stage.ts";
 
 export interface StageFit {
   readonly showGuide: boolean;
@@ -17,11 +17,6 @@ export interface StageParts {
   readonly guide: RefObject<HTMLElement | null>;
 }
 
-function pixels(value: string): number {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function visibleHeight(element: Element): number {
   return getComputedStyle(element).display === "none" ? 0 : element.getBoundingClientRect().height;
 }
@@ -34,11 +29,14 @@ function planOf(parts: StageParts, wanted: boolean, guide: number, minLines: num
     return null;
   }
   const textStyle = getComputedStyle(text);
-  const lineHeight = pixels(textStyle.lineHeight);
-  const padTop = pixels(textStyle.paddingTop);
-  const rowGap = pixels(getComputedStyle(stage).rowGap);
+  const lineHeight = toPixels(textStyle.lineHeight);
+  if (lineHeight <= 0) {
+    return null;
+  }
+  const padTop = toPixels(textStyle.paddingTop);
+  const rowGap = toPixels(getComputedStyle(stage).rowGap);
   const guideElement = parts.guide.current;
-  const gapAboveGuide = rowGap + (guideElement === null ? 0 : pixels(getComputedStyle(guideElement).marginTop));
+  const gapAboveGuide = rowGap + (guideElement === null ? 0 : toPixels(getComputedStyle(guideElement).marginTop));
   const below = [...stage.children]
     .filter((child) => child !== section && child !== guideElement)
     .reduce((sum, child) => sum + (visibleHeight(child) > 0 ? visibleHeight(child) + rowGap : 0), 0);
@@ -91,10 +89,12 @@ export function useStageFit(
     observer.observe(stage);
     document.fonts.addEventListener("loadingdone", measure);
     window.addEventListener("resize", measure);
+    window.addEventListener("load", measure);
     return () => {
       observer.disconnect();
       document.fonts.removeEventListener("loadingdone", measure);
       window.removeEventListener("resize", measure);
+      window.removeEventListener("load", measure);
     };
   }, [parts.stage]);
 

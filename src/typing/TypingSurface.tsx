@@ -12,7 +12,7 @@ import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
-import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, wholeLines } from "./stage.ts";
+import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
 import { useStageFit } from "./useStageFit.ts";
 import type { Trainer } from "./useTrainer.ts";
 
@@ -257,8 +257,8 @@ export function TypingSurface(props: TypingSurfaceProps) {
       if (focused && caretLine.current !== y) {
         const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const style = getComputedStyle(container);
-        const lineHeight = Number.parseFloat(style.lineHeight);
-        const padTop = Number.parseFloat(style.paddingTop);
+        const lineHeight = toPixels(style.lineHeight);
+        const padTop = toPixels(style.paddingTop);
         const row = caretRow(wholeLines(container.clientHeight, lineHeight, padTop));
         const top = caretScrollTop(y, rect.height, row, lineHeight, padTop);
         container.scrollIntoView({ block: "nearest" });

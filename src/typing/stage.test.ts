@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { caretRow, caretScrollTop, fitsGuide, type StageMetrics, wholeLines, windowHeight } from "./stage.ts";
+import { caretRow, caretScrollTop, fitsGuide, type StageMetrics, toPixels, wholeLines, windowHeight } from "./stage.ts";
 
 const LAPTOP: Omit<StageMetrics, "stage"> = {
   lineHeight: 80,
@@ -45,4 +45,18 @@ test("the caret line is the first row of a short window and the second row of a 
 test("the window scrolls so that the caret sits in the middle of its row", () => {
   expect(caretScrollTop(412, 56, 1, 80, 12)).toBe(308);
   expect(caretScrollTop(412, 56, 0, 80, 12)).toBe(388);
+});
+
+test("a line height that is not known yet never gives an infinite or missing number of lines", () => {
+  expect(wholeLines(100, 0, 0)).toBe(1);
+  expect(wholeLines(100, Number.NaN, 12)).toBe(1);
+  expect(wholeLines(Number.NaN, 80, 12)).toBe(1);
+  expect(wholeLines(Number.POSITIVE_INFINITY, 80, 12)).toBe(1);
+});
+
+test("a computed length that is not a number of pixels counts as zero", () => {
+  expect(toPixels("89.6px")).toBe(89.6);
+  expect(toPixels("normal")).toBe(0);
+  expect(toPixels("")).toBe(0);
+  expect(toPixels("auto")).toBe(0);
 });

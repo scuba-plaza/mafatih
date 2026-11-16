@@ -14,8 +14,14 @@ export function fitsGuide({ stage, lineHeight, padTop, gapAboveGuide, guide, bel
   return stage >= MIN_WINDOW_LINES * lineHeight + padTop + gapAboveGuide + guide + below;
 }
 
+export function toPixels(value: string): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function wholeLines(available: number, lineHeight: number, padTop: number): number {
-  return Math.max(1, Math.floor((available - padTop) / lineHeight));
+  const lines = Math.floor((available - padTop) / lineHeight);
+  return Number.isFinite(lines) ? Math.max(1, lines) : 1;
 }
 
 export function windowHeight(lines: number, lineHeight: number, padTop: number): number {
