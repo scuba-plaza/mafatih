@@ -331,6 +331,8 @@ export function TypingSurface(props: TypingSurfaceProps) {
         {paused && (
           <button
             type="button"
+            tabIndex={-1}
+            data-activate=""
             className="absolute top-1/2 left-1/2 z-10 min-h-11 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink"
           >
             <span className="pointer-coarse:hidden">{t("typing.activate")}</span>
