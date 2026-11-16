@@ -171,7 +171,7 @@ button {
 }
 
 ::highlight(mafatih-done) {
-  color: var(--color-ink);
+  color: var(--color-typed);
 }
 
 ::highlight(mafatih-apparatus) {
@@ -179,7 +179,7 @@ button {
 }
 
 ::highlight(mafatih-done-playing) {
-  color: var(--color-ink);
+  color: var(--color-typed);
 }
 
 ::highlight(mafatih-apparatus-playing) {
