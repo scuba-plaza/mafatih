@@ -39,6 +39,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | I5 | Finish a Practice lesson with the keyboard open. | The next lesson appears and the keyboard stays open (the input is never disabled; a finished lesson only takes it out of the Tab order and the session ignores its keys). | |
 | I6 | Download a backup and restore it through the file picker. | Both work; the file opens from Files. | |
 | I7 | Optional (the site is not an offline app): add the site to the home screen. | The icon, the name and the colours are right; it opens without the browser bar. | |
+| I8 | Open a passage, tap the text so the keyboard opens, in portrait. Repeat on Practice. | The top bar is hidden, the page does not scroll, and the player sits fully above the floating `^ v ✓` bar. If the bar still covers the player, change `IOS_BAR_PX` in `src/app/screen.ts`. The text shows whole lines only. | |
 
 ## Android Chrome with Gboard
 
@@ -48,6 +49,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | G2 | Type by swiping across the keys. | The swipe is ignored (or refused gently); no wrong word is accepted. | |
 | G3 | Long-press for marks, and use the Backspace key. | Same results as I2 and I3. | |
 | G4 | Finish a Practice lesson with the keyboard open. | Same as I5. | |
+| G5 | Open a passage, tap the text so the keyboard opens, in portrait. | The top bar is hidden, the page does not scroll and the player is fully visible above the keyboard. | |
 
 ## iPad with a hardware keyboard
 
