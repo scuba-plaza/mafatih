@@ -1,3 +1,5 @@
+export const MAC_LAYOUT_NAME = "Arabic – PC";
+
 export interface KeyCap {
   readonly code: string;
   readonly base: string;

@@ -252,6 +252,7 @@ function installToolkit(): void {
           shown(element) &&
           !("disabled" in element && element.disabled === true) &&
           !element.closest("[inert]") &&
+          !element.hasAttribute("data-activate") &&
           !isTypingInput(element),
       );
       const checkedGroups = new Set(

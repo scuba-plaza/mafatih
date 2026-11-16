@@ -19,7 +19,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. It has two 
 - **Practice:** a ladder of 44 keys (36 letters and 8 marks), a short readout of what you are working on, and lessons of everyday words built for the keys you have unlocked.
 - **Custom:** paste any Arabic text (up to 5,000 characters) and type it.
 - **Stats:** time per key, how often you were right first time and the attempts, for each mode, and your last ten lessons.
-- **Settings:** English or Arabic interface, how many marks you are asked to type (auto, letters only, harakat, full), whether mistakes stay until you press Backspace, three Arabic fonts, text size, an on-screen keyboard that shows the next key and the finger to use (on wide screens with a mouse or trackpad), backup and restore of your progress as a file, and reset.
+- **Settings:** English or Arabic interface, how many marks you are asked to type (auto, letters only, harakat, full), whether mistakes stay until you press Backspace, three Arabic fonts, text size, an on-screen keyboard that shows the next key and the finger to use, with optional blank keys and a hint that appears after a pause (on wide screens with a mouse or trackpad), unlocking every letter in Practice at once, backup and restore of your progress as a file, and reset.
 
 ## Sharing a link in Arabic
 
@@ -27,7 +27,7 @@ Add `?lang=ar` to the address, for example `https://example.com/?lang=ar`, and t
 
 ## Before you start
 
-Mafatih uses the **Arabic (101)** keyboard layout, the standard Arabic keyboard on Windows. Add it in your system's language settings and switch to it before typing. If your keyboard types Latin letters, Mafatih says so. On a phone or tablet, use the Arabic keyboard that comes with the device.
+Mafatih uses the **Arabic (101)** keyboard layout, the standard Arabic keyboard on Windows (on a Mac it is called **Arabic – PC**). Add it in your system's language settings and switch to it before typing. If your keyboard types Latin letters, Mafatih says so. On a phone or tablet, use the Arabic keyboard that comes with the device.
 
 ## Your data
 

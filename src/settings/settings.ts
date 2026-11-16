@@ -14,6 +14,8 @@ export interface Settings {
   readonly requireBackspace: boolean;
   readonly showKeyboard: boolean;
   readonly fingerGuide: boolean;
+  readonly keyLabels: boolean;
+  readonly delayedHint: boolean;
   readonly customText: string;
   readonly ayatPerLesson: number;
   readonly surahOrder: SurahOrder;
@@ -59,6 +61,8 @@ export function defaultSettings(preferredLanguages: readonly string[]): Settings
     requireBackspace: true,
     showKeyboard: true,
     fingerGuide: true,
+    keyLabels: true,
+    delayedHint: false,
     customText: "",
     ayatPerLesson: DEFAULT_AYAT_PER_LESSON,
     surahOrder: "mushaf",
@@ -83,6 +87,8 @@ export function sanitizeSettings(raw: unknown, preferredLanguages: readonly stri
     requireBackspace: raw.requireBackspace !== false,
     showKeyboard: raw.showKeyboard !== false,
     fingerGuide: raw.fingerGuide !== false,
+    keyLabels: raw.keyLabels !== false,
+    delayedHint: raw.delayedHint === true,
     customText: typeof raw.customText === "string" ? prepareCustomText(raw.customText).text : defaults.customText,
     ayatPerLesson: clampAyatPerLesson(raw.ayatPerLesson),
     surahOrder: isSurahOrder(raw.surahOrder) ? raw.surahOrder : defaults.surahOrder,

@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 
 const TEXT = 4.5;
 const UI = 3;
-const UPCOMING_FLOOR = 3;
+const TYPED_FLOOR = 3;
 
 const PAIRS: readonly (readonly [string, string, number])[] = [
   ["ink", "page", TEXT],
@@ -20,8 +20,9 @@ const PAIRS: readonly (readonly [string, string, number])[] = [
   ["focus", "surface", UI],
   ["edge", "page", UI],
   ["edge", "surface", UI],
-  ["ink", "upcoming", TEXT],
-  ["upcoming", "page", UPCOMING_FLOOR],
+  ["upcoming", "page", TEXT],
+  ["upcoming", "surface", TEXT],
+  ["typed", "page", TYPED_FLOOR],
 ];
 
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");

@@ -2,6 +2,7 @@ import { useEffect, useId } from "react";
 import { formatRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Language } from "~/i18n/i18n.ts";
+import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
 import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
 import { BackupRestore } from "~/storage/BackupRestore.tsx";
@@ -12,6 +13,7 @@ import { Switch } from "~/ui/Switch.tsx";
 import { clampFontSize, FONT_SIZES, FONTS, type FontId, loadFont } from "./fonts.ts";
 import { ResetProgress } from "./ResetProgress.tsx";
 import type { Settings } from "./settings.ts";
+import { UnlockLetters } from "./UnlockLetters.tsx";
 
 const LANGUAGES = [
   { value: "en", label: "English", lang: "en" },
@@ -31,6 +33,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const { profile, update } = useProfile();
   const { settings } = profile;
   const sizeId = useId();
+  const layoutName = useLayoutName();
 
   useEffect(() => {
     if (open) {
@@ -124,10 +127,23 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           checked={settings.fingerGuide}
           onChange={(fingerGuide) => change({ fingerGuide })}
         />
+        <Switch
+          label={t("settings.keyLabels")}
+          checked={settings.keyLabels}
+          onChange={(keyLabels) => change({ keyLabels })}
+        />
+        <Switch
+          label={t("settings.delayedHint")}
+          hint={t("settings.delayedHintHint")}
+          checked={settings.delayedHint}
+          onChange={(delayedHint) => change({ delayedHint })}
+        />
+        <p className="text-sm text-muted">{t("settings.layoutHint", { layout: layoutName })}</p>
       </fieldset>
       <RecitationSettings settings={settings} change={change} />
       <AudioSettings settings={settings} change={change} />
       <BackupRestore />
+      <UnlockLetters />
       <ResetProgress />
       <a
         href={formatRoute({ page: "about" })}

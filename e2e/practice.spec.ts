@@ -247,6 +247,31 @@ test("Reset progress asks first, then clears keys, statistics and lesson history
   expect([...shown.replace(MARKS, "")].every((char) => char === " " || HOME_ROW.has(char))).toBe(true);
 });
 
+test("Unlock all letters asks first, then unlocks every letter and leaves the marks locked", async ({ page }) => {
+  await page.goto("/#/practice");
+  await expect(hud(page).getByText("10 of 44")).toBeVisible();
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await dialog.getByRole("button", { name: "Unlock all letters" }).click();
+  const group = dialog.getByRole("group", { name: "Unlock all letters?" });
+  await expect(group).toHaveAccessibleDescription(/Marks stay locked/);
+  const keep = group.getByRole("button", { name: "Not now" });
+  await expect(keep).toBeFocused();
+  await keep.click();
+  await expect(group).toHaveCount(0);
+  await expect(hud(page).getByText("10 of 44")).toBeVisible();
+  await dialog.getByRole("button", { name: "Unlock all letters" }).click();
+  await dialog
+    .getByRole("group", { name: "Unlock all letters?" })
+    .getByRole("button", { name: "Unlock", exact: true })
+    .click();
+  await expect(dialog.getByRole("status").filter({ hasText: "All letters are unlocked." })).toHaveCount(1);
+  expect((await savedProfile(page)).ladder).toEqual({ unlocked: 36 });
+  await expect(dialog.getByRole("button", { name: "Unlock all letters" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(hud(page).getByText("36 of 44")).toBeVisible();
+});
+
 test("the word list failing to load is said plainly, with a way to try again", async ({ page }) => {
   await page.route(/assets\/words-[^/]*\.js$/, (route) => route.abort());
   await page.goto("/#/practice");

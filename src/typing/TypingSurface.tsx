@@ -1,10 +1,12 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GuideKeyboard } from "~/keyboard/GuideKeyboard.tsx";
+import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { FONTS, loadFont } from "~/settings/fonts.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
+import { activatesOnEnter, isOnControl } from "./activation.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import type { Trainer } from "./useTrainer.ts";
@@ -15,6 +17,7 @@ const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
 const OVERFLOW_TOLERANCE = 2;
 const MISS_RING = "0 0 0 2px var(--color-danger)";
+const CARET_IDLE_MS = 250;
 
 const MISS_SHAKE: Keyframe[] = [
   { offset: 0, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING, translate: "0 0" },
@@ -151,6 +154,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy } = props;
   const { font, fontSize } = settings;
   const { t } = useI18n();
+  const layoutName = useLayoutName();
   const { session, options, focused, wrongLayout, inputRef, inputProps, focus } = trainer;
   const sectionRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -169,12 +173,21 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const current = cursorBlock(blocks, doneUntil);
   const family = FONTS.find((candidate) => candidate.id === font) ?? FONTS[0];
   const flagged = options.requireBackspace ? mistakes !== "" : session.missed;
+  const paused = !focused && !complete;
 
   useEffect(() => {
     loadFont(family);
   }, [family]);
 
   const misses = session.errors + session.ignored;
+  const activity = `${doneUntil}:${mistakes}:${misses}:${focused}`;
+  const [settled, setSettled] = useState("");
+  const idle = settled === activity;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(activity), CARET_IDLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [activity]);
 
   useEffect(() => {
     const element = caretRef.current;
@@ -213,9 +226,11 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
-      setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
+      const limit = Number.parseFloat(getComputedStyle(container).maxHeight);
+      const clipped = Number.isFinite(limit) && container.clientHeight >= limit - 1;
+      setScrollable(clipped && container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
-      caret.hidden = rect === undefined;
+      caret.hidden = !focused || rect === undefined;
       if (rect === undefined) {
         return;
       }
@@ -256,9 +271,37 @@ export function TypingSurface(props: TypingSurfaceProps) {
 
   useEffect(() => {
     const section = sectionRef.current;
+    const keepFocus = (event: MouseEvent) => event.preventDefault();
     section?.addEventListener("click", focus);
-    return () => section?.removeEventListener("click", focus);
+    section?.addEventListener("mousedown", keepFocus);
+    return () => {
+      section?.removeEventListener("click", focus);
+      section?.removeEventListener("mousedown", keepFocus);
+    };
   }, [focus]);
+
+  useEffect(() => {
+    if (!paused) {
+      return;
+    }
+    const activate = (event: KeyboardEvent) => {
+      const pressed = {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        altKey: event.altKey,
+        repeat: event.repeat,
+        isComposing: event.isComposing,
+        onControl: isOnControl(event.target),
+      };
+      if (activatesOnEnter(pressed)) {
+        event.preventDefault();
+        focus();
+      }
+    };
+    document.addEventListener("keydown", activate);
+    return () => document.removeEventListener("keydown", activate);
+  }, [paused, focus]);
 
   return (
     <>
@@ -269,7 +312,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
           dir="rtl"
           data-lesson-text=""
           {...scrollRegion}
-          className="relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere"
+          className={`relative max-h-[45dvh] min-h-24 md:max-h-[60dvh] overflow-y-auto px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere select-none${paused ? " blur-[6px]" : ""}`}
           style={{
             fontFamily: `"${family.family}", serif`,
             fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))`,
@@ -283,7 +326,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
                   <span
                     data-mistakes=""
                     aria-hidden="true"
-                    className="inline-block max-w-full text-danger underline decoration-wavy underline-offset-4 [unicode-bidi:isolate]"
+                    className="inline-block max-w-full text-danger [unicode-bidi:isolate]"
                   >
                     {drawnMistakes(mistakes)}
                   </span>
@@ -299,16 +342,28 @@ export function TypingSurface(props: TypingSurfaceProps) {
             aria-hidden="true"
             data-caret=""
             data-pending={mistakes === "" ? undefined : ""}
-            className="pointer-events-none absolute top-0 left-0 w-0.5 bg-accent forced-color-adjust-none data-pending:bg-danger forced-colors:bg-[CanvasText]"
+            data-idle={idle ? "" : undefined}
+            className="pointer-events-none absolute top-0 left-0 w-[1.5px] bg-accent forced-color-adjust-none data-pending:bg-danger forced-colors:bg-[CanvasText]"
             hidden
           />
         </div>
+        {paused && (
+          <button
+            type="button"
+            tabIndex={-1}
+            data-activate=""
+            className="absolute top-1/2 left-1/2 z-10 min-h-11 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface px-5 text-sm font-medium text-ink"
+          >
+            <span className="pointer-coarse:hidden">{t("typing.activate")}</span>
+            <span className="hidden pointer-coarse:inline">{t("typing.activateTouch")}</span>
+          </button>
+        )}
         <p role="status" className="sr-only">
           {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
         </p>
         {wrongLayout && (
           <p role="alert" className="px-4 py-1 text-center text-sm font-medium">
-            {t("typing.wrongLayout")}
+            {t("typing.wrongLayout", { layout: layoutName })}
           </p>
         )}
         <input
@@ -325,7 +380,14 @@ export function TypingSurface(props: TypingSurfaceProps) {
         </p>
       </section>
       {settings.showKeyboard && (
-        <GuideKeyboard session={session} options={options} fingerGuide={settings.fingerGuide} />
+        <GuideKeyboard
+          session={session}
+          options={options}
+          fingerGuide={settings.fingerGuide}
+          keyLabels={settings.keyLabels}
+          delayedHint={settings.delayedHint}
+          paused={paused}
+        />
       )}
     </>
   );

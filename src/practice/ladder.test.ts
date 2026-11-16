@@ -9,7 +9,9 @@ import {
   initialProgress,
   LADDER,
   type LadderProgress,
+  LETTERS_END,
   sanitizeProgress,
+  unlockAllLetters,
   unlockedLetters,
   unlockedMarks,
 } from "./ladder.ts";
@@ -151,4 +153,25 @@ test("anything else falls back or is brought into range", () => {
   expect(sanitizeProgress({ unlocked: 3 })).toEqual({ unlocked: 10 });
   expect(sanitizeProgress({ unlocked: -1 })).toEqual({ unlocked: 10 });
   expect(sanitizeProgress({ unlocked: 99 })).toEqual({ unlocked: 44 });
+});
+
+test("unlocking all letters lands on the first mark: every letter is unlocked and no mark is", () => {
+  expect(LETTERS_END).toBe(36);
+  const unlocked = unlockAllLetters(initialProgress());
+  expect(unlocked).toEqual({ unlocked: 36 });
+  expect([...unlockedLetters(unlocked)].sort()).toEqual([...TYPEABLE_LETTERS].sort());
+  expect(unlockedMarks(unlocked).size).toBe(0);
+});
+
+test("unlocking all letters never takes progress away and does the same thing twice", () => {
+  expect(unlockAllLetters({ unlocked: 40 })).toEqual({ unlocked: 40 });
+  expect(unlockAllLetters({ unlocked: 44 })).toEqual({ unlocked: 44 });
+  expect(unlockAllLetters({ unlocked: 36 })).toEqual({ unlocked: 36 });
+  const once = unlockAllLetters({ unlocked: 12 });
+  expect(unlockAllLetters(once)).toEqual(once);
+});
+
+test("what unlocking all letters produces is saved progress that is read back unchanged", () => {
+  const unlocked = unlockAllLetters({ unlocked: 17 });
+  expect(sanitizeProgress(unlocked)).toEqual(unlocked);
 });

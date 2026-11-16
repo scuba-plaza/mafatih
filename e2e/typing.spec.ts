@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
 import { clearlyDifferentPixels } from "./helpers/pixels.ts";
+import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -43,6 +44,10 @@ function flag(page: Page) {
 
 function lessonText(page: Page) {
   return surface(page).locator("[data-lesson-text]");
+}
+
+function activateButton(page: Page, name = "Click or press Enter to activate…") {
+  return surface(page).getByRole("button", { name });
 }
 
 async function caretBox(page: Page): Promise<{ x: number; y: number; height: number }> {
@@ -88,7 +93,8 @@ test("a wrong key appears at the cursor, in order, with the expected text still 
   const mistakes = surface(page).locator("[data-mistakes]");
   await expect(mistakes).toHaveText("سش");
   await expect(mistakes).toHaveAttribute("aria-hidden", "true");
-  await expect(mistakes).toHaveCSS("text-decoration-style", "wavy");
+  await expect(mistakes).toHaveCSS("text-decoration-line", "none");
+  await expect(mistakes).toHaveCSS("color", DANGER);
 });
 
 test("the right key is also a mistake until the wrong ones are deleted with Backspace", async ({ page }) => {
@@ -349,6 +355,110 @@ test("there is no start button: clicking the text starts typing", async ({ page 
   expect(await doneText(page)).toBe("ب");
 });
 
+test("while the text is not focused it is blurred and a button offers to activate it", async ({ page, isMobile }) => {
+  test.skip(isMobile, "phones are told to tap");
+  await open(page, { customText: "بتن" });
+  await expect(activateButton(page)).toBeVisible();
+  await expect(lessonText(page)).toHaveCSS("filter", /blur\(6px\)/);
+  await startTyping(page);
+  await expect(field(page)).toBeFocused();
+  await expect(activateButton(page)).toHaveCount(0);
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+});
+
+test("on a phone the button tells the learner to tap", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "only phones are told to tap");
+  await open(page, { customText: "بتن" });
+  await expect(activateButton(page, "Tap to activate…")).toBeVisible();
+  await expect(lessonText(page)).toHaveCSS("filter", /blur\(6px\)/);
+});
+
+test("clicking the button, clicking the text and pressing Enter each activate the lesson", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Enter needs a hardware keyboard");
+  await open(page, { customText: "بتن" });
+  await activateButton(page).click();
+  await expect(field(page)).toBeFocused();
+  await page.reload();
+  await expect(surface(page)).toBeVisible();
+  await lessonText(page).click({ position: { x: 12, y: 12 } });
+  await expect(field(page)).toBeFocused();
+  await page.reload();
+  await expect(surface(page)).toBeVisible();
+  await page.getByRole("heading", { level: 1 }).focus();
+  await page.keyboard.press("Enter");
+  await expect(field(page)).toBeFocused();
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe("ب");
+});
+
+test("Enter on a control is left to that control and does not activate the lesson", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Enter needs a hardware keyboard");
+  await open(page, { customText: "بتن" });
+  await page.getByRole("button", { name: "Settings" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+  await expect(field(page)).not.toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeHidden();
+  await expect(field(page)).not.toBeFocused();
+});
+
+test("leaving the field blurs the text again, and a finished lesson is never blurred", async ({ page }) => {
+  await start(page, { customText: "بت" });
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+  await page.mouse.click(4, 4);
+  await expect(field(page)).not.toBeFocused();
+  await expect(lessonText(page)).toHaveCSS("filter", /blur\(6px\)/);
+  await startTyping(page);
+  await typeKeys(page, ["ب", "ت"]);
+  await expect(finished(page)).toBeVisible();
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+});
+
+async function countBlurs(page: Page): Promise<void> {
+  await field(page).evaluate((element) => {
+    element.dataset.blurs = "0";
+    element.addEventListener("blur", () => {
+      element.dataset.blurs = String(Number(element.dataset.blurs ?? "0") + 1);
+    });
+  });
+}
+
+test("clicking, double-clicking or dragging across the text never takes the focus away or selects it", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "a mouse is needed to drag");
+  await start(page, { customText: "بتن كتب من بيت كل يوم" });
+  await countBlurs(page);
+  await lessonText(page).click({ position: { x: 40, y: 20 } });
+  await lessonText(page).dblclick({ position: { x: 40, y: 20 } });
+  await lessonText(page).click({ position: { x: 40, y: 20 }, clickCount: 3 });
+  const box = await lessonText(page).boundingBox();
+  await page.mouse.move((box?.x ?? 0) + 20, (box?.y ?? 0) + 30);
+  await page.mouse.down();
+  await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) - 20, (box?.y ?? 0) + 30, { steps: 6 });
+  await page.mouse.up();
+  await expect(field(page)).toHaveAttribute("data-blurs", "0");
+  await expect(field(page)).toBeFocused();
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+});
+
+test("tapping the text while it is focused never takes the focus away", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "a touch screen is needed to tap");
+  await start(page, { customText: "بتن كتب من بيت كل يوم" });
+  await countBlurs(page);
+  await lessonText(page).tap({ position: { x: 40, y: 20 } });
+  await lessonText(page).tap({ position: { x: 60, y: 30 } });
+  await expect(field(page)).toHaveAttribute("data-blurs", "0");
+  await expect(field(page)).toBeFocused();
+  await expect(lessonText(page)).toHaveCSS("filter", "none");
+});
+
 test("the text can be reached with Tab and left with Tab, and no ring is drawn around it", async ({ page }) => {
   await open(page, { customText: "بتن" });
   await page.getByRole("heading", { level: 1 }).focus();
@@ -364,15 +474,67 @@ test("the text can be reached with Tab and left with Tab, and no ring is drawn a
   await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
 });
 
-test("while it waits the caret blinks, and while typing or with reduced motion it stands still", async ({ page }) => {
+test("a passage only a few pixels taller than its box is not a scroll region", async ({ page }) => {
+  await seedSettings(page, { language: "en" });
+  await page.goto("/#/recitation/1");
+  await expect(surface(page)).toBeVisible();
+  await addStyle(page, "[data-lesson-text] p:last-of-type{margin-bottom:-8px}");
+  await startTyping(page);
+  await typeKeys(page, ["ب"]);
+  const overflow = await lessonText(page).evaluate((element) => element.scrollHeight - element.clientHeight);
+  expect(overflow).toBeGreaterThan(2);
+  await expect(page.getByRole("group", { name: "Scrollable text" })).toHaveCount(0);
+});
+
+test("the caret is only shown while the text is focused", async ({ page }) => {
   await open(page, { customText: "بتن" });
   const caret = surface(page).locator("[data-caret]");
-  await expect(caret).toHaveCSS("animation-name", "caret-wait");
-  await expect(caret).toHaveCSS("animation-duration", "2.4s");
+  await expect(caret).toBeHidden();
   await startTyping(page);
+  await expect(caret).toBeVisible();
+  await page.mouse.click(4, 4);
+  await expect(caret).toBeHidden();
+});
+
+test("the caret is a thin line", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await expect(surface(page).locator("[data-caret]")).toHaveCSS("width", "1.5px");
+});
+
+test("the caret is solid while typing and blinks with a fade once the typist pauses", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  const caret = surface(page).locator("[data-caret]");
+  await typeKeys(page, ["ب"]);
+  await expect(caret).not.toHaveAttribute("data-idle", "");
   await expect(caret).toHaveCSS("animation-name", "none");
+  await expect(caret).toHaveAttribute("data-idle", "");
+  await expect(caret).toHaveCSS("animation-name", "caret-blink");
+  await expect(caret).toHaveCSS("animation-duration", "1.1s");
+  const opacityAt = (time: number) =>
+    caret.evaluate((element, at) => {
+      const blink = element
+        .getAnimations()
+        .find((candidate) => candidate instanceof CSSAnimation && candidate.animationName === "caret-blink");
+      blink?.pause();
+      if (blink !== undefined) {
+        blink.currentTime = at;
+      }
+      return Number(getComputedStyle(element).opacity);
+    }, time);
+  expect(await opacityAt(100)).toBe(1);
+  const fading = await opacityAt(495);
+  expect(fading).toBeGreaterThan(0.05);
+  expect(fading).toBeLessThan(0.95);
+  expect(await opacityAt(700)).toBe(0);
+  await typeKeys(page, ["ت"]);
+  await expect(caret).not.toHaveAttribute("data-idle", "");
+});
+
+test("with reduced motion the caret never blinks", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.keyboard.press("Tab");
+  await start(page, { customText: "بتن" });
+  const caret = surface(page).locator("[data-caret]");
+  await expect(caret).toHaveAttribute("data-idle", "");
   await expect(caret).toHaveCSS("animation-name", "none");
 });
 
@@ -393,11 +555,20 @@ test("the lesson can be started, left, continued and finished from the keyboard 
   await expect(page.getByRole("button", { name: "Type again" })).toBeFocused();
 });
 
+test("on a Mac the wrong-layout alert uses the Mac's name for the layout", async ({ page }) => {
+  await emulatePlatform(page, "mac");
+  await start(page, { customText: "بتن" });
+  await typeKeys(page, ["a"]);
+  await expect(surface(page).getByRole("alert")).toHaveText(
+    /^Your keyboard is not typing Arabic\. Switch to the \u2068Arabic – PC\u2069 layout\.$/,
+  );
+});
+
 test("typing on a Latin layout is explained instead of being counted as mistakes", async ({ page }) => {
   await start(page, { customText: "بتن" });
   await typeKeys(page, ["a", "b"]);
   await expect(surface(page).getByRole("alert")).toHaveText(
-    "Your keyboard is not typing Arabic. Switch it to the Arabic layout.",
+    /^Your keyboard is not typing Arabic\. Switch to the \u2068Arabic \(101\)\u2069 layout\.$/,
   );
   expect(await shownText(page)).toBe("بتن");
   await expectNoAxeViolations(page);
@@ -483,15 +654,15 @@ test("leaving the text pauses typing, and clicking it again continues where it s
   await expect(mistakeCount(page)).toHaveText("0");
 });
 
-test("untyped text is dim and typed text is bright", async ({ page }) => {
+test("text still to be typed is a little brighter than text already typed, and both stay subtle", async ({ page }) => {
   await start(page, { customText: "بتن" });
   const untyped = await lessonText(page).evaluate((element) => getComputedStyle(element).color);
-  expect(untyped).toBe("rgb(91, 93, 97)");
+  expect(untyped).toBe("rgb(143, 146, 153)");
   await typeKeys(page, ["ب"]);
   const typed = await lessonText(page).evaluate(
     (element) => getComputedStyle(element, "::highlight(mafatih-done)").color,
   );
-  expect(typed).toBe("rgb(235, 232, 226)");
+  expect(typed).toBe("rgb(91, 93, 97)");
 });
 
 test("a quiet line under the text shows speed, accuracy, mistakes and time on a wide screen", async ({

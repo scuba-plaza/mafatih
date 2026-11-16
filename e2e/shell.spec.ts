@@ -189,6 +189,7 @@ for (const language of ["en", "ar"] as const) {
     test("the tab order follows the reading order and every stop shows a focus outline", async ({ page }) => {
       await page.goto("/#/practice");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[1][language]);
+      await expect(page.getByRole("textbox", { name: copy.input })).toBeAttached();
       await page.setViewportSize({ width: 1280, height: 800 });
       const names = PAGES.map((entry) => entry[language]).slice(0, 4);
       const expected = [copy.skip, ...names, copy.settings];

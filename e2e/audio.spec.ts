@@ -199,6 +199,21 @@ test("the ayah being recited is marked in the text by colour and by background, 
   await expect.poll(() => playingSpan(page)).toHaveLength(0);
 });
 
+test("pressing the audio buttons keeps the field focused and the text sharp", async ({ page }) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  await startTyping(page);
+  const field = page.getByRole("textbox", { name: "Type the text shown" });
+  const text = surface(page).locator("[data-lesson-text]");
+  await expect(field).toBeFocused();
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(field).toBeFocused();
+  await expect(text).toHaveCSS("filter", "none");
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(field).toBeFocused();
+  await expect(text).toHaveCSS("filter", "none");
+});
+
 test("each ayah is fetched once: after a reload only the saved copy can supply it", async ({ page }) => {
   const { requests } = await mockAudio(page, SHORT);
   const count = (file: string) => requests.filter((name) => name === file).length;
@@ -554,20 +569,26 @@ test("typing never starts audio, and audio never moves the cursor (Q5)", async (
   expect((await doneText(page)).length).toBeGreaterThan(typed.length);
 });
 
-async function expectTypedPartBright(page: Page): Promise<void> {
+async function expectTypedPartPaintedAsTyped(page: Page): Promise<void> {
   expect(await paintedTwice(page)).toBe(0);
   await addStyle(page, "[data-caret]{visibility:hidden}");
-  const caret = await surface(page).locator("[data-caret]").boundingBox();
-  const frame = await surface(page).locator("[data-lesson-text]").boundingBox();
-  expect(caret).not.toBeNull();
-  expect(frame).not.toBeNull();
-  const typedPart = {
-    x: (caret?.x ?? 0) + 4,
-    y: caret?.y ?? 0,
-    width: (frame?.x ?? 0) + (frame?.width ?? 0) - (caret?.x ?? 0) - 4,
-    height: caret?.height ?? 0,
-  };
-  expect(await brightestPixel(page, await page.screenshot({ clip: typedPart }))).toBeGreaterThan(200);
+  const fragments = await surface(page)
+    .locator("[data-block]")
+    .first()
+    .evaluate(() => {
+      const ranges = [...(CSS.highlights.get("mafatih-done-playing") ?? [])] as Range[];
+      return ranges
+        .flatMap((range) => [...range.getClientRects()])
+        .filter((box) => box.width >= 4 && box.height >= 1)
+        .map((box) => ({ x: box.x + box.width / 4, y: box.y, width: box.width / 2, height: box.height }));
+    });
+  expect(fragments.length).toBeGreaterThan(0);
+  let brightest = 0;
+  for (const clip of fragments) {
+    brightest = Math.max(brightest, await brightestPixel(page, await page.screenshot({ clip })));
+  }
+  expect(brightest).toBeGreaterThan(70);
+  expect(brightest).toBeLessThan(120);
 }
 
 test("the typed part of the ayah being heard stays painted as typed, and no letter is painted twice", async ({
@@ -585,7 +606,7 @@ test("the typed part of the ayah being heard stays painted as typed, and no lett
   await player(page).getByRole("button", { name: "Next ayah" }).click();
   await expect(status(page)).toContainText("112:1");
   await expect.poll(async () => (await playingSpan(page))[0]).toBe(surah(112).ayat[0]);
-  await expectTypedPartBright(page);
+  await expectTypedPartPaintedAsTyped(page);
 });
 
 test("with the first ayah typed, the typed start of the second ayah being heard stays painted as typed", async ({
@@ -603,7 +624,7 @@ test("with the first ayah typed, the typed start of the second ayah being heard 
   await player(page).getByRole("button", { name: "Next ayah" }).click();
   await expect(status(page)).toContainText("1:2");
   await expect.poll(async () => (await playingSpan(page))[0]).toBe(surah(1).ayat[1]);
-  await expectTypedPartBright(page);
+  await expectTypedPartPaintedAsTyped(page);
 });
 
 test("a recitation that cannot be fetched is said plainly and the lesson stays typeable (Q6)", async ({ page }) => {

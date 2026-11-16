@@ -62,7 +62,8 @@ test("a surah opens at once, ready to type, with its first passage", async ({ pa
   await expect(page.getByRole("status").filter({ hasText: "Ayat 1 to 4 of 7" })).toHaveCount(1);
   await expect(surface(page).locator("[data-block]")).toHaveCount(1);
   expect(await shownText(page)).toBe(shownAyat(fatiha, 1, 4));
-  await expect(surface(page).locator("[data-caret]")).toBeVisible();
+  await expect(surface(page).getByRole("button", { name: /to activate/ })).toBeVisible();
+  await expect(surface(page).locator("[data-caret]")).toBeHidden();
   await expectNoAxeViolations(page);
 });
 

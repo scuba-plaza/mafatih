@@ -6,10 +6,18 @@ export interface ConfirmChoiceProps {
   readonly warning: string;
   readonly keepLabel: string;
   readonly confirmLabel: string;
+  readonly danger?: boolean;
   readonly onAnswer: (confirmed: boolean) => void;
 }
 
-export function ConfirmChoice({ question, warning, keepLabel, confirmLabel, onAnswer }: ConfirmChoiceProps) {
+export function ConfirmChoice({
+  question,
+  warning,
+  keepLabel,
+  confirmLabel,
+  danger = true,
+  onAnswer,
+}: ConfirmChoiceProps) {
   const keep = useRef<HTMLButtonElement>(null);
   const warningId = useId();
 
@@ -27,7 +35,7 @@ export function ConfirmChoice({ question, warning, keepLabel, confirmLabel, onAn
         <button type="button" ref={keep} onClick={() => onAnswer(false)} className={BUTTON}>
           {keepLabel}
         </button>
-        <button type="button" onClick={() => onAnswer(true)} className={DANGER_BUTTON}>
+        <button type="button" onClick={() => onAnswer(true)} className={danger ? DANGER_BUTTON : BUTTON}>
           {confirmLabel}
         </button>
       </div>
