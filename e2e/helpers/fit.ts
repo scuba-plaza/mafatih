@@ -134,11 +134,32 @@ export async function expectOneScreen(page: Page, expected: OneScreen): Promise<
   }
 }
 
+const RESIZE_HANDLED = "__resizeHandled";
+
+export async function resizeAndSettle(
+  page: Page,
+  size: { readonly width: number; readonly height: number },
+): Promise<void> {
+  await page.evaluate((key) => {
+    Reflect.set(
+      window,
+      key,
+      new Promise<void>((resolve) => {
+        window.addEventListener("resize", () => requestAnimationFrame(() => requestAnimationFrame(() => resolve())), {
+          once: true,
+        });
+      }),
+    );
+  }, RESIZE_HANDLED);
+  await page.setViewportSize(size);
+  await page.evaluate((key): Promise<void> => Reflect.get(window, key), RESIZE_HANDLED);
+}
+
 export async function openSoftKeyboard(page: Page, share: number): Promise<void> {
   const size = page.viewportSize();
   if (size === null) {
     throw new Error("the page has no viewport to shrink");
   }
   await surface(page).click();
-  await page.setViewportSize({ width: size.width, height: Math.round(size.height * (1 - share)) });
+  await resizeAndSettle(page, { width: size.width, height: Math.round(size.height * (1 - share)) });
 }
