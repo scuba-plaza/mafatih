@@ -31,7 +31,7 @@ export interface Session {
   readonly lastCorrectAt: number | null;
 }
 
-export interface SessionView {
+interface SessionView {
   readonly doneUntil: number;
   readonly mistakes: string;
 }
@@ -106,12 +106,22 @@ function reachOfMarksTypedAhead(session: Session): number {
   return reach;
 }
 
-export function view(session: Session): SessionView {
+function typedUntil(session: Session): number {
   const unit = session.units[session.cursor];
-  const remaining = unit === undefined ? 0 : unit.text.length - session.within;
-  const doneUntil =
-    unit === undefined ? session.prompt.shown.length : session.within > 0 ? unit.end - remaining : unit.start;
-  return { doneUntil: Math.max(doneUntil, reachOfMarksTypedAhead(session)), mistakes: session.mistakes.join("") };
+  if (unit === undefined) {
+    return session.prompt.shown.length;
+  }
+  if (session.within === 0) {
+    return unit.start;
+  }
+  return unit.end - (unit.text.length - session.within);
+}
+
+export function view(session: Session): SessionView {
+  return {
+    doneUntil: Math.max(typedUntil(session), reachOfMarksTypedAhead(session)),
+    mistakes: session.mistakes.join(""),
+  };
 }
 
 function timeOf(session: Session, at: number): number {
@@ -229,7 +239,7 @@ function typeKey(session: Session, text: string, time: number, options: SessionO
 
 function opensRight(session: Session, text: string): boolean {
   const first = [...text][0] ?? "";
-  return first !== "" && (session.units[session.cursor]?.text.slice(session.within).startsWith(first) ?? false);
+  return first !== "" && (expectedText(session)?.startsWith(first) ?? false);
 }
 
 export function applyKey(session: Session, key: Key, at: number, options: SessionOptions): Session {

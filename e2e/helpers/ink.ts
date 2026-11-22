@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-export interface Ink {
+interface Ink {
   readonly count: number;
   readonly minX: number;
   readonly maxX: number;

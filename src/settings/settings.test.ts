@@ -84,31 +84,11 @@ test("an unknown vocalization level falls back to auto", () => {
   expect(sanitizeSettings({ vocalization: 1 }, ENGLISH).vocalization).toBe("auto");
 });
 
-test("only a real false turns off correcting with Backspace", () => {
-  expect(sanitizeSettings({ requireBackspace: false }, ENGLISH).requireBackspace).toBe(false);
-  for (const junk of ["false", 0, null, "no", {}]) {
-    expect(sanitizeSettings({ requireBackspace: junk }, ENGLISH).requireBackspace, String(junk)).toBe(true);
-  }
-});
-
 test("saved custom text is prepared again, so it can never be over the limit or unprepared", () => {
   expect(sanitizeSettings({ customText: "  a\n b " }, ENGLISH).customText).toBe("a b");
   expect(sanitizeSettings({ customText: `ب${FATHA}${SHADDA}` }, ENGLISH).customText).toBe(`ب${SHADDA}${FATHA}`);
   expect(sanitizeSettings({ customText: "ب".repeat(9000) }, ENGLISH).customText).toHaveLength(5000);
   expect(sanitizeSettings({ customText: 5 }, ENGLISH).customText).toBe("");
-});
-
-test("the keyboard guide and its finger guide stay on unless they were really turned off", () => {
-  expect(sanitizeSettings({ showKeyboard: false, fingerGuide: false }, ENGLISH)).toMatchObject({
-    showKeyboard: false,
-    fingerGuide: false,
-  });
-  for (const junk of ["false", 0, null, {}]) {
-    expect(sanitizeSettings({ showKeyboard: junk, fingerGuide: junk }, ENGLISH), String(junk)).toMatchObject({
-      showKeyboard: true,
-      fingerGuide: true,
-    });
-  }
 });
 
 test("a passage holds one to four ayat: more snaps down to four, fractions round, a non-number falls back to four", () => {
@@ -145,39 +125,21 @@ test("the volume is a number from nothing to full, brought into range, and 80 pe
   expect(["0.5", null, Number.NaN, undefined, {}].map(volume)).toEqual([0.8, 0.8, 0.8, 0.8, 0.8]);
 });
 
-test("only a real true mutes the recitation", () => {
-  const muted = (value: unknown) => sanitizeSettings({ muted: value }, ENGLISH).muted;
-  expect(muted(true)).toBe(true);
-  for (const junk of ["true", 1, null, {}, undefined, false]) {
-    expect(muted(junk), String(junk)).toBe(false);
-  }
-});
+test.each(["requireBackspace", "showKeyboard", "fingerGuide", "keyLabels", "playWhole", "loop"] as const)(
+  "%s stays on unless a saved false turns it off",
+  (name) => {
+    const read = (value: unknown) => sanitizeSettings({ [name]: value }, ENGLISH)[name];
+    expect(read(false)).toBe(false);
+    for (const value of [true, "false", 0, null, "no", {}, undefined]) {
+      expect(read(value), String(value)).toBe(true);
+    }
+  },
+);
 
-test("the whole passage is played unless a saved false says otherwise", () => {
-  const whole = (saved: object) => sanitizeSettings(saved, ENGLISH).playWhole;
-  expect(whole({ playWhole: false })).toBe(false);
-  expect(whole({ playWhole: true })).toBe(true);
-  for (const junk of ["false", 0, null, {}, undefined]) {
-    expect(whole({ playWhole: junk }), String(junk)).toBe(true);
+test.each(["delayedHint", "muted"] as const)("%s stays off unless a saved true turns it on", (name) => {
+  const read = (value: unknown) => sanitizeSettings({ [name]: value }, ENGLISH)[name];
+  expect(read(true)).toBe(true);
+  for (const value of [false, "true", "yes", 1, null, {}, undefined]) {
+    expect(read(value), String(value)).toBe(false);
   }
-  expect(whole({})).toBe(true);
-});
-
-test("the recitation repeats unless a saved false says otherwise", () => {
-  const loop = (saved: object) => sanitizeSettings(saved, ENGLISH).loop;
-  expect(loop({ loop: false })).toBe(false);
-  expect(loop({ loop: true })).toBe(true);
-  for (const junk of ["false", 0, null, {}, undefined]) {
-    expect(loop({ loop: junk }), String(junk)).toBe(true);
-  }
-  expect(loop({})).toBe(true);
-});
-
-test("the key labels stay on unless they were switched off, and the delayed hint stays off unless it was switched on", () => {
-  expect(sanitizeSettings({ keyLabels: false }, ENGLISH).keyLabels).toBe(false);
-  expect(sanitizeSettings({ keyLabels: "no" }, ENGLISH).keyLabels).toBe(true);
-  expect(sanitizeSettings({ keyLabels: 0 }, ENGLISH).keyLabels).toBe(true);
-  expect(sanitizeSettings({ delayedHint: true }, ENGLISH).delayedHint).toBe(true);
-  expect(sanitizeSettings({ delayedHint: "yes" }, ENGLISH).delayedHint).toBe(false);
-  expect(sanitizeSettings({ delayedHint: 1 }, ENGLISH).delayedHint).toBe(false);
 });

@@ -1,9 +1,15 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import { type Language, openAndWait, PAGES, type PageName, seedTypicalProfile } from "./helpers/pages.ts";
+import {
+  type Language,
+  openAndWait,
+  PAGES,
+  type PageName,
+  SETTINGS_NAME,
+  seedTypicalProfile,
+} from "./helpers/pages.ts";
 
 test.use({ timezoneId: "UTC", locale: "en-US" });
 
-const SETTINGS_NAME = { en: "Settings", ar: "الإعدادات" } as const;
 const SURAH_COUNT = 114;
 
 function regionsOf(page: Page, name: PageName): Record<string, Locator> {

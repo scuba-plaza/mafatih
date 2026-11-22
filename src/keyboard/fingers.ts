@@ -1,6 +1,6 @@
-export type Hand = "left" | "right";
+type Hand = "left" | "right";
 
-export type Digit = "pinky" | "ring" | "middle" | "index" | "thumb";
+type Digit = "pinky" | "ring" | "middle" | "index" | "thumb";
 
 export interface Finger {
   readonly hand: Hand | "both";

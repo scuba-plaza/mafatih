@@ -1,11 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
-import { type Language, openAndWait, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
+import { type Language, openAndWait, PAGES, SETTINGS_NAME, seedTypicalProfile } from "./helpers/pages.ts";
 import { afterFrames } from "./helpers/waits.ts";
 
 const MOST_TAB_PRESSES = 250;
 const MIN_RING_CONTRAST = 3;
 const SAME_ROW_TOLERANCE = 4;
-const SETTINGS_NAME = { en: "Settings", ar: "الإعدادات" } as const;
 
 interface Stop {
   readonly id: number;

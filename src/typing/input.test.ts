@@ -34,11 +34,10 @@ test("digits and punctuation are keys, whatever script they come from", () => {
   }
 });
 
-test("nothing changed is nothing typed, and the same change always reads the same", () => {
+test("nothing changed is nothing typed", () => {
   expect(diffInput(Z, Z)).toEqual(NOTHING);
   expect(diffInput(`${Z}ب`, `${Z}ب`)).toEqual(NOTHING);
   expect(diffInput("", "")).toEqual(NOTHING);
-  expect(diffInput(Z, `${Z}ب`)).toEqual(diffInput(Z, `${Z}ب`));
 });
 
 test("the placeholder being deleted from an otherwise empty field is a Backspace", () => {

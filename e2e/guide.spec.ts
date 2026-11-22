@@ -111,11 +111,8 @@ test.describe("with a wide screen and a mouse", () => {
   test("the space bar names the layout the guide follows, in English and in Arabic", async ({ page }) => {
     await start(page, { customText: "بتن" });
     await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic (101)");
-  });
-
-  test("the space bar names the layout in the Arabic interface too", async ({ page }) => {
     await seedSettings(page, { customText: "بتن", language: "ar" });
-    await page.goto("/#/custom");
+    await page.reload();
     await expect(guide(page).locator('[data-key="Space"]')).toHaveText("العربية (101)");
   });
 

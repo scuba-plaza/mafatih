@@ -91,12 +91,7 @@ function locate(nodes: readonly Text[], local: number, edge: "start" | "end"): r
   return undefined;
 }
 
-function rangeBetween(
-  nodes: readonly Text[],
-  from: number,
-  to: number,
-  side: "start" | "end",
-): { readonly range: Range; readonly side: "start" | "end" } | undefined {
+function rangeBetween(nodes: readonly Text[], from: number, to: number): Range | undefined {
   const start = locate(nodes, from, "start");
   const end = locate(nodes, to, "end");
   if (start === undefined || end === undefined) {
@@ -105,7 +100,7 @@ function rangeBetween(
   const range = document.createRange();
   range.setStart(...start);
   range.setEnd(...end);
-  return { range, side };
+  return range;
 }
 
 function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
@@ -120,23 +115,23 @@ function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
   const data = nodes.map((node) => node.data).join("");
   const next = data.charAt(local);
   if (next !== "" && !isMark(next)) {
-    const found = rangeBetween(nodes, local, local + 1, "start");
-    return found === undefined ? undefined : edgeOf(found.range, found.side);
+    const range = rangeBetween(nodes, local, local + 1);
+    return range === undefined ? undefined : edgeOf(range, "start");
   }
   let base = local;
   while (base > 0 && isMark(data.charAt(base - 1))) {
     base -= 1;
   }
-  const found = rangeBetween(nodes, Math.max(0, base - 1), Math.max(local, 1), "end");
-  return found === undefined ? undefined : edgeOf(found.range, found.side);
+  const range = rangeBetween(nodes, Math.max(0, base - 1), Math.max(local, 1));
+  return range === undefined ? undefined : edgeOf(range, "end");
 }
 
 const SPLIT_SIDE_EM = 0.15;
 const SPLIT_SIDE_MAX = 14;
 
 function placeSplit(paragraph: HTMLElement, from: number, to: number): number | undefined {
-  const found = rangeBetween(textNodesOf(paragraph), from, to, "end");
-  const pieces = found === undefined ? [] : [...found.range.getClientRects()].filter((piece) => piece.width > 0);
+  const range = rangeBetween(textNodesOf(paragraph), from, to);
+  const pieces = range === undefined ? [] : [...range.getClientRects()].filter((piece) => piece.width > 0);
   if (pieces.length === 0 || new Set(pieces.map((piece) => piece.top)).size !== 1) {
     paragraph.removeAttribute("data-ready");
     return undefined;
@@ -162,6 +157,10 @@ function placeSplit(paragraph: HTMLElement, from: number, to: number): number | 
   return cut;
 }
 
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 function highlightRegistry(): HighlightRegistry | undefined {
   return typeof CSS === "undefined" ? undefined : CSS.highlights;
 }
@@ -174,18 +173,7 @@ function rangeOf(
   const index = blocks.findIndex((block) => run.start >= block.start && run.end <= block.end);
   const nodes = nodesByBlock[index];
   const offset = blocks[index]?.start ?? 0;
-  if (nodes === undefined) {
-    return undefined;
-  }
-  const from = locate(nodes, run.start - offset, "start");
-  const to = locate(nodes, run.end - offset, "end");
-  if (from === undefined || to === undefined) {
-    return undefined;
-  }
-  const range = document.createRange();
-  range.setStart(...from);
-  range.setEnd(...to);
-  return range;
+  return nodes === undefined ? undefined : rangeBetween(nodes, run.start - offset, run.end - offset);
 }
 
 function paint(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], runs: readonly PaintRun[]): void {
@@ -303,7 +291,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
     if (misses === 0 || element === null) {
       return;
     }
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const calm = prefersReducedMotion();
     const animation = element.animate(calm ? MISS_STILL : MISS_SHAKE, {
       id: "caret-miss",
       duration: calm ? 600 : 450,
@@ -353,14 +341,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
       caret.style.transform = `translate(${x}px, ${y}px)`;
       caret.style.height = `${rect.height}px`;
       if (focused && caretLine.current !== y) {
-        const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const style = getComputedStyle(container);
         const lineHeight = toPixels(style.lineHeight);
         const padTop = toPixels(style.paddingTop);
         const row = caretRow(wholeLines(container.clientHeight, lineHeight, padTop));
         const top = caretScrollTop(y, rect.height, row, lineHeight, padTop);
         container.scrollIntoView({ block: "nearest" });
-        container.scrollTo({ top, behavior: calm ? "auto" : "smooth" });
+        container.scrollTo({ top, behavior: prefersReducedMotion() ? "auto" : "smooth" });
       }
       caretLine.current = focused ? y : null;
     };

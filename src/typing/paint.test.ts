@@ -161,17 +161,17 @@ test("a ligature painted by its own style keeps the wash of the ayah being heard
 
 test("every letter of a ligature painted by its own style is hidden or washed, wherever the cursor is", () => {
   const ligature = { start: 12, end: 17 };
-  const heard = { start: 8, end: 25 };
+  const cases = [
+    [{ start: 8, end: 25 }, "mafatih-wash"],
+    [null, "mafatih-hidden"],
+  ] as const;
   for (let cursor = 0; cursor <= 30; cursor += 1) {
-    const painted = runs(TWO_BLOCKS, cursor, [], heard, ligature);
-    for (let letter = ligature.start; letter < ligature.end; letter += 1) {
-      const names = painted.filter((run) => run.start <= letter && letter < run.end).map((run) => run.name);
-      expect(names, `${cursor} ${letter}`).toEqual(["mafatih-wash"]);
-    }
-    const quiet = runs(TWO_BLOCKS, cursor, [], null, ligature);
-    for (let letter = ligature.start; letter < ligature.end; letter += 1) {
-      const names = quiet.filter((run) => run.start <= letter && letter < run.end).map((run) => run.name);
-      expect(names, `${cursor} ${letter}`).toEqual(["mafatih-hidden"]);
+    for (const [heard, name] of cases) {
+      const painted = runs(TWO_BLOCKS, cursor, [], heard, ligature);
+      for (let letter = ligature.start; letter < ligature.end; letter += 1) {
+        const names = painted.filter((run) => run.start <= letter && letter < run.end).map((run) => run.name);
+        expect(names, `${cursor} ${letter}`).toEqual([name]);
+      }
     }
   }
 });

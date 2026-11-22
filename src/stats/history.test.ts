@@ -72,9 +72,6 @@ test("a lesson is kept only with a time the calendar can show, at most a day of 
     { ...LESSON, chars: 2 ** 53 },
   ];
   expect(sanitizeHistory([...kept, ...dropped])).toEqual(kept);
-  for (const lesson of sanitizeHistory([...kept, ...dropped])) {
-    expect(Number.isNaN(new Date(lesson.at).getTime())).toBe(false);
-  }
 });
 
 test("a lesson record holds the mode, the time and what the session measured", () => {

@@ -4,7 +4,7 @@ import { loadAyahBlob, sharedAudioCache } from "./cache.ts";
 import { initialPlayer, type PlayerState, playerReducer } from "./player.ts";
 import { type AudioClip, audioSequence, ayahAudioUrl, type ReciterId } from "./reciters.ts";
 
-export interface PlayerOptions {
+interface PlayerOptions {
   readonly passage: Passage | null;
   readonly reciter: ReciterId;
   readonly volume: number;
@@ -30,6 +30,10 @@ export interface Player {
   readonly toggle: () => void;
   readonly next: () => void;
   readonly previous: () => void;
+}
+
+function clipUrl(reciter: ReciterId, clip: AudioClip | undefined): string | undefined {
+  return clip === undefined ? undefined : ayahAudioUrl(reciter, clip.surah, clip.ayah);
 }
 
 interface Loaded {
@@ -75,14 +79,19 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
   }, []);
 
   const clip = clips[state.index];
-  const url = clip === undefined ? undefined : ayahAudioUrl(reciter, clip.surah, clip.ayah);
-  const nextClip = clips[state.index + 1];
-  const nextUrl = nextClip === undefined ? undefined : ayahAudioUrl(reciter, nextClip.surah, nextClip.ayah);
+  const url = clipUrl(reciter, clip);
+  const nextUrl = clipUrl(reciter, clips[state.index + 1]);
   const playing = state.status === "playing";
 
   useEffect(() => {
     playingRef.current = playing;
   }, [playing]);
+
+  const failUnlessStale = useCallback((mine: number) => {
+    if (mine === ticket.current) {
+      dispatch({ type: "failed" });
+    }
+  }, []);
 
   const audio = useCallback((): HTMLAudioElement | null => {
     if (typeof Audio === "undefined") {
@@ -155,11 +164,7 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
     }
     ticket.current += 1;
     const mine = ticket.current;
-    const failed = () => {
-      if (mine === ticket.current) {
-        dispatch({ type: "failed" });
-      }
-    };
+    const failed = () => failUnlessStale(mine);
     if (loaded.current?.url === url) {
       target.play().catch(failed);
     } else {
@@ -182,7 +187,7 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
     return () => {
       ticket.current += 1;
     };
-  }, [audio, playing, url]);
+  }, [audio, playing, url, failUnlessStale]);
 
   useEffect(() => {
     if (state.restarts === seenRestarts.current) {
@@ -196,13 +201,9 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
     target.currentTime = 0;
     if (playingRef.current) {
       const mine = ticket.current;
-      target.play().catch(() => {
-        if (mine === ticket.current) {
-          dispatch({ type: "failed" });
-        }
-      });
+      target.play().catch(() => failUnlessStale(mine));
     }
-  }, [state.restarts]);
+  }, [state.restarts, failUnlessStale]);
 
   useEffect(() => {
     publish(0);

@@ -1,3 +1,4 @@
+import type { Language } from "~/i18n/i18n.ts";
 import type { Passage, Span } from "../passage.ts";
 
 export type ReciterId = "murattal" | "mujawwad";
@@ -54,6 +55,12 @@ export function isReciterId(value: unknown): value is ReciterId {
 
 export function reciterOf(id: ReciterId): Reciter {
   return RECITERS.find((reciter) => reciter.id === id) ?? MURATTAL;
+}
+
+export function reciterWords(reciter: Reciter, language: Language): { readonly name: string; readonly style: string } {
+  return language === "ar"
+    ? { name: reciter.nameAr, style: reciter.styleAr }
+    : { name: reciter.name, style: reciter.style };
 }
 
 function digits(value: number): string {

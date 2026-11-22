@@ -1,8 +1,8 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { savedSettings } from "./helpers/profile.ts";
+import { PROFILE_KEY, savedSettings, storeItem } from "./helpers/profile.ts";
+import { surface } from "./helpers/typing.ts";
 
-const KEY = "mafatih:profile:2";
 const NOT_SAVED = "Your progress can't be saved in this browser.";
 const STARTED_FRESH = "Your saved progress could not be read, so Mafatih started fresh.";
 const NEWER =
@@ -12,10 +12,6 @@ const HOME = "Recitation";
 
 function noticeArea(page: Page): Locator {
   return page.locator("[role=status]:not(main *)");
-}
-
-async function store(page: Page, key: string, value: string): Promise<void> {
-  await page.addInitScript(([k, v]) => localStorage.setItem(k, v), [key, value] as const);
 }
 
 async function blockStorage(page: Page): Promise<void> {
@@ -29,7 +25,7 @@ async function blockStorage(page: Page): Promise<void> {
 }
 
 test("the saved interface language wins over the browser's language", async ({ page }) => {
-  await store(page, KEY, '{"schema":2,"settings":{"language":"ar"}}');
+  await storeItem(page, PROFILE_KEY, '{"schema":2,"settings":{"language":"ar"}}');
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("التلاوة");
@@ -44,7 +40,7 @@ test("a first visit has an empty notice area, ready to announce", async ({ page 
 });
 
 test("unreadable saved data starts the app fresh, says so, and keeps a copy of what was there", async ({ page }) => {
-  await store(page, KEY, "{not json");
+  await storeItem(page, PROFILE_KEY, "{not json");
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(HOME);
   await expect(noticeArea(page).getByText(STARTED_FRESH)).toBeVisible();
@@ -54,11 +50,11 @@ test("unreadable saved data starts the app fresh, says so, and keeps a copy of w
 
 test("progress saved by a newer version is reported and left untouched", async ({ page }) => {
   const newer = '{"schema":3,"settings":{"language":"ar"}}';
-  await store(page, KEY, newer);
+  await storeItem(page, PROFILE_KEY, newer);
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(noticeArea(page).getByText(NEWER)).toBeVisible();
-  expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBe(newer);
+  expect(await page.evaluate((key) => localStorage.getItem(key), PROFILE_KEY)).toBe(newer);
 });
 
 test("when the browser blocks storage the app still works and says progress cannot be saved", async ({ page }) => {
@@ -120,10 +116,10 @@ test("the notice stays while moving between pages until it is dismissed, and the
 });
 
 test.describe("Arabic", () => {
-  test.use({ locale: "ar-EG", colorScheme: "dark" });
+  test.use({ locale: "ar-EG" });
 
   test("the notices are shown in the interface language", async ({ page }) => {
-    await store(page, KEY, '{"schema":7,"settings":{}}');
+    await storeItem(page, PROFILE_KEY, '{"schema":7,"settings":{}}');
     await page.goto("/");
     await expect(
       page
@@ -135,7 +131,7 @@ test.describe("Arabic", () => {
   });
 
   test("unreadable data and blocked storage have Arabic notices too", async ({ page, context }) => {
-    await store(page, KEY, "[]");
+    await storeItem(page, PROFILE_KEY, "[]");
     await page.goto("/");
     await expect(noticeArea(page).getByText("تعذّرت قراءة تقدّمك المحفوظ، فبدأ مفاتيح من جديد.")).toBeVisible();
     const blocked = await context.newPage();
@@ -146,7 +142,7 @@ test.describe("Arabic", () => {
 });
 
 test("data left by the old version is neither used nor touched", async ({ page }) => {
-  await store(page, "mafatih.profile", '{"settings":{"language":"ar"}}');
+  await storeItem(page, "mafatih.profile", '{"settings":{"language":"ar"}}');
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(noticeArea(page)).toBeEmpty();
@@ -161,10 +157,10 @@ test("a second tab adopts what the first one saved instead of overwriting it lat
   await expect(second.getByRole("textbox", { name: "Text to type" })).toBeVisible();
   await first.getByRole("textbox", { name: "Text to type" }).fill("بتن");
   await first.getByRole("button", { name: "Start typing" }).click();
-  await expect(first.getByRole("region", { name: "Text to type" })).toContainText("بتن");
+  await expect(surface(first)).toContainText("بتن");
   await second.getByRole("link", { name: "Practice" }).click();
   await second.getByRole("link", { name: "Custom" }).click();
-  await expect(second.getByRole("region", { name: "Text to type" })).toContainText("بتن");
+  await expect(surface(second)).toContainText("بتن");
 });
 
 test("when saving fails after a change the visitor is told, and the change still applies for this visit", async ({
@@ -179,13 +175,13 @@ test("when saving fails after a change the visitor is told, and the change still
   await expect(noticeArea(page)).toBeEmpty();
   await page.getByRole("textbox", { name: "Text to type" }).fill("بتن");
   await page.getByRole("button", { name: "Start typing" }).click();
-  await expect(page.getByRole("region", { name: "Text to type" })).toContainText("بتن");
+  await expect(surface(page)).toContainText("بتن");
   await expect(page.getByText("Your progress can't be saved in this browser.")).toBeVisible();
 });
 
 test.describe("the language asked for in the link", () => {
   test("opens the app in Arabic, saves it as the setting, and leaves the address clean", async ({ page }) => {
-    await store(page, KEY, '{"schema":2,"settings":{"language":"en"}}');
+    await storeItem(page, PROFILE_KEY, '{"schema":2,"settings":{"language":"en"}}');
     await page.goto("/?lang=ar");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -224,7 +220,7 @@ test.describe("the language asked for in the link", () => {
   });
 
   test("English can be asked for as well, against a saved Arabic profile", async ({ page }) => {
-    await store(page, KEY, '{"schema":2,"settings":{"language":"ar"}}');
+    await storeItem(page, PROFILE_KEY, '{"schema":2,"settings":{"language":"ar"}}');
     await page.goto("/?lang=en");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     expect((await savedSettings(page)).language).toBe("en");
@@ -247,9 +243,9 @@ test.describe("the language asked for in the link", () => {
     page,
   }) => {
     const newer = '{"schema":3,"settings":{"language":"en"}}';
-    await store(page, KEY, newer);
+    await storeItem(page, PROFILE_KEY, newer);
     await page.goto("/?lang=ar");
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-    expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBe(newer);
+    expect(await page.evaluate((key) => localStorage.getItem(key), PROFILE_KEY)).toBe(newer);
   });
 });

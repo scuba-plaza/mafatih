@@ -1,6 +1,6 @@
-export const PHONE_BELOW_PX = 600;
-export const TEXT_ONLY_BELOW_PX = 320;
-export const IOS_BAR_PX = 64;
+const PHONE_BELOW_PX = 600;
+const TEXT_ONLY_BELOW_PX = 320;
+const IOS_BAR_PX = 64;
 
 const APPLE = /^(mac|iphone|ipad|ipod)/i;
 

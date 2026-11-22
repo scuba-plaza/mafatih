@@ -72,11 +72,6 @@ function failing(thrown: unknown): () => never {
   };
 }
 
-test("the profile and the copy of unreadable data are kept under versioned keys", () => {
-  expect(STORAGE_KEY).toBe("mafatih:profile:2");
-  expect(UNREADABLE_KEY).toBe("mafatih:profile:2:unreadable");
-});
-
 test("a first visit starts with default settings in the visitor's language", () => {
   const opened = openProfile(memoryStore(), ENGLISH);
   expect(opened.profile).toEqual(ENGLISH_DEFAULTS);
@@ -93,32 +88,7 @@ test("the visitor's languages may be missing or nonsense: English is the fallbac
 test("a saved profile is read back as it was, whatever the browser's language is now", () => {
   const store = memoryStore();
   expect(openProfile(store, ENGLISH).save(ARABIC_PROFILE)).toBeNull();
-  expect(JSON.parse(store.data.get("mafatih:profile:2") ?? "")).toEqual({
-    schema: 2,
-    settings: {
-      language: "ar",
-      font: "scheherazade",
-      fontSize: 40,
-      vocalization: "auto",
-      requireBackspace: true,
-      showKeyboard: true,
-      fingerGuide: true,
-      keyLabels: true,
-      delayedHint: false,
-      customText: "",
-      ayatPerLesson: 4,
-      surahOrder: "mushaf",
-      reciter: "murattal",
-      volume: 0.8,
-      muted: false,
-      playWhole: true,
-      loop: true,
-    },
-    ladder: { unlocked: 10 },
-    stats: { practice: {}, recitation: {}, custom: {} },
-    history: [],
-    recitation: { position: null, surahs: {} },
-  });
+  expect(JSON.parse(store.data.get("mafatih:profile:2") ?? "")).toEqual(ARABIC_PROFILE);
   const reopened = openProfile(store, ENGLISH);
   expect(reopened.profile).toEqual(ARABIC_PROFILE);
   expect(reopened.notice).toBeNull();
@@ -182,27 +152,7 @@ test("unknown and dangerous keys in saved data are never copied into the profile
   const { profile } = openProfile(holding(stored), ENGLISH);
   expect(profile).toEqual(ARABIC_PROFILE);
   expect(Object.keys(profile)).toEqual(["schema", "settings", "ladder", "stats", "history", "recitation"]);
-  expect(Object.keys(profile.settings).sort()).toEqual(
-    [
-      "ayatPerLesson",
-      "customText",
-      "delayedHint",
-      "fingerGuide",
-      "font",
-      "fontSize",
-      "keyLabels",
-      "language",
-      "loop",
-      "muted",
-      "playWhole",
-      "reciter",
-      "requireBackspace",
-      "showKeyboard",
-      "surahOrder",
-      "vocalization",
-      "volume",
-    ].sort(),
-  );
+  expect(Object.keys(profile.settings).sort()).toEqual(Object.keys(ARABIC_PROFILE.settings).sort());
   expect(Object.hasOwn(Object.prototype, "polluted")).toBe(false);
 });
 

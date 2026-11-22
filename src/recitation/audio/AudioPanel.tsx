@@ -4,7 +4,7 @@ import type { Settings } from "~/settings/settings.ts";
 import { Switch } from "~/ui/Switch.tsx";
 import { useDismissable } from "~/ui/useDismissable.ts";
 import { VolumeIcon } from "./icons.tsx";
-import type { Reciter } from "./reciters.ts";
+import { type Reciter, reciterWords } from "./reciters.ts";
 import { ICON_BUTTON, LATCHED } from "./styles.ts";
 
 export interface AudioPanelProps {
@@ -24,8 +24,7 @@ export function AudioPanel({ settings, reciter, change }: AudioPanelProps) {
   const close = useCallback(() => setOpen(false), []);
   useDismissable(open, close, wrapper, opener);
 
-  const name = language === "ar" ? reciter.nameAr : reciter.name;
-  const style = language === "ar" ? reciter.styleAr : reciter.style;
+  const { name, style } = reciterWords(reciter, language);
 
   return (
     <div ref={wrapper} className="relative">

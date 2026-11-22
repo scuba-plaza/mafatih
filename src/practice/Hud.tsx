@@ -13,7 +13,7 @@ export interface LastLesson {
   readonly unlocked: Rung | undefined;
 }
 
-export interface HudProps {
+interface HudProps {
   readonly progress: LadderProgress;
   readonly stats: KeyStats;
   readonly vocalization: Vocalization;
@@ -38,13 +38,13 @@ export function Hud({ progress, stats, vocalization, last, hidden = false }: Hud
   const stat = rung === undefined ? undefined : statOf(stats, rung.char);
   const typed = stat !== undefined && stat.attempts > 0;
   const nameKey = rung === undefined ? undefined : markNameKey(rung.char);
-  const unlockedKey = last?.unlocked;
-  const unlockedName = unlockedKey === undefined ? undefined : markNameKey(unlockedKey.char);
   const none = <span className="text-muted">{t("hud.none")}</span>;
-  const announcement =
-    unlockedKey === undefined
-      ? ""
-      : t("hud.unlockedKey", { key: unlockedName === undefined ? unlockedKey.char : t(unlockedName) });
+  const unlockedKey = last?.unlocked;
+  let announcement = "";
+  if (unlockedKey !== undefined) {
+    const unlockedName = markNameKey(unlockedKey.char);
+    announcement = t("hud.unlockedKey", { key: unlockedName === undefined ? unlockedKey.char : t(unlockedName) });
+  }
 
   return (
     <section hidden={hidden} aria-label={t("hud.label")} className="flex flex-col gap-3">

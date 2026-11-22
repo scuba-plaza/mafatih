@@ -41,23 +41,14 @@ test("a passage that opens a surah with a basmala starts with the clip of 1:1, t
   expect(clips.slice(1).map((clip) => clip.span)).toEqual(passage.ayat.map(({ start, end }) => ({ start, end })));
 });
 
-test("the opening surah is its own basmala, and surah 9 has none: neither gets an extra clip", async () => {
-  const fatiha = audioSequence(buildPassage(await loadSurah(1), 1, 2, NO_MARKS));
-  expect(fatiha.map((clip) => [clip.surah, clip.ayah])).toEqual([
-    [1, 1],
-    [1, 2],
-  ]);
-  const tawba = audioSequence(buildPassage(await loadSurah(9), 1, 2, NO_MARKS));
-  expect(tawba.map((clip) => [clip.surah, clip.ayah])).toEqual([
-    [9, 1],
-    [9, 2],
-  ]);
-});
-
-test("a passage that starts later in a surah has no basmala clip", async () => {
-  const clips = audioSequence(buildPassage(await loadSurah(36), 21, 2, NO_MARKS));
+test.each([
+  ["the opening surah, which is its own basmala", 1, 1],
+  ["surah 9, which has none", 9, 1],
+  ["a passage that starts later in a surah", 36, 21],
+])("%s gets no basmala clip", async (_case, surah, from) => {
+  const clips = audioSequence(buildPassage(await loadSurah(surah), from, 2, NO_MARKS));
   expect(clips.map((clip) => [clip.surah, clip.ayah])).toEqual([
-    [36, 21],
-    [36, 22],
+    [surah, from],
+    [surah, from + 1],
   ]);
 });

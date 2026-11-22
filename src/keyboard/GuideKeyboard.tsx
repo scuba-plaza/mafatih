@@ -85,8 +85,7 @@ function legendOf(slot: Slot, shifted: boolean, layoutName: string, labelled: bo
   if (!labelled) {
     return "";
   }
-  const legend = shifted ? (slot.cap?.shift ?? "") : (slot.cap?.base ?? "");
-  return carriedMark(legend);
+  return carriedMark((shifted ? slot.cap?.shift : slot.cap?.base) ?? "");
 }
 
 function fingerName(finger: Finger | undefined): MessageKey | undefined {
@@ -124,7 +123,10 @@ export function GuideKeyboard({
   const guide = revealed && !paused ? guideFor(expectedText(session), deleting) : NOTHING_DUE;
   const layoutName = useLayoutName();
   const name = fingerName(guide.finger);
-  const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
+  let caption = "";
+  if (name !== undefined) {
+    caption = guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
+  }
 
   return (
     <div

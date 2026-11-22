@@ -1,6 +1,6 @@
 export const RESTART_AFTER_SECONDS = 2;
 
-export type PlayerStatus = "idle" | "playing" | "paused" | "failed";
+type PlayerStatus = "idle" | "playing" | "paused" | "failed";
 
 export interface PlayerState {
   readonly status: PlayerStatus;
@@ -70,23 +70,19 @@ function ended(state: PlayerState): PlayerState {
   if (!state.whole) {
     return { ...state, status: "paused" };
   }
-  return state.index < state.count - 1
-    ? { ...state, index: state.index + 1 }
-    : { ...state, index: 0, status: "paused" };
+  return onLast(state) ? { ...state, index: 0, status: "paused" } : { ...state, index: state.index + 1 };
 }
 
 function load(state: PlayerState, count: number): PlayerState {
+  const loaded = { ...state, count, index: 0, resume: false };
   const wasPlaying = state.status === "playing" || state.resume;
-  const status =
-    count === 0 || state.status === "failed" ? "idle" : wasPlaying && !state.held ? "playing" : state.status;
-  const held = wasPlaying && state.held && count > 0;
-  return {
-    ...state,
-    count,
-    index: 0,
-    status: held ? "paused" : status,
-    resume: held,
-  };
+  if (wasPlaying && state.held && count > 0) {
+    return { ...loaded, status: "paused", resume: true };
+  }
+  if (count === 0 || state.status === "failed") {
+    return { ...loaded, status: "idle" };
+  }
+  return { ...loaded, status: wasPlaying ? "playing" : state.status };
 }
 
 export function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {

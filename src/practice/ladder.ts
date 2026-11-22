@@ -1,6 +1,6 @@
 import { isRecord } from "~/lib/guards.ts";
 import { type KeyStats, statOf } from "~/stats/keystats.ts";
-import { isMark } from "~/text/arabic.ts";
+import { DAMMA, DAMMATAN, FATHA, FATHATAN, isMark, KASRA, KASRATAN, SHADDA, SUKUN } from "~/text/arabic.ts";
 
 export interface Rung {
   readonly kind: "letter" | "mark";
@@ -25,7 +25,7 @@ export interface UnlockConfig {
 
 const STARTER_LETTERS = "ايملبتنسكش";
 const LATER_LETTERS = "رةعوقحفصطخهأزجدضثغءىئظؤإذآ";
-const MARKS_IN_ORDER = "\u064E\u0650\u064F\u0652\u0651\u064B\u064D\u064C";
+const MARKS_IN_ORDER = [FATHA, KASRA, DAMMA, SUKUN, SHADDA, FATHATAN, KASRATAN, DAMMATAN];
 
 const ROUNDING = 1e-9;
 

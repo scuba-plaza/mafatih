@@ -3,12 +3,12 @@ import { useSyncExternalStore } from "react";
 const KEYBOARD_SHARE = 0.2;
 const ZOOMED = 1.02;
 
-export interface Tallest {
+interface Tallest {
   readonly width: number;
   readonly height: number;
 }
 
-export interface Measure {
+interface Measure {
   readonly tallest: number;
   readonly visible: number;
   readonly scale: number;

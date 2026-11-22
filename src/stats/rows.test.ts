@@ -1,10 +1,8 @@
 import { expect, test } from "vitest";
+import { FATHA, SHADDA } from "~/text/arabic.ts";
 import type { LessonRecord } from "./history.ts";
 import type { KeyStats } from "./keystats.ts";
 import { keyRows, recentLessons } from "./rows.ts";
-
-const FATHA = String.fromCodePoint(0x64e);
-const SHADDA = String.fromCodePoint(0x651);
 
 function stat(attempts: number, hits: number, timed: number, meanMs: number) {
   return { attempts, hits, timed, meanMs, recentAccuracy: 0 };

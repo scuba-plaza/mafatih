@@ -234,7 +234,7 @@ test("the lam-alef key types a lam-alef unit in one stroke and one sample", () =
 
 test("a lam-alef unit can also be typed as its two letters, giving two samples", () => {
   let session = typeAll(start("بلَا"), ["ب", "ل"], 0, 300);
-  expect(isComplete(session)).toBe(false);
+  expect(session.cursor).toBe(1);
   expect(expectedText(session)).toBe("ا");
   expect(view(session).doneUntil).toBe(3);
   session = press(session, "ا", 700);
@@ -332,9 +332,10 @@ test("before anything is typed there is no speed and nothing has gone wrong", ()
   expect(metricsOf(start("بت"))).toEqual({ elapsedMs: 0, typedChars: 0, cpm: 0, wpm: 0, accuracy: 1, errors: 0 });
 });
 
-test("a text with nothing to type is complete from the start", () => {
+test("a text with nothing to type is complete from the start, without ever having been finished", () => {
   const session = start("hello");
   expect(isComplete(session)).toBe(true);
+  expect(session.finishedAt).toBeNull();
   expect(press(session, "ب", 0)).toEqual(session);
 });
 
@@ -342,14 +343,6 @@ test("keys after the end change nothing", () => {
   const done = typeAll(start("ب"), ["ب"], 0, 100);
   expect(press(done, "ت", 500)).toEqual(done);
   expect(applyKey(done, BACKSPACE, 600, STRICT)).toEqual(done);
-});
-
-test("applying a key never changes the session it was given", () => {
-  const before = press(start("بت"), "س", 0);
-  const snapshot = structuredClone(before);
-  press(before, "ش", 100);
-  applyKey(before, BACKSPACE, 200, STRICT);
-  expect(before).toEqual(snapshot);
 });
 
 test("pausing after the last key does not add to the typing time", () => {
@@ -439,15 +432,6 @@ test("a mark already typed is not accepted a second time", () => {
   expect(session.mistakes).toEqual([FATHA]);
 });
 
-test("the cursor counts the prompt's own units, a lam-alef being one of them", () => {
-  const prompt = buildPrompt("ب لا ت", LETTERS);
-  let session = typeAll(createSession(prompt), ["ب", " ", "ل"], 0, 100);
-  expect(session.cursor).toBe(2);
-  expect(expectedText(session)).toBe("ا");
-  session = press(session, "ا", 400);
-  expect(session.cursor).toBe(3);
-});
-
 test("the units keep the prompt's places in the text, whatever order and way they are typed in", () => {
   const prompt = buildPrompt(`لا ب${SHADDA}${FATHA}`, WITH_MARKS);
   const session = typeAll(createSession(prompt), ["ل", "ا", " ", "ب", FATHA, SHADDA], 0, 100);
@@ -494,10 +478,6 @@ test("time never runs backwards: an earlier timestamp is treated as the latest o
   expect(metricsOf(press(start("بت"), "ب", 1000), 200).elapsedMs).toBe(0);
 });
 
-test("a text with nothing to type is complete without ever having been finished", () => {
-  expect(start("hello").finishedAt).toBeNull();
-});
-
 test("turning the Backspace setting off drops mistakes that were pending, so nobody is stuck on hidden ones", () => {
   let session = press(begun("بت"), "س", 100, STRICT);
   expect(session.mistakes).toEqual(["س"]);
@@ -515,11 +495,13 @@ test("turning the Backspace setting on after a hidden mistake lets the right key
   expect(session.samples.slice(1)).toEqual([{ expected: "ب", correct: false, latencyMs: null }]);
 });
 
-test("pausing and lenient typing never change the session they were given", () => {
-  const before = typeAll(start("بتن"), ["ب", "س"], 0, 100, LENIENT);
-  const snapshot = structuredClone(before);
-  press(before, "ت", 200, LENIENT);
-  applyKey(before, BACKSPACE, 300, LENIENT);
-  pause(before, 400);
-  expect(before).toEqual(snapshot);
+test("applying a key or pausing never changes the session it was given", () => {
+  for (const options of [STRICT, LENIENT]) {
+    const before = typeAll(start("بتن"), ["ب", "س"], 0, 100, options);
+    const snapshot = structuredClone(before);
+    press(before, "ش", 200, options);
+    applyKey(before, BACKSPACE, 300, options);
+    pause(before, 400);
+    expect(before).toEqual(snapshot);
+  }
 });

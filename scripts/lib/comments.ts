@@ -2,10 +2,6 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parseSync } from "oxc-parser";
 
-export interface CommentFinding {
-  line: number;
-}
-
 const SCRIPT = /\.[mc]?[jt]sx?$/;
 const CHECKED = /\.([mc]?[jt]sx?|css|html|json)$/;
 const SOURCE_DIRECTORIES = ["src", "scripts", "e2e"];
@@ -59,8 +55,8 @@ function commentStarts(filename: string, source: string): number[] {
   return outsideStrings(source, filename.endsWith(".json"));
 }
 
-export function findComments(filename: string, source: string): readonly CommentFinding[] {
-  return commentStarts(filename, source).map((start) => ({ line: lineAt(source, start) }));
+export function commentLines(filename: string, source: string): number[] {
+  return commentStarts(filename, source).map((start) => lineAt(source, start));
 }
 
 export function sourceFiles(root: string): string[] {

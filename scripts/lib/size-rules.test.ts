@@ -20,27 +20,17 @@ test("a build inside every limit has no problems", () => {
   expect(sizeProblems(healthy(), "index-AAA.js", WORDS)).toEqual([]);
 });
 
-test("the entry chunk may not pass 130 kilobytes gzipped, and the message names it", () => {
-  const chunks = [chunk("index-AAA.js", 131), ...healthy().slice(1)];
-  const problems = sizeProblems(chunks, "index-AAA.js", WORDS);
+test.each([
+  ["index-AAA.js", 130],
+  ["007-CCC.js", 80],
+  ["words-BBB.js", 100],
+])("%s may reach %i kilobytes gzipped but not pass it, and only it is named", (name, limit) => {
+  const sized = (kilobytes: number) => healthy().map((each) => (each.name === name ? chunk(name, kilobytes) : each));
+  expect(sizeProblems(sized(limit), "index-AAA.js", WORDS)).toEqual([]);
+  const problems = sizeProblems(sized(limit + 1), "index-AAA.js", WORDS);
   expect(problems).toHaveLength(1);
-  expect(problems[0]).toContain("index-AAA.js");
-  expect(problems[0]).toContain("130");
-  expect(sizeProblems([chunk("index-AAA.js", 130), ...healthy().slice(1)], "index-AAA.js", WORDS)).toEqual([]);
-});
-
-test("a surah chunk may not pass 80 kilobytes, and only the one that does is named", () => {
-  const chunks = healthy().map((each) => (each.name === "007-CCC.js" ? chunk(each.name, 81) : each));
-  const problems = sizeProblems(chunks, "index-AAA.js", WORDS);
-  expect(problems).toHaveLength(1);
-  expect(problems[0]).toContain("007-CCC.js");
-});
-
-test("the practice list may not pass 100 kilobytes", () => {
-  const chunks = healthy().map((each) => (each.name === "words-BBB.js" ? chunk(each.name, 101) : each));
-  const problems = sizeProblems(chunks, "index-AAA.js", WORDS);
-  expect(problems).toHaveLength(1);
-  expect(problems[0]).toContain("words-BBB.js");
+  expect(problems[0]).toContain(name);
+  expect(problems[0]).toContain(`the limit is ${limit} KB`);
 });
 
 test("every surah is a chunk of its own: a missing one is a problem", () => {

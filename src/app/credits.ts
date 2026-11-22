@@ -1,11 +1,11 @@
 import type { MessageKey } from "~/i18n/en.ts";
 
-export interface SourceLink {
+interface SourceLink {
   readonly name: string;
   readonly href: string;
 }
 
-export interface Credit {
+interface Credit {
   readonly label: MessageKey;
   readonly note: MessageKey;
   readonly links: readonly SourceLink[];

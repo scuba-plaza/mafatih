@@ -1,4 +1,4 @@
-export interface LessonFont {
+interface LessonFont {
   readonly id: string;
   readonly family: string;
   readonly load?: () => Promise<unknown>;

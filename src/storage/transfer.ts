@@ -9,7 +9,7 @@ const LEGACY_SCHEMA = 1;
 
 export type ImportFailure = "too-large" | "not-json" | "not-a-backup" | "wrong-version";
 
-export type ImportResult =
+type ImportResult =
   | { readonly ok: true; readonly profile: Profile }
   | { readonly ok: false; readonly reason: ImportFailure };
 

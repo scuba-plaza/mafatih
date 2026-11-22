@@ -3,14 +3,17 @@ export interface TextSpan {
   readonly end: number;
 }
 
-export type HighlightName =
-  | "mafatih-done"
-  | "mafatih-apparatus"
-  | "mafatih-done-playing"
-  | "mafatih-apparatus-playing"
-  | "mafatih-upcoming-playing"
-  | "mafatih-wash"
-  | "mafatih-hidden";
+export const HIGHLIGHT_NAMES = [
+  "mafatih-done",
+  "mafatih-apparatus",
+  "mafatih-done-playing",
+  "mafatih-apparatus-playing",
+  "mafatih-upcoming-playing",
+  "mafatih-wash",
+  "mafatih-hidden",
+] as const;
+
+export type HighlightName = (typeof HIGHLIGHT_NAMES)[number];
 
 export interface PaintRun extends TextSpan {
   readonly name: HighlightName;
@@ -23,16 +26,6 @@ export interface PaintInput {
   readonly playing: TextSpan | null;
   readonly exempt: TextSpan | null;
 }
-
-export const HIGHLIGHT_NAMES: readonly HighlightName[] = [
-  "mafatih-done",
-  "mafatih-apparatus",
-  "mafatih-done-playing",
-  "mafatih-apparatus-playing",
-  "mafatih-upcoming-playing",
-  "mafatih-wash",
-  "mafatih-hidden",
-];
 
 function holds(span: TextSpan | null, start: number, end: number): boolean {
   return span !== null && span.start <= start && end <= span.end;

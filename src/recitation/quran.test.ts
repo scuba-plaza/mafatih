@@ -55,9 +55,7 @@ test("every surah loads with as many ayat as its entry says", async () => {
 });
 
 test("loading a number that is not a surah fails", async () => {
-  await expect(loadSurah(0)).rejects.toThrow(RangeError);
-  await expect(loadSurah(115)).rejects.toThrow(RangeError);
-  for (const number of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+  for (const number of [0, 115, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     await expect(loadSurah(number), String(number)).rejects.toThrow(RangeError);
   }
 });

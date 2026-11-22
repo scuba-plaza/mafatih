@@ -5,7 +5,7 @@ import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { describeInk, inkByColour, inkColours } from "./helpers/ink.ts";
 import { brightestPixel, dominantBrightness } from "./helpers/pixels.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
-import { surah } from "./helpers/quran.ts";
+import { MARKS, surah } from "./helpers/quran.ts";
 import { addStyle } from "./helpers/style.ts";
 import { doneText, paintedTwice, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
@@ -17,7 +17,6 @@ interface Rgb {
   readonly blue: number;
 }
 
-const MARKS = /[\u064B-\u0652\u0670]/g;
 const WASHED = 24;
 const WASH_TOP = 70;
 const MURATTAL = /^\P{L}*Abdul Basit \u02BFAbd us-Samad\P{L}* \u00B7 \P{L}*Murattal\P{L}* 64 kbps \u00B7 (\d+):(\d+)$/u;
@@ -202,21 +201,6 @@ test("the ayah being recited is marked in the text by colour and by background, 
   await expect.poll(() => playingSpan(page)).toHaveLength(0);
 });
 
-test("pressing the audio buttons keeps the field focused and the text sharp", async ({ page }) => {
-  await mockAudio(page, LONG);
-  await page.goto("/#/recitation/1/1");
-  await startTyping(page);
-  const field = page.getByRole("textbox", { name: "Type the text shown" });
-  const text = surface(page).locator("[data-lesson-text]");
-  await expect(field).toBeFocused();
-  await player(page).getByRole("button", { name: "Play", exact: true }).click();
-  await expect(field).toBeFocused();
-  await expect(text).toHaveCSS("filter", "none");
-  await player(page).getByRole("button", { name: "Next ayah" }).click();
-  await expect(field).toBeFocused();
-  await expect(text).toHaveCSS("filter", "none");
-});
-
 test("each ayah is fetched once: after a reload only the saved copy can supply it", async ({ page }) => {
   await spyAudio(page);
   const { requests } = await mockAudio(page, SHORT);
@@ -359,16 +343,20 @@ test("Page Up and Page Down on the volume slider move the slider and leave the p
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
 });
 
-test("pressing an audio button leaves the focus in the typing field, with a mouse or a finger", async ({ page }) => {
+test("pressing an audio button leaves the focus in the typing field and the text sharp, with a mouse or a finger", async ({
+  page,
+}) => {
   await spyAudio(page);
   await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
   await startTyping(page);
   const field = page.getByRole("textbox", { name: "Type the text shown" });
+  const text = surface(page).locator("[data-lesson-text]");
   await expect(field).toBeFocused();
   for (const name of ["Repeat passage", "Next ayah", "Previous ayah", "Play"]) {
     await player(page).getByRole("button", { name, exact: true }).click();
     await expect(field, name).toBeFocused();
+    await expect(text, name).toHaveCSS("filter", "none");
   }
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await expect(field).toBeFocused();
@@ -1083,22 +1071,19 @@ function contrast(first: Rgb, second: Rgb): number {
   return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
 }
 
-for (const scheme of ["dark"] as const) {
-  test(`the play button's icon can be told from its background (${scheme})`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: scheme });
-    await mockAudio(page, LONG);
-    await page.goto("/#/recitation/1/1");
-    const play = player(page).getByRole("button", { name: "Play", exact: true });
-    const colours = await play.evaluate((button) => {
-      const parse = (text: string): Rgb => {
-        const [red = 0, green = 0, blue = 0] = (text.match(/[\d.]+/g) ?? []).map(Number);
-        return { red, green, blue };
-      };
-      return {
-        background: parse(getComputedStyle(button).backgroundColor),
-        icon: parse(getComputedStyle(button.querySelector("svg") ?? button).color),
-      };
-    });
-    expect(contrast(colours.background, colours.icon)).toBeGreaterThanOrEqual(4.5);
+test("the play button's icon can be told from its background", async ({ page }) => {
+  await mockAudio(page, LONG);
+  await page.goto("/#/recitation/1/1");
+  const play = player(page).getByRole("button", { name: "Play", exact: true });
+  const colours = await play.evaluate((button) => {
+    const parse = (text: string): Rgb => {
+      const [red = 0, green = 0, blue = 0] = (text.match(/[\d.]+/g) ?? []).map(Number);
+      return { red, green, blue };
+    };
+    return {
+      background: parse(getComputedStyle(button).backgroundColor),
+      icon: parse(getComputedStyle(button.querySelector("svg") ?? button).color),
+    };
   });
-}
+  expect(contrast(colours.background, colours.icon)).toBeGreaterThanOrEqual(4.5);
+});

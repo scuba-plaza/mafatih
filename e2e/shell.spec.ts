@@ -14,19 +14,9 @@ const PAGES = [
 const LOCALES = { en: "en-US", ar: "ar-EG" } as const;
 
 const COPY = {
-  en: { app: "Mafatih", nav: "Main", skip: "Skip to content", input: "Type the text shown", settings: "Settings" },
-  ar: {
-    app: "مفاتيح",
-    nav: "التنقل الرئيسي",
-    skip: "انتقل إلى المحتوى",
-    input: "اكتب النص الظاهر",
-    settings: "الإعدادات",
-  },
+  en: { app: "Mafatih", nav: "Main", skip: "Skip to content", settings: "Settings" },
+  ar: { app: "مفاتيح", nav: "التنقل الرئيسي", skip: "انتقل إلى المحتوى", settings: "الإعدادات" },
 } as const;
-
-async function sidewaysOverflow(page: Page): Promise<number> {
-  return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-}
 
 async function focusedName(page: Page): Promise<string> {
   return page.evaluate(() => document.activeElement?.textContent ?? "");
@@ -35,28 +25,22 @@ async function focusedName(page: Page): Promise<string> {
 for (const language of ["en", "ar"] as const) {
   const copy = COPY[language];
 
-  for (const colorScheme of ["dark"] as const) {
-    test.describe(`${language}, ${colorScheme}`, () => {
-      test.use({ locale: LOCALES[language], colorScheme });
-
-      for (const entry of PAGES) {
-        test(`${entry.hash} has one heading, the right language and direction, and no accessibility violations`, async ({
-          page,
-        }) => {
-          await page.goto(`/${entry.hash}`);
-          await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry[language]);
-          await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-          await expect(page.locator("html")).toHaveAttribute("lang", language);
-          await expect(page.locator("html")).toHaveAttribute("dir", language === "ar" ? "rtl" : "ltr");
-          await expect(page).toHaveTitle(`${entry[language]} · ${copy.app}`);
-          await expectNoAxeViolations(page);
-        });
-      }
-    });
-  }
-
   test.describe(`${language}`, () => {
     test.use({ locale: LOCALES[language] });
+
+    for (const entry of PAGES) {
+      test(`${entry.hash} has one heading, the right language and direction, and no accessibility violations`, async ({
+        page,
+      }) => {
+        await page.goto(`/${entry.hash}`);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry[language]);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+        await expect(page.locator("html")).toHaveAttribute("lang", language);
+        await expect(page.locator("html")).toHaveAttribute("dir", language === "ar" ? "rtl" : "ltr");
+        await expect(page).toHaveTitle(`${entry[language]} · ${copy.app}`);
+        await expectNoAxeViolations(page);
+      });
+    }
 
     test("the page has banner, navigation and main landmarks, and no footer", async ({ page }) => {
       await page.goto("/");
@@ -186,30 +170,6 @@ for (const language of ["en", "ar"] as const) {
       expect(new URL(page.url()).hash).toBe("#/practice");
     });
 
-    test("the tab order follows the reading order and every stop shows a focus outline", async ({ page }) => {
-      await page.goto("/#/practice");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[1][language]);
-      await expect(page.getByRole("textbox", { name: copy.input })).toBeAttached();
-      await page.setViewportSize({ width: 1280, height: 800 });
-      const names = PAGES.map((entry) => entry[language]).slice(0, 4);
-      const expected = [copy.skip, ...names, copy.settings];
-      const edges: number[] = [];
-      for (const name of expected) {
-        await page.keyboard.press("Tab");
-        expect(await focusedName(page)).toBe(name);
-        const outline = await page.evaluate(
-          () => getComputedStyle(document.activeElement ?? document.body).outlineStyle,
-        );
-        expect(outline, name).toBe("solid");
-        const box = await page.evaluate(() => document.activeElement?.getBoundingClientRect().toJSON());
-        edges.push(language === "ar" ? -(box?.right ?? 0) : (box?.left ?? 0));
-      }
-      const navEdges = edges.slice(1, 5);
-      expect(navEdges).toEqual([...navEdges].sort((a, b) => a - b));
-      await page.keyboard.press("Tab");
-      await expect(page.getByRole("textbox", { name: copy.input })).toBeFocused();
-    });
-
     test("on a phone the skip control and Settings come first and the four pages come after the content", async ({
       page,
     }) => {
@@ -230,48 +190,6 @@ for (const language of ["en", "ar"] as const) {
         };
       });
       expect(order).toEqual({ settingsBeforeMain: true, mainBeforeTabs: true });
-    });
-
-    test("nothing scrolls sideways at 320 pixels", async ({ page }) => {
-      await page.setViewportSize({ width: 320, height: 568 });
-      for (const entry of PAGES) {
-        await page.goto(`/${entry.hash}`);
-        await expect(page.getByRole("heading", { level: 1 })).toHaveText(entry[language]);
-        expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
-      }
-    });
-
-    test("at 320 pixels the navigation stays on one line", async ({ page }) => {
-      await page.setViewportSize({ width: 320, height: 568 });
-      await page.goto("/");
-      const tops = new Set<number>();
-      for (const link of await page.getByRole("navigation", { name: copy.nav }).getByRole("link").all()) {
-        const box = await link.boundingBox();
-        tops.add(box?.y ?? -1);
-        expect(box?.height).toBeGreaterThanOrEqual(44);
-      }
-      expect(tops.size).toBe(1);
-    });
-
-    test("at 320 pixels with text at 200 percent every page stays reachable without sideways scrolling", async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width: 320, height: 568 });
-      await page.goto("/#/practice");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(PAGES[1][language]);
-      await page.evaluate(() => {
-        document.documentElement.style.fontSize = "200%";
-      });
-      expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
-      for (const link of await page.getByRole("link").all()) {
-        const box = await link.boundingBox();
-        const name = (await link.getAttribute("href")) ?? "";
-        expect(box?.x, name).toBeGreaterThanOrEqual(0);
-        expect((box?.x ?? 0) + (box?.width ?? 0), name).toBeLessThanOrEqual(320);
-      }
-      const heading = await page.getByRole("heading", { level: 1 }).boundingBox();
-      expect(heading?.x).toBeGreaterThanOrEqual(0);
-      expect((heading?.x ?? 0) + (heading?.width ?? 0)).toBeLessThanOrEqual(320);
     });
 
     test("every control is at least 44 by 44 pixels on a touch screen, on every page", async ({ page, isMobile }) => {

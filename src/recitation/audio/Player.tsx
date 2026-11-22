@@ -8,7 +8,7 @@ import { AudioPanel } from "./AudioPanel.tsx";
 import { Dial } from "./Dial.tsx";
 import { stopWeights } from "./dial.ts";
 import { NextIcon, PreviousIcon, RepeatIcon } from "./icons.tsx";
-import { reciterOf } from "./reciters.ts";
+import { reciterOf, reciterWords } from "./reciters.ts";
 import { ICON_BUTTON, LATCHED } from "./styles.ts";
 import type { Player as PlayerHandle } from "./usePlayer.ts";
 
@@ -45,27 +45,33 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
     }
   };
 
-  const reciterName = language === "ar" ? reciter.nameAr : reciter.name;
-  const reciterStyle = language === "ar" ? reciter.styleAr : reciter.style;
-  const line =
-    state.status === "failed"
-      ? t("player.unavailable")
-      : clip === undefined
-        ? ""
-        : t(player.onBasmala ? "player.nowBasmala" : "player.now", {
-            reciter: reciterName,
-            style: reciterStyle,
-            kbps: reciter.kbps,
-            surah: clip.surah,
-            ayah: clip.ayah,
-          });
+  const { name: reciterName, style: reciterStyle } = reciterWords(reciter, language);
 
-  const title =
-    clip === undefined
-      ? ""
-      : player.onBasmala
-        ? t("player.basmala")
-        : `${surahName(requireSurahMeta(clip.surah), language)} ${clip.ayah}`;
+  function statusLine(): string {
+    if (state.status === "failed") {
+      return t("player.unavailable");
+    }
+    if (clip === undefined) {
+      return "";
+    }
+    return t(player.onBasmala ? "player.nowBasmala" : "player.now", {
+      reciter: reciterName,
+      style: reciterStyle,
+      kbps: reciter.kbps,
+      surah: clip.surah,
+      ayah: clip.ayah,
+    });
+  }
+
+  function trackTitle(): string {
+    if (clip === undefined) {
+      return "";
+    }
+    return player.onBasmala ? t("player.basmala") : `${surahName(requireSurahMeta(clip.surah), language)} ${clip.ayah}`;
+  }
+
+  const line = statusLine();
+  const title = trackTitle();
   const album = surahName(meta, language);
   const { play, pause, next, previous, toggle } = player;
   const mediaSession = "mediaSession" in navigator ? navigator.mediaSession : null;

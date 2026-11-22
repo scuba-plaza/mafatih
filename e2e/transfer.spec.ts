@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
-import { savedProfile, seedProfile } from "./helpers/profile.ts";
+import { PROFILE_KEY, savedProfile, seedProfile, storeItem } from "./helpers/profile.ts";
 
 const STAT = { attempts: 9, hits: 9, timed: 9, meanMs: 300, recentAccuracy: 1 };
 const LESSON = { at: 1_700_000_000_000, mode: "recitation", chars: 120, ms: 60_000, accuracy: 0.98 };
@@ -223,7 +223,7 @@ test("when the browser cannot save, the restore says so instead of claiming succ
 test("when a newer version owns the saved progress, the restore says so instead of claiming success", async ({
   page,
 }) => {
-  await page.addInitScript(() => localStorage.setItem("mafatih:profile:2", '{"schema":3}'));
+  await storeItem(page, PROFILE_KEY, '{"schema":3}');
   await restoreWhileSavingFails(page);
   expect(await savedProfile(page)).toEqual({ schema: 3 });
 });
@@ -248,20 +248,16 @@ test("the file control is a labelled button of 44 pixels with a visible focus ri
   expect(ring).toBe("solid 2px");
 });
 
-test("the section, its question and its alert pass axe in light and dark", async ({ page }) => {
-  for (const scheme of ["dark"] as const) {
-    await page.emulateMedia({ colorScheme: scheme });
-    await page.goto("/#/practice");
-    await openSettings(page);
-    await section(page).getByLabel(FILE_LABEL).setInputFiles(file(backupOf()));
-    await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toBeVisible();
-    await expectNoAxeViolations(page);
-    await section(page).getByRole("button", { name: "Keep my progress" }).click();
-    await section(page).getByLabel(FILE_LABEL).setInputFiles(file("nonsense"));
-    await expect(section(page).getByRole("alert")).toBeVisible();
-    await expectNoAxeViolations(page);
-    await page.reload();
-  }
+test("the section, its question and its alert pass axe", async ({ page }) => {
+  await page.goto("/#/practice");
+  await openSettings(page);
+  await section(page).getByLabel(FILE_LABEL).setInputFiles(file(backupOf()));
+  await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await section(page).getByRole("button", { name: "Keep my progress" }).click();
+  await section(page).getByLabel(FILE_LABEL).setInputFiles(file("nonsense"));
+  await expect(section(page).getByRole("alert")).toBeVisible();
+  await expectNoAxeViolations(page);
 });
 
 test("the section fits and works at 320 px", async ({ page }) => {

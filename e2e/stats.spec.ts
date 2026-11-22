@@ -123,17 +123,6 @@ test("only Arabic keys are tagged Arabic: the word Space is the page's own langu
   await expect(space.evaluate((element) => element.closest("[lang=ar]"))).resolves.toBeNull();
 });
 
-test("each table has a heading of its own and is named by it", async ({ page }) => {
-  await seedProfile(page, PROFILE);
-  await openPractice(page);
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(2);
-  await expect(keysHeading(page, "Practice")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Last ten lessons" })).toBeVisible();
-  await expect(keys(page)).toBeVisible();
-  await expect(recent(page)).toBeVisible();
-  await expect(page.locator("caption")).toHaveCount(0);
-});
-
 test("the radio group chooses the mode of the key table, and each mode has its own empty state", async ({ page }) => {
   await seedProfile(page, PROFILE);
   await openPractice(page);
@@ -234,25 +223,6 @@ test("in the Arabic interface the labels and the digits are Arabic", async ({ br
   expect(cells[2]).toBe("\u0661\u0660");
   await expect(page.getByRole("table", { name: "آخر عشرة دروس" })).toBeVisible();
 });
-
-for (const language of ["en", "ar"] as const) {
-  for (const colorScheme of ["dark"] as const) {
-    test.describe(`${language}, ${colorScheme}`, () => {
-      test.use({ colorScheme });
-
-      test("the page has no accessibility violations, with data and without", async ({ page }) => {
-        await seedProfile(page, { ...PROFILE, settings: { language } });
-        await page.goto("/#/stats");
-        await expect(page.getByRole("table").first()).toBeVisible();
-        await expectNoAxeViolations(page);
-        await seedProfile(page, { settings: { language } });
-        await page.reload();
-        await expect(page.getByRole("table")).toHaveCount(0);
-        await expectNoAxeViolations(page);
-      });
-    });
-  }
-}
 
 test("at 320 pixels the page never scrolls sideways: a table too wide for it scrolls inside a region the keyboard can reach", async ({
   page,

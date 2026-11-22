@@ -64,7 +64,8 @@ const step = Math.max(1, Math.floor(others.length / SAMPLE));
 const sample = others.filter((_, index) => index % step === 0).slice(0, SAMPLE);
 const sharedSpellings = new Map<string, PracticeWord[]>();
 for (const row of words.filter((word) => word.rank <= SHARED_UNTIL_RANK)) {
-  sharedSpellings.set(skeleton(row.word), [...(sharedSpellings.get(skeleton(row.word)) ?? []), row]);
+  const spelling = skeleton(row.word);
+  sharedSpellings.set(spelling, [...(sharedSpellings.get(spelling) ?? []), row]);
 }
 const list = (rows: readonly PracticeWord[]) => rows.map((row) => row.word).join("  ");
 const frequent = (rows: readonly PracticeWord[]) => rows.filter((row) => row.rank <= lastRank);

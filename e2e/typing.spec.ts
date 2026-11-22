@@ -522,21 +522,6 @@ test("tapping the text while it is focused never takes the focus away", async ({
   await expect(lessonText(page)).toHaveCSS("filter", "none");
 });
 
-test("the text can be reached with Tab and left with Tab, and no ring is drawn around it", async ({ page }) => {
-  await open(page, { customText: "بتن" });
-  await page.getByRole("heading", { level: 1 }).focus();
-  await page.keyboard.press("Tab");
-  await expect(field(page)).toBeFocused();
-  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
-  await typeKeys(page, ["ب"]);
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
-  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
-  await surface(page).click();
-  await expect(field(page)).toBeFocused();
-  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
-});
-
 test("a passage a pixel or two taller than its window, from rounding, is not a scroll region", async ({ page }) => {
   await seedSettings(page, { language: "en" });
   await page.goto("/#/recitation/1");
@@ -552,19 +537,15 @@ test("a passage a pixel or two taller than its window, from rounding, is not a s
   await expect(lessonText(page)).not.toBeFocused();
 });
 
-test("the caret is only shown while the text is focused", async ({ page }) => {
+test("the caret is a thin line, only shown while the text is focused", async ({ page }) => {
   await open(page, { customText: "بتن" });
   const caret = surface(page).locator("[data-caret]");
   await expect(caret).toBeHidden();
   await startTyping(page);
   await expect(caret).toBeVisible();
+  await expect(caret).toHaveCSS("width", "1.5px");
   await page.mouse.click(4, 4);
   await expect(caret).toBeHidden();
-});
-
-test("the caret is a thin line", async ({ page }) => {
-  await start(page, { customText: "بتن" });
-  await expect(surface(page).locator("[data-caret]")).toHaveCSS("width", "1.5px");
 });
 
 test("the caret is solid while typing and blinks with a fade once the typist pauses", async ({ page }) => {
@@ -596,24 +577,21 @@ test("the caret is solid while typing and blinks with a fade once the typist pau
   await expect(caret).not.toHaveAttribute("data-idle", "");
 });
 
-test("with reduced motion the caret never blinks", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await start(page, { customText: "بتن" });
-  const caret = surface(page).locator("[data-caret]");
-  await expect(caret).toHaveAttribute("data-idle", "");
-  await expect(caret).toHaveCSS("animation-name", "none");
-});
-
-test("the lesson can be started, left, continued and finished from the keyboard alone", async ({ page }) => {
+test("the lesson can be started, left, continued and finished from the keyboard alone, with no ring around the text", async ({
+  page,
+}) => {
   await open(page, { customText: "بتن" });
   await page.getByRole("heading", { level: 1 }).focus();
   await page.keyboard.press("Tab");
   await expect(field(page)).toBeFocused();
+  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
   await typeKeys(page, ["ب"]);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Edit text" })).toBeFocused();
+  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
   await page.keyboard.press("Shift+Tab");
   await expect(field(page)).toBeFocused();
+  await expect(surface(page)).not.toHaveCSS("outline-style", "solid");
   await typeKeys(page, ["ت", "ن"]);
   await expect(finished(page)).toBeFocused();
   await expect(field(page)).toHaveAttribute("tabindex", "-1");
@@ -850,12 +828,6 @@ test("a browser without text highlighting still shows the caret and the mistakes
   await expect(finished(page)).toBeVisible();
 });
 
-test("the typing page has no accessibility violations while typing, with mistakes pending", async ({ page }) => {
-  await start(page, { customText: "بتن كتب" });
-  await typeKeys(page, ["ب", "س"]);
-  await expectNoAxeViolations(page);
-});
-
 test("on a phone every text size is a different size, and the largest still fits with mistakes shown", async ({
   page,
 }) => {
@@ -898,17 +870,11 @@ test("in forced colours the caret is still drawn", async ({ page }) => {
   expect((await caretBox(page)).height).toBeGreaterThan(20);
 });
 
-test.describe("dark", () => {
-  test.use({ colorScheme: "dark" });
-
-  test("the typing page has no accessibility violations in the dark scheme, with a mistake flagged", async ({
-    page,
-  }) => {
-    await start(page, { customText: "بتن كتب" });
-    await typeKeys(page, ["ب", "س"]);
-    await expect(flag(page)).toBeVisible();
-    await expectNoAxeViolations(page);
-  });
+test("the typing page has no accessibility violations while typing, with a mistake flagged", async ({ page }) => {
+  await start(page, { customText: "بتن كتب" });
+  await typeKeys(page, ["ب", "س"]);
+  await expect(flag(page)).toBeVisible();
+  await expectNoAxeViolations(page);
 });
 
 for (const [font, family] of [

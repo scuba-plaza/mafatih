@@ -1,16 +1,11 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { passageRange } from "./helpers/passage.ts";
-import { savedProfile, savedSettings, seedProfile } from "./helpers/profile.ts";
+import { passageBar, passageRange } from "./helpers/passage.ts";
+import { PROFILE_KEY, savedProfile, savedSettings, seedProfile } from "./helpers/profile.ts";
+import { lettersOf, surah } from "./helpers/quran.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 import { afterFrames, storageEventsSeen, watchStorageEvents } from "./helpers/waits.ts";
-
-interface SurahFile {
-  readonly number: number;
-  readonly basmala: string | null;
-  readonly ayat: readonly string[];
-}
 
 interface SurahMeta {
   readonly n: number;
@@ -19,13 +14,7 @@ interface SurahMeta {
   readonly ayat: number;
 }
 
-const MARKS = /[\u064B-\u0652\u0670]/g;
 const METAS: readonly SurahMeta[] = JSON.parse(readFileSync(new URL("../data/surahs.json", import.meta.url), "utf8"));
-
-function surah(number: number): SurahFile {
-  const name = `${String(number).padStart(3, "0")}.json`;
-  return JSON.parse(readFileSync(new URL(`../generated/quran/${name}`, import.meta.url), "utf8"));
-}
 
 function meta(number: number): SurahMeta {
   const found = METAS.find((entry) => entry.n === number);
@@ -35,17 +24,8 @@ function meta(number: number): SurahMeta {
   return found;
 }
 
-function lettersOf(source: SurahFile, from: number, to: number, withBasmala = false): string[] {
-  const opening = withBasmala && source.basmala !== null ? [source.basmala] : [];
-  return [...[...opening, ...source.ayat.slice(from - 1, to)].join(" ").replace(MARKS, "")];
-}
-
 function map(page: Page) {
   return page.getByRole("list", { name: "Surahs" });
-}
-
-function bar(page: Page) {
-  return page.getByRole("group", { name: "Passage" });
 }
 
 const card = (page: Page) => page.getByRole("dialog", { name: /complete$/ });
@@ -130,21 +110,25 @@ test("the ayat counts on the map are written as Arabic counts them: آيات fro
   await expect(links.nth(1)).toContainText("٢٨٦ آية");
 });
 
-test("Page Down and Page Up in the footer go to the next and previous passage, across surahs, and keep the focus", async ({
+test("Page Down and Page Up in the footer go to the next and previous passage, across surahs, keep the focus and announce the new range", async ({
   page,
 }) => {
   await page.goto("/#/recitation/1/5");
-  await expect(bar(page)).toBeVisible();
-  const play = bar(page).getByRole("button", { name: "Play", exact: true });
+  await expect(passageBar(page)).toBeVisible();
+  const play = passageBar(page).getByRole("button", { name: "Play", exact: true });
   await play.focus();
   await page.keyboard.press("PageDown");
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Al-Baqara · 1–4");
+  await expect(passageRange(page, "Ayat 1 to 4 of 286")).toContainText("Al-Baqara");
   await expect(play).toBeFocused();
   await page.keyboard.press("PageUp");
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
   await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
-  await expect(bar(page).getByRole("button", { name: /previous passage|next passage|Go to ayah/i })).toHaveCount(0);
+  await expect(passageRange(page, "Ayat 5 to 7 of 7")).toContainText("Al-Faatiha");
+  await expect(passageBar(page).getByRole("button", { name: /previous passage|next passage|Go to ayah/i })).toHaveCount(
+    0,
+  );
 });
 
 test("a small pager beside the passage heading goes to the previous and the next passage", async ({ page }) => {
@@ -261,31 +245,6 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 10 });
 });
 
-test("Continue puts the focus in the typing field once", async ({ page }) => {
-  const kawthar = surah(108);
-  await seedProfile(page, {
-    recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
-    settings: { vocalization: "letters", ayatPerLesson: 1 },
-  });
-  await page.goto("/#/recitation/108/3");
-  await startTyping(page);
-  await typeKeys(page, lettersOf(kawthar, 3, 3));
-  await continueButton(page).click();
-  await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
-  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
-});
-
-test("moving to another passage from the footer is announced politely with the new range", async ({ page }) => {
-  await page.goto("/#/recitation/1/1");
-  await expect(surface(page)).toBeVisible();
-  const announced = page.getByRole("status").filter({ hasText: "Ayat 5 to 7 of 7" });
-  await expect(announced).toHaveCount(0);
-  await bar(page).getByRole("button", { name: "Play", exact: true }).focus();
-  await page.keyboard.press("PageDown");
-  await expect(announced).toHaveCount(1);
-  await expect(announced).toContainText("Al-Faatiha");
-});
-
 test("retyping only the last passage of a surah completed earlier just moves on: no celebration", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
@@ -343,12 +302,11 @@ test("another tab finishing the surah does not make a partial passage here open 
   await watchStorageEvents(page);
   const other = await context.newPage();
   await other.goto("/#/about");
-  await other.evaluate(() => {
-    const key = "mafatih:profile:2";
+  await other.evaluate((key) => {
     const profile = JSON.parse(localStorage.getItem(key) ?? "{}");
     profile.recitation = { position: null, surahs: { 108: { typed: [], completions: 1 } } };
     localStorage.setItem(key, JSON.stringify(profile));
-  });
+  }, PROFILE_KEY);
   await page.bringToFront();
   await expect.poll(() => storageEventsSeen(page)).toBeGreaterThan(0);
   await afterFrames(page);
@@ -427,8 +385,8 @@ test("while a surah loads the room for its lesson is kept, so the bar does not j
     await route.continue();
   });
   await page.goto("/#/recitation/36", { waitUntil: "commit" });
-  await expect(bar(page)).toBeVisible();
-  const loading = await bar(page).boundingBox();
+  await expect(passageBar(page)).toBeVisible();
+  const loading = await passageBar(page).boundingBox();
   expect(loading?.y ?? 0).toBeGreaterThan(800 * 0.3);
   release();
   await expect(surface(page)).toBeVisible();

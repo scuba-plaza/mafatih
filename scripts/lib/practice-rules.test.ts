@@ -47,6 +47,7 @@ const SHADDA = String.fromCodePoint(0x651);
 const FATHA = String.fromCodePoint(0x64e);
 const VOWEL_FIRST_MADDA = `\u0645${FATHA}\u062F${FATHA}${SHADDA}`;
 const SHADDA_FIRST_MADDA = `\u0645${FATHA}\u062F${SHADDA}${FATHA}`;
+const NON_PAST_MADDA = `\u064A${FATHA}\u0645\u064F\u062F${SHADDA}\u064F`;
 
 function extract(entries: WiktionaryEntry[], rules: Rules = OPEN) {
   return selectWords(
@@ -206,20 +207,6 @@ test("a form that cannot be typed, is not fully vocalized or is pausal is droppe
   expect(words([entry])).toEqual([]);
 });
 
-test("a vowel written before its shadda comes out shadda first", () => {
-  const entry: WiktionaryEntry = {
-    word: "مد",
-    pos: "verb",
-    senses: [{ glosses: ["to extend"] }],
-    forms: [
-      { form: VOWEL_FIRST_MADDA, tags: ["active", "indicative", "masculine", "past", "singular", "third-person"] },
-      { form: "يَمُدُّ", tags: ["active", "indicative", "masculine", "non-past", "singular", "third-person"] },
-    ],
-  };
-  expect(words([entry])[0]).toBe(SHADDA_FIRST_MADDA);
-  expect(words([entry])).toHaveLength(2);
-});
-
 test("a form that carries the definite article is dropped", () => {
   const relative: WiktionaryEntry = {
     word: "من",
@@ -333,20 +320,18 @@ test("a list file holds one entry per line; blank lines and headings are skipped
   expect(parseList("")).toEqual(new Set());
 });
 
-test("a rejected word written vowel first still removes the word, which is stored shadda first", () => {
+test("a vowel written before its shadda comes out shadda first, and rejecting it as written still removes it", () => {
   const verb: WiktionaryEntry = {
     word: "مد",
     pos: "verb",
     senses: [{ glosses: ["to extend"] }],
     forms: [
       { form: VOWEL_FIRST_MADDA, tags: ["active", "indicative", "masculine", "past", "singular", "third-person"] },
-      { form: "يَمُدُّ", tags: ["active", "indicative", "masculine", "non-past", "singular", "third-person"] },
+      { form: NON_PAST_MADDA, tags: ["active", "indicative", "masculine", "non-past", "singular", "third-person"] },
     ],
   };
-  expect(words([verb])).toContain(SHADDA_FIRST_MADDA);
-  const left = words([verb], { ...OPEN, reject: parseList(VOWEL_FIRST_MADDA) });
-  expect(left).toHaveLength(1);
-  expect(left).not.toContain(SHADDA_FIRST_MADDA);
+  expect(words([verb])).toEqual([SHADDA_FIRST_MADDA, NON_PAST_MADDA]);
+  expect(words([verb], { ...OPEN, reject: parseList(VOWEL_FIRST_MADDA) })).toEqual([NON_PAST_MADDA]);
 });
 
 test("a clean word list has no violations", () => {

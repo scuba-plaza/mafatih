@@ -1,32 +1,21 @@
 import { expect, test } from "vitest";
 import { FATHA, SHADDA } from "~/text/arabic.ts";
 import { buildPrompt } from "~/text/prompt.ts";
-import { CUSTOM_TEXT_LIMIT, hasSomethingToType, prepareCustomText } from "./text.ts";
+import { hasSomethingToType, prepareCustomText } from "./text.ts";
 
-test("whitespace of any kind becomes single spaces, with none at the ends", () => {
-  expect(prepareCustomText("  بسم \n\n\t الله  ")).toEqual({ text: "بسم الله", truncated: false });
-  expect(prepareCustomText("a\r\nb c")).toEqual({ text: "a b c", truncated: false });
-});
-
-test("empty or blank text stays empty", () => {
-  expect(prepareCustomText("")).toEqual({ text: "", truncated: false });
-  expect(prepareCustomText(" \n ")).toEqual({ text: "", truncated: false });
-});
-
-test("pasted lam-alef presentation forms become their two letters, so they can be typed", () => {
-  expect(prepareCustomText("ﻻ ﻷ ﻹ ﻵ ﻼ").text).toBe("لا لأ لإ لآ لا");
-});
-
-test("marks are put in the order they are typed, shadda first", () => {
-  expect(prepareCustomText(`رب${FATHA}${SHADDA}`).text).toBe(`رب${SHADDA}${FATHA}`);
-});
-
-test("everything else is kept exactly as written", () => {
-  expect(prepareCustomText("Hello، كِتَابٌ 123!").text).toBe("Hello، كِتَابٌ 123!");
+test.each([
+  ["whitespace of any kind becomes single spaces, with none at the ends", "  بسم \n\n\t الله  ", "بسم الله"],
+  ["a Windows line break and a no-break space become single spaces", "a\r\nb c", "a b c"],
+  ["empty text stays empty", "", ""],
+  ["blank text becomes empty", " \n ", ""],
+  ["pasted lam-alef presentation forms become their two letters, so they can be typed", "ﻻ ﻷ ﻹ ﻵ ﻼ", "لا لأ لإ لآ لا"],
+  ["marks are put in the order they are typed, shadda first", `رب${FATHA}${SHADDA}`, `رب${SHADDA}${FATHA}`],
+  ["everything else is kept exactly as written", "Hello، كِتَابٌ 123!", "Hello، كِتَابٌ 123!"],
+])("%s", (_, raw, text) => {
+  expect(prepareCustomText(raw)).toEqual({ text, truncated: false });
 });
 
 test("text up to the limit is kept whole", () => {
-  expect(CUSTOM_TEXT_LIMIT).toBe(5000);
   const text = "كتب ".repeat(1250).trim();
   expect(text).toHaveLength(4999);
   expect(prepareCustomText(text)).toEqual({ text, truncated: false });

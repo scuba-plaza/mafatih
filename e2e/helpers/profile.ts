@@ -2,9 +2,8 @@ import type { Page } from "@playwright/test";
 
 export const PROFILE_KEY = "mafatih:profile:2";
 
-export async function seedSettings(page: Page, settings: Record<string, unknown>): Promise<void> {
-  const value = JSON.stringify({ schema: 2, settings: { language: "en", ...settings } });
-  await page.addInitScript(([key, stored]) => localStorage.setItem(key, stored), [PROFILE_KEY, value] as const);
+export async function storeItem(page: Page, key: string, value: string): Promise<void> {
+  await page.addInitScript(([name, stored]) => localStorage.setItem(name, stored), [key, value] as const);
 }
 
 export async function seedProfile(
@@ -13,7 +12,17 @@ export async function seedProfile(
 ): Promise<void> {
   const { settings = {}, ...progress } = parts;
   const value = JSON.stringify({ schema: 2, settings: { language: "en", ...settings }, ...progress });
-  await page.addInitScript(([key, stored]) => localStorage.setItem(key, stored), [PROFILE_KEY, value] as const);
+  await storeItem(page, PROFILE_KEY, value);
+}
+
+export async function seedSettings(page: Page, settings: Record<string, unknown>): Promise<void> {
+  await seedProfile(page, { settings });
+}
+
+export async function resaveProfile(page: Page): Promise<void> {
+  await page.evaluate((key) => {
+    localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "{}"), null, 1));
+  }, PROFILE_KEY);
 }
 
 export async function savedProfile(page: Page): Promise<Record<string, unknown>> {

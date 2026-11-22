@@ -65,14 +65,9 @@ test("each unit records where its character sits in the text shown", () => {
   ]);
 });
 
-test("a dagger alef is shown and never typed, even with every mark required", () => {
-  const prompt = buildPrompt(`هَ${DAGGER_ALEF}ذَا`, ALL);
-  expect(prompt.shown).toBe(`هَ${DAGGER_ALEF}ذَا`);
-  expect(typed(prompt)).toBe("هَذَا");
-});
-
-test("a mark the keyboard cannot type is never a unit, even when it is asked for", () => {
+test("a dagger alef, which the keyboard cannot type, is shown and never typed, even when it is asked for", () => {
   const prompt = buildPrompt(`هَ${DAGGER_ALEF}ذَا`, new Set([DAGGER_ALEF, FATHA]));
+  expect(prompt.shown).toBe(`هَ${DAGGER_ALEF}ذَا`);
   expect(typed(prompt)).toBe("هَذَا");
 });
 

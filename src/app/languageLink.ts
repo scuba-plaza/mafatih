@@ -1,12 +1,12 @@
 import { type Language, languageFromSearch } from "~/i18n/i18n.ts";
 
-export interface AddressLike {
+interface AddressLike {
   readonly search: string;
   readonly pathname: string;
   readonly hash: string;
 }
 
-export interface HistoryLike {
+interface HistoryLike {
   readonly state: unknown;
   readonly replaceState: (state: unknown, unused: string, url: string) => void;
 }

@@ -11,7 +11,7 @@ import {
   type StorageNotice,
 } from "./profile.ts";
 
-export interface ProfileState {
+interface ProfileState {
   readonly profile: Profile;
   readonly notice: StorageNotice;
   readonly restored: number;
@@ -33,15 +33,11 @@ export function deviceLanguages(): readonly string[] {
   return navigator.languages ?? [navigator.language];
 }
 
-function open(): OpenedProfile {
-  return openProfile(browserStore(), deviceLanguages());
-}
-
 export function eraseStoredProfile(): void {
   eraseProfile(browserStore());
 }
 
-export interface ProfileProviderProps {
+interface ProfileProviderProps {
   readonly requestedLanguage?: Language | null;
   readonly children: ReactNode;
 }
@@ -90,7 +86,7 @@ export function ProfileProvider({ requestedLanguage = null, children }: ProfileP
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY || event.key === null) {
-        adopt(open());
+        adopt(openProfile(browserStore(), deviceLanguages()));
       }
     };
     window.addEventListener("storage", onStorage);

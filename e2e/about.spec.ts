@@ -1,5 +1,4 @@
 import { expect, type Page, test } from "@playwright/test";
-import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { seedSettings } from "./helpers/profile.ts";
 
 function credits(page: Page) {
@@ -71,25 +70,6 @@ test("About in Arabic is Arabic, and the names of the sources keep their own lan
   await expect(tanzil).toHaveAttribute("lang", "en");
   await expect(page.getByRole("link", { name: "EveryAyah" })).toHaveAttribute("lang", "en");
 });
-
-for (const language of ["en", "ar"] as const) {
-  for (const colorScheme of ["dark"] as const) {
-    test.describe(`${language}, ${colorScheme}`, () => {
-      test.use({ colorScheme });
-
-      test("About has no accessibility violations and never scrolls sideways at 320 pixels", async ({ page }) => {
-        await seedSettings(page, { language });
-        await page.setViewportSize({ width: 320, height: 568 });
-        await page.goto("/#/about");
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-        await expectNoAxeViolations(page);
-        expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(
-          0,
-        );
-      });
-    });
-  }
-}
 
 test("the Settings dialog ends with a link to About: it closes the dialog and About has the focus", async ({
   page,

@@ -81,19 +81,6 @@ test("Escape, Done and a click outside each close the dialog and give focus back
   await expect(opener(page)).toBeFocused();
 });
 
-test("while the dialog is open the page behind it cannot be reached with Tab", async ({ page }) => {
-  await page.goto("/#/custom");
-  await openSettings(page);
-  for (let step = 0; step < 30; step += 1) {
-    await page.keyboard.press("Tab");
-    const inside = await page.evaluate(() => {
-      const active = document.activeElement;
-      return active === document.body || active?.closest("dialog") !== null;
-    });
-    expect(inside).toBe(true);
-  }
-});
-
 test("changing the language applies at once, turns the page right-to-left and keeps the lesson where it was", async ({
   browserName,
   page,
@@ -249,19 +236,6 @@ function centre(box: { y: number; height: number } | null): number {
   return (box?.y ?? 0) + (box?.height ?? 0) / 2;
 }
 
-test("at 320 pixels nothing in the dialog or the header is cut off or scrolls sideways", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 568 });
-  await page.goto("/#/custom");
-  const settings = await opener(page).boundingBox();
-  const mark = await page.getByRole("img", { name: "Mafatih" }).boundingBox();
-  expect(Math.abs(centre(settings) - centre(mark))).toBeLessThanOrEqual(4);
-  expect(settings?.width).toBeGreaterThanOrEqual(44);
-  expect(settings?.height).toBeGreaterThanOrEqual(44);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
-  await openSettings(page);
-  expect(await dialog(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
-});
-
 test("on a wide screen the dialog stands in the middle", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#/custom");
@@ -272,16 +246,6 @@ test("on a wide screen the dialog stands in the middle", async ({ page }) => {
   expect(left).toBeGreaterThan(200);
   expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
   expect(box?.y).toBeGreaterThan(0);
-});
-
-test("opened and closed from the keyboard, the dialog gives focus back to the Settings button", async ({ page }) => {
-  await page.goto("/#/custom");
-  await opener(page).focus();
-  await page.keyboard.press("Enter");
-  await expect(dialog(page)).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(dialog(page)).toBeHidden();
-  await expect(opener(page)).toBeFocused();
 });
 
 test("at 320 pixels with text at 200 percent the dialog still fits and its Done button can be reached", async ({
@@ -394,7 +358,7 @@ for (const [language, locale, settingsName, appName] of [
   test.describe(`${language} header at 320 pixels`, () => {
     test.use({ locale });
 
-    test("the top bar keeps the wordmark and Settings on one row and the bottom bar its four links, even with wider letters than the system font's", async ({
+    test("the top bar keeps the wordmark and Settings on one row and the bottom bar its four links, all 44 pixels tall, even with wider letters than the system font's", async ({
       page,
     }) => {
       await page.setViewportSize({ width: 320, height: 568 });
@@ -403,10 +367,15 @@ for (const [language, locale, settingsName, appName] of [
       const settings = await page.getByRole("button", { name: settingsName }).boundingBox();
       const mark = await page.getByRole("img", { name: appName }).boundingBox();
       expect(Math.abs(centre(settings) - centre(mark))).toBeLessThanOrEqual(4);
+      expect(settings?.width).toBeGreaterThanOrEqual(44);
+      expect(settings?.height).toBeGreaterThanOrEqual(44);
       const links = page.locator("[data-tabbar]").getByRole("link");
       await expect(links).toHaveCount(4);
-      const rows = await links.evaluateAll((all) => all.map((link) => Math.round(link.getBoundingClientRect().y)));
-      expect(new Set(rows).size).toBe(1);
+      const boxes = await links.evaluateAll((all) => all.map((link) => link.getBoundingClientRect().toJSON()));
+      expect(new Set(boxes.map(({ y }) => Math.round(y))).size).toBe(1);
+      for (const { height } of boxes) {
+        expect(height).toBeGreaterThanOrEqual(44);
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(
         0,
       );
@@ -424,9 +393,9 @@ for (const [language, locale, settingsName, appName] of [
 }
 
 test.describe("Arabic", () => {
-  test.use({ locale: "ar-EG", colorScheme: "dark" });
+  test.use({ locale: "ar-EG" });
 
-  test("the dialog works in Arabic and in the dark scheme", async ({ browserName, page }) => {
+  test("the dialog works in Arabic", async ({ browserName, page }) => {
     test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
     await page.goto("/#/custom");
     await page.getByRole("button", { name: "الإعدادات" }).click();

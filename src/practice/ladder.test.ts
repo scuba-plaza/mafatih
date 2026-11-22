@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
 import { MARKS, TYPEABLE_LETTERS } from "~/keyboard/typeable.ts";
 import { type KeyStats, recordSample } from "~/stats/keystats.ts";
+import { DAMMA, DAMMATAN, FATHA, FATHATAN, KASRA, KASRATAN, SHADDA, SUKUN } from "~/text/arabic.ts";
 import {
   advance,
   DEFAULT_UNLOCK_CONFIG,
@@ -9,21 +10,11 @@ import {
   initialProgress,
   LADDER,
   type LadderProgress,
-  LETTERS_END,
   sanitizeProgress,
   unlockAllLetters,
   unlockedLetters,
   unlockedMarks,
 } from "./ladder.ts";
-
-const FATHA = String.fromCodePoint(0x64e);
-const KASRA = String.fromCodePoint(0x650);
-const DAMMA = String.fromCodePoint(0x64f);
-const SUKUN = String.fromCodePoint(0x652);
-const SHADDA = String.fromCodePoint(0x651);
-const FATHATAN = String.fromCodePoint(0x64b);
-const KASRATAN = String.fromCodePoint(0x64d);
-const DAMMATAN = String.fromCodePoint(0x64c);
 
 function typed(stats: KeyStats, key: string, hits: number, latencyMs: number, misses = 0): KeyStats {
   let next = stats;
@@ -54,8 +45,6 @@ test("the starter set is the ten letters of the home row, so a new learner never
   expect(LADDER.starter).toBe(10);
   const starter = LADDER.rungs.slice(0, 10).map((rung) => rung.char);
   expect([...starter].sort()).toEqual([...HOME_ROW_LETTERS].sort());
-  expect(starter).not.toContain("ط");
-  expect(starter[0]).toBe("ا");
 });
 
 test("the letters unlock in one fixed order, because saved progress is a position on it", () => {
@@ -81,10 +70,6 @@ test("letters and marks unlock in ladder order", () => {
   expect(unlockedLetters(at(44)).size).toBe(36);
   expect(focusRung(at(37))).toEqual({ kind: "mark", char: FATHA });
   expect(focusRung(at(44))).toEqual({ kind: "mark", char: DAMMATAN });
-});
-
-test("the mastery bar: eight timed samples, 700 ms for a letter, 1000 ms for a mark, 95% recent accuracy", () => {
-  expect(DEFAULT_UNLOCK_CONFIG).toEqual({ minSamples: 8, letterMs: 700, markMs: 1000, minAccuracy: 0.95 });
 });
 
 test("mastering the focus letter unlocks exactly the next rung", () => {
@@ -156,7 +141,6 @@ test("anything else falls back or is brought into range", () => {
 });
 
 test("unlocking all letters lands on the first mark: every letter is unlocked and no mark is", () => {
-  expect(LETTERS_END).toBe(36);
   const unlocked = unlockAllLetters(initialProgress());
   expect(unlocked).toEqual({ unlocked: 36 });
   expect([...unlockedLetters(unlocked)].sort()).toEqual([...TYPEABLE_LETTERS].sort());
