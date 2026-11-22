@@ -74,6 +74,15 @@ test("an accuracy is rounded down, so that 95% shown means the 95% that a star a
   expect(() => formatAccuracy("en", Number.NaN)).toThrow(RangeError);
 });
 
+test("the star threshold and the hint delay are filled in from their constants, not written into the messages", () => {
+  for (const catalog of [en, ar]) {
+    expect(placeholdersOf(catalog["map.rule"])).toEqual(["percent"]);
+    expect(placeholdersOf(catalog["settings.delayedHintHint"])).toEqual(["seconds"]);
+  }
+  expect(translate("en", "map.rule", { percent: 95 })).toContain("95%");
+  expect(translate("en", "settings.delayedHintHint", { seconds: 3 })).toContain("after 3 seconds");
+});
+
 test("a duration is minutes and two-digit seconds in the language's own digits, rounded to the second", () => {
   expect(formatDuration("en", 0)).toBe("0:00");
   expect(formatDuration("en", 65_400)).toBe("1:05");

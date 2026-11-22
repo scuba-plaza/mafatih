@@ -25,9 +25,28 @@ export function softKeyboardOpen({ tallest, visible, scale, typing }: Measure): 
 
 let memory: Tallest = { width: 0, height: 0 };
 
+const NOT_TEXT_INPUTS: ReadonlySet<string> = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+
+export function takesText(tagName: string, inputType: string): boolean {
+  return tagName === "TEXTAREA" || (tagName === "INPUT" && !NOT_TEXT_INPUTS.has(inputType.toLowerCase()));
+}
+
 function typingInAField(): boolean {
   const { activeElement } = document;
-  return activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
+  return activeElement instanceof HTMLInputElement
+    ? takesText("INPUT", activeElement.type)
+    : activeElement instanceof HTMLTextAreaElement;
 }
 
 function subscribe(onChange: () => void): () => void {

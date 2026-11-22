@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { expectLayoutIntact, expectOneScreen, openSoftKeyboard } from "./helpers/fit.ts";
+import { expectLayoutIntact, expectOneScreen, openSoftKeyboard, resizeAndSettle } from "./helpers/fit.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -123,6 +123,26 @@ for (const phone of KEYBOARD_UP) {
   });
 }
 
+test.describe("a phone whose focus is on the volume slider", () => {
+  test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
+
+  test("a window that shrinks is not taken for a keyboard, because no text is being typed", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
+    await page.goto("/#/recitation/1/1");
+    await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeAttached();
+    const audio = page.getByRole("group", { name: "Recitation audio" });
+    await audio.getByRole("button", { name: "Audio options" }).click();
+    const volume = audio.getByRole("slider", { name: "Volume" });
+    await volume.focus();
+    await expect(volume).toBeFocused();
+    await resizeAndSettle(page, { width: 375, height: 400 });
+    await expect(page.locator("header > div")).toBeVisible();
+    await expect(page.locator("[data-tabbar]")).toBeVisible();
+  });
+});
+
 test.describe("an iPad with the keyboard up", () => {
   test.use({ viewport: { width: 820, height: 1180 }, hasTouch: true });
 
@@ -205,13 +225,22 @@ test.describe("phones when the keyboard goes away", () => {
     await expect(page.locator("header > div")).toBeVisible();
   });
 
-  test("Settings opened on a phone is never hidden under a collapsed header", async ({ page }, testInfo) => {
+  test("Settings opened on a phone is never hidden under a collapsed header, even with a text field in it and the keyboard up", async ({
+    page,
+  }, testInfo) => {
     test.skip(testInfo.project.name !== DESKTOP_PROJECT, "the viewport is set here");
     await open(page, "#/recitation/1");
     await page.getByRole("button", { name: "Settings" }).click();
     const dialog = page.getByRole("dialog", { name: "Settings" });
     await expect(dialog).toBeVisible();
-    const field = dialog.locator("input").first();
+    await dialog.evaluate((element) => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.setAttribute("data-test-field", "");
+      input.setAttribute("aria-label", "A text field");
+      element.append(input);
+    });
+    const field = dialog.locator("[data-test-field]");
     await field.focus();
     await expect(field).toBeFocused();
     await page.setViewportSize({ width: 375, height: 413 });

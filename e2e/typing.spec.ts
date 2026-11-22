@@ -277,7 +277,8 @@ test("pressing on the text, leaving the field and coming back never replays a sh
   await surface(page).click();
   await expect(field(page)).toBeFocused();
   await surface(page).click();
-  await page.waitForTimeout(150);
+  await typeKeys(page, ["Backspace"]);
+  await expect.poll(() => caretColour(page)).toBe(ACCENT);
   expect(await shaking(page)).toBe(false);
   expect(await shakes(page)).toBe(1);
 });
@@ -324,7 +325,7 @@ test("while wrong keys are waiting to be deleted the caret stays red, and goes b
   expect(await caretColour(page)).toBe(ACCENT);
   await typeKeys(page, ["س"]);
   await expect.poll(() => caretColour(page)).toBe(DANGER);
-  await page.waitForTimeout(700);
+  await expect.poll(() => shaking(page)).toBe(false);
   expect(await caretColour(page)).toBe(DANGER);
   await typeKeys(page, ["Backspace"]);
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
@@ -657,6 +658,21 @@ test("pasted or swiped text is not typing", async ({ page }) => {
   expect(await doneText(page)).toBe("");
   expect(await shownText(page)).toBe("بتن");
   await expect(finished(page)).toHaveCount(0);
+});
+
+test("pasted Latin text is not typing, and it does not say the keyboard is the wrong one", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await field(page).evaluate((input) => {
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error("the typing field is not an input");
+    }
+    input.value = `${input.value}hello world`;
+    input.dispatchEvent(new InputEvent("input", { inputType: "insertFromPaste", data: "hello world", bubbles: true }));
+  });
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(await doneText(page)).toBe("");
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe("ب");
 });
 
 test("Backspace as the very first key is harmless", async ({ page }) => {

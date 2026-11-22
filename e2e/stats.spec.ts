@@ -224,7 +224,7 @@ test("in the Arabic interface the labels and the digits are Arabic", async ({ br
   const table = page.getByRole("table", { name: /^المفاتيح في/ });
   await expect(table.getByRole("columnheader")).toHaveText([
     "المفتاح",
-    "الزمن لكل مفتاح (بالملي ثانية)",
+    "الزمن لكل مفتاح (بالمللي ثانية)",
     "صحيح من أول مرة",
     "المحاولات",
   ]);

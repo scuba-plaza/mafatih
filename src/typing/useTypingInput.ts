@@ -14,6 +14,7 @@ export interface TypingInput {
 }
 
 const FORWARD_DELETE = /^delete.*Forward$/;
+const PASTED = /^insertFrom(Paste|PasteAsQuotation|Drop|Yank)$/;
 
 function caretToEnd(input: HTMLInputElement): void {
   input.setSelectionRange(input.value.length, input.value.length);
@@ -45,7 +46,8 @@ export function useTypingInput({ onKey, onWrongLayout }: TypingInputOptions): Ty
     const native = event.nativeEvent;
     const typed = native instanceof InputEvent ? native : undefined;
     const forwardDelete = typed !== undefined && FORWARD_DELETE.test(typed.inputType);
-    if (document.activeElement === input && !forwardDelete) {
+    const pasted = typed !== undefined && PASTED.test(typed.inputType);
+    if (document.activeElement === input && !forwardDelete && !pasted) {
       commit(input, native.timeStamp);
     }
     if (typed?.isComposing === true) {

@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { type AudioCache, loadAyahBlob } from "./cache.ts";
+import { type AudioCache, FETCH_TIMEOUT_MS, loadAyahBlob } from "./cache.ts";
 
 const URL_A = "https://everyayah.com/data/x/001001.mp3";
 
@@ -79,6 +79,42 @@ test("a removed ayah is fetched again", async () => {
   await cache.remove(URL_A);
   await loadAyahBlob(URL_A, cache);
   expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test("a request that never answers is given up after a while, and the next one fetches again", async () => {
+  vi.useFakeTimers();
+  try {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+          }),
+      ),
+    );
+    const waiting = loadAyahBlob(URL_A, memoryCache());
+    const outcome = expect(waiting).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS - 1);
+    let settled = false;
+    waiting.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await outcome;
+  } finally {
+    vi.useRealTimers();
+  }
+  const fetcher = respond("audio");
+  expect(await (await loadAyahBlob(URL_A, memoryCache())).text()).toBe("audio");
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
 test("a network failure is an error", async () => {

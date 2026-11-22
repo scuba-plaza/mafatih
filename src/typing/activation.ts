@@ -23,6 +23,14 @@ export function activatesOnEnter(event: ActivationKey): boolean {
   );
 }
 
+interface CanFindAncestor {
+  readonly closest: (selector: string) => unknown;
+}
+
+function canFindAncestor(target: unknown): target is CanFindAncestor {
+  return typeof target === "object" && target !== null && "closest" in target && typeof target.closest === "function";
+}
+
 export function isOnControl(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(CONTROL) !== null;
+  return canFindAncestor(target) && target.closest(CONTROL) !== null;
 }

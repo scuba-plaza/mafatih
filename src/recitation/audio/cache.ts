@@ -150,16 +150,28 @@ export function sharedAudioCache(): AudioCache | null {
 
 const inFlight = new Map<string, Promise<Blob>>();
 
+export const FETCH_TIMEOUT_MS = 20_000;
+
+async function fetchWithin(url: string): Promise<Blob> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`recitation ${response.status}`);
+    }
+    return await response.blob();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchAyahBlob(url: string, cache: AudioCache | null): Promise<Blob> {
   const stored = await (cache?.get(url) ?? Promise.resolve(null)).catch(() => null);
   if (stored !== null && stored.size > 0) {
     return stored;
   }
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`recitation ${response.status}`);
-  }
-  const blob = await response.blob();
+  const blob = await fetchWithin(url);
   if (blob.size === 0) {
     throw new Error("recitation empty");
   }

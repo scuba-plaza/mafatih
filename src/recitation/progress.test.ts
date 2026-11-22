@@ -234,6 +234,10 @@ test("a save from before runs and bests were kept loads with zeros, and nonsense
   expect(junk({ correct: -1, total: "x", ms: 5 }, 7)).toMatchObject({ run: NO_RUN, best: 0 });
   expect(junk({ correct: 11, total: 10, ms: 5 }, -0.2)).toMatchObject({ run: NO_RUN, best: 0 });
   expect(junk({ correct: 2.5, total: 10, ms: 5 }, "0.99")).toMatchObject({ run: NO_RUN, best: 0 });
+  expect(junk({ correct: 10, total: 10, ms: 3000 }, 1)).toMatchObject({
+    run: { correct: 10, total: 10, ms: 3000 },
+    best: 1,
+  });
   expect(junk({ correct: 9, total: 10, ms: 3000 }, 0.97)).toMatchObject({
     run: { correct: 9, total: 10, ms: 3000 },
     best: 0.97,

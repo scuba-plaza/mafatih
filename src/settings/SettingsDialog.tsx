@@ -2,6 +2,7 @@ import { useEffect, useId } from "react";
 import { formatRoute } from "~/app/routes.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Language } from "~/i18n/i18n.ts";
+import { HINT_DELAY_MS } from "~/keyboard/hint.ts";
 import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
 import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
@@ -134,7 +135,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         />
         <Switch
           label={t("settings.delayedHint")}
-          hint={t("settings.delayedHintHint")}
+          hint={t("settings.delayedHintHint", { seconds: HINT_DELAY_MS / 1000 })}
           checked={settings.delayedHint}
           onChange={(delayedHint) => change({ delayedHint })}
         />

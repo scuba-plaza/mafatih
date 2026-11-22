@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
+import { afterFrames } from "./helpers/waits.ts";
 
 const CLIP = readFileSync(new URL("./fixtures/ayah.mp3", import.meta.url));
 
@@ -88,7 +89,8 @@ test("nothing the app does is blocked by the policy: every page, the fonts, audi
     dialog.getByRole("button", { name: "Download backup" }).click(),
   ]);
   expect(download.suggestedFilename()).toMatch(/^mafatih-backup-/);
-  await page.waitForTimeout(300);
+  await page.waitForLoadState("networkidle");
+  await afterFrames(page);
   const violations = await page.evaluate(() => (window as unknown as { policyViolations: string[] }).policyViolations);
   expect(violations).toEqual([]);
 });

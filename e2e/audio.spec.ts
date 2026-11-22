@@ -215,6 +215,7 @@ test("pressing the audio buttons keeps the field focused and the text sharp", as
 });
 
 test("each ayah is fetched once: after a reload only the saved copy can supply it", async ({ page }) => {
+  await spyAudio(page);
   const { requests } = await mockAudio(page, SHORT);
   const count = (file: string) => requests.filter((name) => name === file).length;
   await seedProfile(page, { settings: { playWhole: false, loop: false } });
@@ -225,8 +226,7 @@ test("each ayah is fetched once: after a reload only the saved copy can supply i
   await page.reload();
   await expect(player(page)).toBeVisible();
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
-  await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  await page.waitForTimeout(500);
+  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThan(0);
   expect(count("001001.mp3")).toBe(1);
 });
 
@@ -234,7 +234,7 @@ test("the next ayah is fetched ahead while one plays, and not before anything pl
   const { requests } = await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
   await expect(player(page)).toBeVisible();
-  await page.waitForTimeout(400);
+  await page.waitForLoadState("networkidle");
   expect(requests).toEqual([]);
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(() => requests).toEqual(expect.arrayContaining(["001001.mp3", "001002.mp3"]));
@@ -322,9 +322,10 @@ test("Previous on the first clip rewinds it once; pausing and playing afterwards
   await player(page).getByRole("button", { name: "Previous ayah" }).click();
   await expect.poll(async () => (await readLog(page)).currentTime).toEqual([0]);
   await player(page).getByRole("button", { name: "Pause", exact: true }).click();
+  const playsBefore = (await readLog(page)).plays;
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
-  await page.waitForTimeout(300);
+  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThan(playsBefore);
   expect((await readLog(page)).currentTime).toEqual([0]);
 });
 
@@ -496,7 +497,7 @@ test("with repeat on and not the whole passage, the ayah that ends plays again",
   await seedProfile(page, { settings: { playWhole: false, loop: true } });
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
-  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThanOrEqual(3);
+  await expect.poll(async () => (await readLog(page)).plays, { timeout: 20_000 }).toBeGreaterThanOrEqual(3);
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await expect(status(page)).toContainText("1:1");
 });
@@ -553,18 +554,19 @@ test("the Audio panel opens centred over the speaker in the Arabic interface too
 });
 
 test("typing never starts audio, and audio never moves the cursor (Q5)", async ({ page }) => {
+  await spyAudio(page);
   const { requests } = await mockAudio(page, LONG);
   await seedProfile(page, { settings: { vocalization: "letters" } });
   await page.goto("/#/recitation/112/1");
   await startTyping(page);
   const keys = lettersOf(await shownText(page)).slice(0, 12);
   await typeKeys(page, keys.slice(0, 6));
-  await page.waitForTimeout(300);
+  await page.waitForLoadState("networkidle");
   expect(requests).toEqual([]);
   const typed = await doneText(page);
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(() => requests.length).toBeGreaterThan(0);
-  await page.waitForTimeout(500);
+  await expect.poll(() => firstAudio(page, (audio) => audio.currentTime)).toBeGreaterThan(0.2);
   expect(await doneText(page)).toBe(typed);
   await typeKeys(page, keys.slice(6, 9));
   expect((await doneText(page)).length).toBeGreaterThan(typed.length);

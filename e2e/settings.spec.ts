@@ -4,6 +4,7 @@ import { FIREFOX_PAGE_CRASH, NEEDS_CDP } from "./helpers/engines.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { afterFrames } from "./helpers/waits.ts";
 
 const KASRA = String.fromCodePoint(0x650);
 const SUKUN = String.fromCodePoint(0x652);
@@ -336,7 +337,7 @@ test("while the dialog is open the page behind it does not scroll, and it scroll
   await openSettings(page);
   await page.mouse.move(4, 4);
   await page.mouse.wheel(0, 600);
-  await page.waitForTimeout(150);
+  await afterFrames(page, 5);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await page.keyboard.press("Escape");
   await page.mouse.wheel(0, 600);
@@ -380,7 +381,8 @@ test("a font that cannot be loaded does not break the page", async ({ page }) =>
   await page.goto("/#/custom");
   await openSettings(page);
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
-  await page.waitForTimeout(300);
+  await page.evaluate(() => document.fonts.ready);
+  await afterFrames(page, 5);
   expect(errors).toEqual([]);
   await expect(dialog(page)).toBeVisible();
 });
