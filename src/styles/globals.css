@@ -212,8 +212,22 @@ button {
   }
 }
 
-[data-unligated] {
-  font-feature-settings:
-    "rlig" 0,
-    "liga" 0;
+[data-halved] {
+  color: transparent;
+  background-image: linear-gradient(
+    to right,
+    var(--color-upcoming) var(--cut, 100%),
+    var(--color-typed) var(--cut, 100%)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  padding-inline: min(0.15em, 14px);
+  margin-inline: calc(min(0.15em, 14px) * -1);
+}
+
+@media (forced-colors: active) {
+  [data-halved] {
+    background-image: none;
+    color: inherit;
+  }
 }

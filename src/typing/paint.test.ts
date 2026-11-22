@@ -12,8 +12,9 @@ function runs(
   doneUntil: number,
   apparatus: readonly TextSpan[] = [],
   playing: TextSpan | null = null,
+  exempt: TextSpan | null = null,
 ): PaintRun[] {
-  return paintRuns({ blocks, doneUntil, apparatus, playing });
+  return paintRuns({ blocks, doneUntil, apparatus, playing, exempt });
 }
 
 test("nothing typed and nothing heard paints nothing, so no text can look typed before it is", () => {
@@ -133,6 +134,31 @@ test("every letter the cursor has passed is painted, and none beyond it unless i
     for (let letter = 0; letter < 30; letter += 1) {
       const isSign = letter >= 8 && letter < 10;
       expect(covered(letter), `letter ${letter} with the cursor at ${cursor}`).toBe(letter < cursor || isSign);
+    }
+  }
+});
+
+test("a word painted by its own style is left out of every run, and the text around it is cut there", () => {
+  expect(runs(ONE_BLOCK, 12, [], null, { start: 4, end: 8 })).toEqual([
+    { name: "mafatih-done", start: 0, end: 4 },
+    { name: "mafatih-done", start: 8, end: 12 },
+  ]);
+  expect(runs(ONE_BLOCK, 6, [], null, { start: 4, end: 8 })).toEqual([{ name: "mafatih-done", start: 0, end: 4 }]);
+});
+
+test("a word painted by its own style is left out of the signs and of the ayah being heard too", () => {
+  expect(runs(ONE_BLOCK, 0, [{ start: 5, end: 7 }], { start: 2, end: 16 }, { start: 4, end: 8 })).toEqual([
+    { name: "mafatih-upcoming-playing", start: 2, end: 4 },
+    { name: "mafatih-upcoming-playing", start: 8, end: 16 },
+  ]);
+});
+
+test("no letter of a word painted by its own style is ever painted, wherever the cursor is", () => {
+  const word = { start: 12, end: 17 };
+  for (let cursor = 0; cursor <= 30; cursor += 1) {
+    const painted = runs(TWO_BLOCKS, cursor, [{ start: 14, end: 15 }], { start: 8, end: 25 }, word);
+    for (const run of painted) {
+      expect(run.end <= word.start || run.start >= word.end, `${cursor} ${JSON.stringify(run)}`).toBe(true);
     }
   }
 });

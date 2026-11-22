@@ -19,6 +19,7 @@ export interface PaintInput {
   readonly doneUntil: number;
   readonly apparatus: readonly TextSpan[];
   readonly playing: TextSpan | null;
+  readonly exempt: TextSpan | null;
 }
 
 export const HIGHLIGHT_NAMES: readonly HighlightName[] = [
@@ -43,16 +44,19 @@ function nameOf(sign: boolean, typed: boolean, heard: boolean): HighlightName | 
   return heard ? "mafatih-upcoming-playing" : null;
 }
 
-export function paintRuns({ blocks, doneUntil, apparatus, playing }: PaintInput): PaintRun[] {
+export function paintRuns({ blocks, doneUntil, apparatus, playing, exempt }: PaintInput): PaintRun[] {
   const length = blocks.at(-1)?.end ?? 0;
   const edges = new Set<number>([0, length, doneUntil]);
-  for (const span of [...blocks, ...apparatus, ...(playing === null ? [] : [playing])]) {
+  for (const span of [...blocks, ...apparatus, ...[playing, exempt].filter((candidate) => candidate !== null)]) {
     edges.add(span.start);
     edges.add(span.end);
   }
   const cuts = [...edges].filter((edge) => edge >= 0 && edge <= length).sort((a, b) => a - b);
   return cuts.slice(0, -1).flatMap((start, index) => {
     const end = cuts[index + 1] ?? start;
+    if (holds(exempt, start, end)) {
+      return [];
+    }
     const name = nameOf(
       apparatus.some((span) => holds(span, start, end)),
       end <= doneUntil,
