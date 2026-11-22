@@ -8,7 +8,8 @@ export type HighlightName =
   | "mafatih-apparatus"
   | "mafatih-done-playing"
   | "mafatih-apparatus-playing"
-  | "mafatih-upcoming-playing";
+  | "mafatih-upcoming-playing"
+  | "mafatih-wash";
 
 export interface PaintRun extends TextSpan {
   readonly name: HighlightName;
@@ -28,6 +29,7 @@ export const HIGHLIGHT_NAMES: readonly HighlightName[] = [
   "mafatih-done-playing",
   "mafatih-apparatus-playing",
   "mafatih-upcoming-playing",
+  "mafatih-wash",
 ];
 
 function holds(span: TextSpan | null, start: number, end: number): boolean {
@@ -55,7 +57,7 @@ export function paintRuns({ blocks, doneUntil, apparatus, playing, exempt }: Pai
   return cuts.slice(0, -1).flatMap((start, index) => {
     const end = cuts[index + 1] ?? start;
     if (holds(exempt, start, end)) {
-      return [];
+      return holds(playing, start, end) ? [{ name: "mafatih-wash", start, end }] : [];
     }
     const name = nameOf(
       apparatus.some((span) => holds(span, start, end)),

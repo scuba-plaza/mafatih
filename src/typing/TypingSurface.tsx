@@ -137,17 +137,19 @@ function halvedCut(paragraph: HTMLElement): number | undefined {
   if (wrapper === null || !(text instanceof Text)) {
     return undefined;
   }
-  const frames = wrapper.getClientRects();
-  const frame = frames[0];
-  const range = document.createRange();
-  range.setStart(text, Number(wrapper.dataset.from));
-  range.setEnd(text, Number(wrapper.dataset.to));
-  const pieces = [...range.getClientRects()].filter((piece) => piece.width > 0);
-  if (frames.length !== 1 || frame === undefined || pieces.length === 0) {
+  const word = document.createRange();
+  word.selectNodeContents(text);
+  const ligature = document.createRange();
+  ligature.setStart(text, Number(wrapper.dataset.from));
+  ligature.setEnd(text, Number(wrapper.dataset.to));
+  const lines = new Set([...word.getClientRects()].filter((piece) => piece.width > 0).map((piece) => piece.top));
+  const pieces = [...ligature.getClientRects()].filter((piece) => piece.width > 0);
+  if (lines.size !== 1 || pieces.length === 0) {
+    wrapper.style.removeProperty("--cut");
     return undefined;
   }
   const cut = (Math.min(...pieces.map((piece) => piece.left)) + Math.max(...pieces.map((piece) => piece.right))) / 2;
-  wrapper.style.setProperty("--cut", `${cut - frame.left}px`);
+  wrapper.style.setProperty("--cut", `${cut - wrapper.getBoundingClientRect().left}px`);
   return cut;
 }
 
@@ -213,7 +215,12 @@ function BlockText({ shown, block, cursor, mistakes, ligature }: BlockTextProps)
     return (
       <>
         {shown.slice(block.start, ligature.start)}
-        <span data-halved="" data-from={ligature.lam - ligature.start} data-to={ligature.alef + 1 - ligature.start}>
+        <span
+          data-halved=""
+          data-word={shown.slice(ligature.start, ligature.end)}
+          data-from={ligature.lam - ligature.start}
+          data-to={ligature.alef + 1 - ligature.start}
+        >
           {shown.slice(ligature.start, ligature.end)}
         </span>
         {shown.slice(ligature.end, block.end)}

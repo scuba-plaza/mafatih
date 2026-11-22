@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
-import { type InkByColour, inkByColour, inkColours } from "./helpers/ink.ts";
+import { describeInk, type InkByColour, inkByColour, inkColours } from "./helpers/ink.ts";
 import { differenceBeyondShift } from "./helpers/pixels.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
@@ -30,7 +30,6 @@ const LAM_ALEF: readonly Case[] = [
 
 const ALEF_FORMS = new Set(["ا", "أ", "إ", "آ"]);
 const MIN_INK = 12;
-const SEPARATION_SHARE = 0.15;
 const BOX_PADDING = 6;
 const NO_LIGATURES = '"rlig" 0, "liga" 0';
 const SAME_PLACE = 0.6;
@@ -185,19 +184,6 @@ async function inkOfWord(page: Page, length: number): Promise<InkByColour> {
   return inkByColour(page, image, await inkColours(page));
 }
 
-function describeInk(ink: InkByColour) {
-  const tolerance = ink.width * SEPARATION_SHARE;
-  return {
-    typedPixels: ink.typed.count,
-    untypedPixels: ink.untyped.count,
-    typedStartsAt: ink.typed.minX,
-    untypedEndsAt: ink.untyped.maxX,
-    tolerance,
-    separated:
-      ink.typed.count >= MIN_INK && ink.untyped.count >= MIN_INK && ink.typed.minX >= ink.untyped.maxX - tolerance,
-  };
-}
-
 function halved(page: Page) {
   return surface(page).locator("[data-halved]");
 }
@@ -296,7 +282,7 @@ for (const font of FONTS) {
         await typeKeys(page, keysUpToLam(word));
         await expect(halved(page)).toHaveCount(1);
         const painted = await silhouetteOfWord(page, word.length);
-        await addStyle(page, "[data-halved]{background:none!important;color:#ff00ff!important}");
+        await addStyle(page, "[data-halved]{color:#ff00ff!important}[data-halved]::after{display:none}");
         const plain = await silhouetteOfWord(page, word.length);
         await addStyle(page, '[data-halved]{font-feature-settings:"rlig" 0,"liga" 0}');
         const unligated = await silhouetteOfWord(page, word.length);
@@ -363,6 +349,30 @@ for (const font of FONTS) {
         return count;
       }, image.toString("base64"));
       expect(ink).toBeGreaterThan(MIN_INK);
+    });
+
+    test("a word wider than the line stays whole and in one colour, and nothing spills sideways", async ({ page }) => {
+      await seedSettings(page, {
+        customText: "كلاكلاكلاكلاكلاكلاكلا بتن",
+        vocalization: "letters",
+        font,
+        fontSize: 96,
+      });
+      await page.setViewportSize({ width: 320, height: 700 });
+      await page.goto("/#/custom");
+      await expect(surface(page)).toBeVisible();
+      await startTyping(page);
+      await addStyle(page, "[data-caret]{visibility:hidden}");
+      await page.evaluate(() => document.fonts.ready);
+      await typeKeys(page, ["ك", "ل"]);
+      await expect(halved(page)).toHaveCount(1);
+      await afterFrames(page, 4);
+      const spill = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(spill).toBeLessThanOrEqual(0);
+      const image = await surface(page).locator("[data-lesson-text]").screenshot();
+      const ink = await inkByColour(page, image, await inkColours(page));
+      expect(ink.untyped.count).toBeGreaterThan(MIN_INK);
+      expect(ink.typed.count).toBe(0);
     });
 
     test("the caret sits at the line where the two halves meet", async ({ page }) => {

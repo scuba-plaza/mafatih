@@ -192,14 +192,16 @@ button {
 
 ::highlight(mafatih-done-playing),
 ::highlight(mafatih-apparatus-playing),
-::highlight(mafatih-upcoming-playing) {
+::highlight(mafatih-upcoming-playing),
+::highlight(mafatih-wash) {
   background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 @media (forced-colors: active) {
   ::highlight(mafatih-done-playing),
   ::highlight(mafatih-apparatus-playing),
-  ::highlight(mafatih-upcoming-playing) {
+  ::highlight(mafatih-upcoming-playing),
+  ::highlight(mafatih-wash) {
     background-color: Highlight;
     color: HighlightText;
   }
@@ -213,6 +215,19 @@ button {
 }
 
 [data-halved] {
+  --pad: min(0.15em, 14px);
+  position: relative;
+  display: inline-block;
+  color: transparent;
+  padding-inline: var(--pad);
+  margin-inline: calc(var(--pad) * -1);
+}
+
+[data-halved]::after {
+  content: attr(data-word);
+  position: absolute;
+  inset: 0;
+  padding-inline: var(--pad);
   color: transparent;
   background-image: linear-gradient(
     to right,
@@ -221,13 +236,14 @@ button {
   );
   -webkit-background-clip: text;
   background-clip: text;
-  padding-inline: min(0.15em, 14px);
-  margin-inline: calc(min(0.15em, 14px) * -1);
 }
 
 @media (forced-colors: active) {
   [data-halved] {
-    background-image: none;
     color: inherit;
+  }
+
+  [data-halved]::after {
+    display: none;
   }
 }

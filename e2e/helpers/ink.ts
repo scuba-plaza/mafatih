@@ -76,3 +76,19 @@ export async function inkByColour(
     [image.toString("base64"), colours] as const,
   );
 }
+
+const MIN_INK = 12;
+const SEPARATION_SHARE = 0.15;
+
+export function describeInk(ink: InkByColour) {
+  const tolerance = ink.width * SEPARATION_SHARE;
+  return {
+    typedPixels: ink.typed.count,
+    untypedPixels: ink.untyped.count,
+    typedStartsAt: ink.typed.minX,
+    untypedEndsAt: ink.untyped.maxX,
+    tolerance,
+    separated:
+      ink.typed.count >= MIN_INK && ink.untyped.count >= MIN_INK && ink.typed.minX >= ink.untyped.maxX - tolerance,
+  };
+}

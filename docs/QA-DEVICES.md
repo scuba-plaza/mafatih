@@ -41,6 +41,7 @@ Run every step in both languages unless a step says otherwise. Use **Recitation*
 | I7 | Optional (the site is not an offline app): add the site to the home screen. | The icon, the name and the colours are right; it opens without the browser bar. | |
 | I8 | Open a passage, tap the text so the keyboard opens, in portrait. Repeat on Practice. | The top bar is hidden, the page does not scroll, and the player sits fully above the floating `^ v ✓` bar. If the bar still covers the player, change `IOS_BAR_PX` in `src/app/screen.ts`. The text shows whole lines only. | |
 | I9 | Open Custom, enter the text "لا لا" and type only the lam of the first word (the cursor is then between the lam and the alef). | The word keeps its ligature, one glyph that looks the same as when it is done, and the glyph is in two colours: the half on the right (the lam) in the typed colour and the half on the left (the alif) in the untyped colour, with the caret on the line between them. The second word is untouched. Typing the alif makes all of the first word the typed colour. If the glyph is all one colour, or the word moves, or its shape changes, tell the developer. | |
+| I10 | Open Recitation, Al-Qiyaama (75), type the basmala, press Play and then Next ayah so that ayah 1 is heard, and type only the lam of the first لا. | The amber wash of the ayah is still behind the word, and the glyph on top of it is in the two colours, with no tint of the wash on the letters. Typing the alif leaves the wash and gives the whole word the typed colour. | |
 
 ## Android Chrome with Gboard
 

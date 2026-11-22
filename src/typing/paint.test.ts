@@ -138,7 +138,7 @@ test("every letter the cursor has passed is painted, and none beyond it unless i
   }
 });
 
-test("a word painted by its own style is left out of every run, and the text around it is cut there", () => {
+test("a word painted by its own style has no colour from the highlights, and the text around it is cut there", () => {
   expect(runs(ONE_BLOCK, 12, [], null, { start: 4, end: 8 })).toEqual([
     { name: "mafatih-done", start: 0, end: 4 },
     { name: "mafatih-done", start: 8, end: 12 },
@@ -146,19 +146,31 @@ test("a word painted by its own style is left out of every run, and the text aro
   expect(runs(ONE_BLOCK, 6, [], null, { start: 4, end: 8 })).toEqual([{ name: "mafatih-done", start: 0, end: 4 }]);
 });
 
-test("a word painted by its own style is left out of the signs and of the ayah being heard too", () => {
+test("a word painted by its own style keeps the wash of the ayah being heard and nothing else", () => {
+  expect(runs(ONE_BLOCK, 6, [], { start: 2, end: 16 }, { start: 4, end: 8 })).toEqual([
+    { name: "mafatih-done", start: 0, end: 2 },
+    { name: "mafatih-done-playing", start: 2, end: 4 },
+    { name: "mafatih-wash", start: 4, end: 6 },
+    { name: "mafatih-wash", start: 6, end: 8 },
+    { name: "mafatih-upcoming-playing", start: 8, end: 16 },
+  ]);
   expect(runs(ONE_BLOCK, 0, [{ start: 5, end: 7 }], { start: 2, end: 16 }, { start: 4, end: 8 })).toEqual([
     { name: "mafatih-upcoming-playing", start: 2, end: 4 },
+    { name: "mafatih-wash", start: 4, end: 5 },
+    { name: "mafatih-wash", start: 5, end: 7 },
+    { name: "mafatih-wash", start: 7, end: 8 },
     { name: "mafatih-upcoming-playing", start: 8, end: 16 },
   ]);
 });
 
-test("no letter of a word painted by its own style is ever painted, wherever the cursor is", () => {
+test("no letter of a word painted by its own style is painted by anything but the wash, wherever the cursor is", () => {
   const word = { start: 12, end: 17 };
+  const heard = { start: 8, end: 25 };
   for (let cursor = 0; cursor <= 30; cursor += 1) {
-    const painted = runs(TWO_BLOCKS, cursor, [{ start: 14, end: 15 }], { start: 8, end: 25 }, word);
+    const painted = runs(TWO_BLOCKS, cursor, [{ start: 14, end: 15 }], heard, word);
     for (const run of painted) {
-      expect(run.end <= word.start || run.start >= word.end, `${cursor} ${JSON.stringify(run)}`).toBe(true);
+      const inside = run.start < word.end && run.end > word.start;
+      expect(!inside || run.name === "mafatih-wash", `${cursor} ${JSON.stringify(run)}`).toBe(true);
     }
   }
 });
