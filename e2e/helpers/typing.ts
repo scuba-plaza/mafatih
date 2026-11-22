@@ -30,7 +30,10 @@ export async function doneText(page: Page): Promise<string> {
   return page.evaluate((names) => {
     const ranges = names.flatMap((name) => [...(CSS.highlights.get(name) ?? [])] as Range[]);
     const first = ranges.sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
-    return first.map((range) => range.toString()).join("");
+    const split = document.querySelector("[data-halved]");
+    const typedInSplit =
+      split === null ? "" : (split.textContent ?? "").slice(0, Number(split.getAttribute("data-to")) - 1);
+    return first.map((range) => range.toString()).join("") + typedInSplit;
   }, TYPED_HIGHLIGHTS);
 }
 

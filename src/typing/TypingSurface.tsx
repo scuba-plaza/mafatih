@@ -10,7 +10,7 @@ import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
-import { ligatureWordAt } from "./ligature.ts";
+import { type LigatureWord, ligatureWordAt } from "./ligature.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
@@ -131,6 +131,28 @@ function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
   return found === undefined ? undefined : edgeOf(found.range, found.side);
 }
 
+function halvedCut(paragraph: HTMLElement): number | undefined {
+  const wrapper = paragraph.querySelector<HTMLElement>("[data-halved]");
+  const text = wrapper?.firstChild;
+  if (wrapper === null || !(text instanceof Text)) {
+    return undefined;
+  }
+  const word = document.createRange();
+  word.selectNodeContents(text);
+  const ligature = document.createRange();
+  ligature.setStart(text, Number(wrapper.dataset.from));
+  ligature.setEnd(text, Number(wrapper.dataset.to));
+  const lines = new Set([...word.getClientRects()].filter((piece) => piece.width > 0).map((piece) => piece.top));
+  const pieces = [...ligature.getClientRects()].filter((piece) => piece.width > 0);
+  if (lines.size !== 1 || pieces.length === 0) {
+    wrapper.style.removeProperty("--cut");
+    return undefined;
+  }
+  const cut = (Math.min(...pieces.map((piece) => piece.left)) + Math.max(...pieces.map((piece) => piece.right))) / 2;
+  wrapper.style.setProperty("--cut", `${cut - wrapper.getBoundingClientRect().left}px`);
+  return cut;
+}
+
 function highlightRegistry(): HighlightRegistry | undefined {
   return typeof CSS === "undefined" ? undefined : CSS.highlights;
 }
@@ -185,43 +207,36 @@ interface BlockTextProps {
   readonly block: TextSpan;
   readonly cursor: number;
   readonly mistakes: string;
-  readonly active: boolean;
+  readonly ligature: LigatureWord | null;
 }
 
-function BlockText({ shown, block, cursor, mistakes, active }: BlockTextProps): ReactNode {
-  const word = active ? ligatureWordAt(shown, cursor, block.start, block.end) : null;
-  const flagged =
-    mistakes === "" ? null : (
-      <span data-mistakes="" aria-hidden="true" className="inline-block max-w-full text-danger [unicode-bidi:isolate]">
-        {drawnMistakes(mistakes)}
-      </span>
-    );
-  if (word === null) {
-    return flagged === null ? (
-      shown.slice(block.start, block.end)
-    ) : (
+function BlockText({ shown, block, cursor, mistakes, ligature }: BlockTextProps): ReactNode {
+  if (ligature !== null) {
+    return (
       <>
-        {shown.slice(block.start, cursor)}
-        {flagged}
-        {shown.slice(cursor, block.end)}
+        {shown.slice(block.start, ligature.start)}
+        <span
+          data-halved=""
+          data-word={shown.slice(ligature.start, ligature.end)}
+          data-from={ligature.lam - ligature.start}
+          data-to={ligature.alef + 1 - ligature.start}
+        >
+          {shown.slice(ligature.start, ligature.end)}
+        </span>
+        {shown.slice(ligature.end, block.end)}
       </>
     );
   }
+  if (mistakes === "") {
+    return shown.slice(block.start, block.end);
+  }
   return (
     <>
-      {shown.slice(block.start, word.start)}
-      <span data-unligated="">
-        {flagged === null ? (
-          shown.slice(word.start, word.end)
-        ) : (
-          <>
-            {shown.slice(word.start, cursor)}
-            {flagged}
-            {shown.slice(cursor, word.end)}
-          </>
-        )}
+      {shown.slice(block.start, cursor)}
+      <span data-mistakes="" aria-hidden="true" className="inline-block max-w-full text-danger [unicode-bidi:isolate]">
+        {drawnMistakes(mistakes)}
       </span>
-      {shown.slice(word.end, block.end)}
+      {shown.slice(cursor, block.end)}
     </>
   );
 }
@@ -268,6 +283,11 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const complete = isComplete(session);
   const blocks = blocksOf(session);
   const current = cursorBlock(blocks, doneUntil);
+  const currentBlock = blocks[current];
+  const ligature =
+    currentBlock === undefined || complete || mistakes !== ""
+      ? null
+      : ligatureWordAt(session.prompt.shown, doneUntil, currentBlock.start, currentBlock.end);
   const family = FONTS.find((candidate) => candidate.id === font) ?? FONTS[0];
   const flagged = options.requireBackspace ? mistakes !== "" : session.missed;
   const paused = !focused && !complete;
@@ -322,7 +342,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       if (block === undefined || paragraph === undefined) {
         return;
       }
-      paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing }));
+      paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing, exempt: ligature }));
       setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = !focused || rect === undefined;
@@ -330,7 +350,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       const frame = container.getBoundingClientRect();
-      const x = rect.left - frame.left + container.scrollLeft;
+      const x = (halvedCut(paragraph) ?? rect.left) - frame.left + container.scrollLeft;
       const y = rect.top - frame.top + container.scrollTop;
       caret.style.transform = `translate(${x}px, ${y}px)`;
       caret.style.height = `${rect.height}px`;
@@ -430,7 +450,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
                 block={block}
                 cursor={doneUntil}
                 mistakes={index === current ? mistakes : ""}
-                active={index === current}
+                ligature={index === current ? ligature : null}
               />
             </p>
           ))}

@@ -98,3 +98,34 @@ export async function differenceBeyondShift(
     [first.toString("base64"), second.toString("base64"), shift, tolerance] as const,
   );
 }
+
+export async function dominantBrightness(page: Page, image: Buffer): Promise<number> {
+  return page.evaluate(async (data) => {
+    const bytes = Uint8Array.from(atob(data), (character) => character.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+    const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d");
+    if (context === null) {
+      throw new Error("no canvas");
+    }
+    context.drawImage(bitmap, 0, 0);
+    const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const bins = new Map<number, { count: number; sum: number }>();
+    for (let index = 0; index < pixels.length; index += 4) {
+      const red = pixels[index] ?? 0;
+      const green = pixels[index + 1] ?? 0;
+      const blue = pixels[index + 2] ?? 0;
+      const key = ((red >> 3) << 10) | ((green >> 3) << 5) | (blue >> 3);
+      const bin = bins.get(key) ?? { count: 0, sum: 0 };
+      bin.count += 1;
+      bin.sum += (red + green + blue) / 3;
+      bins.set(key, bin);
+    }
+    let best = { count: 0, sum: 0 };
+    for (const bin of bins.values()) {
+      if (bin.count > best.count) {
+        best = bin;
+      }
+    }
+    return best.count === 0 ? 0 : best.sum / best.count;
+  }, image.toString("base64"));
+}

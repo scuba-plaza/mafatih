@@ -1,9 +1,11 @@
 import { isMark } from "~/text/arabic.ts";
 import { isWordSpace } from "~/text/prompt.ts";
 
-export interface WordSpan {
+export interface LigatureWord {
   readonly start: number;
   readonly end: number;
+  readonly lam: number;
+  readonly alef: number;
 }
 
 const LAM = "ل";
@@ -25,7 +27,7 @@ function baseAfter(text: string, offset: number, to: number): number {
   return index;
 }
 
-export function ligatureWordAt(text: string, offset: number, from: number, to: number): WordSpan | null {
+export function ligatureWordAt(text: string, offset: number, from: number, to: number): LigatureWord | null {
   if (offset <= from || offset >= to) {
     return null;
   }
@@ -42,5 +44,5 @@ export function ligatureWordAt(text: string, offset: number, from: number, to: n
   while (end < to && !isWordSpace(text.charAt(end))) {
     end += 1;
   }
-  return { start, end };
+  return { start, end, lam, alef };
 }

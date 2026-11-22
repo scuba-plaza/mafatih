@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
-import { brightestPixel } from "./helpers/pixels.ts";
+import { describeInk, inkByColour, inkColours } from "./helpers/ink.ts";
+import { brightestPixel, dominantBrightness } from "./helpers/pixels.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
 import { surah } from "./helpers/quran.ts";
 import { addStyle } from "./helpers/style.ts";
@@ -17,6 +18,8 @@ interface Rgb {
 }
 
 const MARKS = /[\u064B-\u0652\u0670]/g;
+const WASHED = 24;
+const WASH_TOP = 70;
 const MURATTAL = /^\P{L}*Abdul Basit \u02BFAbd us-Samad\P{L}* \u00B7 \P{L}*Murattal\P{L}* 64 kbps \u00B7 (\d+):(\d+)$/u;
 
 interface Mocked {
@@ -631,6 +634,40 @@ test("with the first ayah typed, the typed start of the second ayah being heard 
   await expect(status(page)).toContainText("1:2");
   await expect.poll(async () => (await playingSpan(page))[0]).toBe(surah(1).ayat[1]);
   await expectTypedPartPaintedAsTyped(page);
+});
+
+test("the wash stays behind a lam-alef word with only its lam typed, and the word keeps both its colours", async ({
+  page,
+}) => {
+  await mockAudio(page, LONG);
+  await seedProfile(page, { settings: { vocalization: "letters", fontSize: 56 } });
+  await page.goto("/#/recitation/75/1");
+  await startTyping(page);
+  await page.evaluate(() => document.fonts.ready);
+  const keys = lettersOf(await shownText(page));
+  const lam = keys.findIndex((key, index) => key === "ل" && keys[index + 1] === "ا");
+  await typeKeys(page, keys.slice(0, lam + 1));
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(status(page)).toContainText("75:1");
+  const word = surface(page).locator("[data-halved]");
+  await expect(word).toHaveCount(1);
+  const box = await word.evaluate((wrapper) => {
+    const text = wrapper.firstChild;
+    if (!(text instanceof Text)) {
+      throw new Error("no text in the word");
+    }
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const rect = range.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+  await expect
+    .poll(async () => dominantBrightness(page, await page.screenshot({ clip: box })), { timeout: 5000 })
+    .toBeGreaterThan(WASHED);
+  expect(await dominantBrightness(page, await page.screenshot({ clip: box }))).toBeLessThan(WASH_TOP);
+  const ink = await inkByColour(page, await page.screenshot({ clip: box }), await inkColours(page));
+  expect(describeInk(ink)).toMatchObject({ separated: true });
 });
 
 test("a recitation that cannot be fetched is said plainly and the lesson stays typeable (Q6)", async ({ page }) => {

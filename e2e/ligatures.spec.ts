@@ -1,9 +1,10 @@
-import { expect, type Page, test } from "@playwright/test";
-import { type InkByColour, inkByColour, inkColours } from "./helpers/ink.ts";
+import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { describeInk, type InkByColour, inkByColour, inkColours } from "./helpers/ink.ts";
 import { differenceBeyondShift } from "./helpers/pixels.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
-import { startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { afterFrames } from "./helpers/waits.ts";
 
 type Font = "noto-naskh" | "scheherazade" | "amiri";
 
@@ -29,23 +30,44 @@ const LAM_ALEF: readonly Case[] = [
 
 const ALEF_FORMS = new Set(["ا", "أ", "إ", "آ"]);
 const MIN_INK = 12;
-const SEPARATION_SHARE = 0.15;
 const BOX_PADDING = 6;
 const NO_LIGATURES = '"rlig" 0, "liga" 0';
 const SAME_PLACE = 0.6;
+const SAME_PLACE_WEBKIT = 2;
 const JOIN_SHIFT = 2;
-const JOIN_SAME = 40;
 const JOIN_BROKEN = 120;
+const SOLID = 128;
+const PAINT_SAME = 10;
+const SAME_FACTOR = 3;
+const MARKS = /[\u064B-\u065F\u0670]/u;
+const SHAPE_WORDS = ["لا", "لأ", "لإ", "لآ", "بلا", "كلام", "بلاد", "ولا", "لَا", "كُلَّا", "وَلَا", "بِلَّا"];
 
-async function open(page: Page, font: Font, text: string): Promise<void> {
+async function pictureShift(page: Page): Promise<number> {
+  return Math.round(JOIN_SHIFT * (await page.evaluate(() => window.devicePixelRatio)));
+}
+
+function keysOf(word: string): string[] {
+  return [...word].filter((letter) => !MARKS.test(letter));
+}
+
+function keysUpToLam(word: string): string[] {
+  const keys = keysOf(word);
+  return keys.slice(0, keys.indexOf("ل") + 1);
+}
+
+async function open(page: Page, font: Font, text: string, caret = false): Promise<void> {
   await seedSettings(page, { customText: text, vocalization: "letters", font, fontSize: 72 });
   await page.goto("/#/custom");
   await expect(surface(page)).toBeVisible();
   await startTyping(page);
-  await addStyle(page, "[data-caret]{visibility:hidden}");
+  if (!caret) {
+    await addStyle(page, "[data-caret]{visibility:hidden}");
+  }
   await page.evaluate(async (family) => {
     await document.fonts.load(`40px "${family}"`, "لا");
+    await document.fonts.ready;
   }, FAMILY[font]);
+  await afterFrames(page, 3);
 }
 
 async function ligatureWidths(page: Page, word: string): Promise<{ readonly on: number; readonly off: number }> {
@@ -144,11 +166,15 @@ async function wordRects(page: Page): Promise<number[][]> {
     });
 }
 
-function samePlaces(rects: readonly number[][], baseline: readonly number[][]): boolean {
+function placeTolerance(testInfo: TestInfo): number {
+  return testInfo.project.name.startsWith("webkit") ? SAME_PLACE_WEBKIT : SAME_PLACE;
+}
+
+function samePlaces(rects: readonly number[][], baseline: readonly number[][], tolerance: number): boolean {
   return (
     rects.length === baseline.length &&
     rects.every((rect, index) =>
-      rect.every((value, side) => Math.abs(value - (baseline[index]?.[side] ?? 0)) < SAME_PLACE),
+      rect.every((value, side) => Math.abs(value - (baseline[index]?.[side] ?? 0)) < tolerance),
     )
   );
 }
@@ -158,33 +184,35 @@ async function inkOfWord(page: Page, length: number): Promise<InkByColour> {
   return inkByColour(page, image, await inkColours(page));
 }
 
-function describeInk(ink: InkByColour) {
-  const tolerance = ink.width * SEPARATION_SHARE;
-  return {
-    typedPixels: ink.typed.count,
-    untypedPixels: ink.untyped.count,
-    typedStartsAt: ink.typed.minX,
-    untypedEndsAt: ink.untyped.maxX,
-    tolerance,
-    separated:
-      ink.typed.count >= MIN_INK && ink.untyped.count >= MIN_INK && ink.typed.minX >= ink.untyped.maxX - tolerance,
-  };
+function halved(page: Page) {
+  return surface(page).locator("[data-halved]");
 }
 
-function unligated(page: Page) {
-  return surface(page).locator("[data-unligated]");
+async function equalColours(page: Page): Promise<void> {
+  await addStyle(page, ":root{--color-typed:#ff00ff;--color-upcoming:#ff00ff}");
 }
 
-test("only the word being typed is drawn without ligatures, and the next words keep theirs", async ({ page }) => {
+async function silhouetteOfWord(page: Page, length: number): Promise<Buffer> {
+  return page.screenshot({ clip: await wordBox(page, length) });
+}
+
+test("only the word being typed while its cursor is between a lam and its alef is marked, and nothing moves", async ({
+  page,
+}, testInfo) => {
   await open(page, "noto-naskh", "لا لا لا");
-  await expect(unligated(page)).toHaveCount(0);
+  await expect(halved(page)).toHaveCount(0);
+  const baseline = await wordRects(page);
   await typeKeys(page, ["ل"]);
-  await expect(unligated(page)).toHaveCount(1);
-  await expect(unligated(page)).toHaveText("لا");
+  await expect(halved(page)).toHaveCount(1);
+  await expect(halved(page)).toHaveText("لا");
+  expect(await doneText(page), "the lam is typed text").toBe("ل");
+  expect(samePlaces(await wordRects(page), baseline, placeTolerance(testInfo)), "no word may move").toBe(true);
   await typeKeys(page, ["ا"]);
-  await expect(unligated(page)).toHaveCount(0);
+  await expect(halved(page)).toHaveCount(0);
+  expect(await doneText(page), "the whole word is typed text").toBe("لا");
   await typeKeys(page, [" ", "ل"]);
-  await expect(unligated(page)).toHaveCount(1);
+  await expect(halved(page)).toHaveCount(1);
+  expect(samePlaces(await wordRects(page), baseline, placeTolerance(testInfo)), "no word may move").toBe(true);
   expect(
     await surface(page)
       .locator("[data-lesson-text]")
@@ -199,23 +227,30 @@ test("a wrong key in the middle of a ligature keeps the typed letters, the mista
   await typeKeys(page, ["ل", "س"]);
   const mistakes = surface(page).locator("[data-mistakes]");
   await expect(mistakes).toHaveText("س");
-  await expect(surface(page).locator("[data-unligated] [data-mistakes]")).toHaveCount(1);
+  await expect(halved(page)).toHaveCount(0);
   await expect(surface(page).locator("[data-lesson-text]")).toHaveText("لسا بتن");
-  await typeKeys(page, ["Backspace", "ا"]);
+  await typeKeys(page, ["Backspace"]);
   await expect(mistakes).toHaveCount(0);
-  await expect(unligated(page)).toHaveCount(0);
+  await expect(halved(page)).toHaveCount(1);
+  await typeKeys(page, ["ا"]);
+  await expect(halved(page)).toHaveCount(0);
 });
 
 for (const font of FONTS) {
   test.describe(FAMILY[font], () => {
     for (const { name, word } of LAM_ALEF) {
-      test(`${name} is a ligature here, and with only its lam typed the lam and the alef are painted apart`, async ({
+      test(`${name} stays the ligature with only its lam typed, and the two halves of it are painted typed and untyped`, async ({
         page,
       }) => {
         await open(page, font, `${word} بتن`);
         const { on, off } = await ligatureWidths(page, word);
         expect(Math.abs(on - off), `${word} must really be a ligature in ${FAMILY[font]}`).toBeGreaterThan(0.4);
         await typeKeys(page, ["ل"]);
+        await expect(halved(page)).toHaveCount(1);
+        const shown = await wordBox(page, word.length);
+        expect(Math.abs(shown.width - 2 * BOX_PADDING - on), "drawn as the ligature, not as two letters").toBeLessThan(
+          1,
+        );
         await expect
           .poll(async () => describeInk(await inkOfWord(page, word.length)), { timeout: 5000 })
           .toMatchObject({ separated: true });
@@ -226,7 +261,7 @@ for (const font of FONTS) {
       }) => {
         await open(page, font, `${word} بتن`);
         await typeKeys(page, [...word]);
-        await expect(unligated(page)).toHaveCount(0);
+        await expect(halved(page)).toHaveCount(0);
         await expect
           .poll(
             async () => {
@@ -242,91 +277,141 @@ for (const font of FONTS) {
       });
     }
 
-    test("words without a lam and its alef are never reshaped while they are typed, Allah included", async ({
-      page,
-    }) => {
-      const text = "بسم الله الرحمن الرحيم كتب";
-      await open(page, font, text);
-      const keys = [...text].slice(0, -2);
-      await typeKeys(page, [keys[0] ?? ""]);
-      const baseline = await wordRects(page);
-      for (const key of keys.slice(1)) {
-        await typeKeys(page, [key]);
-        await expect(unligated(page)).toHaveCount(0);
-        expect(samePlaces(await wordRects(page), baseline), `no word may move after typing ${key}`).toBe(true);
-      }
+    for (const word of SHAPE_WORDS) {
+      test(`${word}: painting its two halves does not change the shape of the ligature`, async ({ page }) => {
+        await open(page, font, `${word} بتن`);
+        await equalColours(page);
+        await typeKeys(page, keysUpToLam(word));
+        await expect(halved(page)).toHaveCount(1);
+        const painted = await silhouetteOfWord(page, word.length);
+        await addStyle(page, "[data-halved]{color:#ff00ff!important}[data-halved]::after{display:none}");
+        const plain = await silhouetteOfWord(page, word.length);
+        await addStyle(page, '[data-halved]{font-feature-settings:"rlig" 0,"liga" 0}');
+        const unligated = await silhouetteOfWord(page, word.length);
+        const shift = await pictureShift(page);
+        expect(await differenceBeyondShift(page, painted, plain, shift, SOLID), "painted or plain").toBeLessThan(
+          PAINT_SAME,
+        );
+        expect(
+          await differenceBeyondShift(page, unligated, plain, shift, SOLID),
+          "control: the ligature switched off looks different",
+        ).toBeGreaterThan(JOIN_BROKEN);
+      });
+
+      test(`${word} looks like the ligature it is when done, with only its lam typed`, async ({ page }, testInfo) => {
+        test.skip(
+          testInfo.project.name.startsWith("webkit"),
+          "WebKit on Linux draws split text nodes at another height",
+        );
+        await open(page, font, `${word} بتن`);
+        await equalColours(page);
+        const keys = keysOf(word);
+        const upToLam = keysUpToLam(word);
+        await typeKeys(page, upToLam);
+        await expect(halved(page)).toHaveCount(1);
+        const between = await silhouetteOfWord(page, word.length);
+        await addStyle(page, '[data-halved]{font-feature-settings:"rlig" 0,"liga" 0}');
+        const unligated = await silhouetteOfWord(page, word.length);
+        await typeKeys(page, keys.slice(upToLam.length));
+        await expect(halved(page)).toHaveCount(0);
+        const done = await silhouetteOfWord(page, word.length);
+        const shift = await pictureShift(page);
+        const same = await differenceBeyondShift(page, between, done, shift, SOLID);
+        const broken = await differenceBeyondShift(page, unligated, done, shift, SOLID);
+        expect(broken, "control: the ligature switched off looks different").toBeGreaterThan(JOIN_BROKEN);
+        expect(same * SAME_FACTOR, "the same ligature as when it is done").toBeLessThan(broken);
+      });
+    }
+
+    test("the word is still drawn under forced colours while only its lam is typed", async ({ page }) => {
+      await open(page, font, "لا بتن");
+      await page.emulateMedia({ forcedColors: "active" });
+      await typeKeys(page, ["ل"]);
+      await expect(halved(page)).toHaveCount(1);
+      const clip = await wordBox(page, 2);
+      const image = await page.screenshot({ clip });
+      const ink = await page.evaluate(async (data) => {
+        const bytes = Uint8Array.from(atob(data), (character) => character.charCodeAt(0));
+        const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+        const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext("2d");
+        if (context === null) {
+          throw new Error("no canvas");
+        }
+        context.drawImage(bitmap, 0, 0);
+        const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+        const background = [pixels[0] ?? 0, pixels[1] ?? 0, pixels[2] ?? 0];
+        let count = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+          if (
+            [0, 1, 2].some((channel) => Math.abs((pixels[index + channel] ?? 0) - (background[channel] ?? 0)) > 100)
+          ) {
+            count += 1;
+          }
+        }
+        return count;
+      }, image.toString("base64"));
+      expect(ink).toBeGreaterThan(MIN_INK);
     });
 
-    test("a word with a lam and its alef is reshaped only while the cursor is between them, then it is back as it was", async ({
+    test("a word wider than the line stays whole and in one colour, and nothing spills sideways", async ({ page }) => {
+      await seedSettings(page, {
+        customText: "كلاكلاكلاكلاكلاكلاكلا بتن",
+        vocalization: "letters",
+        font,
+        fontSize: 96,
+      });
+      await page.setViewportSize({ width: 320, height: 700 });
+      await page.goto("/#/custom");
+      await expect(surface(page)).toBeVisible();
+      await startTyping(page);
+      await addStyle(page, "[data-caret]{visibility:hidden}");
+      await page.evaluate(() => document.fonts.ready);
+      await typeKeys(page, ["ك", "ل"]);
+      await expect(halved(page)).toHaveCount(1);
+      await afterFrames(page, 4);
+      const spill = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(spill).toBeLessThanOrEqual(0);
+      const image = await surface(page).locator("[data-lesson-text]").screenshot();
+      const ink = await inkByColour(page, image, await inkColours(page));
+      expect(ink.untyped.count).toBeGreaterThan(MIN_INK);
+      expect(ink.typed.count).toBe(0);
+    });
+
+    test("the caret sits at the line where the two halves meet", async ({ page }) => {
+      await open(page, font, "لا بتن", true);
+      await typeKeys(page, ["ل"]);
+      await expect(halved(page)).toHaveCount(1);
+      const caret = surface(page).locator("[data-caret]");
+      await expect(caret).toBeVisible();
+      const glyph = await wordBox(page, 2);
+      const box = await caret.boundingBox();
+      expect(box).not.toBeNull();
+      const middle = glyph.x + glyph.width / 2;
+      expect(Math.abs((box?.x ?? 0) - middle)).toBeLessThan(glyph.width * 0.1);
+    });
+
+    test("no word is ever reshaped or moved while typing, Allah and the lam-alef words included", async ({
       page,
-    }) => {
-      const text = "كلام لا بتن كتب";
+    }, testInfo) => {
+      const text = "بسم الله الرحمن الرحيم كلام لا بتن كتب";
       await open(page, font, text);
       const letters = [...text];
       const keys = letters.slice(0, -2);
       await typeKeys(page, [keys[0] ?? ""]);
       const baseline = await wordRects(page);
-      let reshaped = 0;
+      let marked = 0;
       for (const [index, key] of keys.slice(1).entries()) {
         const typedIndex = index + 1;
         await typeKeys(page, [key]);
         const between = key === "ل" && ALEF_FORMS.has(letters[typedIndex + 1] ?? "");
-        await expect(unligated(page)).toHaveCount(between ? 1 : 0);
-        if (between) {
-          reshaped += 1;
-        } else {
-          expect(samePlaces(await wordRects(page), baseline), `no word may move after typing ${key}`).toBe(true);
-        }
+        await expect(halved(page)).toHaveCount(between ? 1 : 0);
+        marked += between ? 1 : 0;
+        expect(
+          samePlaces(await wordRects(page), baseline, placeTolerance(testInfo)),
+          `no word may move after typing ${key}`,
+        ).toBe(true);
       }
-      expect(reshaped).toBe(2);
-    });
-
-    test("cursive joining inside the word that is drawn without ligatures is the same however its text is split or wrapped", async ({
-      page,
-    }) => {
-      await open(page, font, "كلام");
-      await typeKeys(page, ["ك", "ل"]);
-      await expect(unligated(page)).toHaveCount(1);
-      await surface(page)
-        .locator("[data-lesson-text]")
-        .evaluate((host, features) => {
-          const style = getComputedStyle(host);
-          const make = (id: string): HTMLElement => {
-            const copy = host.cloneNode(true);
-            if (!(copy instanceof HTMLElement)) {
-              throw new Error("the lesson text is not an element");
-            }
-            copy.querySelector("[data-caret]")?.remove();
-            copy.setAttribute("data-join", id);
-            copy.style.cssText = `position:static;width:max-content;height:auto;overflow:visible;margin:8px;font-family:${style.fontFamily};font-size:${style.fontSize}`;
-            document.body.append(copy);
-            return copy;
-          };
-          make("split");
-          make("merged").querySelector("[data-unligated]")?.normalize();
-          const whole = make("whole");
-          const wrapper = whole.querySelector("[data-unligated]");
-          wrapper?.replaceWith(...(wrapper?.childNodes ?? []));
-          whole.normalize();
-          whole.style.fontFeatureSettings = features ?? "";
-          const broken = make("broken").querySelector("[data-unligated]");
-          if (broken !== null) {
-            broken.normalize();
-            const first = broken.firstChild;
-            if (first instanceof Text) {
-              first.data = `${first.data.slice(0, 1)}\u200C${first.data.slice(1)}`;
-            }
-          }
-        }, NO_LIGATURES);
-      const picture = (id: string) => page.locator(`[data-join="${id}"]`).screenshot();
-      const split = await picture("split");
-      const shift = Math.round(JOIN_SHIFT * (await page.evaluate(() => window.devicePixelRatio)));
-      const apart = async (id: string) => differenceBeyondShift(page, split, await picture(id), shift);
-      expect(await apart("merged"), "its text in two text nodes or in one").toBeLessThan(JOIN_SAME);
-      expect(await apart("whole"), "a wrapper around the word or none").toBeLessThan(JOIN_SAME);
-      expect(await apart("broken"), "control: a zero-width non-joiner after the first letter").toBeGreaterThan(
-        JOIN_BROKEN,
-      );
+      expect(marked).toBe(2);
     });
   });
 }

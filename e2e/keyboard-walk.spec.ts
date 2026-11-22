@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { type Language, openAndWait, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
+import { afterFrames } from "./helpers/waits.ts";
 
 const MOST_TAB_PRESSES = 250;
 const MIN_RING_CONTRAST = 3;
@@ -16,6 +17,12 @@ interface Stop {
   readonly right: number;
   readonly inDialog: boolean;
   readonly direction: string;
+  readonly seen: {
+    readonly viewportTop: number;
+    readonly scroll: number;
+    readonly innerHeight: number;
+    readonly document: number;
+  };
 }
 
 type Reading =
@@ -240,6 +247,12 @@ function installToolkit(): void {
           right: box.right + window.scrollX,
           inDialog: document.querySelector("dialog[open]")?.contains(element) ?? false,
           direction: getComputedStyle(element.parentElement ?? element).direction,
+          seen: {
+            viewportTop: Math.round(box.top * 10) / 10,
+            scroll: Math.round(scrolled * 10) / 10,
+            innerHeight: window.innerHeight,
+            document: document.documentElement.scrollHeight,
+          },
         },
       };
     },
@@ -278,6 +291,8 @@ function installToolkit(): void {
 }
 
 async function prepareAtTop(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
+  await afterFrames(page, 5);
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
     window.scrollTo(0, 0);
@@ -313,6 +328,11 @@ async function walk(page: Page, key: "Tab" | "Shift+Tab", startAtFocus: boolean)
   return { stops, ended, trappedAt };
 }
 
+function placement(stop: Stop): string {
+  const { viewportTop, scroll, innerHeight, document: documentHeight } = stop.seen;
+  return `[page ${Math.round(stop.top)}-${Math.round(stop.bottom)}, viewport top ${viewportTop}, scrolled ${scroll}, window ${innerHeight}, document ${documentHeight}]`;
+}
+
 function orderViolations(stops: readonly Stop[]): string[] {
   const violations: string[] = [];
   for (let index = 1; index < stops.length; index += 1) {
@@ -326,7 +346,7 @@ function orderViolations(stops: readonly Stop[]): string[] {
     const along =
       to.direction === "rtl" ? to.right <= from.right + SAME_ROW_TOLERANCE : to.left >= from.left - SAME_ROW_TOLERANCE;
     if (!down && (up || !along)) {
-      violations.push(`${from.label} -> ${to.label}`);
+      violations.push(`${from.label} -> ${to.label} :: ${placement(from)} -> ${placement(to)}`);
     }
   }
   return violations;
