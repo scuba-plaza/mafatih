@@ -9,7 +9,8 @@ export type HighlightName =
   | "mafatih-done-playing"
   | "mafatih-apparatus-playing"
   | "mafatih-upcoming-playing"
-  | "mafatih-wash";
+  | "mafatih-wash"
+  | "mafatih-hidden";
 
 export interface PaintRun extends TextSpan {
   readonly name: HighlightName;
@@ -30,6 +31,7 @@ export const HIGHLIGHT_NAMES: readonly HighlightName[] = [
   "mafatih-apparatus-playing",
   "mafatih-upcoming-playing",
   "mafatih-wash",
+  "mafatih-hidden",
 ];
 
 function holds(span: TextSpan | null, start: number, end: number): boolean {
@@ -48,7 +50,10 @@ function nameOf(sign: boolean, typed: boolean, heard: boolean): HighlightName | 
 
 export function paintRuns({ blocks, doneUntil, apparatus, playing, exempt }: PaintInput): PaintRun[] {
   const length = blocks.at(-1)?.end ?? 0;
-  const edges = new Set<number>([0, length, doneUntil]);
+  const edges = new Set<number>([0, length]);
+  if (exempt === null || doneUntil <= exempt.start || doneUntil >= exempt.end) {
+    edges.add(doneUntil);
+  }
   for (const span of [...blocks, ...apparatus, ...[playing, exempt].filter((candidate) => candidate !== null)]) {
     edges.add(span.start);
     edges.add(span.end);
@@ -57,7 +62,7 @@ export function paintRuns({ blocks, doneUntil, apparatus, playing, exempt }: Pai
   return cuts.slice(0, -1).flatMap((start, index) => {
     const end = cuts[index + 1] ?? start;
     if (holds(exempt, start, end)) {
-      return holds(playing, start, end) ? [{ name: "mafatih-wash", start, end }] : [];
+      return [{ name: holds(playing, start, end) ? "mafatih-wash" : "mafatih-hidden", start, end }];
     }
     const name = nameOf(
       apparatus.some((span) => holds(span, start, end)),

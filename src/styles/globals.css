@@ -197,6 +197,10 @@ button {
   background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
+::highlight(mafatih-wash) {
+  color: rgb(0 0 0 / 1%);
+}
+
 @media (forced-colors: active) {
   ::highlight(mafatih-done-playing),
   ::highlight(mafatih-apparatus-playing),
@@ -214,36 +218,38 @@ button {
   }
 }
 
-[data-halved] {
-  --pad: min(0.15em, 14px);
+[data-block][data-split] {
   position: relative;
-  display: inline-block;
-  color: transparent;
-  padding-inline: var(--pad);
-  margin-inline: calc(var(--pad) * -1);
 }
 
-[data-halved]::after {
-  content: attr(data-word);
+[data-block][data-split][data-ready]::after {
+  content: attr(data-text);
   position: absolute;
   inset: 0;
-  padding-inline: var(--pad);
+  pointer-events: none;
   color: transparent;
-  background-image: linear-gradient(
-    to right,
-    var(--color-upcoming) var(--cut, 100%),
-    var(--color-typed) var(--cut, 100%)
-  );
+  background-image: linear-gradient(to right, var(--color-upcoming) var(--cut), var(--color-typed) var(--cut));
   -webkit-background-clip: text;
   background-clip: text;
+  clip-path: inset(var(--t) calc(100% - var(--r)) calc(100% - var(--b)) var(--l));
+}
+
+@supports (content: "x" / "") {
+  [data-block][data-split][data-ready]::after {
+    content: attr(data-text) / "";
+  }
+}
+
+::highlight(mafatih-hidden) {
+  color: rgb(0 0 0 / 1%);
 }
 
 @media (forced-colors: active) {
-  [data-halved] {
-    color: inherit;
+  [data-block][data-split]::after {
+    display: none;
   }
 
-  [data-halved]::after {
-    display: none;
+  ::highlight(mafatih-hidden) {
+    color: CanvasText;
   }
 }

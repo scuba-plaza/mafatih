@@ -1,10 +1,8 @@
 import { isMark } from "~/text/arabic.ts";
-import { isWordSpace } from "~/text/prompt.ts";
 
-export interface LigatureWord {
+export interface Ligature {
   readonly start: number;
   readonly end: number;
-  readonly lam: number;
   readonly alef: number;
 }
 
@@ -27,7 +25,7 @@ function baseAfter(text: string, offset: number, to: number): number {
   return index;
 }
 
-export function ligatureWordAt(text: string, offset: number, from: number, to: number): LigatureWord | null {
+export function ligatureAt(text: string, offset: number, from: number, to: number): Ligature | null {
   if (offset <= from || offset >= to) {
     return null;
   }
@@ -36,13 +34,5 @@ export function ligatureWordAt(text: string, offset: number, from: number, to: n
   if (lam < from || alef >= to || text.charAt(lam) !== LAM || !ALEF_FORMS.has(text.charAt(alef))) {
     return null;
   }
-  let start = lam;
-  while (start > from && !isWordSpace(text.charAt(start - 1))) {
-    start -= 1;
-  }
-  let end = alef + 1;
-  while (end < to && !isWordSpace(text.charAt(end))) {
-    end += 1;
-  }
-  return { start, end, lam, alef };
+  return { start: lam, end: baseAfter(text, alef + 1, to), alef };
 }

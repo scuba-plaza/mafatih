@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ligatureWordAt } from "../src/typing/ligature.ts";
+import { ligatureAt } from "../src/typing/ligature.ts";
 import { LETTERS, typedInkByPair } from "./helpers/census.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { surface } from "./helpers/typing.ts";
@@ -40,7 +40,7 @@ test("the pairs of letters a font draws as one glyph are the lam-alef pairs the 
     );
     expect(oneGlyph.sort(), `${font}: pairs drawn as one glyph`).toEqual([...ONE_GLYPH[font]].sort());
     for (const pair of oneGlyph) {
-      expect(ligatureWordAt(`${pair} `, 1, 0, 2), `${font}: ${pair} is split by the app`).not.toBeNull();
+      expect(ligatureAt(`${pair} `, 1, 0, 2), `${font}: ${pair} is split by the app`).not.toBeNull();
     }
   }
 });

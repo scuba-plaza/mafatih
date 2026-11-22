@@ -138,39 +138,40 @@ test("every letter the cursor has passed is painted, and none beyond it unless i
   }
 });
 
-test("a word painted by its own style has no colour from the highlights, and the text around it is cut there", () => {
+test("a ligature painted by its own style is hidden from the highlights, and the text around it is cut there", () => {
   expect(runs(ONE_BLOCK, 12, [], null, { start: 4, end: 8 })).toEqual([
     { name: "mafatih-done", start: 0, end: 4 },
+    { name: "mafatih-hidden", start: 4, end: 8 },
     { name: "mafatih-done", start: 8, end: 12 },
   ]);
-  expect(runs(ONE_BLOCK, 6, [], null, { start: 4, end: 8 })).toEqual([{ name: "mafatih-done", start: 0, end: 4 }]);
+  expect(runs(ONE_BLOCK, 6, [], null, { start: 4, end: 8 })).toEqual([
+    { name: "mafatih-done", start: 0, end: 4 },
+    { name: "mafatih-hidden", start: 4, end: 8 },
+  ]);
 });
 
-test("a word painted by its own style keeps the wash of the ayah being heard and nothing else", () => {
+test("a ligature painted by its own style keeps the wash of the ayah being heard and nothing else", () => {
   expect(runs(ONE_BLOCK, 6, [], { start: 2, end: 16 }, { start: 4, end: 8 })).toEqual([
     { name: "mafatih-done", start: 0, end: 2 },
     { name: "mafatih-done-playing", start: 2, end: 4 },
-    { name: "mafatih-wash", start: 4, end: 6 },
-    { name: "mafatih-wash", start: 6, end: 8 },
-    { name: "mafatih-upcoming-playing", start: 8, end: 16 },
-  ]);
-  expect(runs(ONE_BLOCK, 0, [{ start: 5, end: 7 }], { start: 2, end: 16 }, { start: 4, end: 8 })).toEqual([
-    { name: "mafatih-upcoming-playing", start: 2, end: 4 },
-    { name: "mafatih-wash", start: 4, end: 5 },
-    { name: "mafatih-wash", start: 5, end: 7 },
-    { name: "mafatih-wash", start: 7, end: 8 },
+    { name: "mafatih-wash", start: 4, end: 8 },
     { name: "mafatih-upcoming-playing", start: 8, end: 16 },
   ]);
 });
 
-test("no letter of a word painted by its own style is painted by anything but the wash, wherever the cursor is", () => {
-  const word = { start: 12, end: 17 };
+test("every letter of a ligature painted by its own style is hidden or washed, wherever the cursor is", () => {
+  const ligature = { start: 12, end: 17 };
   const heard = { start: 8, end: 25 };
   for (let cursor = 0; cursor <= 30; cursor += 1) {
-    const painted = runs(TWO_BLOCKS, cursor, [{ start: 14, end: 15 }], heard, word);
-    for (const run of painted) {
-      const inside = run.start < word.end && run.end > word.start;
-      expect(!inside || run.name === "mafatih-wash", `${cursor} ${JSON.stringify(run)}`).toBe(true);
+    const painted = runs(TWO_BLOCKS, cursor, [], heard, ligature);
+    for (let letter = ligature.start; letter < ligature.end; letter += 1) {
+      const names = painted.filter((run) => run.start <= letter && letter < run.end).map((run) => run.name);
+      expect(names, `${cursor} ${letter}`).toEqual(["mafatih-wash"]);
+    }
+    const quiet = runs(TWO_BLOCKS, cursor, [], null, ligature);
+    for (let letter = ligature.start; letter < ligature.end; letter += 1) {
+      const names = quiet.filter((run) => run.start <= letter && letter < run.end).map((run) => run.name);
+      expect(names, `${cursor} ${letter}`).toEqual(["mafatih-hidden"]);
     }
   }
 });
