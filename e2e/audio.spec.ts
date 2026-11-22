@@ -648,17 +648,21 @@ test("the wash stays behind a lam-alef word with only its lam typed, and the wor
   const lam = keys.findIndex((key, index) => key === "ل" && keys[index + 1] === "ا");
   await typeKeys(page, keys.slice(0, lam + 1));
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(() => playingSpan(page)).toHaveLength(1);
   await player(page).getByRole("button", { name: "Next ayah" }).click();
   await expect(status(page)).toContainText("75:1");
-  const word = surface(page).locator("[data-halved]");
-  await expect(word).toHaveCount(1);
-  const box = await word.evaluate((wrapper) => {
-    const text = wrapper.firstChild;
+  const block = surface(page).locator("[data-block][data-split]");
+  await expect(block).toHaveCount(1);
+  const box = await block.evaluate((paragraph) => {
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+    const text = walker.nextNode();
     if (!(text instanceof Text)) {
-      throw new Error("no text in the word");
+      throw new Error("no text in the block");
     }
     const range = document.createRange();
-    range.selectNodeContents(text);
+    range.setStart(text, Number(paragraph.getAttribute("data-from")));
+    range.setEnd(text, Number(paragraph.getAttribute("data-alef")) + 1);
     const rect = range.getBoundingClientRect();
     return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
   });

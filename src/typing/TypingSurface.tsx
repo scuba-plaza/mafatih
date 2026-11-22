@@ -10,7 +10,7 @@ import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
-import { type LigatureWord, ligatureWordAt } from "./ligature.ts";
+import { type Ligature, ligatureAt } from "./ligature.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
@@ -131,25 +131,34 @@ function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
   return found === undefined ? undefined : edgeOf(found.range, found.side);
 }
 
-function halvedCut(paragraph: HTMLElement): number | undefined {
-  const wrapper = paragraph.querySelector<HTMLElement>("[data-halved]");
-  const text = wrapper?.firstChild;
-  if (wrapper === null || !(text instanceof Text)) {
+const SPLIT_SIDE_EM = 0.15;
+const SPLIT_SIDE_MAX = 14;
+
+function placeSplit(paragraph: HTMLElement, from: number, to: number): number | undefined {
+  const found = rangeBetween(textNodesOf(paragraph), from, to, "end");
+  const pieces = found === undefined ? [] : [...found.range.getClientRects()].filter((piece) => piece.width > 0);
+  if (pieces.length === 0 || new Set(pieces.map((piece) => piece.top)).size !== 1) {
+    paragraph.removeAttribute("data-ready");
     return undefined;
   }
-  const word = document.createRange();
-  word.selectNodeContents(text);
-  const ligature = document.createRange();
-  ligature.setStart(text, Number(wrapper.dataset.from));
-  ligature.setEnd(text, Number(wrapper.dataset.to));
-  const lines = new Set([...word.getClientRects()].filter((piece) => piece.width > 0).map((piece) => piece.top));
-  const pieces = [...ligature.getClientRects()].filter((piece) => piece.width > 0);
-  if (lines.size !== 1 || pieces.length === 0) {
-    wrapper.style.removeProperty("--cut");
-    return undefined;
+  const frame = paragraph.getBoundingClientRect();
+  const style = getComputedStyle(paragraph);
+  const side = Math.min(SPLIT_SIDE_EM * toPixels(style.fontSize), SPLIT_SIDE_MAX);
+  const left = Math.min(...pieces.map((piece) => piece.left));
+  const right = Math.max(...pieces.map((piece) => piece.right));
+  const middle = ((pieces[0]?.top ?? 0) + (pieces[0]?.bottom ?? 0)) / 2 - frame.top;
+  const half = toPixels(style.lineHeight) / 2;
+  const cut = (left + right) / 2;
+  for (const [name, value] of [
+    ["--cut", cut - frame.left],
+    ["--l", left - side - frame.left],
+    ["--r", right + side - frame.left],
+    ["--t", middle - half],
+    ["--b", middle + half],
+  ] as const) {
+    paragraph.style.setProperty(name, `${value}px`);
   }
-  const cut = (Math.min(...pieces.map((piece) => piece.left)) + Math.max(...pieces.map((piece) => piece.right))) / 2;
-  wrapper.style.setProperty("--cut", `${cut - wrapper.getBoundingClientRect().left}px`);
+  paragraph.setAttribute("data-ready", "");
   return cut;
 }
 
@@ -207,26 +216,9 @@ interface BlockTextProps {
   readonly block: TextSpan;
   readonly cursor: number;
   readonly mistakes: string;
-  readonly ligature: LigatureWord | null;
 }
 
-function BlockText({ shown, block, cursor, mistakes, ligature }: BlockTextProps): ReactNode {
-  if (ligature !== null) {
-    return (
-      <>
-        {shown.slice(block.start, ligature.start)}
-        <span
-          data-halved=""
-          data-word={shown.slice(ligature.start, ligature.end)}
-          data-from={ligature.lam - ligature.start}
-          data-to={ligature.alef + 1 - ligature.start}
-        >
-          {shown.slice(ligature.start, ligature.end)}
-        </span>
-        {shown.slice(ligature.end, block.end)}
-      </>
-    );
-  }
+function BlockText({ shown, block, cursor, mistakes }: BlockTextProps): ReactNode {
   if (mistakes === "") {
     return shown.slice(block.start, block.end);
   }
@@ -284,10 +276,10 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const blocks = blocksOf(session);
   const current = cursorBlock(blocks, doneUntil);
   const currentBlock = blocks[current];
-  const ligature =
+  const ligature: Ligature | null =
     currentBlock === undefined || complete || mistakes !== ""
       ? null
-      : ligatureWordAt(session.prompt.shown, doneUntil, currentBlock.start, currentBlock.end);
+      : ligatureAt(session.prompt.shown, doneUntil, currentBlock.start, currentBlock.end);
   const family = FONTS.find((candidate) => candidate.id === font) ?? FONTS[0];
   const flagged = options.requireBackspace ? mistakes !== "" : session.missed;
   const paused = !focused && !complete;
@@ -342,7 +334,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
       if (block === undefined || paragraph === undefined) {
         return;
       }
-      paint(paragraphs, blocks, paintRuns({ blocks, doneUntil, apparatus, playing, exempt: ligature }));
+      const cut =
+        ligature === null ? undefined : placeSplit(paragraph, ligature.start - block.start, ligature.end - block.start);
+      paint(
+        paragraphs,
+        blocks,
+        paintRuns({ blocks, doneUntil, apparatus, playing, exempt: cut === undefined ? null : ligature }),
+      );
       setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
       caret.hidden = !focused || rect === undefined;
@@ -350,7 +348,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       const frame = container.getBoundingClientRect();
-      const x = (halvedCut(paragraph) ?? rect.left) - frame.left + container.scrollLeft;
+      const x = (cut ?? rect.left) - frame.left + container.scrollLeft;
       const y = rect.top - frame.top + container.scrollTop;
       caret.style.transform = `translate(${x}px, ${y}px)`;
       caret.style.height = `${rect.height}px`;
@@ -444,13 +442,23 @@ export function TypingSurface(props: TypingSurfaceProps) {
           style={{ fontFamily: `"${family.family}", serif`, height: windowHeight ?? undefined }}
         >
           {blocks.map((block, index) => (
-            <p key={block.start} data-block="">
+            <p
+              key={block.start}
+              data-block=""
+              {...(index === current && ligature !== null
+                ? {
+                    "data-split": "",
+                    "data-text": session.prompt.shown.slice(block.start, block.end),
+                    "data-from": ligature.start - block.start,
+                    "data-alef": ligature.alef - block.start,
+                  }
+                : {})}
+            >
               <BlockText
                 shown={session.prompt.shown}
                 block={block}
                 cursor={doneUntil}
                 mistakes={index === current ? mistakes : ""}
-                ligature={index === current ? ligature : null}
               />
             </p>
           ))}
