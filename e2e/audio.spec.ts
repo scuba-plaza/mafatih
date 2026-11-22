@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { describeInk, inkByColour, inkColours } from "./helpers/ink.ts";
-import { brightestPixel } from "./helpers/pixels.ts";
+import { brightestPixel, dominantBrightness } from "./helpers/pixels.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
 import { surah } from "./helpers/quran.ts";
 import { addStyle } from "./helpers/style.ts";
@@ -662,11 +662,10 @@ test("the wash stays behind a lam-alef word with only its lam typed, and the wor
     const rect = range.getBoundingClientRect();
     return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
   });
-  const corner = { x: box.x + 1, y: box.y + 1, width: 6, height: 6 };
   await expect
-    .poll(async () => brightestPixel(page, await page.screenshot({ clip: corner })), { timeout: 5000 })
+    .poll(async () => dominantBrightness(page, await page.screenshot({ clip: box })), { timeout: 5000 })
     .toBeGreaterThan(WASHED);
-  expect(await brightestPixel(page, await page.screenshot({ clip: corner }))).toBeLessThan(WASH_TOP);
+  expect(await dominantBrightness(page, await page.screenshot({ clip: box }))).toBeLessThan(WASH_TOP);
   const ink = await inkByColour(page, await page.screenshot({ clip: box }), await inkColours(page));
   expect(describeInk(ink)).toMatchObject({ separated: true });
 });

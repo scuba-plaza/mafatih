@@ -3,7 +3,7 @@ import { describeInk, type InkByColour, inkByColour, inkColours } from "./helper
 import { differenceBeyondShift } from "./helpers/pixels.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
-import { startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 import { afterFrames } from "./helpers/waits.ts";
 
 type Font = "noto-naskh" | "scheherazade" | "amiri";
@@ -205,9 +205,11 @@ test("only the word being typed while its cursor is between a lam and its alef i
   await typeKeys(page, ["ل"]);
   await expect(halved(page)).toHaveCount(1);
   await expect(halved(page)).toHaveText("لا");
+  expect(await doneText(page), "the lam is typed text").toBe("ل");
   expect(samePlaces(await wordRects(page), baseline, placeTolerance(testInfo)), "no word may move").toBe(true);
   await typeKeys(page, ["ا"]);
   await expect(halved(page)).toHaveCount(0);
+  expect(await doneText(page), "the whole word is typed text").toBe("لا");
   await typeKeys(page, [" ", "ل"]);
   await expect(halved(page)).toHaveCount(1);
   expect(samePlaces(await wordRects(page), baseline, placeTolerance(testInfo)), "no word may move").toBe(true);

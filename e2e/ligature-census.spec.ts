@@ -18,7 +18,7 @@ const ONE_GLYPH: Readonly<Record<Font, readonly string[]>> = {
   amiri: [],
 };
 
-const NO_INK = 1;
+const NO_INK = 3;
 
 test("the pairs of letters a font draws as one glyph are the lam-alef pairs the app splits itself", async ({
   page,

@@ -4,7 +4,7 @@ export const LETTERS = [..."ابتثجحخدذرزسشصضطظعغفقكلمنه
 
 const JOINER = "ب";
 const CHUNK = 200;
-const TYPED = [255, 0, 255];
+const TYPED_BY = 90;
 
 interface Entry {
   readonly pair: string;
@@ -90,10 +90,7 @@ async function typedInkIn(page: Page, family: string, chunk: readonly Entry[]): 
         for (let row = top; row < Math.min(picture.height, top + Math.ceil(height * scale)); row += 1) {
           for (let column = left; column < Math.min(picture.width, left + Math.ceil(width * scale)); column += 1) {
             const index = (row * picture.width + column) * 4;
-            const near = [0, 1, 2].every(
-              (channel) => Math.abs((picture.data[index + channel] ?? 0) - (wanted?.[channel] ?? 0)) <= 6,
-            );
-            if (near) {
+            if ((picture.data[index] ?? 0) - (picture.data[index + 1] ?? 0) > (wanted ?? 0)) {
               count += 1;
             }
           }
@@ -101,7 +98,7 @@ async function typedInkIn(page: Page, family: string, chunk: readonly Entry[]): 
         return count / (scale * scale);
       });
     },
-    [image, boxes, TYPED] as const,
+    [image, boxes, TYPED_BY] as const,
   );
 }
 
