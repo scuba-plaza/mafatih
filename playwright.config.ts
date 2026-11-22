@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+process.env.GST_PLUGIN_FEATURE_RANK ??= "pulsesink:0";
+
 const URL = "http://localhost:4173";
 const executablePath = process.env.PW_CHROMIUM_PATH;
 const chromium = executablePath === undefined ? {} : { launchOptions: { executablePath } };

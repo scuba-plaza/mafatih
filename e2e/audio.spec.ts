@@ -648,6 +648,8 @@ test("the wash stays behind a lam-alef word with only its lam typed, and the wor
   const lam = keys.findIndex((key, index) => key === "ل" && keys[index + 1] === "ا");
   await typeKeys(page, keys.slice(0, lam + 1));
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(() => playingSpan(page)).toHaveLength(1);
   await player(page).getByRole("button", { name: "Next ayah" }).click();
   await expect(status(page)).toContainText("75:1");
   const block = surface(page).locator("[data-block][data-split]");
