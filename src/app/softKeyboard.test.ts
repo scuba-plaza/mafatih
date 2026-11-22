@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { softKeyboardOpen, tallestSeen } from "./softKeyboard.ts";
+import { softKeyboardOpen, takesText, tallestSeen } from "./softKeyboard.ts";
 
 const PHONE = { width: 390, height: 844 };
 
@@ -36,4 +36,18 @@ test("the tallest height is kept while the width stays, and forgotten when it ch
   expect(tallestSeen(PHONE, 390, 700)).toEqual(PHONE);
   expect(tallestSeen(PHONE, 390, 900)).toEqual({ width: 390, height: 900 });
   expect(tallestSeen(PHONE, 844, 390)).toEqual({ width: 844, height: 390 });
+});
+
+test("a text field, a search box and a text area take text, a slider, a checkbox and a button do not", () => {
+  for (const type of ["text", "search", "email", "url", "tel", "password", "number", ""]) {
+    expect(takesText("INPUT", type), type).toBe(true);
+  }
+  expect(takesText("TEXTAREA", "")).toBe(true);
+  for (const type of ["range", "checkbox", "radio", "button", "submit", "reset", "file", "color", "image", "hidden"]) {
+    expect(takesText("INPUT", type), type).toBe(false);
+  }
+  expect(takesText("INPUT", "RANGE")).toBe(false);
+  expect(takesText("BUTTON", "")).toBe(false);
+  expect(takesText("SELECT", "")).toBe(false);
+  expect(takesText("DIV", "")).toBe(false);
 });

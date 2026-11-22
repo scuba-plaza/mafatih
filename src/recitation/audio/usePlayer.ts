@@ -119,7 +119,17 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
       return;
     }
     const onEnded = () => dispatch({ type: "ended" });
-    const onError = () => dispatch({ type: "failed" });
+    const onError = () => {
+      const unplayable = loaded.current;
+      if (unplayable !== null) {
+        URL.revokeObjectURL(unplayable.objectUrl);
+        loaded.current = null;
+        sharedAudioCache()
+          ?.remove(unplayable.url)
+          .catch(() => undefined);
+      }
+      dispatch({ type: "failed" });
+    };
     const onTime = () =>
       publish(Number.isFinite(target.duration) && target.duration > 0 ? target.currentTime / target.duration : 0);
     target.addEventListener("ended", onEnded);
@@ -153,6 +163,7 @@ export function usePlayer({ passage, reciter, volume, muted, whole, loop, held, 
     if (loaded.current?.url === url) {
       target.play().catch(failed);
     } else {
+      target.pause();
       loadAyahBlob(url, sharedAudioCache())
         .then((blob) => {
           if (mine !== ticket.current) {

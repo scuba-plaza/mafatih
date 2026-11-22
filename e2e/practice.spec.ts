@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { savedProfile, seedProfile } from "./helpers/profile.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { afterFrames, storageEventsSeen, watchStorageEvents } from "./helpers/waits.ts";
 
 const MARKS = /[\u064B-\u0652\u0670]/g;
 const HOME_ROW = new Set([..."ايملبتنسكش"]);
@@ -139,6 +140,7 @@ test("another tab saving the profile does not rebuild the lesson being typed", a
   await typeKeys(page, keysOf(await shownText(page)).slice(0, 4));
   const typed = await doneText(page);
   expect(typed.length).toBeGreaterThan(0);
+  await watchStorageEvents(page);
   const other = await context.newPage();
   await other.goto("/#/about");
   await other.evaluate(() => {
@@ -146,7 +148,8 @@ test("another tab saving the profile does not rebuild the lesson being typed", a
     localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "{}"), null, 1));
   });
   await page.bringToFront();
-  await page.waitForTimeout(200);
+  await expect.poll(() => storageEventsSeen(page)).toBeGreaterThan(0);
+  await afterFrames(page);
   expect(await doneText(page)).toBe(typed);
 });
 

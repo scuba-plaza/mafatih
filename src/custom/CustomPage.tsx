@@ -146,6 +146,11 @@ function Lesson({ prompt, startNow, shortened, onEdit }: LessonProps) {
 }
 
 export function CustomPage() {
+  const { restored } = useProfile();
+  return <CustomLesson key={restored} />;
+}
+
+function CustomLesson() {
   const { t } = useI18n();
   const { profile, update } = useProfile();
   const { customText, vocalization } = profile.settings;

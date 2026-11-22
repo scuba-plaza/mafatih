@@ -11,7 +11,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. It has two 
 
 **Try it: <https://mafatih.tasrif.xyz/>**
 
-**Status: not human verified.** The Practice word list was chosen by a program and skimmed by the owner, not checked word by word. The Arabic wording of the interface has not been read by a native speaker. The manual device checklist (`docs/QA-DEVICES.md`) has not been run, and the Firefox and WebKit projects have never run. Reports of mistakes are welcome.
+**Status: not human verified.** The Practice word list was chosen by a program and skimmed by the owner, not checked word by word. The Arabic wording of the interface has not been read by a native speaker. The manual device checklist (`docs/QA-DEVICES.md`) has not been run in full. The browser suite runs in Chromium, Firefox and WebKit, with desktop and phone profiles, on every push, and the site is deployed only when all of them pass; none of that replaces a real phone. Reports of mistakes are welcome.
 
 ## What you can do
 

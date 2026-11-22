@@ -68,7 +68,7 @@ function KeyLabel({ char }: { char: string }) {
 }
 
 export function StatsPage() {
-  const { t, formatNumber, formatPercent, formatDate } = useI18n();
+  const { t, formatNumber, formatAccuracy, formatDate } = useI18n();
   const { profile } = useProfile();
   const [mode, setMode] = useState<Mode>(profile.history.at(-1)?.mode ?? "practice");
   const keysTitleId = useId();
@@ -124,7 +124,7 @@ export function StatsPage() {
                       </th>
                       <td className={CELL}>{row.meanMs === null ? t("hud.none") : formatNumber(row.meanMs)}</td>
                       <td className={CELL}>
-                        {formatPercent(row.accuracy)}
+                        {formatAccuracy(row.accuracy)}
                         <span
                           aria-hidden="true"
                           className="mt-1 block h-1 w-full max-w-24 rounded-full bg-line forced-colors:bg-[GrayText]"
@@ -175,7 +175,7 @@ export function StatsPage() {
                       <td className={CELL}>{formatDate(lesson.at)}</td>
                       <td className={CELL}>{t(PAGE_TITLES[lesson.mode])}</td>
                       <td className={CELL}>{lesson.cpm === null ? t("hud.none") : formatNumber(lesson.cpm)}</td>
-                      <td className={CELL}>{formatPercent(lesson.accuracy)}</td>
+                      <td className={CELL}>{formatAccuracy(lesson.accuracy)}</td>
                     </tr>
                   ))}
                 </tbody>

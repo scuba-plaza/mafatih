@@ -211,3 +211,9 @@ button {
     color: GrayText;
   }
 }
+
+[data-unligated] {
+  font-feature-settings:
+    "rlig" 0,
+    "liga" 0;
+}

@@ -10,6 +10,7 @@ import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
+import { ligatureWordAt } from "./ligature.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
@@ -65,56 +66,88 @@ function edgeOf(range: Range, side: "start" | "end"): DOMRect | undefined {
   return new DOMRect(x, rect.top, 0, rect.height);
 }
 
-function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
+function textNodesOf(paragraph: HTMLElement): Text[] {
+  const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) =>
+      node.parentElement?.closest("[data-mistakes]") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  });
+  const nodes: Text[] = [];
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    if (node instanceof Text) {
+      nodes.push(node);
+    }
+  }
+  return nodes;
+}
+
+function locate(nodes: readonly Text[], local: number, edge: "start" | "end"): readonly [Text, number] | undefined {
+  let remaining = local;
+  for (const node of nodes) {
+    if (edge === "start" ? remaining < node.data.length : remaining <= node.data.length) {
+      return [node, remaining];
+    }
+    remaining -= node.data.length;
+  }
+  return undefined;
+}
+
+function rangeBetween(
+  nodes: readonly Text[],
+  from: number,
+  to: number,
+  side: "start" | "end",
+): { readonly range: Range; readonly side: "start" | "end" } | undefined {
+  const start = locate(nodes, from, "start");
+  const end = locate(nodes, to, "end");
+  if (start === undefined || end === undefined) {
+    return undefined;
+  }
   const range = document.createRange();
+  range.setStart(...start);
+  range.setEnd(...end);
+  return { range, side };
+}
+
+function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
   const mistakes = paragraph.querySelector("[data-mistakes]");
   if (mistakes !== null) {
+    const range = document.createRange();
     range.selectNodeContents(mistakes);
     const lastLine = [...range.getClientRects()].filter((candidate) => candidate.height > 0).at(-1);
     return lastLine === undefined ? undefined : new DOMRect(lastLine.left, lastLine.top, 0, lastLine.height);
   }
-  const text = paragraph.firstChild;
-  if (!(text instanceof Text)) {
-    return undefined;
-  }
-  const next = text.data.charAt(local);
+  const nodes = textNodesOf(paragraph);
+  const data = nodes.map((node) => node.data).join("");
+  const next = data.charAt(local);
   if (next !== "" && !isMark(next)) {
-    range.setStart(text, local);
-    range.setEnd(text, local + 1);
-    return edgeOf(range, "start");
+    const found = rangeBetween(nodes, local, local + 1, "start");
+    return found === undefined ? undefined : edgeOf(found.range, found.side);
   }
   let base = local;
-  while (base > 0 && isMark(text.data.charAt(base - 1))) {
+  while (base > 0 && isMark(data.charAt(base - 1))) {
     base -= 1;
   }
-  range.setStart(text, Math.max(0, base - 1));
-  range.setEnd(text, Math.max(local, 1));
-  return edgeOf(range, "end");
+  const found = rangeBetween(nodes, Math.max(0, base - 1), Math.max(local, 1), "end");
+  return found === undefined ? undefined : edgeOf(found.range, found.side);
 }
 
 function highlightRegistry(): HighlightRegistry | undefined {
   return typeof CSS === "undefined" ? undefined : CSS.highlights;
 }
 
-function locate(paragraph: HTMLElement, local: number, edge: "start" | "end"): readonly [Text, number] | undefined {
-  let remaining = local;
-  for (const node of paragraph.childNodes) {
-    if (node instanceof Text) {
-      if (edge === "start" ? remaining < node.data.length : remaining <= node.data.length) {
-        return [node, remaining];
-      }
-      remaining -= node.data.length;
-    }
-  }
-  return undefined;
-}
-
-function rangeOf(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], run: TextSpan): Range | undefined {
+function rangeOf(
+  nodesByBlock: readonly (readonly Text[])[],
+  blocks: readonly TextSpan[],
+  run: TextSpan,
+): Range | undefined {
   const index = blocks.findIndex((block) => run.start >= block.start && run.end <= block.end);
-  const paragraph = paragraphs[index];
+  const nodes = nodesByBlock[index];
   const offset = blocks[index]?.start ?? 0;
-  const from = paragraph === undefined ? undefined : locate(paragraph, run.start - offset, "start");
-  const to = paragraph === undefined ? undefined : locate(paragraph, run.end - offset, "end");
+  if (nodes === undefined) {
+    return undefined;
+  }
+  const from = locate(nodes, run.start - offset, "start");
+  const to = locate(nodes, run.end - offset, "end");
   if (from === undefined || to === undefined) {
     return undefined;
   }
@@ -130,8 +163,9 @@ function paint(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], 
     return;
   }
   const ranges = new Map<HighlightName, Range[]>();
+  const nodesByBlock = paragraphs.map(textNodesOf);
   for (const run of runs) {
-    const range = rangeOf(paragraphs, blocks, run);
+    const range = rangeOf(nodesByBlock, blocks, run);
     if (range !== undefined) {
       ranges.set(run.name, [...(ranges.get(run.name) ?? []), range]);
     }
@@ -144,6 +178,52 @@ function paint(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], 
       highlights.set(name, new Highlight(...painted));
     }
   }
+}
+
+interface BlockTextProps {
+  readonly shown: string;
+  readonly block: TextSpan;
+  readonly cursor: number;
+  readonly mistakes: string;
+  readonly active: boolean;
+}
+
+function BlockText({ shown, block, cursor, mistakes, active }: BlockTextProps): ReactNode {
+  const word = active ? ligatureWordAt(shown, cursor, block.start, block.end) : null;
+  const flagged =
+    mistakes === "" ? null : (
+      <span data-mistakes="" aria-hidden="true" className="inline-block max-w-full text-danger [unicode-bidi:isolate]">
+        {drawnMistakes(mistakes)}
+      </span>
+    );
+  if (word === null) {
+    return flagged === null ? (
+      shown.slice(block.start, block.end)
+    ) : (
+      <>
+        {shown.slice(block.start, cursor)}
+        {flagged}
+        {shown.slice(cursor, block.end)}
+      </>
+    );
+  }
+  return (
+    <>
+      {shown.slice(block.start, word.start)}
+      <span data-unligated="">
+        {flagged === null ? (
+          shown.slice(word.start, word.end)
+        ) : (
+          <>
+            {shown.slice(word.start, cursor)}
+            {flagged}
+            {shown.slice(cursor, word.end)}
+          </>
+        )}
+      </span>
+      {shown.slice(word.end, block.end)}
+    </>
+  );
 }
 
 export interface TypingSurfaceProps {
@@ -345,21 +425,13 @@ export function TypingSurface(props: TypingSurfaceProps) {
         >
           {blocks.map((block, index) => (
             <p key={block.start} data-block="">
-              {index === current && mistakes !== "" ? (
-                <>
-                  {session.prompt.shown.slice(block.start, doneUntil)}
-                  <span
-                    data-mistakes=""
-                    aria-hidden="true"
-                    className="inline-block max-w-full text-danger [unicode-bidi:isolate]"
-                  >
-                    {drawnMistakes(mistakes)}
-                  </span>
-                  {session.prompt.shown.slice(doneUntil, block.end)}
-                </>
-              ) : (
-                session.prompt.shown.slice(block.start, block.end)
-              )}
+              <BlockText
+                shown={session.prompt.shown}
+                block={block}
+                cursor={doneUntil}
+                mistakes={index === current ? mistakes : ""}
+                active={index === current}
+              />
             </p>
           ))}
           <span

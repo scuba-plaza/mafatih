@@ -22,8 +22,13 @@ export interface AudioCacheUsage {
 export interface AudioCache {
   readonly get: (url: string) => Promise<Blob | null>;
   readonly put: (url: string, blob: Blob) => Promise<void>;
+  readonly remove: (url: string) => Promise<void>;
   readonly usage: () => Promise<AudioCacheUsage>;
   readonly clear: () => Promise<boolean>;
+}
+
+export function isAudio(blob: Blob): boolean {
+  return blob.type.startsWith("audio/");
 }
 
 function openDatabase(onLost: () => void): Promise<IDBDatabase | null> {
@@ -95,7 +100,12 @@ function createAudioCache(): AudioCache | null {
       const record = await run<StoredAyah | undefined>("readonly", (transaction) =>
         transaction.objectStore(RECORDS).get(url),
       );
-      return record !== undefined && record !== null && record.data instanceof ArrayBuffer && record.data.byteLength > 0
+      return record !== undefined &&
+        record !== null &&
+        record.data instanceof ArrayBuffer &&
+        record.data.byteLength > 0 &&
+        typeof record.type === "string" &&
+        record.type.startsWith("audio/")
         ? new Blob([record.data], { type: record.type })
         : null;
     },
@@ -106,6 +116,12 @@ function createAudioCache(): AudioCache | null {
       await run("readwrite", (transaction) => {
         transaction.objectStore(SIZES).put(size);
         return transaction.objectStore(RECORDS).put(record);
+      });
+    },
+    remove: async (url) => {
+      await run("readwrite", (transaction) => {
+        transaction.objectStore(SIZES).delete(url);
+        return transaction.objectStore(RECORDS).delete(url);
       });
     },
     usage: async () => {
@@ -134,18 +150,33 @@ export function sharedAudioCache(): AudioCache | null {
 
 const inFlight = new Map<string, Promise<Blob>>();
 
+export const FETCH_TIMEOUT_MS = 20_000;
+
+async function fetchWithin(url: string): Promise<Blob> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`recitation ${response.status}`);
+    }
+    return await response.blob();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchAyahBlob(url: string, cache: AudioCache | null): Promise<Blob> {
   const stored = await (cache?.get(url) ?? Promise.resolve(null)).catch(() => null);
   if (stored !== null && stored.size > 0) {
     return stored;
   }
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`recitation ${response.status}`);
-  }
-  const blob = await response.blob();
+  const blob = await fetchWithin(url);
   if (blob.size === 0) {
     throw new Error("recitation empty");
+  }
+  if (!isAudio(blob)) {
+    throw new Error(`recitation is ${blob.type || "of an unknown type"}, not audio`);
   }
   await (cache?.put(url, blob) ?? Promise.resolve()).catch(() => undefined);
   return blob;

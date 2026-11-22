@@ -215,6 +215,7 @@ test("pressing the audio buttons keeps the field focused and the text sharp", as
 });
 
 test("each ayah is fetched once: after a reload only the saved copy can supply it", async ({ page }) => {
+  await spyAudio(page);
   const { requests } = await mockAudio(page, SHORT);
   const count = (file: string) => requests.filter((name) => name === file).length;
   await seedProfile(page, { settings: { playWhole: false, loop: false } });
@@ -225,8 +226,7 @@ test("each ayah is fetched once: after a reload only the saved copy can supply i
   await page.reload();
   await expect(player(page)).toBeVisible();
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
-  await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  await page.waitForTimeout(500);
+  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThan(0);
   expect(count("001001.mp3")).toBe(1);
 });
 
@@ -234,7 +234,7 @@ test("the next ayah is fetched ahead while one plays, and not before anything pl
   const { requests } = await mockAudio(page, LONG);
   await page.goto("/#/recitation/1/1");
   await expect(player(page)).toBeVisible();
-  await page.waitForTimeout(400);
+  await page.waitForLoadState("networkidle");
   expect(requests).toEqual([]);
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(() => requests).toEqual(expect.arrayContaining(["001001.mp3", "001002.mp3"]));
@@ -322,9 +322,10 @@ test("Previous on the first clip rewinds it once; pausing and playing afterwards
   await player(page).getByRole("button", { name: "Previous ayah" }).click();
   await expect.poll(async () => (await readLog(page)).currentTime).toEqual([0]);
   await player(page).getByRole("button", { name: "Pause", exact: true }).click();
+  const playsBefore = (await readLog(page)).plays;
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
-  await page.waitForTimeout(300);
+  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThan(playsBefore);
   expect((await readLog(page)).currentTime).toEqual([0]);
 });
 
@@ -496,7 +497,7 @@ test("with repeat on and not the whole passage, the ayah that ends plays again",
   await seedProfile(page, { settings: { playWhole: false, loop: true } });
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
-  await expect.poll(async () => (await readLog(page)).plays).toBeGreaterThanOrEqual(3);
+  await expect.poll(async () => (await readLog(page)).plays, { timeout: 20_000 }).toBeGreaterThanOrEqual(3);
   await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await expect(status(page)).toContainText("1:1");
 });
@@ -553,18 +554,19 @@ test("the Audio panel opens centred over the speaker in the Arabic interface too
 });
 
 test("typing never starts audio, and audio never moves the cursor (Q5)", async ({ page }) => {
+  await spyAudio(page);
   const { requests } = await mockAudio(page, LONG);
   await seedProfile(page, { settings: { vocalization: "letters" } });
   await page.goto("/#/recitation/112/1");
   await startTyping(page);
   const keys = lettersOf(await shownText(page)).slice(0, 12);
   await typeKeys(page, keys.slice(0, 6));
-  await page.waitForTimeout(300);
+  await page.waitForLoadState("networkidle");
   expect(requests).toEqual([]);
   const typed = await doneText(page);
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(() => requests.length).toBeGreaterThan(0);
-  await page.waitForTimeout(500);
+  await expect.poll(() => firstAudio(page, (audio) => audio.currentTime)).toBeGreaterThan(0.2);
   expect(await doneText(page)).toBe(typed);
   await typeKeys(page, keys.slice(6, 9));
   expect((await doneText(page)).length).toBeGreaterThan(typed.length);
@@ -642,6 +644,126 @@ test("a recitation that cannot be fetched is said plainly and the lesson stays t
   await typeKeys(page, [..."بسم"]);
   expect((await doneText(page)).length).toBeGreaterThan(0);
   await expectNoAxeViolations(page);
+});
+
+const CORS = { "access-control-allow-origin": "*" };
+
+async function savedShapes(page: Page): Promise<SavedAudio["shapes"]> {
+  return (await savedAudio(page).catch(() => ({ shapes: [], sizes: [] }))).shapes;
+}
+
+test("an answer that is not audio is said plainly, is not saved, and the next press asks again", async ({ page }) => {
+  let healthy = false;
+  const requests: string[] = [];
+  await page.route("https://everyayah.com/**", (route) => {
+    requests.push(route.request().url());
+    return healthy
+      ? route.fulfill({ body: SHORT, contentType: "audio/mpeg", headers: CORS })
+      : route.fulfill({ body: "<html>log in to the network</html>", contentType: "text/html", headers: CORS });
+  });
+  await page.goto("/#/recitation/1/1");
+  const play = player(page).getByRole("button", { name: "Play", exact: true });
+  await play.click();
+  await expect(status(page)).toHaveText("Recitation unavailable");
+  expect(await savedShapes(page)).toEqual([]);
+  healthy = true;
+  await play.click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).not.toHaveText("Recitation unavailable");
+  await expect.poll(() => requests.filter((url) => url.endsWith("/001001.mp3")).length).toBeGreaterThanOrEqual(2);
+});
+
+test("audio that the browser cannot play is not kept, and the next press fetches it again", async ({ page }) => {
+  let healthy = false;
+  const requests: string[] = [];
+  await page.route("https://everyayah.com/**", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({
+      body: healthy ? SHORT : Buffer.from("this is not audio at all"),
+      contentType: "audio/mpeg",
+      headers: CORS,
+    });
+  });
+  await page.goto("/#/recitation/1/1");
+  const play = player(page).getByRole("button", { name: "Play", exact: true });
+  await play.click();
+  await expect(status(page)).toHaveText("Recitation unavailable");
+  healthy = true;
+  await play.click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).not.toHaveText("Recitation unavailable");
+  await expect.poll(() => requests.filter((url) => url.endsWith("/001001.mp3")).length).toBeGreaterThanOrEqual(2);
+});
+
+test("a saved answer of the wrong type, left by an earlier version, is ignored and replaced", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route("https://everyayah.com/**", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({ body: SHORT, contentType: "audio/mpeg", headers: CORS });
+  });
+  await page.goto("/#/recitation/1/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(() => savedShapes(page).then((shapes) => shapes.length)).toBeGreaterThan(0);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const opening = indexedDB.open("mafatih.audio");
+        opening.onerror = () => reject(opening.error);
+        opening.onsuccess = () => {
+          const transaction = opening.result.transaction("ayat", "readwrite");
+          const store = transaction.objectStore("ayat");
+          const saved = store.getAll();
+          saved.onsuccess = () => {
+            for (const record of saved.result) {
+              store.put({
+                ...record,
+                data: new TextEncoder().encode("<html>sign in</html>").buffer,
+                type: "text/html",
+              });
+            }
+          };
+          transaction.oncomplete = () => {
+            opening.result.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+  );
+  const before = requests.length;
+  await page.reload();
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).not.toHaveText("Recitation unavailable");
+  await expect.poll(() => requests.length).toBeGreaterThan(before);
+});
+
+test("Next while the next clip is still loading stops the old clip, and the clip that was chosen is the one that plays", async ({
+  page,
+}) => {
+  await spyAudio(page);
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let first = true;
+  await page.route("https://everyayah.com/**", async (route) => {
+    const immediate = first;
+    first = false;
+    if (!immediate) {
+      await gate;
+    }
+    await route.fulfill({ body: LONG, contentType: "audio/mpeg", headers: CORS });
+  });
+  await page.goto("/#/recitation/112/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(() => firstAudio(page, (audio) => audio.currentTime)).toBeGreaterThan(0.2);
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(status(page)).toContainText("112:1");
+  await expect.poll(() => firstAudio(page, (audio) => audio.paused)).toBe(true);
+  release();
+  await expect.poll(() => firstAudio(page, (audio) => !audio.paused && audio.currentTime > 0.2)).toBe(true);
+  await expect(status(page)).toContainText("112:1");
 });
 
 test("Settings shows how much is saved and Delete empties it", async ({ page }) => {

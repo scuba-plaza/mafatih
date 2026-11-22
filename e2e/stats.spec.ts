@@ -224,7 +224,7 @@ test("in the Arabic interface the labels and the digits are Arabic", async ({ br
   const table = page.getByRole("table", { name: /^المفاتيح في/ });
   await expect(table.getByRole("columnheader")).toHaveText([
     "المفتاح",
-    "الزمن لكل مفتاح (بالملي ثانية)",
+    "الزمن لكل مفتاح (بالمللي ثانية)",
     "صحيح من أول مرة",
     "المحاولات",
   ]);
@@ -320,4 +320,22 @@ test("from a large screen the key table and the lessons table sit side by side, 
   await page.setViewportSize({ width: 800, height: 800 });
   const [stackedKeys, stackedLessons] = await Promise.all([keys(page).boundingBox(), recent(page).boundingBox()]);
   expect(stackedLessons?.y ?? 0).toBeGreaterThan((stackedKeys?.y ?? 0) + (stackedKeys?.height ?? 0));
+});
+
+test("an accuracy just under the star threshold is shown rounded down, not as the 95% that earns a star", async ({
+  page,
+}) => {
+  const history = [0.947, 0.95, 0.9455].map((accuracy, index) => ({
+    at: Date.UTC(2026, 10, index + 1, 12, 0),
+    mode: "custom",
+    chars: 60,
+    ms: 30_000,
+    accuracy,
+  }));
+  await seedProfile(page, { history });
+  await page.goto("/#/stats");
+  const rows = recent(page).getByRole("row");
+  const texts = await rows.allTextContents();
+  expect(texts.filter((text) => text.includes("94%")).length).toBe(2);
+  expect(texts.filter((text) => text.includes("95%")).length).toBe(1);
 });

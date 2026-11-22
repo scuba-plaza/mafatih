@@ -4,6 +4,7 @@ import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { passageRange } from "./helpers/passage.ts";
 import { savedProfile, savedSettings, seedProfile } from "./helpers/profile.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { afterFrames, storageEventsSeen, watchStorageEvents } from "./helpers/waits.ts";
 
 interface SurahFile {
   readonly number: number;
@@ -339,6 +340,7 @@ test("another tab finishing the surah does not make a partial passage here open 
   await seedProfile(page, { settings: { vocalization: "letters", ayatPerLesson: 1 } });
   await page.goto("/#/recitation/108/1");
   await startTyping(page);
+  await watchStorageEvents(page);
   const other = await context.newPage();
   await other.goto("/#/about");
   await other.evaluate(() => {
@@ -348,7 +350,8 @@ test("another tab finishing the surah does not make a partial passage here open 
     localStorage.setItem(key, JSON.stringify(profile));
   });
   await page.bringToFront();
-  await page.waitForTimeout(300);
+  await expect.poll(() => storageEventsSeen(page)).toBeGreaterThan(0);
+  await afterFrames(page);
   await page.getByRole("textbox", { name: "Type the text shown" }).focus();
   await typeKeys(page, lettersOf(kawthar, 1, 1, true));
   await expect(page).toHaveURL(/#\/recitation\/108\/2$/);

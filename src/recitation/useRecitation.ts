@@ -128,6 +128,12 @@ export function useRecitation(surah: number, ayah: number | null): Recitation {
 
   const next = positionAfter({ surah: number, ayah: to }, order);
 
+  useEffect(() => {
+    if (text !== null && next.surah !== number) {
+      loadSurah(next.surah).catch(() => undefined);
+    }
+  }, [text, next.surah, number]);
+
   const recordPassage = useCallback(
     ({ metrics }: TrainerResult) => {
       update((current) => ({

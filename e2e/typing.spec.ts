@@ -193,6 +193,40 @@ async function shakes(page: Page): Promise<number> {
   return (await shakeLog(page)).length;
 }
 
+async function holdShakes(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function (keyframes, options) {
+      const animation = original.call(this, keyframes, options);
+      if (typeof options === "object" && options.id === "caret-miss" && this.hasAttribute("data-caret")) {
+        animation.pause();
+        Object.assign(window, { heldShake: animation });
+      }
+      return animation;
+    };
+  });
+}
+
+async function sidewaysTravel(page: Page): Promise<{ readonly left: number; readonly right: number }> {
+  await expect.poll(() => page.evaluate(() => "heldShake" in window)).toBe(true);
+  return page.evaluate(() => {
+    const held = (window as unknown as { heldShake: Animation }).heldShake;
+    const element = document.querySelector("[data-caret]");
+    if (element === null) {
+      throw new Error("the caret is not on the page");
+    }
+    const duration = Number(held.effect?.getComputedTiming().duration ?? 0);
+    const lefts: number[] = [];
+    for (let time = 0; time <= duration; time += 10) {
+      held.currentTime = time;
+      lefts.push(element.getBoundingClientRect().left);
+    }
+    held.cancel();
+    const rest = element.getBoundingClientRect().left;
+    return { left: Math.min(...lefts) - rest, right: Math.max(...lefts) - rest };
+  });
+}
+
 function shaking(page: Page): Promise<boolean> {
   return caret(page).evaluate((element) => element.getAnimations().some((animation) => animation.id === "caret-miss"));
 }
@@ -243,9 +277,31 @@ test("pressing on the text, leaving the field and coming back never replays a sh
   await surface(page).click();
   await expect(field(page)).toBeFocused();
   await surface(page).click();
-  await page.waitForTimeout(150);
+  await typeKeys(page, ["Backspace"]);
+  await expect.poll(() => caretColour(page)).toBe(ACCENT);
   expect(await shaking(page)).toBe(false);
   expect(await shakes(page)).toBe(1);
+});
+
+test("a wrong key really moves the caret to both sides, as drawn by the engine and not only as asked for", async ({
+  page,
+}) => {
+  await holdShakes(page);
+  await start(page, { customText: "بتن", requireBackspace: false });
+  await typeKeys(page, ["ب", "س"]);
+  const travel = await sidewaysTravel(page);
+  expect(travel.left).toBeLessThanOrEqual(-3);
+  expect(travel.right).toBeGreaterThanOrEqual(3);
+});
+
+test("with reduced motion the caret really stays where it is while it flashes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await holdShakes(page);
+  await start(page, { customText: "بتن", requireBackspace: false });
+  await typeKeys(page, ["ب", "س"]);
+  const travel = await sidewaysTravel(page);
+  expect(travel.left).toBeGreaterThanOrEqual(-0.5);
+  expect(travel.right).toBeLessThanOrEqual(0.5);
 });
 
 test("with reduced motion the caret does not move, but it still turns red and gets a ring", async ({ page }) => {
@@ -269,7 +325,7 @@ test("while wrong keys are waiting to be deleted the caret stays red, and goes b
   expect(await caretColour(page)).toBe(ACCENT);
   await typeKeys(page, ["س"]);
   await expect.poll(() => caretColour(page)).toBe(DANGER);
-  await page.waitForTimeout(700);
+  await expect.poll(() => shaking(page)).toBe(false);
   expect(await caretColour(page)).toBe(DANGER);
   await typeKeys(page, ["Backspace"]);
   await expect.poll(() => caretColour(page)).toBe(ACCENT);
@@ -602,6 +658,21 @@ test("pasted or swiped text is not typing", async ({ page }) => {
   expect(await doneText(page)).toBe("");
   expect(await shownText(page)).toBe("بتن");
   await expect(finished(page)).toHaveCount(0);
+});
+
+test("pasted Latin text is not typing, and it does not say the keyboard is the wrong one", async ({ page }) => {
+  await start(page, { customText: "بتن" });
+  await field(page).evaluate((input) => {
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error("the typing field is not an input");
+    }
+    input.value = `${input.value}hello world`;
+    input.dispatchEvent(new InputEvent("input", { inputType: "insertFromPaste", data: "hello world", bubbles: true }));
+  });
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(await doneText(page)).toBe("");
+  await typeKeys(page, ["ب"]);
+  expect(await doneText(page)).toBe("ب");
 });
 
 test("Backspace as the very first key is harmless", async ({ page }) => {

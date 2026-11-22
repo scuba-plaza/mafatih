@@ -4,6 +4,7 @@ import { FIREFOX_PAGE_CRASH, NEEDS_CDP } from "./helpers/engines.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
+import { afterFrames } from "./helpers/waits.ts";
 
 const KASRA = String.fromCodePoint(0x650);
 const SUKUN = String.fromCodePoint(0x652);
@@ -207,7 +208,7 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await expect(page.locator("body")).toHaveCSS("font-family", bodyFont);
   await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", bodyFont);
   await expect(dialog(page).getByRole("heading", { name: "Settings" })).toHaveCSS("font-family", bodyFont);
-  expect(await page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
 });
 
 test("the text size slider works from the keyboard, says its value and resizes the lesson text", async ({ page }) => {
@@ -336,7 +337,7 @@ test("while the dialog is open the page behind it does not scroll, and it scroll
   await openSettings(page);
   await page.mouse.move(4, 4);
   await page.mouse.wheel(0, 600);
-  await page.waitForTimeout(150);
+  await afterFrames(page, 5);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await page.keyboard.press("Escape");
   await page.mouse.wheel(0, 600);
@@ -380,7 +381,8 @@ test("a font that cannot be loaded does not break the page", async ({ page }) =>
   await page.goto("/#/custom");
   await openSettings(page);
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
-  await page.waitForTimeout(300);
+  await page.evaluate(() => document.fonts.ready);
+  await afterFrames(page, 5);
   expect(errors).toEqual([]);
   await expect(dialog(page)).toBeVisible();
 });
@@ -436,4 +438,14 @@ test.describe("Arabic", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "الإعدادات" })).toBeFocused();
   });
+});
+
+test("the page behind a dialog is dimmed", async ({ page }) => {
+  await page.goto("/#/practice");
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await expect(dialog).toBeVisible();
+  const colour = await dialog.evaluate((element) => getComputedStyle(element, "::backdrop").backgroundColor);
+  const alpha = colour.startsWith("rgb(") ? 1 : Number(colour.match(/([\d.]+)\)$/)?.[1]);
+  expect(alpha, `the backdrop is ${colour}`).toBeGreaterThanOrEqual(0.5);
 });

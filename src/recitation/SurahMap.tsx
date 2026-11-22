@@ -10,6 +10,7 @@ import {
   completedSurahs,
   completionsOf,
   type RecitationProgress,
+  STAR_ACCURACY,
   starCount,
   starredOf,
   startOf,
@@ -104,7 +105,9 @@ export function SurahMap() {
             </>
           )}
         </p>
-        <p className="hidden text-sm text-muted md:block">{t("map.rule")}</p>
+        <p className="hidden text-sm text-muted md:block">
+          {t("map.rule", { percent: Math.round(STAR_ACCURACY * 100) })}
+        </p>
       </div>
       <div>
         <a

@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useContext, useLayoutEffect, useMemo } f
 import type { MessageKey } from "./en.ts";
 import {
   directionOf,
+  formatAccuracy,
   formatBytes,
   formatDate,
   formatDuration,
@@ -21,6 +22,7 @@ export interface I18n {
   plural: (key: PluralMessage, count: number, params?: MessageParams) => string;
   formatNumber: (value: number) => string;
   formatPercent: (ratio: number) => string;
+  formatAccuracy: (ratio: number) => string;
   formatDuration: (ms: number) => string;
   formatBytes: (bytes: number) => string;
   formatDate: (ms: number, timeZone?: string) => string;
@@ -37,6 +39,7 @@ export function I18nProvider({ language, children }: { language: Language; child
       plural: (key, count, params) => translatePlural(language, key, count, params),
       formatNumber: (value) => formatNumber(language, value),
       formatPercent: (ratio) => formatPercent(language, ratio),
+      formatAccuracy: (ratio) => formatAccuracy(language, ratio),
       formatDuration: (ms) => formatDuration(language, ms),
       formatBytes: (bytes) => formatBytes(language, bytes),
       formatDate: (ms, timeZone) => formatDate(language, ms, timeZone),

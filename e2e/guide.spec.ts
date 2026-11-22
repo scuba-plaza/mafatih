@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { HINT_DELAY_MS } from "../src/keyboard/hint.ts";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
@@ -94,13 +95,17 @@ test.describe("with a wide screen and a mouse", () => {
   });
 
   test("with the delay on, activating the text starts the wait again", async ({ page }) => {
+    await page.clock.install();
     await seedSettings(page, { customText: "بتن", delayedHint: true });
     await page.goto("/#/custom");
     await expect(page.getByRole("button", { name: /to activate/ })).toBeVisible();
-    await page.waitForTimeout(3500);
+    await page.clock.fastForward(HINT_DELAY_MS + 500);
     await startTyping(page);
     expect(await dueKeys(page)).toEqual([]);
-    await expect.poll(() => dueKeys(page), { timeout: 6000 }).toEqual(["KeyF"]);
+    await page.clock.fastForward(HINT_DELAY_MS - 1000);
+    expect(await dueKeys(page)).toEqual([]);
+    await page.clock.fastForward(HINT_DELAY_MS);
+    await expect.poll(() => dueKeys(page)).toEqual(["KeyF"]);
   });
 
   test("the space bar names the layout the guide follows, in English and in Arabic", async ({ page }) => {

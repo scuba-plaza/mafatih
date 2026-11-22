@@ -4,6 +4,10 @@ import { isMark } from "./arabic.ts";
 
 export const NO_BREAK_SPACE = "\u00A0";
 
+export function isWordSpace(character: string): boolean {
+  return character === " " || character === NO_BREAK_SPACE;
+}
+
 export interface Unit {
   readonly text: string;
   readonly start: number;
@@ -57,7 +61,7 @@ export function buildPrompt(shown: string, required: ReadonlySet<string>, breaks
 
 export function wordAt(prompt: Prompt, offset: number): string {
   const { shown, breaks } = prompt;
-  const isSpace = (index: number) => shown.charAt(index) === " " || shown.charAt(index) === NO_BREAK_SPACE;
+  const isSpace = (index: number) => isWordSpace(shown.charAt(index));
   let start = Math.max(0, offset);
   while (start < shown.length && isSpace(start)) {
     start += 1;

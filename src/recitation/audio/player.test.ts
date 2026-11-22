@@ -126,6 +126,17 @@ test("the repeat choice survives a new passage", () => {
   expect(playerReducer(repeating, { type: "load", count: 2 }).loop).toBe(true);
 });
 
+test("a clip that failed while a dialog was open does not start again when the dialog closes", () => {
+  const closed = run([
+    { type: "play" },
+    { type: "hold", held: true },
+    { type: "failed" },
+    { type: "hold", held: false },
+  ]);
+  expect(closed.status).toBe("failed");
+  expect(closed.resume).toBe(false);
+});
+
 test("a failed fetch is shown as failed, and Play tries again", () => {
   const failed = run([{ type: "play" }, { type: "failed" }]);
   expect(failed.status).toBe("failed");

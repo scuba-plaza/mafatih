@@ -130,7 +130,7 @@ export const en = {
   "map.tally": "{done} of {total} surahs complete",
   "map.stars": "stars earned",
   "map.starred": "Star earned",
-  "map.rule": "Finish a surah to complete it. Hold 95% accuracy to earn a star.",
+  "map.rule": "Finish a surah to complete it. Hold {percent}% accuracy to earn a star.",
   "bar.label": "Passage",
   "bar.announce": "{surah}. {range}",
   "pager.previous": "Previous passage",
@@ -220,7 +220,7 @@ export const en = {
   "settings.fingerGuide": "Show which finger to use",
   "settings.keyLabels": "Show letters on the keys",
   "settings.delayedHint": "Show the next key after a pause",
-  "settings.delayedHintHint": "The next key and finger appear after 3 seconds, or at once after a mistake.",
+  "settings.delayedHintHint": "The next key and finger appear after {seconds} seconds, or at once after a mistake.",
   "settings.layoutHint":
     "Mafatih follows the standard Arabic PC layout. In your system settings it is called {layout}.",
   "guide.layout": "Arabic (101)",

@@ -8,7 +8,7 @@ export interface LessonSummaryProps {
 }
 
 export function LessonSummary({ metrics, children }: LessonSummaryProps) {
-  const { t, formatNumber, formatPercent } = useI18n();
+  const { t, formatNumber, formatAccuracy } = useI18n();
   const heading = useRef<HTMLHeadingElement>(null);
   const figuresId = useId();
 
@@ -24,7 +24,7 @@ export function LessonSummary({ metrics, children }: LessonSummaryProps) {
       <dl id={figuresId} className="flex flex-wrap gap-x-8 gap-y-3">
         {[
           { label: t("result.speed"), value: formatNumber(metrics.cpm) },
-          { label: t("result.accuracy"), value: formatPercent(metrics.accuracy) },
+          { label: t("result.accuracy"), value: formatAccuracy(metrics.accuracy) },
           { label: t("result.mistakes"), value: formatNumber(metrics.errors) },
         ].map((figure) => (
           <div key={figure.label} className="flex flex-col gap-1">
