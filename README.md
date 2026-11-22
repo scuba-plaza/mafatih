@@ -1,6 +1,6 @@
 # مفاتيح · Mafatih
 
-THIS PROJECT IS MOSTLY AI GENERATED. Dont use it if you care about quality code or souls.
+THIS PROJECT IS MOSTLY AI GENERATED.
 
 **Learn to touch-type Arabic.**
 
