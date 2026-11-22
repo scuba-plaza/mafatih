@@ -231,9 +231,21 @@ function installToolkit(): void {
       seen.add(id);
       walked.add(id);
       const box = element.getBoundingClientRect();
+      let fixed: Element | null = element;
+      while (fixed !== null && getComputedStyle(fixed).position !== "fixed") {
+        fixed = fixed.parentElement;
+      }
       let scrolled = 0;
-      for (let node = element.parentElement; node !== null; node = node.parentElement) {
-        scrolled += node.scrollTop;
+      if (fixed !== element) {
+        for (let node = element.parentElement; node !== null; node = node.parentElement) {
+          scrolled += node.scrollTop;
+          if (node === fixed) {
+            break;
+          }
+        }
+      }
+      if (fixed !== null && fixed.getBoundingClientRect().bottom >= window.innerHeight - 1) {
+        scrolled += Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
       }
       return {
         kind: "stop",
@@ -382,6 +394,48 @@ async function expectCompleteWalk(page: Page, scope: "page" | "dialog", retraces
   expect(backward.stops.map((stop) => stop.label)).toEqual(forward.stops.map((stop) => stop.label).reverse());
   expect(backward.stops.map((stop) => stop.id)).toEqual(forward.stops.map((stop) => stop.id).reverse());
 }
+
+test("a bar fixed to the screen is placed after the page content, wherever the page is scrolled when it is read", async ({
+  isMobile,
+  page,
+}) => {
+  test.skip(!isMobile, "the navigation bar is fixed to the bottom of the screen on phones only");
+  await seedTypicalProfile(page, "ar");
+  await openAndWait(page, "#/about", false);
+  await prepareAtTop(page);
+  const placed = await page.evaluate(() => {
+    const toolkit = (window as unknown as { mafatihWalk: Toolkit }).mafatihWalk;
+    const bar = document.querySelector<HTMLElement>("nav.fixed a");
+    const last = [...document.querySelectorAll<HTMLElement>("a[rel~='noopener']")].at(-1);
+    if (bar === null || last === undefined) {
+      throw new Error("the page has no fixed bar or no content links");
+    }
+    const read = (element: HTMLElement): Stop => {
+      toolkit.reset();
+      element.focus({ preventScroll: true });
+      const reading = toolkit.read();
+      if (reading.kind !== "stop") {
+        throw new Error(`${reading.kind} instead of a stop`);
+      }
+      return reading.stop;
+    };
+    const furthest = document.documentElement.scrollHeight - window.innerHeight;
+    const bars = [0, furthest / 2, furthest].map((offset) => {
+      window.scrollTo(0, offset);
+      const stop = read(bar);
+      return { offset, top: stop.top, bottom: stop.bottom };
+    });
+    window.scrollTo(0, furthest);
+    return { bars, lastBottom: read(last).bottom };
+  });
+  expect(
+    new Set(placed.bars.map(({ top, bottom }) => `${top}-${bottom}`)).size,
+    `the bar is placed once, not once per scroll offset: ${JSON.stringify(placed.bars)}`,
+  ).toBe(1);
+  expect(placed.bars[0]?.top ?? 0, "the bar comes after the last link of the content").toBeGreaterThanOrEqual(
+    placed.lastBottom - SAME_ROW_TOLERANCE,
+  );
+});
 
 for (const language of ["en", "ar"] as const satisfies readonly Language[]) {
   for (const { name, hash, typing } of PAGES) {
