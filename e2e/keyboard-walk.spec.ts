@@ -16,6 +16,12 @@ interface Stop {
   readonly right: number;
   readonly inDialog: boolean;
   readonly direction: string;
+  readonly seen: {
+    readonly viewportTop: number;
+    readonly scroll: number;
+    readonly innerHeight: number;
+    readonly document: number;
+  };
 }
 
 type Reading =
@@ -240,6 +246,12 @@ function installToolkit(): void {
           right: box.right + window.scrollX,
           inDialog: document.querySelector("dialog[open]")?.contains(element) ?? false,
           direction: getComputedStyle(element.parentElement ?? element).direction,
+          seen: {
+            viewportTop: Math.round(box.top * 10) / 10,
+            scroll: Math.round(scrolled * 10) / 10,
+            innerHeight: window.innerHeight,
+            document: document.documentElement.scrollHeight,
+          },
         },
       };
     },
@@ -313,6 +325,11 @@ async function walk(page: Page, key: "Tab" | "Shift+Tab", startAtFocus: boolean)
   return { stops, ended, trappedAt };
 }
 
+function placement(stop: Stop): string {
+  const { viewportTop, scroll, innerHeight, document: documentHeight } = stop.seen;
+  return `[page ${Math.round(stop.top)}-${Math.round(stop.bottom)}, viewport top ${viewportTop}, scrolled ${scroll}, window ${innerHeight}, document ${documentHeight}]`;
+}
+
 function orderViolations(stops: readonly Stop[]): string[] {
   const violations: string[] = [];
   for (let index = 1; index < stops.length; index += 1) {
@@ -326,7 +343,7 @@ function orderViolations(stops: readonly Stop[]): string[] {
     const along =
       to.direction === "rtl" ? to.right <= from.right + SAME_ROW_TOLERANCE : to.left >= from.left - SAME_ROW_TOLERANCE;
     if (!down && (up || !along)) {
-      violations.push(`${from.label} -> ${to.label}`);
+      violations.push(`${from.label} -> ${to.label} :: ${placement(from)} -> ${placement(to)}`);
     }
   }
   return violations;
@@ -393,3 +410,26 @@ for (const language of ["en", "ar"] as const satisfies readonly Language[]) {
     await expect(opener).toBeFocused();
   });
 }
+
+test("diagnose: the map walk, repeated", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "webkit-mobile", "only the project that failed");
+  test.setTimeout(240_000);
+  await seedTypicalProfile(page, "en");
+  const bad: string[] = [];
+  for (let round = 0; round < 25; round += 1) {
+    if (round === 0) {
+      await openAndWait(page, "#/", false);
+    } else {
+      await page.reload();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    }
+    await prepareAtTop(page);
+    const forward = await walk(page, "Tab", false);
+    const violations = orderViolations(forward.stops);
+    if (violations.length > 0) {
+      const tail = forward.stops.slice(-4).map(placement).join("\n");
+      bad.push(`round ${round}: ${violations.join(" | ")}\n${tail}`);
+    }
+  }
+  expect(bad, "rounds of the map walk with a stop out of reading order").toEqual([]);
+});
