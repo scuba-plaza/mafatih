@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { type Language, openAndWait, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
+import { afterFrames } from "./helpers/waits.ts";
 
 const MOST_TAB_PRESSES = 250;
 const MIN_RING_CONTRAST = 3;
@@ -290,6 +291,8 @@ function installToolkit(): void {
 }
 
 async function prepareAtTop(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
+  await afterFrames(page, 5);
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
     window.scrollTo(0, 0);
@@ -410,26 +413,3 @@ for (const language of ["en", "ar"] as const satisfies readonly Language[]) {
     await expect(opener).toBeFocused();
   });
 }
-
-test("diagnose: the map walk, repeated", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "webkit-mobile", "only the project that failed");
-  test.setTimeout(240_000);
-  await seedTypicalProfile(page, "en");
-  const bad: string[] = [];
-  for (let round = 0; round < 25; round += 1) {
-    if (round === 0) {
-      await openAndWait(page, "#/", false);
-    } else {
-      await page.reload();
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    }
-    await prepareAtTop(page);
-    const forward = await walk(page, "Tab", false);
-    const violations = orderViolations(forward.stops);
-    if (violations.length > 0) {
-      const tail = forward.stops.slice(-4).map(placement).join("\n");
-      bad.push(`round ${round}: ${violations.join(" | ")}\n${tail}`);
-    }
-  }
-  expect(bad, "rounds of the map walk with a stop out of reading order").toEqual([]);
-});
