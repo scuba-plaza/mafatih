@@ -31,7 +31,7 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function Hud({ progress, stats, vocalization, last, hidden = false }: HudProps) {
-  const { t, formatPercent } = useI18n();
+  const { t, formatAccuracy } = useI18n();
   const total = LADDER.rungs.length;
   const finished = progress.unlocked >= total;
   const rung = finished ? undefined : drilledRung(progress, vocalization);
@@ -56,7 +56,7 @@ export function Hud({ progress, stats, vocalization, last, hidden = false }: Hud
               <span lang="ar">{carriedMark(rung.char)}</span>
               {nameKey !== undefined && <span className="ms-1.5 font-sans">{t(nameKey)}</span>}
             </Item>
-            <Item label={t("result.accuracy")}>{typed ? formatPercent(stat.recentAccuracy) : none}</Item>
+            <Item label={t("result.accuracy")}>{typed ? formatAccuracy(stat.recentAccuracy) : none}</Item>
             <Item label={t("hud.time")}>
               {typed && stat.timed > 0 ? t("hud.timeValue", { ms: stat.meanMs }) : none}
             </Item>
@@ -65,7 +65,7 @@ export function Hud({ progress, stats, vocalization, last, hidden = false }: Hud
         <Item label={t("hud.last")}>
           {last === null
             ? none
-            : t("hud.lastValue", { speed: last.metrics.cpm, accuracy: formatPercent(last.metrics.accuracy) })}
+            : t("hud.lastValue", { speed: last.metrics.cpm, accuracy: formatAccuracy(last.metrics.accuracy) })}
         </Item>
       </dl>
       {finished && <p className="text-sm text-muted">{t("hud.allUnlocked")}</p>}

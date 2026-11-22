@@ -409,3 +409,46 @@ test("a passage too long for its box can be scrolled from the keyboard, a short 
   await expect(surface(page).locator("[data-lesson-text]")).not.toHaveAttribute("tabindex", /.*/);
   await expect(surface(page).getByRole("group", { name: "Scrollable text" })).toHaveCount(0);
 });
+
+test("Page Down and Page Up turn the passage from anywhere on the page, the header and the page itself included", async ({
+  page,
+}) => {
+  await page.goto("/#/recitation/2/1");
+  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeAttached();
+  await page.getByRole("button", { name: "Settings" }).focus();
+  await page.keyboard.press("PageDown");
+  await expect(page).toHaveURL(/#\/recitation\/2\/5$/);
+  await page.keyboard.press("PageUp");
+  await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("dialog", { name: "Settings" }).getByRole("button", { name: "Done" }).click();
+  await page.keyboard.press("PageDown");
+  await expect(page).toHaveURL(/#\/recitation\/2\/5$/);
+  await page.mouse.click(2, 2);
+  await page.keyboard.press("PageUp");
+  await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
+});
+
+test("the next surah's text is fetched while the last passage of a surah is open, so moving on does not wait for the network", async ({
+  page,
+}) => {
+  let fetched = false;
+  page.on("requestfinished", (request) => {
+    if (/\/113-[\w-]+\.js$/.test(request.url())) {
+      fetched = true;
+    }
+  });
+  await page.route(/\/assets\/\d{3}-[\w-]+\.js$/, async (route) => {
+    if (!/\/112-/.test(route.request().url())) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    await route.continue();
+  });
+  const field = page.getByRole("textbox", { name: "Type the text shown" });
+  await page.goto("/#/recitation/112/1");
+  await expect(field).toBeAttached();
+  await expect.poll(() => fetched, { timeout: 8000 }).toBe(true);
+  await page.getByRole("button", { name: "Next passage" }).click();
+  await expect(page).toHaveURL(/#\/recitation\/113/);
+  await expect(field).toBeAttached({ timeout: 700 });
+});

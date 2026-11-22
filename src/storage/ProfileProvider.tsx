@@ -14,6 +14,7 @@ import {
 export interface ProfileState {
   readonly profile: Profile;
   readonly notice: StorageNotice;
+  readonly restored: number;
   readonly update: (change: (profile: Profile) => Profile) => Profile;
   readonly replace: (profile: Profile) => StorageNotice;
 }
@@ -49,6 +50,7 @@ export function ProfileProvider({ requestedLanguage = null, children }: ProfileP
   const [opened, setOpened] = useState(() =>
     openProfileInLanguage(browserStore(), deviceLanguages(), requestedLanguage),
   );
+  const [restored, setRestored] = useState(0);
   const latest = useRef(opened);
 
   const adopt = useCallback((next: OpenedProfile) => {
@@ -56,7 +58,7 @@ export function ProfileProvider({ requestedLanguage = null, children }: ProfileP
     setOpened(next);
   }, []);
 
-  const replace = useCallback(
+  const store = useCallback(
     (profile: Profile): StorageNotice => {
       const current = latest.current;
       const saved = current.save(profile);
@@ -67,13 +69,22 @@ export function ProfileProvider({ requestedLanguage = null, children }: ProfileP
     [adopt],
   );
 
+  const replace = useCallback(
+    (profile: Profile): StorageNotice => {
+      const saved = store(profile);
+      setRestored((count) => count + 1);
+      return saved;
+    },
+    [store],
+  );
+
   const update = useCallback(
     (change: (profile: Profile) => Profile): Profile => {
       const profile = change(latest.current.profile);
-      replace(profile);
+      store(profile);
       return profile;
     },
-    [replace],
+    [store],
   );
 
   useEffect(() => {
@@ -87,8 +98,8 @@ export function ProfileProvider({ requestedLanguage = null, children }: ProfileP
   }, [adopt]);
 
   const value = useMemo(
-    () => ({ profile: opened.profile, notice: opened.notice, update, replace }),
-    [opened, update, replace],
+    () => ({ profile: opened.profile, notice: opened.notice, restored, update, replace }),
+    [opened, restored, update, replace],
   );
   return <ProfileContext value={value}>{children}</ProfileContext>;
 }

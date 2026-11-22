@@ -4,7 +4,7 @@ import { isComplete, metricsOf, type Session } from "./session.ts";
 const WARM_UP_MS = 2000;
 
 export function LiveStats({ session }: { session: Session }) {
-  const { t, formatPercent, formatDuration } = useI18n();
+  const { t, formatAccuracy, formatDuration } = useI18n();
   const shown = session.startedAt !== null && !isComplete(session);
   const metrics = metricsOf(session);
 
@@ -17,7 +17,7 @@ export function LiveStats({ session }: { session: Session }) {
           className="flex gap-6 font-mono text-xs tracking-wide text-muted tabular-nums"
         >
           <span>{t("live.speed", { value: metrics.elapsedMs < WARM_UP_MS ? "–" : metrics.cpm })}</span>
-          <span>{formatPercent(metrics.accuracy)}</span>
+          <span>{formatAccuracy(metrics.accuracy)}</span>
           <span>{t("live.errors", { value: metrics.errors })}</span>
           <span>{formatDuration(metrics.elapsedMs)}</span>
         </p>

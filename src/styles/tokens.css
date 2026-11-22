@@ -14,6 +14,7 @@
   --color-on-accent: #1a1408;
   --color-danger: #fca5a5;
   --color-focus: #93c5fd;
+  --color-black: #000000;
 
   --breakpoint-*: initial;
   --breakpoint-sm: 30rem;

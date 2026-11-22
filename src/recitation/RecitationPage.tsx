@@ -127,13 +127,8 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const label = `${language === "ar" ? meta.name : meta.tname} \u00b7 ${shortRange}`;
   const hintId = `hint-${meta.n}`;
 
-  const pageRef = useRef<HTMLDivElement>(null);
   const { go, next, previous } = recitation;
   useEffect(() => {
-    const page = pageRef.current;
-    if (page === null) {
-      return;
-    }
     const turnPage = (event: globalThis.KeyboardEvent) => {
       const { target, key } = event;
       if (target instanceof Element && (target.closest("dialog") !== null || target.matches('input[type="range"]'))) {
@@ -144,12 +139,12 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
         go(key === "PageDown" ? next : previous, target instanceof Element && target.matches("[data-typing-input]"));
       }
     };
-    page.addEventListener("keydown", turnPage);
-    return () => page.removeEventListener("keydown", turnPage);
+    document.addEventListener("keydown", turnPage);
+    return () => document.removeEventListener("keydown", turnPage);
   }, [go, next, previous]);
 
   return (
-    <div ref={pageRef} className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <PassagePager previous={recitation.previous} next={recitation.next} onGo={recitation.go} hidden={textOnly}>
         <PageHeading quiet>
           <span id={`passage-${meta.n}`}>{label}</span>

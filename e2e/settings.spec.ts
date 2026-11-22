@@ -207,7 +207,7 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await expect(page.locator("body")).toHaveCSS("font-family", bodyFont);
   await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", bodyFont);
   await expect(dialog(page).getByRole("heading", { name: "Settings" })).toHaveCSS("font-family", bodyFont);
-  expect(await page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
 });
 
 test("the text size slider works from the keyboard, says its value and resizes the lesson text", async ({ page }) => {
@@ -436,4 +436,14 @@ test.describe("Arabic", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "الإعدادات" })).toBeFocused();
   });
+});
+
+test("the page behind a dialog is dimmed", async ({ page }) => {
+  await page.goto("/#/practice");
+  await page.getByRole("button", { name: "Settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await expect(dialog).toBeVisible();
+  const colour = await dialog.evaluate((element) => getComputedStyle(element, "::backdrop").backgroundColor);
+  const alpha = colour.startsWith("rgb(") ? 1 : Number(colour.match(/([\d.]+)\)$/)?.[1]);
+  expect(alpha, `the backdrop is ${colour}`).toBeGreaterThanOrEqual(0.5);
 });

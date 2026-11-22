@@ -30,7 +30,7 @@ export interface SurahCompleteProps {
 }
 
 export function SurahComplete({ meta, finish, next, endsTheOrder, onContinue, onAgain }: SurahCompleteProps) {
-  const { t, language, formatNumber, formatPercent, formatDuration } = useI18n();
+  const { t, language, formatNumber, formatAccuracy, formatDuration } = useI18n();
   const { recitation } = useProfile().profile;
   const dialog = useRef<HTMLDialogElement>(null);
   const primary = useRef<HTMLButtonElement>(null);
@@ -105,7 +105,7 @@ export function SurahComplete({ meta, finish, next, endsTheOrder, onContinue, on
           <dl className="grid w-full grid-cols-4 gap-2 border-y border-faint py-4">
             {[
               { label: t("celebration.ayat"), value: formatNumber(meta.ayat) },
-              { label: t("celebration.accuracy"), value: formatPercent(accuracy) },
+              { label: t("celebration.accuracy"), value: formatAccuracy(accuracy) },
               { label: t("result.speedShort"), value: `${formatNumber(speed)}${t("celebration.perMinute")}` },
               { label: t("celebration.time"), value: formatDuration(finish.tally.ms) },
             ].map((figure) => (

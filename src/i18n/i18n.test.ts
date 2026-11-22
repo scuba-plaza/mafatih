@@ -5,6 +5,7 @@ import {
   detectLanguage,
   directionOf,
   fillMessage,
+  formatAccuracy,
   formatBytes,
   formatDate,
   formatDuration,
@@ -59,6 +60,18 @@ test("ratios are shown as whole percentages with the language's own percent sign
   expect(formatPercent("en", 0.953)).toBe("95%");
   expect(formatPercent("en", 1)).toBe("100%");
   expect(formatPercent("ar", 0.953)).toBe("\u0669\u0665\u066A\u061C");
+});
+
+test("an accuracy is rounded down, so that 95% shown means the 95% that a star and an unlocked key ask for", () => {
+  expect(formatAccuracy("en", 0.947)).toBe("94%");
+  expect(formatAccuracy("en", 0.9455)).toBe("94%");
+  expect(formatAccuracy("en", 0.95)).toBe("95%");
+  expect(formatAccuracy("en", 0.57)).toBe("57%");
+  expect(formatAccuracy("en", 0.999)).toBe("99%");
+  expect(formatAccuracy("en", 1)).toBe("100%");
+  expect(formatAccuracy("en", 0)).toBe("0%");
+  expect(formatAccuracy("ar", 0.953)).toBe("\u0669\u0665\u066A\u061C");
+  expect(() => formatAccuracy("en", Number.NaN)).toThrow(RangeError);
 });
 
 test("a duration is minutes and two-digit seconds in the language's own digits, rounded to the second", () => {

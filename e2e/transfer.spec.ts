@@ -92,6 +92,23 @@ test("choosing a backup asks first, then replaces the progress and settings and 
   await expect(hud(page).getByText("30 of 44")).toBeVisible();
 });
 
+test("restoring a backup while the Custom lesson is showing replaces its text with the restored one", async ({
+  page,
+}) => {
+  await seedProfile(page, { settings: { customText: "نص قديم" } });
+  await page.goto("/#/custom");
+  const lesson = page.getByRole("region", { name: "Text to type" }).locator("[data-lesson-text]");
+  await expect(lesson).toHaveText("نص قديم");
+  await openSettings(page);
+  await section(page)
+    .getByLabel(FILE_LABEL)
+    .setInputFiles(file(backupOf({ customText: "نص جديد من النسخة" })));
+  await section(page).getByRole("button", { name: "Replace" }).click();
+  await expect(dialog(page).getByRole("status").filter({ hasText: "Progress restored." })).toHaveCount(1);
+  await dialog(page).getByRole("button", { name: "Done" }).click();
+  await expect(lesson).toHaveText("نص جديد من النسخة");
+});
+
 test("Keep my progress leaves everything as it was and says nothing", async ({ page }) => {
   await seedProfile(page, { ladder: { unlocked: 12 } });
   await page.goto("/#/practice");
