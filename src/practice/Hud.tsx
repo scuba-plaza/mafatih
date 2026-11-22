@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { type Language, translate } from "~/i18n/i18n.ts";
 import { markNameKey } from "~/i18n/keyNames.ts";
 import { type KeyStats, statOf } from "~/stats/keystats.ts";
 import { carriedMark } from "~/text/arabic.ts";
@@ -21,6 +22,16 @@ interface HudProps {
   readonly hidden?: boolean;
 }
 
+function unlockAnnouncement(unlocked: Rung | undefined, language: Language): string {
+  if (unlocked === undefined) {
+    return "";
+  }
+  const nameKey = markNameKey(unlocked.char);
+  return translate(language, "hud.unlockedKey", {
+    key: nameKey === undefined ? unlocked.char : translate(language, nameKey),
+  });
+}
+
 function Item({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
@@ -31,7 +42,7 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function Hud({ progress, stats, vocalization, last, hidden = false }: HudProps) {
-  const { t, formatAccuracy } = useI18n();
+  const { t, language, formatAccuracy } = useI18n();
   const total = LADDER.rungs.length;
   const finished = progress.unlocked >= total;
   const rung = finished ? undefined : drilledRung(progress, vocalization);
@@ -39,12 +50,7 @@ export function Hud({ progress, stats, vocalization, last, hidden = false }: Hud
   const typed = stat !== undefined && stat.attempts > 0;
   const nameKey = rung === undefined ? undefined : markNameKey(rung.char);
   const none = <span className="text-muted">{t("hud.none")}</span>;
-  const unlockedKey = last?.unlocked;
-  let announcement = "";
-  if (unlockedKey !== undefined) {
-    const unlockedName = markNameKey(unlockedKey.char);
-    announcement = t("hud.unlockedKey", { key: unlockedName === undefined ? unlockedKey.char : t(unlockedName) });
-  }
+  const announcement = unlockAnnouncement(last?.unlocked, language);
 
   return (
     <section hidden={hidden} aria-label={t("hud.label")} className="flex flex-col gap-3">

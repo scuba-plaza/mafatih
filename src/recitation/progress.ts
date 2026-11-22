@@ -42,7 +42,7 @@ function exists(position: Position): boolean {
 }
 
 function recordOf(progress: RecitationProgress, surah: number): SurahProgress {
-  return progress.surahs[surah] ?? NOT_STARTED;
+  return Object.hasOwn(progress.surahs, surah) ? (progress.surahs[surah] ?? NOT_STARTED) : NOT_STARTED;
 }
 
 function merged(ranges: readonly AyahRange[]): AyahRange[] {

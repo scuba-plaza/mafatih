@@ -63,7 +63,7 @@ async function texts(row: ReturnType<Page["getByRole"]>): Promise<string[]> {
   return row.getByRole("cell").allTextContents();
 }
 
-test("a fresh profile says what to do instead of showing empty tables", async ({ page }) => {
+test("a fresh profile says what to do instead of showing empty tables, in English and in Arabic", async ({ page }) => {
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stats");
   await expect(modes(page).getByRole("radio")).toHaveCount(3);
@@ -74,6 +74,11 @@ test("a fresh profile says what to do instead of showing empty tables", async ({
   await expect(keys(page)).toHaveCount(0);
   await expect(page.getByText("No lessons yet.")).toBeVisible();
   await expect(recent(page)).toHaveCount(0);
+  await expectNoAxeViolations(page);
+  await seedProfile(page, { settings: { language: "ar" } });
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  await expect(page.getByRole("table")).toHaveCount(0);
   await expectNoAxeViolations(page);
 });
 
@@ -86,6 +91,7 @@ test("the key table lists keys in ladder order with their speed, accuracy and at
   await openPractice(page);
   const table = keys(page);
   await expect(keysHeading(page, "Practice")).toBeVisible();
+  await expect(page.locator("caption")).toHaveCount(0);
   await expect(table.getByRole("columnheader")).toHaveText([
     "Key",
     "Time per key (ms)",

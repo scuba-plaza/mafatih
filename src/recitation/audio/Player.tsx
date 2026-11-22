@@ -1,5 +1,6 @@
 import { type MouseEvent, type PointerEvent, useEffect, useMemo } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { type Language, translate } from "~/i18n/i18n.ts";
 import type { Settings } from "~/settings/settings.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import type { Passage } from "../passage.ts";
@@ -8,7 +9,7 @@ import { AudioPanel } from "./AudioPanel.tsx";
 import { Dial } from "./Dial.tsx";
 import { stopWeights } from "./dial.ts";
 import { NextIcon, PreviousIcon, RepeatIcon } from "./icons.tsx";
-import { reciterOf, reciterWords } from "./reciters.ts";
+import { type Reciter, reciterOf, reciterWords } from "./reciters.ts";
 import { ICON_BUTTON, LATCHED } from "./styles.ts";
 import type { Player as PlayerHandle } from "./usePlayer.ts";
 
@@ -18,6 +19,33 @@ function keepFocus(event: MouseEvent): void {
 
 function finePointer(): boolean {
   return window.matchMedia("(pointer: fine)").matches;
+}
+
+function statusLine({ state, clip, onBasmala }: PlayerHandle, reciter: Reciter, language: Language): string {
+  if (state.status === "failed") {
+    return translate(language, "player.unavailable");
+  }
+  if (clip === undefined) {
+    return "";
+  }
+  const { name, style } = reciterWords(reciter, language);
+  return translate(language, onBasmala ? "player.nowBasmala" : "player.now", {
+    reciter: name,
+    style,
+    kbps: reciter.kbps,
+    surah: clip.surah,
+    ayah: clip.ayah,
+  });
+}
+
+function trackTitle({ clip, onBasmala }: PlayerHandle, language: Language): string {
+  if (clip === undefined) {
+    return "";
+  }
+  if (onBasmala) {
+    return translate(language, "player.basmala");
+  }
+  return `${surahName(requireSurahMeta(clip.surah), language)} ${clip.ayah}`;
 }
 
 export interface PlayerProps {
@@ -45,33 +73,9 @@ export function Player({ player, passage, settings, refocus }: PlayerProps) {
     }
   };
 
-  const { name: reciterName, style: reciterStyle } = reciterWords(reciter, language);
-
-  function statusLine(): string {
-    if (state.status === "failed") {
-      return t("player.unavailable");
-    }
-    if (clip === undefined) {
-      return "";
-    }
-    return t(player.onBasmala ? "player.nowBasmala" : "player.now", {
-      reciter: reciterName,
-      style: reciterStyle,
-      kbps: reciter.kbps,
-      surah: clip.surah,
-      ayah: clip.ayah,
-    });
-  }
-
-  function trackTitle(): string {
-    if (clip === undefined) {
-      return "";
-    }
-    return player.onBasmala ? t("player.basmala") : `${surahName(requireSurahMeta(clip.surah), language)} ${clip.ayah}`;
-  }
-
-  const line = statusLine();
-  const title = trackTitle();
+  const reciterName = reciterWords(reciter, language).name;
+  const line = statusLine(player, reciter, language);
+  const title = trackTitle(player, language);
   const album = surahName(meta, language);
   const { play, pause, next, previous, toggle } = player;
   const mediaSession = "mediaSession" in navigator ? navigator.mediaSession : null;

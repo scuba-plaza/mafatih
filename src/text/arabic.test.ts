@@ -11,6 +11,8 @@ import {
   HARAKAT,
   isFullyVocalized,
   isMark,
+  KASRA,
+  KASRATAN,
   SHADDA,
   SUKUN,
   skeleton,
@@ -21,6 +23,12 @@ const ayat = readFileSync(new URL("../../data/quran-simple.txt", import.meta.url
   .split("\n")
   .filter((line) => line !== "" && !line.startsWith("#"))
   .map((line) => line.split("|")[2] ?? "");
+
+test("the marks have their Unicode code points", () => {
+  expect(
+    [FATHATAN, DAMMATAN, KASRATAN, FATHA, DAMMA, KASRA, SHADDA, SUKUN, DAGGER_ALEF].map((mark) => mark.codePointAt(0)),
+  ).toEqual([0x64b, 0x64c, 0x64d, 0x64e, 0x64f, 0x650, 0x651, 0x652, 0x670]);
+});
 
 function marks(...codePoints: number[]): string[] {
   return codePoints.map((codePoint) => String.fromCodePoint(codePoint));
