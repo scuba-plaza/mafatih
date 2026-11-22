@@ -49,3 +49,52 @@ export async function brightestPixel(page: Page, image: Buffer): Promise<number>
     return brightest;
   }, image.toString("base64"));
 }
+
+export async function differenceBeyondShift(
+  page: Page,
+  first: Buffer,
+  second: Buffer,
+  shift: number,
+  tolerance = 48,
+): Promise<number> {
+  return page.evaluate(
+    async ([a, b, reach, delta]) => {
+      const decode = async (data: string): Promise<ImageData> => {
+        const bytes = Uint8Array.from(atob(data), (character) => character.charCodeAt(0));
+        const image = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+        const context = new OffscreenCanvas(image.width, image.height).getContext("2d");
+        if (context === null) {
+          throw new Error("no canvas");
+        }
+        context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, image.width, image.height);
+      };
+      const [p, q] = [await decode(a), await decode(b)];
+      const width = Math.max(p.width, q.width);
+      const height = Math.max(p.height, q.height);
+      const at = (image: ImageData, x: number, y: number, offset: number) =>
+        x < image.width && y < image.height ? (image.data[(y * image.width + x) * 4 + offset] ?? 0) : 0;
+      const unmatched = (from: ImageData, other: ImageData): number => {
+        let count = 0;
+        for (let y = 0; y < from.height; y += 1) {
+          for (let x = 0; x < from.width; x += 1) {
+            let found = false;
+            for (let dy = -reach; dy <= reach && !found; dy += 1) {
+              for (let dx = -reach; dx <= reach && !found; dx += 1) {
+                found = [0, 1, 2].every(
+                  (offset) => Math.abs(at(from, x, y, offset) - at(other, x + dx, y + dy, offset)) <= delta,
+                );
+              }
+            }
+            if (!found) {
+              count += 1;
+            }
+          }
+        }
+        return count;
+      };
+      return Math.max(unmatched(p, q), unmatched(q, p), width * 0 + height * 0);
+    },
+    [first.toString("base64"), second.toString("base64"), shift, tolerance] as const,
+  );
+}

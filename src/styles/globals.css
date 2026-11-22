@@ -213,10 +213,7 @@ button {
 }
 
 [data-unligated] {
-  font-variant-ligatures: none;
   font-feature-settings:
     "rlig" 0,
-    "liga" 0,
-    "clig" 0,
-    "dlig" 0;
+    "liga" 0;
 }

@@ -1,24 +1,45 @@
+import { isMark } from "~/text/arabic.ts";
+import { isWordSpace } from "~/text/prompt.ts";
+
 export interface WordSpan {
   readonly start: number;
   readonly end: number;
 }
 
-const SPACE = /\s/u;
+const LAM = "ل";
+const ALEF_FORMS: ReadonlySet<string> = new Set(["ا", "آ", "أ", "إ"]);
 
-function isSpace(character: string): boolean {
-  return SPACE.test(character);
+function baseBefore(text: string, offset: number, from: number): number {
+  let index = offset - 1;
+  while (index >= from && isMark(text.charAt(index))) {
+    index -= 1;
+  }
+  return index;
 }
 
-export function wordInProgress(text: string, offset: number, from: number, to: number): WordSpan | null {
-  if (offset <= from || offset >= to || isSpace(text.charAt(offset - 1)) || isSpace(text.charAt(offset))) {
+function baseAfter(text: string, offset: number, to: number): number {
+  let index = offset;
+  while (index < to && isMark(text.charAt(index))) {
+    index += 1;
+  }
+  return index;
+}
+
+export function ligatureWordAt(text: string, offset: number, from: number, to: number): WordSpan | null {
+  if (offset <= from || offset >= to) {
     return null;
   }
-  let start = offset - 1;
-  while (start > from && !isSpace(text.charAt(start - 1))) {
+  const lam = baseBefore(text, offset, from);
+  const alef = baseAfter(text, offset, to);
+  if (lam < from || alef >= to || text.charAt(lam) !== LAM || !ALEF_FORMS.has(text.charAt(alef))) {
+    return null;
+  }
+  let start = lam;
+  while (start > from && !isWordSpace(text.charAt(start - 1))) {
     start -= 1;
   }
-  let end = offset + 1;
-  while (end < to && !isSpace(text.charAt(end))) {
+  let end = alef + 1;
+  while (end < to && !isWordSpace(text.charAt(end))) {
     end += 1;
   }
   return { start, end };

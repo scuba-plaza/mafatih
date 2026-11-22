@@ -780,23 +780,13 @@ test("the live line is not drawn on a phone", async ({ page, isMobile }) => {
   await expect(page.locator("[data-live-stats]")).toBeHidden();
 });
 
-test("the text is one uninterrupted run, split only where mistakes are shown and around the word being typed", async ({
-  page,
-}) => {
+test("the text is one uninterrupted run, split only where mistakes are shown", async ({ page }) => {
   await start(page, { customText: "بتن كتب" });
   const nodes = () =>
     surface(page)
       .locator("[data-block]")
       .evaluate((block) => block.childNodes.length);
-  const unligated = surface(page).locator("[data-unligated]");
-  await expect(unligated).toHaveCount(0);
-  expect(await nodes()).toBe(1);
   await typeKeys(page, ["ب", "ت"]);
-  await expect(unligated).toHaveCount(1);
-  await expect(unligated).toHaveText("بتن");
-  expect(await nodes()).toBe(2);
-  await typeKeys(page, ["ن"]);
-  await expect(unligated).toHaveCount(0);
   expect(await nodes()).toBe(1);
   await typeKeys(page, ["س"]);
   expect(await nodes()).toBe(3);

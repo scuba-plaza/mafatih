@@ -10,7 +10,7 @@ import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
-import { wordInProgress } from "./ligature.ts";
+import { ligatureWordAt } from "./ligature.ts";
 import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
@@ -189,7 +189,7 @@ interface BlockTextProps {
 }
 
 function BlockText({ shown, block, cursor, mistakes, active }: BlockTextProps): ReactNode {
-  const word = active ? wordInProgress(shown, cursor, block.start, block.end) : null;
+  const word = active ? ligatureWordAt(shown, cursor, block.start, block.end) : null;
   const flagged =
     mistakes === "" ? null : (
       <span data-mistakes="" aria-hidden="true" className="inline-block max-w-full text-danger [unicode-bidi:isolate]">
@@ -211,9 +211,15 @@ function BlockText({ shown, block, cursor, mistakes, active }: BlockTextProps): 
     <>
       {shown.slice(block.start, word.start)}
       <span data-unligated="">
-        {shown.slice(word.start, cursor)}
-        {flagged}
-        {shown.slice(cursor, word.end)}
+        {flagged === null ? (
+          shown.slice(word.start, word.end)
+        ) : (
+          <>
+            {shown.slice(word.start, cursor)}
+            {flagged}
+            {shown.slice(cursor, word.end)}
+          </>
+        )}
       </span>
       {shown.slice(word.end, block.end)}
     </>
