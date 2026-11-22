@@ -13,6 +13,9 @@ function memoryCache(initial: Record<string, Blob> = {}): AudioCache & { readonl
       puts.push(url);
       store.set(url, blob);
     },
+    remove: async (url) => {
+      store.delete(url);
+    },
     usage: async () => ({ files: store.size, bytes: [...store.values()].reduce((sum, blob) => sum + blob.size, 0) }),
     clear: async () => {
       store.clear();
@@ -22,7 +25,7 @@ function memoryCache(initial: Record<string, Blob> = {}): AudioCache & { readonl
 }
 
 function respond(body: BlobPart, init: ResponseInit = {}): ReturnType<typeof vi.fn> {
-  const fetcher = vi.fn(async () => new Response(body, init));
+  const fetcher = vi.fn(async () => new Response(body, { headers: { "content-type": "audio/mpeg" }, ...init }));
   vi.stubGlobal("fetch", fetcher);
   return fetcher;
 }
@@ -58,6 +61,26 @@ test("a response that is not ok, or is empty, is an error and is never stored", 
   expect(cache.puts).toEqual([]);
 });
 
+test("an answer that is not audio, a login page for example, is an error and is never stored", async () => {
+  const cache = memoryCache();
+  respond("<html>log in</html>", { headers: { "content-type": "text/html" } });
+  await expect(loadAyahBlob(URL_A, cache)).rejects.toThrow(/not audio/);
+  respond("{}", { headers: { "content-type": "application/json" } });
+  await expect(loadAyahBlob(URL_A, cache)).rejects.toThrow(/not audio/);
+  respond("bytes", { headers: {} });
+  await expect(loadAyahBlob(URL_A, cache)).rejects.toThrow(/not audio/);
+  expect(cache.puts).toEqual([]);
+});
+
+test("a removed ayah is fetched again", async () => {
+  const cache = memoryCache();
+  const fetcher = respond("audio");
+  await loadAyahBlob(URL_A, cache);
+  await cache.remove(URL_A);
+  await loadAyahBlob(URL_A, cache);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
 test("a network failure is an error", async () => {
   vi.stubGlobal(
     "fetch",
@@ -77,6 +100,9 @@ test("with no store at all, or a store that fails, the ayah is still played", as
     },
     put: async () => {
       throw new Error("full");
+    },
+    remove: async () => {
+      throw new Error("denied");
     },
     usage: async () => ({ files: 0, bytes: 0 }),
     clear: async () => false,

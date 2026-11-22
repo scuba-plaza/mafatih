@@ -644,6 +644,126 @@ test("a recitation that cannot be fetched is said plainly and the lesson stays t
   await expectNoAxeViolations(page);
 });
 
+const CORS = { "access-control-allow-origin": "*" };
+
+async function savedShapes(page: Page): Promise<SavedAudio["shapes"]> {
+  return (await savedAudio(page).catch(() => ({ shapes: [], sizes: [] }))).shapes;
+}
+
+test("an answer that is not audio is said plainly, is not saved, and the next press asks again", async ({ page }) => {
+  let healthy = false;
+  const requests: string[] = [];
+  await page.route("https://everyayah.com/**", (route) => {
+    requests.push(route.request().url());
+    return healthy
+      ? route.fulfill({ body: SHORT, contentType: "audio/mpeg", headers: CORS })
+      : route.fulfill({ body: "<html>log in to the network</html>", contentType: "text/html", headers: CORS });
+  });
+  await page.goto("/#/recitation/1/1");
+  const play = player(page).getByRole("button", { name: "Play", exact: true });
+  await play.click();
+  await expect(status(page)).toHaveText("Recitation unavailable");
+  expect(await savedShapes(page)).toEqual([]);
+  healthy = true;
+  await play.click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).not.toHaveText("Recitation unavailable");
+  await expect.poll(() => requests.filter((url) => url.endsWith("/001001.mp3")).length).toBeGreaterThanOrEqual(2);
+});
+
+test("audio that the browser cannot play is not kept, and the next press fetches it again", async ({ page }) => {
+  let healthy = false;
+  const requests: string[] = [];
+  await page.route("https://everyayah.com/**", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({
+      body: healthy ? SHORT : Buffer.from("this is not audio at all"),
+      contentType: "audio/mpeg",
+      headers: CORS,
+    });
+  });
+  await page.goto("/#/recitation/1/1");
+  const play = player(page).getByRole("button", { name: "Play", exact: true });
+  await play.click();
+  await expect(status(page)).toHaveText("Recitation unavailable");
+  healthy = true;
+  await play.click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).not.toHaveText("Recitation unavailable");
+  await expect.poll(() => requests.filter((url) => url.endsWith("/001001.mp3")).length).toBeGreaterThanOrEqual(2);
+});
+
+test("a saved answer of the wrong type, left by an earlier version, is ignored and replaced", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route("https://everyayah.com/**", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({ body: SHORT, contentType: "audio/mpeg", headers: CORS });
+  });
+  await page.goto("/#/recitation/1/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(() => savedShapes(page).then((shapes) => shapes.length)).toBeGreaterThan(0);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const opening = indexedDB.open("mafatih.audio");
+        opening.onerror = () => reject(opening.error);
+        opening.onsuccess = () => {
+          const transaction = opening.result.transaction("ayat", "readwrite");
+          const store = transaction.objectStore("ayat");
+          const saved = store.getAll();
+          saved.onsuccess = () => {
+            for (const record of saved.result) {
+              store.put({
+                ...record,
+                data: new TextEncoder().encode("<html>sign in</html>").buffer,
+                type: "text/html",
+              });
+            }
+          };
+          transaction.oncomplete = () => {
+            opening.result.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+  );
+  const before = requests.length;
+  await page.reload();
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect(player(page).getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(status(page)).not.toHaveText("Recitation unavailable");
+  await expect.poll(() => requests.length).toBeGreaterThan(before);
+});
+
+test("Next while the next clip is still loading stops the old clip, and the clip that was chosen is the one that plays", async ({
+  page,
+}) => {
+  await spyAudio(page);
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let first = true;
+  await page.route("https://everyayah.com/**", async (route) => {
+    const immediate = first;
+    first = false;
+    if (!immediate) {
+      await gate;
+    }
+    await route.fulfill({ body: LONG, contentType: "audio/mpeg", headers: CORS });
+  });
+  await page.goto("/#/recitation/112/1");
+  await player(page).getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(() => firstAudio(page, (audio) => audio.currentTime)).toBeGreaterThan(0.2);
+  await player(page).getByRole("button", { name: "Next ayah" }).click();
+  await expect(status(page)).toContainText("112:1");
+  await expect.poll(() => firstAudio(page, (audio) => audio.paused)).toBe(true);
+  release();
+  await expect.poll(() => firstAudio(page, (audio) => !audio.paused && audio.currentTime > 0.2)).toBe(true);
+  await expect(status(page)).toContainText("112:1");
+});
+
 test("Settings shows how much is saved and Delete empties it", async ({ page }) => {
   await mockAudio(page, SHORT);
   await seedProfile(page, { settings: { playWhole: false, loop: false } });

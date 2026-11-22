@@ -22,8 +22,13 @@ export interface AudioCacheUsage {
 export interface AudioCache {
   readonly get: (url: string) => Promise<Blob | null>;
   readonly put: (url: string, blob: Blob) => Promise<void>;
+  readonly remove: (url: string) => Promise<void>;
   readonly usage: () => Promise<AudioCacheUsage>;
   readonly clear: () => Promise<boolean>;
+}
+
+export function isAudio(blob: Blob): boolean {
+  return blob.type.startsWith("audio/");
 }
 
 function openDatabase(onLost: () => void): Promise<IDBDatabase | null> {
@@ -95,7 +100,12 @@ function createAudioCache(): AudioCache | null {
       const record = await run<StoredAyah | undefined>("readonly", (transaction) =>
         transaction.objectStore(RECORDS).get(url),
       );
-      return record !== undefined && record !== null && record.data instanceof ArrayBuffer && record.data.byteLength > 0
+      return record !== undefined &&
+        record !== null &&
+        record.data instanceof ArrayBuffer &&
+        record.data.byteLength > 0 &&
+        typeof record.type === "string" &&
+        record.type.startsWith("audio/")
         ? new Blob([record.data], { type: record.type })
         : null;
     },
@@ -106,6 +116,12 @@ function createAudioCache(): AudioCache | null {
       await run("readwrite", (transaction) => {
         transaction.objectStore(SIZES).put(size);
         return transaction.objectStore(RECORDS).put(record);
+      });
+    },
+    remove: async (url) => {
+      await run("readwrite", (transaction) => {
+        transaction.objectStore(SIZES).delete(url);
+        return transaction.objectStore(RECORDS).delete(url);
       });
     },
     usage: async () => {
@@ -146,6 +162,9 @@ async function fetchAyahBlob(url: string, cache: AudioCache | null): Promise<Blo
   const blob = await response.blob();
   if (blob.size === 0) {
     throw new Error("recitation empty");
+  }
+  if (!isAudio(blob)) {
+    throw new Error(`recitation is ${blob.type || "of an unknown type"}, not audio`);
   }
   await (cache?.put(url, blob) ?? Promise.resolve()).catch(() => undefined);
   return blob;
