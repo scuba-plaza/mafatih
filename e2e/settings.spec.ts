@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH, NEEDS_CDP } from "./helpers/engines.ts";
+import { openSettingsGroup, type SettingsGroup } from "./helpers/pages.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -18,9 +19,8 @@ function dialog(page: Page) {
   return page.getByRole("dialog", { name: "Settings" });
 }
 
-async function openSettings(page: Page): Promise<void> {
-  await opener(page).click();
-  await expect(dialog(page)).toBeVisible();
+async function openSettings(page: Page, group?: SettingsGroup): Promise<void> {
+  await openSettingsGroup(page, group);
 }
 
 async function closeSettings(page: Page): Promise<void> {
@@ -31,6 +31,14 @@ async function closeSettings(page: Page): Promise<void> {
 function lessonText(page: Page) {
   return surface(page).locator("[data-lesson-text]");
 }
+
+test("openSettingsGroup opens Settings and returns a locator that contains the Lesson font radios", async ({
+  page,
+}) => {
+  await page.goto("/#/custom");
+  const group = await openSettingsGroup(page, "Lesson");
+  await expect(group.getByRole("radio", { name: "Amiri" })).toBeVisible();
+});
 
 test("the Settings button opens a dialog with every setting in a named group", async ({ browserName, page }) => {
   test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);

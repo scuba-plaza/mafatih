@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { seedProfile } from "./profile.ts";
 
 export const PAGES = [
@@ -49,4 +49,15 @@ export async function openAndWait(page: Page, hash: string, typing: boolean): Pr
     await expect(text).toBeVisible();
     await expect(text).not.toHaveText("");
   }
+}
+
+export type SettingsGroup = "General" | "Lesson" | "Recitation" | "Your data";
+
+export async function openSettingsGroup(page: Page, _group?: SettingsGroup): Promise<Locator> {
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  if (!(await dialog.isVisible())) {
+    await page.getByRole("button", { name: "Settings" }).click();
+    await expect(dialog).toBeVisible();
+  }
+  return dialog;
 }
