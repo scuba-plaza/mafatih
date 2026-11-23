@@ -170,42 +170,56 @@ button {
   outline-offset: 2px;
 }
 
-::highlight(mafatih-done) {
+::highlight(mafatih-done),
+::highlight(mafatih-done-preview) {
   color: var(--color-typed);
 }
 
-::highlight(mafatih-apparatus) {
+::highlight(mafatih-apparatus),
+::highlight(mafatih-apparatus-preview) {
   color: var(--color-apparatus);
 }
 
-::highlight(mafatih-done-playing) {
+::highlight(mafatih-done-playing),
+::highlight(mafatih-done-playing-preview) {
   color: var(--color-typed);
 }
 
-::highlight(mafatih-apparatus-playing) {
+::highlight(mafatih-apparatus-playing),
+::highlight(mafatih-apparatus-playing-preview) {
   color: var(--color-apparatus);
 }
 
-::highlight(mafatih-upcoming-playing) {
+::highlight(mafatih-upcoming-playing),
+::highlight(mafatih-upcoming-playing-preview) {
   color: var(--color-upcoming);
 }
 
 ::highlight(mafatih-done-playing),
+::highlight(mafatih-done-playing-preview),
 ::highlight(mafatih-apparatus-playing),
+::highlight(mafatih-apparatus-playing-preview),
 ::highlight(mafatih-upcoming-playing),
-::highlight(mafatih-wash) {
+::highlight(mafatih-upcoming-playing-preview),
+::highlight(mafatih-wash),
+::highlight(mafatih-wash-preview) {
   background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
-::highlight(mafatih-wash) {
+::highlight(mafatih-wash),
+::highlight(mafatih-wash-preview) {
   color: rgb(0 0 0 / 1%);
 }
 
 @media (forced-colors: active) {
   ::highlight(mafatih-done-playing),
+  ::highlight(mafatih-done-playing-preview),
   ::highlight(mafatih-apparatus-playing),
+  ::highlight(mafatih-apparatus-playing-preview),
   ::highlight(mafatih-upcoming-playing),
-  ::highlight(mafatih-wash) {
+  ::highlight(mafatih-upcoming-playing-preview),
+  ::highlight(mafatih-wash),
+  ::highlight(mafatih-wash-preview) {
     background-color: Highlight;
     color: HighlightText;
   }
@@ -213,7 +227,9 @@ button {
 
 @media (forced-colors: active) {
   ::highlight(mafatih-done),
-  ::highlight(mafatih-apparatus) {
+  ::highlight(mafatih-done-preview),
+  ::highlight(mafatih-apparatus),
+  ::highlight(mafatih-apparatus-preview) {
     color: GrayText;
   }
 }
@@ -240,7 +256,8 @@ button {
   }
 }
 
-::highlight(mafatih-hidden) {
+::highlight(mafatih-hidden),
+::highlight(mafatih-hidden-preview) {
   color: rgb(0 0 0 / 1%);
 }
 
@@ -249,7 +266,8 @@ button {
     display: none;
   }
 
-  ::highlight(mafatih-hidden) {
+  ::highlight(mafatih-hidden),
+  ::highlight(mafatih-hidden-preview) {
     color: CanvasText;
   }
 }

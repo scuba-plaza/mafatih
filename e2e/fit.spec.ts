@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectLayoutIntact, expectOneScreen, openSoftKeyboard, resizeAndSettle } from "./helpers/fit.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -353,8 +354,8 @@ test.describe("after the text re-wraps while the field is not focused", () => {
     await open(page, LONG_PASSAGE);
     const letters = [...(await shownText(page))].filter((character) => /[ء-ي ]/.test(character));
     await typeKeys(page, letters.slice(0, 160));
-    await page.getByRole("button", { name: "Settings" }).click();
     const dialog = page.getByRole("dialog", { name: "Settings" });
+    await openSettingsGroup(page, "Lesson");
     await dialog.getByRole("slider", { name: "Lesson text size" }).focus();
     await page.keyboard.press("End");
     await dialog.getByRole("button", { name: "Done" }).click();

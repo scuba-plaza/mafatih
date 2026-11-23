@@ -3,6 +3,7 @@ import { useId } from "react";
 export interface SegmentedOption<Value extends string> {
   readonly value: Value;
   readonly label: string;
+  readonly hint?: string;
 }
 
 export interface SegmentedProps<Value extends string> {
@@ -14,6 +15,7 @@ export interface SegmentedProps<Value extends string> {
 
 export function Segmented<Value extends string>({ legend, value, options, onChange }: SegmentedProps<Value>) {
   const name = useId();
+  const hintId = (option: SegmentedOption<Value>) => `${name}-${option.value}-hint`;
   return (
     <fieldset className="flex min-w-0 flex-col">
       <legend className="mb-2 text-sm text-muted">{legend}</legend>
@@ -26,6 +28,7 @@ export function Segmented<Value extends string>({ legend, value, options, onChan
               value={option.value}
               checked={option.value === value}
               onChange={() => onChange(option.value)}
+              aria-describedby={option.hint === undefined ? undefined : hintId(option)}
               className="peer absolute inset-0 size-full appearance-none opacity-0 outline-none"
             />
             <span
@@ -37,6 +40,18 @@ export function Segmented<Value extends string>({ legend, value, options, onChan
           </label>
         ))}
       </div>
+      {options.map(
+        (option) =>
+          option.hint !== undefined && (
+            <p
+              key={option.value}
+              id={hintId(option)}
+              className={option.value === value ? "mt-2 text-sm text-muted" : "sr-only"}
+            >
+              {option.hint}
+            </p>
+          ),
+      )}
     </fieldset>
   );
 }

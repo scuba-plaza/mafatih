@@ -26,6 +26,39 @@ export interface Settings {
   readonly loop: boolean;
 }
 
+export const SETTING_KIND: Readonly<Record<keyof Settings, "lesson-display" | "other">> = {
+  language: "other",
+  font: "lesson-display",
+  fontSize: "lesson-display",
+  vocalization: "lesson-display",
+  requireBackspace: "lesson-display",
+  showKeyboard: "lesson-display",
+  fingerGuide: "lesson-display",
+  keyLabels: "lesson-display",
+  delayedHint: "lesson-display",
+  customText: "other",
+  ayatPerLesson: "other",
+  surahOrder: "other",
+  reciter: "other",
+  volume: "other",
+  muted: "other",
+  playWhole: "other",
+  loop: "other",
+};
+
+export const DISPLAY_SETTING_KEYS = [
+  "font",
+  "fontSize",
+  "vocalization",
+  "requireBackspace",
+  "showKeyboard",
+  "fingerGuide",
+  "keyLabels",
+  "delayedHint",
+] as const satisfies readonly (keyof Settings)[];
+
+export type LessonDisplaySettings = Pick<Settings, (typeof DISPLAY_SETTING_KEYS)[number]>;
+
 export const AYAT_PER_PASSAGE: readonly number[] = [1, 2, 3, 4];
 
 const DEFAULT_AYAT_PER_LESSON = 4;

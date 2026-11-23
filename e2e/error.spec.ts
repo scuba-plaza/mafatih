@@ -65,7 +65,7 @@ test("Reload loads the page again and keeps the saved progress", async ({ page }
 test("Start over asks first, and Keep my progress leaves the saved progress alone", async ({ page }) => {
   await showTheErrorScreen(page);
   await page.getByRole("button", { name: "Start over" }).click();
-  const question = page.getByRole("group", { name: "Erase your progress and settings?" });
+  const question = page.getByRole("dialog", { name: "Erase your progress and settings?" });
   await expect(question).toBeVisible();
   await expect(question).toContainText("This deletes your progress and settings from this browser and starts again.");
   await expect(question.getByRole("button", { name: "Keep my progress" })).toBeFocused();
@@ -80,7 +80,7 @@ test("Erase clears the saved profile and the page then works again", async ({ pa
   await page.getByRole("button", { name: "Start over" }).click();
   const reloaded = page.waitForEvent("load");
   await page
-    .getByRole("group", { name: "Erase your progress and settings?" })
+    .getByRole("dialog", { name: "Erase your progress and settings?" })
     .getByRole("button", { name: "Erase" })
     .click();
   await reloaded;
@@ -93,6 +93,6 @@ test("the error screen is in the saved language", async ({ page }) => {
   await seedOnceAndBreakDatesWhileSaved(page, "ar");
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1, name: "حدث خطأ ما" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "ابدأ من جديد" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "ابدأ من الصفر" })).toBeVisible();
   await expectNoAxeViolations(page);
 });

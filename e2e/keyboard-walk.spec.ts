@@ -356,7 +356,9 @@ function orderViolations(stops: readonly Stop[]): string[] {
     const up = to.bottom <= from.top + SAME_ROW_TOLERANCE;
     const along =
       to.direction === "rtl" ? to.right <= from.right + SAME_ROW_TOLERANCE : to.left >= from.left - SAME_ROW_TOLERANCE;
-    if (!down && (up || !along)) {
+    const acrossColumns =
+      to.direction === "rtl" ? to.right <= from.left + SAME_ROW_TOLERANCE : to.left >= from.right - SAME_ROW_TOLERANCE;
+    if (!down && !acrossColumns && (up || !along)) {
       violations.push(`${from.label} -> ${to.label} :: ${placement(from)} -> ${placement(to)}`);
     }
   }

@@ -284,7 +284,7 @@ test("with forced colours the typed text and the ayah signs are still told apart
   expect(colours.sign).not.toBe(colours.text);
 });
 
-test("Type it again starts the surah over, the next finish is counted as the second, and Escape goes on like Continue", async ({
+test("Type again starts the surah over, the next finish is counted as the second, and Escape goes on like Continue", async ({
   page,
 }) => {
   const kawthar = surah(108);
@@ -295,7 +295,7 @@ test("Type it again starts the surah over, the next finish is counted as the sec
   await typeKeys(page, [keys[0] ?? "", "ض", ...keys.slice(1)]);
   await expect(card(page)).toBeVisible();
   await expect(card(page).getByRole("definition").nth(1)).not.toHaveText("100%");
-  await card(page).getByRole("button", { name: "Type it again" }).click();
+  await card(page).getByRole("button", { name: "Type again" }).click();
   await expect(card(page)).toHaveCount(0);
   await expect(page).toHaveURL(/#\/recitation\/108(\/1)?$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();

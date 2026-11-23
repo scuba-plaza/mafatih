@@ -8,6 +8,7 @@ import type { Vocalization } from "~/text/vocalization.ts";
 import type { Metrics } from "~/typing/session.ts";
 import { LADDER, type LadderProgress, type Rung } from "./ladder.ts";
 import { drilledRung } from "./lesson.ts";
+import { UnlockAllKeys } from "./UnlockAllKeys.tsx";
 
 export interface LastLesson {
   readonly metrics: Metrics;
@@ -20,6 +21,7 @@ interface HudProps {
   readonly vocalization: Vocalization;
   readonly last: LastLesson | null;
   readonly hidden?: boolean;
+  readonly onUnlocked: () => void;
 }
 
 function unlockAnnouncement(unlocked: Rung | undefined, language: Language): string {
@@ -41,7 +43,7 @@ function Item({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function Hud({ progress, stats, vocalization, last, hidden = false }: HudProps) {
+export function Hud({ progress, stats, vocalization, last, hidden = false, onUnlocked }: HudProps) {
   const { t, language, formatAccuracy } = useI18n();
   const total = LADDER.rungs.length;
   const finished = progress.unlocked >= total;
@@ -54,26 +56,29 @@ export function Hud({ progress, stats, vocalization, last, hidden = false }: Hud
 
   return (
     <section hidden={hidden} aria-label={t("hud.label")} className="flex flex-col gap-3">
-      <dl className="flex flex-wrap gap-x-8 gap-y-3">
-        <Item label={t("hud.keys")}>{t("hud.keysValue", { count: progress.unlocked, total })}</Item>
-        {rung !== undefined && (
-          <>
-            <Item label={t("hud.newest")}>
-              <span lang="ar">{carriedMark(rung.char)}</span>
-              {nameKey !== undefined && <span className="ms-1.5 font-sans">{t(nameKey)}</span>}
-            </Item>
-            <Item label={t("result.accuracy")}>{typed ? formatAccuracy(stat.recentAccuracy) : none}</Item>
-            <Item label={t("hud.time")}>
-              {typed && stat.timed > 0 ? t("hud.timeValue", { ms: stat.meanMs }) : none}
-            </Item>
-          </>
-        )}
-        <Item label={t("hud.last")}>
-          {last === null
-            ? none
-            : t("hud.lastValue", { speed: last.metrics.cpm, accuracy: formatAccuracy(last.metrics.accuracy) })}
-        </Item>
-      </dl>
+      <div className="flex flex-col items-start gap-3 md:flex-row md:flex-wrap md:items-end md:gap-x-8">
+        <dl className="flex flex-wrap gap-x-8 gap-y-3">
+          <Item label={t("hud.keys")}>{t("hud.keysValue", { count: progress.unlocked, total })}</Item>
+          {rung !== undefined && (
+            <>
+              <Item label={t("hud.newest")}>
+                <span lang="ar">{carriedMark(rung.char)}</span>
+                {nameKey !== undefined && <span className="ms-1.5 font-sans">{t(nameKey)}</span>}
+              </Item>
+              <Item label={t("result.accuracy")}>{typed ? formatAccuracy(stat.recentAccuracy) : none}</Item>
+              <Item label={t("hud.time")}>
+                {typed && stat.timed > 0 ? t("hud.timeValue", { ms: stat.meanMs }) : none}
+              </Item>
+            </>
+          )}
+          <Item label={t("hud.last")}>
+            {last === null
+              ? none
+              : t("hud.lastValue", { speed: last.metrics.cpm, accuracy: formatAccuracy(last.metrics.accuracy) })}
+          </Item>
+        </dl>
+        <UnlockAllKeys onUnlocked={onUnlocked} />
+      </div>
       {finished && <p className="text-sm text-muted">{t("hud.allUnlocked")}</p>}
       {!finished && rung === undefined && <p className="text-sm text-muted">{t("hud.marksNotTyped")}</p>}
       <p role="status" className="min-h-5 text-sm font-medium">

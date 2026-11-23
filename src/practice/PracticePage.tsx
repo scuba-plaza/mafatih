@@ -21,6 +21,7 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
   const { unlocked } = profile.ladder;
   const [seed, setSeed] = useState(Date.now);
   const [last, setLast] = useState<LastLesson | null>(null);
+  const [unlockedAll, setUnlockedAll] = useState(0);
 
   const prompt = useMemo(
     () => buildPracticeLesson({ words, progress: { unlocked }, vocalization: settings.vocalization, seed }),
@@ -49,10 +50,10 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
   const { focus } = trainer;
 
   useEffect(() => {
-    if (last !== null) {
+    if (last !== null || unlockedAll > 0) {
       focus();
     }
-  }, [last, focus]);
+  }, [last, unlockedAll, focus]);
 
   return (
     <>
@@ -62,6 +63,7 @@ function PracticeLesson({ words }: { words: readonly PracticeWord[] }) {
         vocalization={settings.vocalization}
         last={noPractice ? null : last}
         hidden={textOnly}
+        onUnlocked={() => setUnlockedAll((count) => count + 1)}
       />
       <TypingSurface trainer={trainer} settings={settings} />
     </>

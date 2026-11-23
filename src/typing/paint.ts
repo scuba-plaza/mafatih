@@ -15,6 +15,12 @@ export const HIGHLIGHT_NAMES = [
 
 export type HighlightName = (typeof HIGHLIGHT_NAMES)[number];
 
+export type HighlightScope = "lesson" | "preview";
+
+export function highlightName(name: HighlightName, scope: HighlightScope): string {
+  return scope === "lesson" ? name : `${name}-preview`;
+}
+
 export interface PaintRun extends TextSpan {
   readonly name: HighlightName;
 }

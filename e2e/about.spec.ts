@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { seedSettings } from "./helpers/profile.ts";
 
 function credits(page: Page) {
@@ -75,7 +76,7 @@ test("the Settings dialog ends with a link to About: it closes the dialog and Ab
   page,
 }) => {
   await page.goto("/#/practice");
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "General");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("link", { name: "About" }).click();
   await expect(dialog).toBeHidden();

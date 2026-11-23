@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { passageBar, passageRange } from "./helpers/passage.ts";
 import { PROFILE_KEY, savedProfile, savedSettings, seedProfile } from "./helpers/profile.ts";
 import { lettersOf, surah } from "./helpers/quran.ts";
@@ -80,7 +81,7 @@ test("the map shows progress in words and a thin line, a completed surah says so
 test("the order setting puts the map in Mushaf order or with Juz ʿAmma first", async ({ page }) => {
   await page.goto("/");
   await expect(map(page).getByRole("link").first()).toContainText("Al-Faatiha");
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Surah order" });
   await expect(group.getByRole("radio", { name: "Mushaf order" })).toBeChecked();
@@ -231,13 +232,13 @@ test("Settings offers ayat per passage and the surah order together, and a chang
 }) => {
   await page.goto("/#/recitation/1/1");
   await expect(passageRange(page, "Ayat 1 to 4 of 7")).toHaveCount(1);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Recitation" });
-  const select = group.getByRole("combobox", { name: "Ayat per passage" });
-  await expect(select.getByRole("option")).toHaveCount(4);
-  await expect(select).toHaveValue("4");
-  await select.selectOption("2");
+  const ayat = group.getByRole("group", { name: "Ayat per passage" });
+  await expect(ayat.getByRole("radio")).toHaveCount(4);
+  await expect(ayat.getByRole("radio", { name: "4", exact: true })).toBeChecked();
+  await ayat.getByRole("radio", { name: "2", exact: true }).check();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(passageRange(page, "Ayat 1 to 2 of 7")).toHaveCount(1);
   expect((await savedSettings(page)).ayatPerLesson).toBe(2);
@@ -258,7 +259,7 @@ test("retyping only the last passage of a surah completed earlier just moves on:
   await expect(card(page)).toHaveCount(0);
 });
 
-test("Type it again after a completed surah starts a fresh count: a partial retype just moves on", async ({ page }) => {
+test("Type again after a completed surah starts a fresh count: a partial retype just moves on", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
@@ -268,7 +269,7 @@ test("Type it again after a completed surah starts a fresh count: a partial rety
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
   await expect(card(page)).toBeVisible();
-  await card(page).getByRole("button", { name: "Type it again" }).click();
+  await card(page).getByRole("button", { name: "Type again" }).click();
   await expect(page).toHaveURL(/#\/recitation\/108\/1$/);
   await typeKeys(page, lettersOf(kawthar, 1, 1, true));
   await expect(page).toHaveURL(/#\/recitation\/108\/2$/);

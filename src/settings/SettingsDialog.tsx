@@ -1,28 +1,23 @@
-import { useEffect, useId } from "react";
-import { formatRoute } from "~/app/routes.ts";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
-import type { Language } from "~/i18n/i18n.ts";
-import { HINT_DELAY_MS } from "~/keyboard/hint.ts";
-import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
 import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
-import { BackupRestore } from "~/storage/BackupRestore.tsx";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
-import { Dialog } from "~/ui/Dialog.tsx";
-import { RadioGroup } from "~/ui/RadioGroup.tsx";
-import { Switch } from "~/ui/Switch.tsx";
-import { clampFontSize, FONT_SIZES, FONTS, type FontId, loadFont } from "./fonts.ts";
-import { ResetProgress } from "./ResetProgress.tsx";
+import { Dialog, SIDE_PADDING } from "~/ui/Dialog.tsx";
+import { useMediaQuery } from "~/ui/useMediaQuery.ts";
+import { FONTS, loadFont } from "./fonts.ts";
+import { GeneralSettings } from "./GeneralSettings.tsx";
+import { GroupNav } from "./GroupNav.tsx";
+import { GROUP_TITLE, type GroupId, TALL_QUERY, TRIPLE_QUERY, WIDE_QUERY } from "./groups.ts";
+import { LessonPreview } from "./LessonPreview.tsx";
+import { KeyboardGuideSettings, LessonControls } from "./LessonSettings.tsx";
+import { PreviewPeek } from "./PreviewPeek.tsx";
+import { PreviewScale } from "./PreviewScale.tsx";
 import type { Settings } from "./settings.ts";
-import { UnlockLetters } from "./UnlockLetters.tsx";
+import { useGroupSummaries } from "./useGroupSummaries.tsx";
 
-const LANGUAGES = [
-  { value: "en", label: "English", lang: "en" },
-  { value: "ar", label: "العربية", lang: "ar" },
-] as const;
-
-const FONT_SAMPLE = "الخَطُّ العَرَبِيُّ";
-const LAST_SIZE = FONT_SIZES.length - 1;
+const SHEET_SIZE =
+  "h-[min(43.75rem,90dvh)] md:h-[min(43.75rem,90dvh)]! md:w-[48.75rem] pointer-fine:min-[64rem]:w-[72.5rem]";
 
 export interface SettingsDialogProps {
   readonly open: boolean;
@@ -30,129 +25,161 @@ export interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
-  const { t, formatNumber } = useI18n();
+  const { t } = useI18n();
   const { profile, update } = useProfile();
   const { settings } = profile;
-  const sizeId = useId();
-  const layoutName = useLayoutName();
+  const wide = useMediaQuery(WIDE_QUERY);
+  const triple = useMediaQuery(TRIPLE_QUERY);
+  const tall = useMediaQuery(TALL_QUERY);
+  const [chosen, setChosen] = useState<GroupId | null>(null);
+  const [returnTo, setReturnTo] = useState<GroupId | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const summaries = useGroupSummaries(settings);
 
   useEffect(() => {
     if (open) {
       for (const font of FONTS) {
         loadFont(font);
       }
+    } else {
+      setChosen(null);
+      setReturnTo(null);
     }
   }, [open]);
 
   const change = (patch: Partial<Settings>) =>
     update((current) => ({ ...current, settings: { ...current.settings, ...patch } }));
 
-  const sizeIndex = FONT_SIZES.indexOf(settings.fontSize);
+  const active: GroupId | null = wide ? (chosen ?? "general") : chosen;
+  const nested = !wide && active !== null;
+
+  useEffect(() => {
+    const title = titleRef.current;
+    if (nested && title !== null) {
+      title.tabIndex = -1;
+      title.focus();
+    }
+  }, [nested]);
+
+  const choose = (group: GroupId) => {
+    setReturnTo(null);
+    setChosen(group);
+  };
+
+  const pane = (id: GroupId): ReactNode => {
+    switch (id) {
+      case "general":
+        return <GeneralSettings settings={settings} change={change} onNavigate={onClose} />;
+      case "lesson":
+        return <LessonControls settings={settings} change={change} />;
+      case "recitation":
+        return (
+          <>
+            <RecitationSettings settings={settings} change={change} />
+            <AudioSettings settings={settings} change={change} />
+          </>
+        );
+    }
+  };
+
+  const scrolling = (id: GroupId, children: ReactNode, labelled = true): ReactNode => (
+    <section
+      aria-label={labelled ? t(GROUP_TITLE[id]) : undefined}
+      data-settings-scroll=""
+      className={`flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${SIDE_PADDING}`}
+    >
+      {children}
+    </section>
+  );
+
+  const lesson = (): ReactNode => {
+    const preview = (
+      <PreviewScale>
+        <LessonPreview settings={settings} lines={2} />
+      </PreviewScale>
+    );
+    const guide = <KeyboardGuideSettings settings={settings} change={change} />;
+    if (wide && triple) {
+      return (
+        <section aria-label={t(GROUP_TITLE.lesson)} className="flex min-h-0 min-w-0 flex-1">
+          {scrolling("lesson", pane("lesson"), false)}
+          <aside className="flex w-[29rem] shrink-0 flex-col gap-5 overflow-y-auto border-s border-line bg-faint p-4">
+            {preview}
+            {guide}
+          </aside>
+        </section>
+      );
+    }
+    if (wide) {
+      return scrolling(
+        "lesson",
+        <>
+          <div className="sticky top-0 z-10 -mt-4 bg-surface pt-4 pb-3">{preview}</div>
+          {pane("lesson")}
+          {guide}
+        </>,
+      );
+    }
+    if (tall) {
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <PreviewPeek settings={settings} />
+          {scrolling("lesson", pane("lesson"))}
+        </div>
+      );
+    }
+    return scrolling(
+      "lesson",
+      <>
+        {preview}
+        {pane("lesson")}
+      </>,
+    );
+  };
+
+  const content =
+    active === null ? (
+      <div className={`min-h-0 flex-1 overflow-y-auto ${SIDE_PADDING}`}>
+        <GroupNav variant="list" active={null} summaries={summaries} onChoose={choose} focusOn={returnTo} />
+      </div>
+    ) : active === "lesson" ? (
+      lesson()
+    ) : (
+      scrolling(active, pane(active))
+    );
 
   return (
-    <Dialog open={open} title={t("settings.title")} closeLabel={t("settings.done")} onClose={onClose}>
-      <RadioGroup<Language>
-        legend={t("settings.language")}
-        value={settings.language}
-        options={LANGUAGES}
-        onChange={(language) => change({ language })}
-      />
-      <RadioGroup
-        legend={t("settings.vocalization")}
-        value={settings.vocalization}
-        options={[
-          { value: "auto", label: t("vocalization.auto"), hint: t("vocalization.autoHint") },
-          { value: "letters", label: t("vocalization.letters"), hint: t("vocalization.lettersHint") },
-          { value: "harakat", label: t("vocalization.harakat"), hint: t("vocalization.harakatHint") },
-          { value: "full", label: t("vocalization.full"), hint: t("vocalization.fullHint") },
-        ]}
-        onChange={(vocalization) => change({ vocalization })}
-      />
-      <Switch
-        label={t("settings.backspace")}
-        hint={t("settings.backspaceHint")}
-        checked={settings.requireBackspace}
-        onChange={(requireBackspace) => change({ requireBackspace })}
-      />
-      <RadioGroup<FontId>
-        legend={t("settings.font")}
-        value={settings.font}
-        options={FONTS.map((font) => ({
-          value: font.id,
-          label: font.family,
-          preview: (
+    <Dialog
+      open={open}
+      title={nested ? t(GROUP_TITLE[active]) : t("settings.title")}
+      label={t("settings.title")}
+      closeLabel={t("settings.done")}
+      onClose={onClose}
+      titleRef={titleRef}
+      className={SHEET_SIZE}
+      bodyClassName="flex min-h-0 flex-1"
+      leading={
+        nested ? (
+          <button
+            type="button"
+            aria-label={t("settings.back")}
+            onClick={() => {
+              setReturnTo(chosen);
+              setChosen(null);
+            }}
+            className="flex min-h-11 items-center gap-1 rounded-lg pe-2 text-sm font-medium text-accent"
+          >
             <span
               aria-hidden="true"
-              data-font-sample=""
-              lang="ar"
-              dir="rtl"
-              className="text-2xl leading-loose"
-              style={{ fontFamily: `"${font.family}", serif` }}
-            >
-              {FONT_SAMPLE}
-            </span>
-          ),
-        }))}
-        onChange={(font) => change({ font })}
-      />
-      <div className="flex flex-col gap-1">
-        <label htmlFor={sizeId} className="font-semibold">
-          {t("settings.fontSize")}
-        </label>
-        <div className="flex min-h-11 items-center gap-3">
-          <input
-            id={sizeId}
-            type="range"
-            min={0}
-            max={LAST_SIZE}
-            step={1}
-            value={sizeIndex}
-            aria-valuetext={formatNumber(settings.fontSize)}
-            onChange={(event) => change({ fontSize: clampFontSize(FONT_SIZES[Number(event.target.value)]) })}
-            className="h-11 min-w-0 flex-1 accent-accent"
-          />
-          <span aria-hidden="true" className="w-8 text-end tabular-nums">
-            {formatNumber(settings.fontSize)}
-          </span>
-        </div>
-      </div>
-      <fieldset className="hidden flex-col md:pointer-fine:flex">
-        <legend className="mb-1 font-semibold">{t("settings.guide")}</legend>
-        <Switch
-          label={t("settings.showKeyboard")}
-          checked={settings.showKeyboard}
-          onChange={(showKeyboard) => change({ showKeyboard })}
-        />
-        <Switch
-          label={t("settings.fingerGuide")}
-          checked={settings.fingerGuide}
-          onChange={(fingerGuide) => change({ fingerGuide })}
-        />
-        <Switch
-          label={t("settings.keyLabels")}
-          checked={settings.keyLabels}
-          onChange={(keyLabels) => change({ keyLabels })}
-        />
-        <Switch
-          label={t("settings.delayedHint")}
-          hint={t("settings.delayedHintHint", { seconds: HINT_DELAY_MS / 1000 })}
-          checked={settings.delayedHint}
-          onChange={(delayedHint) => change({ delayedHint })}
-        />
-        <p className="text-sm text-muted">{t("settings.layoutHint", { layout: layoutName })}</p>
-      </fieldset>
-      <RecitationSettings settings={settings} change={change} />
-      <AudioSettings settings={settings} change={change} />
-      <BackupRestore />
-      <UnlockLetters />
-      <ResetProgress />
-      <a
-        href={formatRoute({ page: "about" })}
-        onClick={onClose}
-        className="flex min-h-11 items-center self-start text-sm text-muted underline underline-offset-4"
-      >
-        {t("nav.about")}
-      </a>
+              className="size-2.5 rotate-135 border-e-2 border-b-2 border-accent rtl:-rotate-135"
+            />
+            <span className="@max-[20rem]:sr-only">{t("settings.title")}</span>
+          </button>
+        ) : undefined
+      }
+    >
+      {wide && <GroupNav variant="rail" active={active} summaries={summaries} onChoose={choose} />}
+      {content}
     </Dialog>
   );
 }

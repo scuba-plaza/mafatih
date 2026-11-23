@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
 import { describeInk, inkByColour, inkColours } from "./helpers/ink.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { brightestPixel, dominantBrightness } from "./helpers/pixels.ts";
 import { savedSettings, seedProfile } from "./helpers/profile.ts";
 import { MARKS, surah } from "./helpers/quran.ts";
@@ -801,7 +802,7 @@ test("Settings shows how much is saved and Delete empties it", async ({ page }) 
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Recitation audio" });
   await expect(group.getByText(/^Saved recitations: [1-9]\d* \(\P{L}*[\d.]+ kB\P{L}*\)$/u)).toBeVisible();
@@ -908,7 +909,7 @@ test("when the saved recitations cannot be deleted Settings says so and keeps th
   await page.goto("/#/recitation/1/1");
   await player(page).getByRole("button", { name: "Play", exact: true }).click();
   await expect(player(page).getByRole("button", { name: "Play", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Recitation audio" });
   await expect(group.getByText(/^Saved recitations: [1-9]\d* /)).toBeVisible();
   await group.getByRole("button", { name: "Delete saved recitations" }).click();
@@ -925,7 +926,7 @@ test("the reciter is chosen in Settings and the next recitation comes from that 
     }
   });
   await page.goto("/#/recitation/1/1");
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const reciters = dialog.getByRole("group", { name: "Recitation audio" }).getByRole("group", { name: "Reciter" });
   await expect(reciters.getByRole("radio", { name: "Murattal", exact: true })).toBeChecked();

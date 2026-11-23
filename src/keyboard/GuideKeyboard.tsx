@@ -32,6 +32,7 @@ const SHIFT_SYMBOL = "⇧";
 const ENTER_SYMBOL = "↵";
 const SPACE_UNITS = 6;
 const ROW_UNITS = 15;
+export const GUIDE_WIDTH = ROW_UNITS * KEY_PX;
 const WIDE_KEYS: Readonly<Record<string, number>> = { Backslash: 1.5 };
 const HINT_ROW_PX = 36;
 export const GUIDE_QUERY = "(min-width: 48rem) and (pointer: fine)";
@@ -140,7 +141,8 @@ export function GuideKeyboard({
       aria-hidden="true"
       dir="ltr"
       data-guide-keyboard=""
-      className="mx-auto mt-[clamp(1.25rem,calc(5dvh-0.75rem),2.75rem)] flex w-[660px] max-w-full select-none flex-col"
+      style={{ width: GUIDE_WIDTH }}
+      className="mx-auto mt-[clamp(1.25rem,calc(5dvh-0.75rem),2.75rem)] flex max-w-full select-none flex-col"
     >
       {ROWS.map((row) => (
         <div key={row.slots[0]?.code} className="flex" style={{ paddingLeft: row.lead * KEY_PX }}>

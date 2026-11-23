@@ -1,0 +1,74 @@
+{
+  "phone-390x844": {
+    "scrollHeight": 2121,
+    "clientHeight": 758,
+    "focusables": 27,
+    "screens": 2.8,
+    "positions": {
+      "Language": 90,
+      "Vocalization": 226,
+      "Correct mistakes with Backspace": 554,
+      "Lesson font": 614,
+      "Lesson text size": 954,
+      "Keyboard guide": null,
+      "Ayat per passage": 1074,
+      "Surah order": 1130,
+      "Reciter": 1346,
+      "Delete saved recitations": 1534,
+      "Download backup": 1726,
+      "Restore from a backup file": 1782,
+      "Unlock all letters": 1878,
+      "Reset progress": 1970,
+      "About": 2062
+    },
+    "tabsToReset": 13
+  },
+  "desktop-1440x900": {
+    "scrollHeight": 2333,
+    "clientHeight": 808,
+    "focusables": 27,
+    "screens": 2.89,
+    "positions": {
+      "Language": 78,
+      "Vocalization": 214,
+      "Correct mistakes with Backspace": 522,
+      "Lesson font": 582,
+      "Lesson text size": 922,
+      "Keyboard guide": 986,
+      "Ayat per passage": 1306,
+      "Surah order": 1362,
+      "Reciter": 1578,
+      "Delete saved recitations": 1766,
+      "Download backup": 1938,
+      "Restore from a backup file": 1994,
+      "Unlock all letters": 2090,
+      "Reset progress": 2182,
+      "About": 2274
+    },
+    "tabsToReset": 17
+  },
+  "small-320x568-text200": {
+    "scrollHeight": 6178,
+    "clientHeight": 509,
+    "focusables": 27,
+    "screens": 12.14,
+    "positions": {
+      "Language": 242,
+      "Vocalization": 514,
+      "Correct mistakes with Backspace": 1766,
+      "Lesson font": 2042,
+      "Lesson text size": 3010,
+      "Keyboard guide": null,
+      "Ayat per passage": 3298,
+      "Surah order": 3410,
+      "Reciter": 4218,
+      "Delete saved recitations": 4754,
+      "Download backup": 5386,
+      "Restore from a backup file": 5499,
+      "Unlock all letters": 5691,
+      "Reset progress": 5875,
+      "About": 6059
+    },
+    "tabsToReset": 13
+  }
+}

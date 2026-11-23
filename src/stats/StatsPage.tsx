@@ -6,13 +6,13 @@ import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { dottedMark, isMark } from "~/text/arabic.ts";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { Segmented } from "~/ui/Segmented.tsx";
+import { SECTION_TITLE } from "~/ui/styles.ts";
 import { MODES, type Mode } from "./history.ts";
 import { keyRows, recentLessons } from "./rows.ts";
 
 const CELL = "px-2 py-1.5 text-start align-top";
 const HEAD = `${CELL} text-xs font-normal tracking-wide text-muted`;
 const ROW = "border-t border-faint";
-const SECTION_TITLE = "text-xs tracking-widest text-muted uppercase";
 const ARABIC_SCRIPT = /\p{Script_Extensions=Arabic}/u;
 
 function Scrollable({ label, children }: { label: string; children: ReactNode }) {

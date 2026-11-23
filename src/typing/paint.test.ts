@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
+import { HIGHLIGHT_NAMES, highlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
 
 const ONE_BLOCK: readonly TextSpan[] = [{ start: 0, end: 20 }];
 const TWO_BLOCKS: readonly TextSpan[] = [
@@ -174,4 +174,12 @@ test("every letter of a ligature painted by its own style is hidden or washed, w
       }
     }
   }
+});
+
+test("the lesson keeps the plain highlight names and a preview paints under names of its own", () => {
+  expect(highlightName("mafatih-done", "lesson")).toBe("mafatih-done");
+  expect(highlightName("mafatih-done", "preview")).toBe("mafatih-done-preview");
+  expect(highlightName("mafatih-wash", "preview")).toBe("mafatih-wash-preview");
+  const scoped = HIGHLIGHT_NAMES.map((name) => highlightName(name, "preview"));
+  expect(new Set([...HIGHLIGHT_NAMES, ...scoped]).size).toBe(HIGHLIGHT_NAMES.length * 2);
 });
