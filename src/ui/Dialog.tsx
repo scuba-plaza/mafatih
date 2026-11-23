@@ -58,7 +58,10 @@ export function Dialog({
       aria-labelledby={label === undefined ? titleId : undefined}
       aria-describedby={describedBy}
       closedby="any"
-      onClose={() => {
+      onClose={(event) => {
+        if (event.target !== event.currentTarget) {
+          return;
+        }
         announceDialogChange();
         onClose();
       }}

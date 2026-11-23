@@ -99,7 +99,6 @@ test.describe("on a phone", () => {
       "English",
       "Scheherazade New · 40",
       "Murattal · 4 ayat",
-      "Backup, restore, reset",
     ]);
     for (const lines of await summaries.evaluateAll((all) =>
       all.map(

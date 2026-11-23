@@ -285,7 +285,7 @@ test("in Arabic the section is in Arabic and restoring a backup in English switc
   await expectNoAxeViolations(page);
   await group.getByLabel("الاستعادة من ملف نسخة احتياطية").setInputFiles(file(backupOf()));
   await group
-    .getByRole("group", { name: "هل تريد استبدال تقدمك الحالي؟" })
+    .getByRole("dialog", { name: "هل تريد استبدال تقدمك الحالي؟" })
     .getByRole("button", { name: "استبدال" })
     .click();
   await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();

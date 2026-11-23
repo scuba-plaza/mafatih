@@ -90,3 +90,22 @@ test("a danger confirmation is told apart from a normal one by its confirm butto
   expect(red).toBeGreaterThan(blue + 40);
   expect(colours["Unlock all keys"]).not.toBe(colours["Reset progress"]);
 });
+
+test("answering a confirmation inside Settings leaves Settings open", async ({ page }) => {
+  await page.goto("/#/practice");
+  const pane = await openSettingsGroup(page, "General");
+  const settings = page.getByRole("dialog", { name: "Settings" });
+  await pane.getByRole("button", { name: "Reset progress" }).click();
+  await page.getByRole("dialog", { name: "Reset progress?" }).getByRole("button", { name: "Keep my progress" }).click();
+  await expect(page.getByRole("dialog", { name: "Reset progress?" })).toBeHidden();
+  await expect(settings).toBeVisible();
+  await expect(pane.getByRole("button", { name: "Reset progress" })).toBeFocused();
+  await pane.getByRole("button", { name: "Reset progress" }).click();
+  await page
+    .getByRole("dialog", { name: "Reset progress?" })
+    .getByRole("button", { name: "Reset", exact: true })
+    .click();
+  await expect(settings).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(settings).toBeHidden();
+});
