@@ -37,3 +37,21 @@ Your mock up is weird, it says "x of y KEYS unlocked" but then the button says "
 - "Unlock all letters" moves out of Settings. The owner wrote both "Stats page" and "Practice page": main design is the Practice view of the Stats page; the Practice-page progress row is shown as the alternative.
 - Vocabulary: "keys" is what the app counts, so the button became "Unlock all letter keys" (the 8 mark keys stay locked). Added as UX target 11 and Task 7.
 - The preview must be truthful: UX target 10 and the Global Constraints of the plan.
+
+## After the final mock-up (2026-11-23), from the owner, verbatim
+
+A few notes:
+
+1. Texts like "Scheherazade New 40px auto" (so the kind of "previews" of the currently set values for each settings section) should be limited to at most one line, we dont need to show all this information all at once. This applies for all viewports.
+2. Remove the "Asks only for the marks you have unlocked" hint.
+3. Change "Unlock all letter keys" to "Unlock all keys" and also make sure that the action behind the button also really unlocks ALL keys including harakat.
+4. You are right the "Unlock all keys" button fits much better on the practice page itself instead of the stats page.
+
+Ok now please go ahead with task 0.4. If you have any questions please ask anytime.
+
+### How task 0.4 reads this
+
+- Summaries are one line on every viewport and show one or two values (Lesson: font and size only).
+- The Auto vocalization option has no hint; the other three keep theirs.
+- The button is "Unlock all keys", on the Practice page, and `unlockAllKeys` sets all 44 keys including the marks. Because it also changes what Auto asks for, the confirmation says "marks included".
+- Written into the plan as "Decisions so far" 5, 8, 9, the "Settled design" section and Phase 1 Tasks 5 and 8.

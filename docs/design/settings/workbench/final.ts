@@ -12,7 +12,7 @@ import {
   reciterSeg,
   slider,
   sw,
-  vocalSeg,
+  seg,
   backspaceSwitch,
 } from "./lib.ts";
 
@@ -86,8 +86,23 @@ function guideSwitches(ctx: Ctx): string {
   return `<div class="swlist">${sw({ label: ctx.t("settings.showKeyboard"), flag: "kbd" })}${sw({ label: ctx.t("settings.fingerGuide"), flag: "finger" })}${sw({ label: ctx.t("settings.keyLabels"), flag: "labels" })}${sw({ label: ctx.t("settings.delayedHint"), hint: ctx.t("settings.delayedHintHint", { seconds: ctx.n(3) }), checked: false })}</div><p class="hint">${ctx.t("settings.layoutHint", { layout: ctx.t("guide.layout") })}</p>`;
 }
 
+function vocalSeg(ctx: Ctx): string {
+  const hints = { auto: "", letters: ctx.t("vocalization.lettersHint"), harakat: ctx.t("vocalization.harakatHint"), full: ctx.t("vocalization.fullHint") } as const;
+  return seg(ctx, {
+    legend: ctx.t("settings.vocalization"),
+    value: "auto",
+    hints: true,
+    options: (["auto", "letters", "harakat", "full"] as const).map((key) => ({
+      value: key,
+      label: ctx.t(`vocalization.${key}`),
+      hint: hints[key],
+      attrs: `data-pv-vocal data-vocal="${key}"`,
+    })),
+  });
+}
+
 function lessonControls(ctx: Ctx): string {
-  return `${sub(m3(ctx, "subText"), `${fontChips(ctx)}${slider(ctx)}`)}${sub(m3(ctx, "subTyping"), `${vocalSeg(ctx, true)}${backspaceSwitch(ctx)}`)}`;
+  return `${sub(m3(ctx, "subText"), `${fontChips(ctx)}${slider(ctx)}`)}${sub(m3(ctx, "subTyping"), `${vocalSeg(ctx)}${backspaceSwitch(ctx)}`)}`;
 }
 
 function confirmFree(): string {
@@ -114,7 +129,7 @@ interface G3 {
 
 const GROUPS3: readonly G3[] = [
   { id: "general", title: (c) => m3(c, "gGeneral"), summary: (c) => (c.lang === "ar" ? "العربية" : "English") },
-  { id: "lesson", title: (c) => m3(c, "gLesson"), summary: (c) => `${bdi("Scheherazade New")} · ${c.n(40)} · ${c.t("vocalization.auto")}` },
+  { id: "lesson", title: (c) => m3(c, "gLesson"), summary: (c) => `${bdi("Scheherazade New")} · ${c.n(40)}` },
   { id: "recitation", title: (c) => m3(c, "gRecitation"), summary: (c) => `${c.t("reciter.murattal")} · ${c.n(4)} ${m3(c, "ayat")}` },
   { id: "data", title: (c) => m3(c, "gData"), summary: (c) => m3(c, "dataSummary") },
 ];
@@ -240,6 +255,11 @@ body.measure .frame.tab{zoom:1}
 .gk-hint{height:36px;display:flex;align-items:center;color:var(--accent);font-size:15px;width:660px;justify-content:center}
 [data-kbd=off] .gk-board{display:none}
 [data-finger=off] .gk-hint{visibility:hidden}
+.vrow .v{flex:1;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:none}
+.vrow .l{flex:none}
+.rail button{align-items:stretch;min-width:0}
+.rail button small{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hint:empty{display:none}
 .shownat{color:var(--muted);text-transform:none;letter-spacing:0}
 .paneCol{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
 .paneCol .pane{flex:1}
@@ -294,7 +314,7 @@ export function finalFrames(): readonly FrameSpec[] {
 export function finalBoard(): string {
   const frames = finalFrames().map((s) => frame(s, "FINAL")).join("");
   return `<article class="board" id="FINAL"><header class="bh"><span class="badge">F</span><div><h2>The final design</h2><p>Design 2 for phone and desktop, a push list on phone with the centred title, four groups with General first, and the Lesson group holding the preview with everything that changes it. Everything is clickable.</p></div></header><div class="frames">${frames}</div><div class="facts"><dl>
-<div><dt>Groups</dt><dd>General, Lesson, Recitation, Your data. “Unlock all letter keys” has left Settings (see the next board).</dd></div>
+<div><dt>Groups</dt><dd>General, Lesson, Recitation, Your data. “Unlock all keys” has left Settings and moved to the Practice page (last board). Summaries are one line.</dd></div>
 <div><dt>Tallest pane, measured</dt><dd>Phone (target 1.5 or less): <b data-metric="FINAL-list" data-limit="1.5">…</b> screens<br>Tablet: <b data-metric="FINAL-tab" data-limit="1.5">…</b><br>Desktop (target 1.0 or less): <b data-metric="FINAL-desk" data-limit="1.0">…</b></dd></div>
 <div><dt>Reach</dt><dd>Any setting in 2 actions: open its group, then use it.</dd></div>
 <div class="worst"><dt>What the mock-up cannot show</dt><dd>In the build the preview is not drawn like this. It is the app's own lesson surface and keyboard (next board). Here it only imitates them.</dd></div>
@@ -315,7 +335,8 @@ export function truthBoard(): string {
 export function unlockBoard(): string {
   const fig = (cls: string, file: string, caption: string): string =>
     `<figure class="realfig ${cls}"><img src="real/${file}" alt="${esc(caption)}"><figcaption>${esc(caption)}</figcaption></figure>`;
-  return `<article class="board" id="UNLOCK"><header class="bh"><span class="badge">🔓</span><div><h2>Where “Unlock all letter keys” goes</h2><p>These are screenshots of the real app with the new control added to the real page. It lives on the Stats page, in its Practice view, because that is where a learner sees which keys they have unlocked.</p></div></header>
-<div class="realrow">${fig("d", "unlock-stats-desktop.png", "Stats, Practice view, desktop: a panel above the key table. The key count and the button sit together; the one-line explanation is under them.")}${fig("p", "unlock-stats-phone.png", "Stats, Practice view, phone.")}${fig("p", "unlock-stats-phone-confirm.png", "After pressing it: the same question and warning as today, with “Not now” focused (the safe answer).")}</div>
-<div class="realrow" style="margin-top:32px">${fig("d", "unlock-practice-desktop.png", "Alternative, on the Practice page itself: a button at the end of the progress row, next to “Keys unlocked 14 of 44”. Closer to the lesson, but it adds a control to a page that has to fit on one screen.")}<div class="note"><b>Behaviour</b><br>The panel appears only when Stats is showing Practice (not Recitation or Custom). The confirmation, the wording and the result message are the ones Settings uses today. When every letter key is unlocked the button is disabled and the panel says “All letter keys are unlocked.” It changes nothing else: mark keys stay locked, and Reset progress (in Settings, Your data) still takes you back to the start.<br><br><b>Your call</b><br>You wrote “Stats page” and also asked about the “Practice page”. I read that as the Practice view of Stats and made that the main design. The Practice-page version is shown so you can choose.<br><br><b>One vocabulary</b><br>The app counts and names “keys” everywhere (Keys unlocked, Keys in Practice, Time per key), and the 44 keys are 36 letter keys and 8 mark keys. So this is “Unlock all letter keys”, not “letters”. It must say “letter keys” because the 8 mark keys deliberately stay locked.</div></div></article>`;
+  return `<article class="board" id="UNLOCK"><header class="bh"><span class="badge">🔓</span><div><h2>Where “Unlock all keys” goes</h2><p>Screenshots of the real Practice page with the new control added. It sits in the progress row, next to “Keys unlocked 14 of 44”.</p></div></header>
+<div class="realrow">${fig("d", "unlock-practice-desktop.png", "Desktop: the last item of the progress row.")}${fig("p", "unlock-practice-phone.png", "Phone: on its own row under the progress items, in the free space above the lesson.")}</div>
+<div class="realrow" style="margin-top:32px">${fig("d", "unlock-practice-desktop-confirm.png", "After pressing it: a dialog asks first. “Not now” has the focus. A dialog, not an inline question, so the one-screen Practice page does not reflow.")}${fig("p", "unlock-practice-phone-confirm.png", "On a phone the same dialog is a bottom sheet.")}</div>
+<div class="realrow" style="margin-top:32px"><div class="note"><b>Behaviour</b><br>Pressing “Unlock” unlocks all 44 keys, letters and marks (harakat) together, and never lowers progress. The progress row then reads “44 of 44” and the existing line “All keys are unlocked.” appears; the button goes away because there is nothing left to unlock. The lesson restarts with every key, and with Auto vocalization every mark is now required. Reset progress, in Settings under Your data, still takes you back to the start.<br><br><b>Wording</b><br>Button “Unlock all keys”; question “Unlock all keys?”; text “Practice will use every key from now on, marks included. Reset progress, in Settings, takes you back to the start.”; “Not now” and “Unlock”. Arabic in the plan.<br><br><b>Not shown</b><br>While the phone's keyboard is up the progress row is hidden, and so is the button, exactly as the row is today.</div></div></article>`;
 }

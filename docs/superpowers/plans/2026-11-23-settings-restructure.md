@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript (strict), Vite, Tailwind 4, Vitest (units), Playwright (browser). No new dependencies.
 
-**Spec:** "What is wrong today", "UX targets" and "Settled design" in this file. "Settled design" is empty until Task 0.4; it is filled in from the mock-ups the user approves, exactly as `2026-11-16-one-screen-layout.md` was.
+**Spec:** "What is wrong today", "UX targets" and "Settled design" in this file. "Settled design" was written in Task 0.4 from the mock-ups the owner approved, as `2026-11-16-one-screen-layout.md` was.
 
 ## Decisions so far (owner, rounds 1 to 3; the verbatim record is `docs/design/settings/feedback.md`)
 
@@ -16,9 +16,56 @@
 2. **Design 2** for phone and desktop. Phone: a push list of groups with their current values; the active section's title is **centred in the middle of the dialog** (back on the start side, Done on the end side). Desktop: three columns (rail, controls, preview column).
 3. **Groups, in this order:** General, Lesson, Recitation, Your data. General first. Audio is part of Recitation.
 4. **The Lesson group holds the live preview and every setting that changes the lesson's appearance or typing UI:** lesson font, text size, vocalization, correcting mistakes with Backspace, and the keyboard guide switches (desktop only, as today).
-5. **"Unlock all letters" leaves Settings.** It moves to the Stats page, in its Practice view, above the key table (alternative shown: the progress row of the Practice page; the owner chooses). There is no Practice group in Settings.
+5. **"Unlock all letters" leaves Settings and becomes "Unlock all keys" on the Practice page** (in the progress row, next to "Keys unlocked 14 of 44"). It unlocks **all 44 keys, marks (harakat) included**, not just letters. There is no Practice group in Settings.
 6. **The preview must be truthful (binding, utmost importance).** See UX target 10 and the Global Constraints. Drift between the preview and the real lesson must be impossible by construction, and tests must prove it.
-7. **One vocabulary** across the interface in English and Arabic (UX target 11, Task 7). First case: the app counts and names **keys** everywhere, so the button is "Unlock all letter keys" (the 8 mark keys deliberately stay locked), never "letters" next to a count of "keys".
+7. **One vocabulary** across the interface in English and Arabic (UX target 11, Task 11). First case: the app counts and names **keys** everywhere, so the button is "Unlock all keys", never "letters" next to a count of "keys".
+8. **Group summaries are one line, on every viewport**, never wrapping, and carry as little as one or two values.
+9. **The hint "Asks only for the marks you have unlocked in Practice." is removed** (the Auto option has no hint).
+
+## Settled design (Task 0.4)
+
+Visual source of truth: `docs/design/settings/round3/FINAL.png` (Settings), `TRUTH.png` (how the preview stays truthful), `UNLOCK.png` and `real/unlock-practice-*.png` (Unlock all keys on the real Practice page). Interactive versions were published as artifacts. Measured against the targets: phone 0.84 screens (limit 1.5), tablet 0.74, desktop 0.85 (limit 1.0).
+
+**S1 Structure.** Settings stays the modal dialog opened by the header button (`SettingsButton` > `SettingsDialog` > `ui/Dialog`). Master and detail with four groups. It opens on the first group, General, and its group state lives in memory only.
+
+**S2 Groups, controls and wording (English / Arabic).** Every control is in exactly one group.
+
+| Group | Arabic | Contents (accessible names stay as today unless marked) |
+|---|---|---|
+| General | عام | **Language** (English, العربية); **About** link |
+| Lesson | الدرس | Preview. Section **Text** (النص): **Lesson font** (3 radio chips), **Lesson text size** (slider). Section **Typing** (الكتابة): **Vocalization** (4 options), **Correct mistakes with Backspace** (switch). Section **Keyboard guide** (existing title; only where the guide exists today: width at least 48rem and a fine pointer): Show the keyboard, Show which finger to use, Show letters on the keys, Show the next key after a pause, and the layout hint |
+| Recitation | التلاوة | **Ayat per passage** (1 to 4), **Surah order**, **Reciter**, saved recitations (usage line, **Delete saved recitations**) |
+| Your data | بياناتك | Section **Backup and restore**: **Download backup**, **Restore from a backup file**. Section **Reset progress**: its explanation (the existing reset warning) and the **Reset progress** button |
+
+Not in Settings any more: Unlock all keys (see S7). Not a setting and not changed: the audio panel on the Recitation page, `customText`, `volume`, `muted`, `playWhole`, `loop`.
+
+**S3 Layouts and navigation.**
+- *Under 48rem (phones, narrow windows):* a bottom sheet of fixed height `min(43.75rem, 90dvh)`. It opens on a list of the four groups, one row each: title on the start side, one-line summary and a chevron on the end side. Choosing a row pushes that group; the header shows **back (chevron + "Settings") on the start side, the group's title centred in the dialog, Done on the end side**. In the list the same header shows the title "Settings" centred and no back button. The title is centred by a three-column header grid (`minmax(0,1fr) auto minmax(0,1fr)`), so it stays centred whatever the width of back and Done, and the grid mirrors in right-to-left through logical properties. When the dialog is too narrow for the label (320 px, or large text), back shows only its chevron and keeps its accessible name.
+- *48rem and wider:* a centred dialog of fixed height `min(43.75rem, 90dvh)` with the groups as a rail on the start side (each item: title and one-line summary) and the selected group's pane beside it. Width 48.75rem. With a fine pointer and a viewport of at least 64rem the width is 72.5rem (capped at the viewport minus 2rem) and the Lesson group gets a third column holding the preview, the keyboard and the Keyboard guide switches. Without it (a tablet, or a narrower window) the preview is pinned above the pane's controls and the guide switches, where they exist, sit under Typing.
+- Header on wide layouts: "Settings" on the start side, Done on the end side.
+- The rail is a `nav` of buttons; the selected one has `aria-current="true"`. It is not a tablist (no roving arrow keys).
+
+**S4 Summaries.** One line, always (`truncate`; no wrapping at any width, text size or language), and short: General shows the language's own name; Lesson shows `{font} · {size}`; Recitation shows `{reciter} · {count} ayat`; Your data shows "Backup, restore, reset". The full text stays in the DOM, so the row's accessible name is its title plus its summary even when the summary is visually cut with an ellipsis. Nothing else is summarised.
+
+**S5 The Lesson group and its preview (binding rules in UX target 10).**
+- The preview exists only in Lesson. Phone: a slim preview pinned under the header (one line of the lesson surface, 100% size) that opens in place to three lines; it is pinned only when the viewport is at least 36rem high (so large text and short screens, where 36rem is taller, make it scroll with the controls instead). Wide: pinned above the pane, or the third column (S3).
+- The preview is the real lesson surface and the real keyboard guide, scaled by one uniform factor `min(1, available width / natural width)` applied to both together (the keyboard's natural width is 660 px). A label "Shown at {percent}%" appears only when the factor is below 1. It never shows explanatory captions of its own: the settings' own hints explain the settings.
+- The preview state: a fixed sample sentence (`كِتَابٌ جَدِيدٌ عَلَى الطَّاوِلَةِ وَالقَلَمُ بِجَانِبِهِ`), its first word typed, then one wrong key, all produced by the real session functions. With Backspace correction on the wrong key is drawn as the real surface draws it; with it off the key is blocked, as in the lesson.
+- Vocalization options show the chosen option's hint under the control; non-chosen hints stay in the DOM, visually hidden and still linked with `aria-describedby`. **Auto has no hint.** Letters only, Harakat and Full keep theirs.
+
+**S6 Controls that change shape.** Language, Ayat per passage, Surah order, Reciter and Vocalization are segmented controls (radio inputs in a named group). Ayat per passage was a `select` (role combobox) and becomes radios named 1 to 4. Lesson font is three radio chips: each shows the Arabic sample in its own font (kept as `[data-font-sample]`) and the family name.
+
+**S7 Unlock all keys.**
+- Where: the Practice page's progress section (`Hud`), at the end of the "Keys unlocked / Newest key / Accuracy / Time per key / Last lesson" row on wide screens and on its own row below the items on a phone. It is hidden whenever the HUD is hidden (phone keyboard up) and when all keys are unlocked (the HUD then says "All keys are unlocked.").
+- What it does: `unlockAllKeys` sets `ladder.unlocked` to the number of keys (44), never lowers it, and so unlocks the 36 letters **and** the 8 marks. With Auto vocalization every mark is now typed. The lesson restarts as it does today when progress changes.
+- Confirmation: a dialog (not an inline question, which would reflow the one-screen Practice page): title "Unlock all keys?", a "Not now" button in the header (it receives focus: the safe answer), the warning, and an "Unlock" button. Escape and a click outside mean "Not now". After "Unlock" focus goes to the lesson's typing input, as after a finished lesson.
+- Strings (English / Arabic): button **Unlock all keys** / **فتح كل المفاتيح**; question **Unlock all keys?** / **فتح كل المفاتيح؟**; warning **Practice will use every key from now on, marks included. Reset progress, in Settings, takes you back to the start.** / **سيستخدم التمرين كل المفاتيح من الآن، بما فيها الحركات. إعادة ضبط التقدم في الإعدادات تعيدك إلى البداية.**; **Not now** / **ليس الآن**; **Unlock** / **افتح**; the existing "All keys are unlocked." (`hud.allUnlocked`) is the result message. Message keys move from `settings.unlock*` to `practice.unlock*`.
+
+**S8 Focus.** Opening: as today (the platform focuses the first control) and closing returns focus to the Settings button. Phone: choosing a group moves focus to the group's title (made focusable with `tabIndex={-1}`) so it is announced; back returns focus to the row that opened the group. Rail: focus stays on the chosen rail button; the pane changes under it. Confirmation flows inside Settings (restore, reset) are unchanged: the safe answer is focused first and the opener gets focus back.
+
+**S9 Targets (confirmed).** Any setting in at most 2 actions; tallest pane at most 1.5 screens at 390 x 844 and at most 1.0 at 1440 x 900; at most 7 groups (there are 4); every control in exactly one group; no new persisted state; the preview is truthful by construction.
+
+**S10 Out of scope.** A separate Settings page, tabs, search, contextual opening, remembering the last group across openings, a Practice group, any change to Recitation's audio panel or to the Stats page.
 
 ## What is wrong today
 
@@ -45,7 +92,7 @@ The settings stored in `Settings` (`src/settings/settings.ts`) that have a contr
 
 ## UX targets (the measurable bar every candidate design is judged against)
 
-These are proposals. The user confirms or changes them with the round 1 feedback; the confirmed numbers go into "Settled design" and become tests in Task 2.
+These are proposals. The user confirms or changes them with the round 1 feedback; the confirmed numbers go into "Settled design" and become tests in Tasks 4 and 7.
 
 1. **Reach.** Any setting is reachable from "Settings opened" in at most 2 deliberate actions (tap, click or key press) and is visible without scrolling more than half a screen.
 2. **Scroll budget.** The tallest screen/pane/page of Settings is at most 1.5 screens tall at 390x844 and fits without scrolling at 1440x900. (Task 0.1 measures today's number and shows it in round 1, so the improvement is visible.)
@@ -56,13 +103,13 @@ These are proposals. The user confirms or changes them with the round 1 feedback
 7. **Orientation.** The learner always knows where they are and how to go back or close. Closing returns focus to the Settings button (as today).
 8. **Inclusive by default.** Everything works by keyboard and screen reader, in right-to-left Arabic, at 320 px wide with text at 200%, with forced colours, and with reduced motion. Touch targets stay at least 44 px.
 9. **No new persisted state.** The restructure adds no field to the profile (`mafatih:profile:2`), backup file or sanitizers. UI state such as "which group is open" lives in memory. Settings still opens at its top.
-10. **The preview is truthful by construction.** There is exactly one implementation of the lesson text and one of the keyboard guide (today `TypingSurface` and `GuideKeyboard`). The preview mounts those same components with the learner's real `settings` and a fixed sample whose state comes from the real functions (`buildPrompt`, `requiredMarks` with the learner's real unlocked marks, `createSession`, `applyKey`). It owns no CSS, no rule and no layout for lesson text or keys. If a component cannot be mounted as is (for example `TypingSurface` also runs page-level fitting and reports to the fit-screen context), the task is to extract the shared display part under green tests and have both the lesson pages and the preview use it, never to copy it. The only preview-specific styling allowed is one uniform scale applied to the whole preview subtree (text and keyboard together), and where it is not 100% it is labelled ("Shown at 60%"). Mechanisms the plan requires (details in Task 0.4 and Tasks 3 and 5):
+10. **The preview is truthful by construction.** There is exactly one implementation of the lesson text and one of the keyboard guide (today `TypingSurface` and `GuideKeyboard`). The preview mounts those same components with the learner's real `settings` and a fixed sample whose state comes from the real functions (`buildPrompt`, `requiredMarks` with the learner's real unlocked marks, `createSession`, `applyKey`). It owns no CSS, no rule and no layout for lesson text or keys. If a component cannot be mounted as is (for example `TypingSurface` also runs page-level fitting and reports to the fit-screen context), the task is to extract the shared display part under green tests and have both the lesson pages and the preview use it, never to copy it. The only preview-specific styling allowed is one uniform scale applied to the whole preview subtree (text and keyboard together), and where it is not 100% it is labelled ("Shown at 60%"). Mechanisms the plan requires (details in the Settled design and Tasks 2, 3 and 6):
     - **One type:** `LessonDisplaySettings = Pick<Settings, ...>` is the only settings type the lesson display components accept; the preview passes the same.
     - **Exhaustive classification:** a `Record<keyof Settings, "lesson-display" | "other">` in `settings.ts`. Adding a setting without classifying it fails `pnpm typecheck`. Every `lesson-display` key has its control in the Lesson group and nothing else is in it (test).
     - **Parity tests in a real browser** (Playwright): for every `lesson-display` setting and each of its values (all fonts, all sizes, all four vocalizations with different unlocked marks, Backspace on and off, keyboard, finger guide, key labels and delayed hint on and off), render the real lesson and the preview from the same settings and assert identical text, identical computed font family and size (after dividing out the uniform scale), identical highlight ranges and colours, identical keyboard keys, legends and lit key. A parity test that only compares the preview with itself is a defect.
     - **Boundary test** (a source-reading Vitest, like `src/practice/boundary.test.ts`): fails if a preview file defines lesson-text or key styles, draws text itself, or imports anything but the shared components and the session functions.
     - **Behaviour that must show truthfully:** a wrong key is drawn as the real surface draws a pending mistake when Backspace correction is on and not drawn (blocked) when it is off; marks the learner must type dim like letters and marks that are not typed keep the apparatus colour, according to the real vocalization rules; the keyboard guide hides or shows exactly as the real one does.
-11. **One coherent vocabulary** in every user-facing string, English and Arabic (see Task 7).
+11. **One coherent vocabulary** in every user-facing string, English and Arabic (see Task 11).
 
 ## Global Constraints
 
@@ -75,7 +122,7 @@ These are proposals. The user confirms or changes them with the round 1 feedback
 - The dialog keeps: `showModal`, closing with Escape, Done and a click outside, focus returned to the Settings button, opening at its top, no scroll of the page behind it, safe-area insets, the phone sheet and the wide-screen centred box (or whatever the settled design replaces them with, pinned by tests of the same strength).
 - ARIA snapshots (`e2e/aria-snapshots.spec.ts-snapshots`) are machine-written: after the intended change run `pnpm build && PW_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm exec playwright test e2e/aria-snapshots.spec.ts --update-snapshots` and read the diff before committing.
 - **Truthful preview (binding):** see UX target 10. No file added for the preview may contain lesson-text or keyboard styling or rules of its own.
-- **One vocabulary:** new or changed strings use the terms in `docs/design/settings/glossary.md` (written in Task 7 and read before any string is added). "Keys" is the unit the app counts; never use "letters" for the thing counted as "keys".
+- **One vocabulary:** new or changed strings use the terms in `docs/design/settings/glossary.md` (written in Task 11 and read before any string is added). "Keys" is the unit the app counts (letter keys and mark keys); never use "letters" for the thing counted as "keys".
 - Entry chunk limit 130 KB gzip (`pnpm check:size`).
 - Browser tests: `pnpm build` first (Playwright serves `dist`), then `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm exec playwright test <spec> --project=<project> --workers=4`. Never run two Playwright runs at once (port 4173). Headless Chromium hides scrollbars; scroll-extent measurements use `scrollHeight` and `clientHeight`, which are not affected.
 - Branch `claude/inspiring-franklin-csy594`. One commit per green slice. Every commit message ends with the two trailer lines `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` and `Claude-Session: https://claude.ai/code/session_01Co5QwpifPvgjBZJ5SQ2yxA`. Do not open a pull request unless the user asks.
@@ -85,11 +132,12 @@ These are proposals. The user confirms or changes them with the round 1 feedback
 The input classes this restructure is most likely to break without any test noticing, most likely first. Each is pinned by the task named.
 
 - **The preview drifting from the real lesson** in any setting combination (a font or size that scales differently, a vocalization that dims the wrong marks, a keyboard that shows when the lesson hides it). Pinned by the parity tests of UX target 10.
-- A setting that exists but is no longer reachable (forgotten when controls are moved between groups, or hidden on a screen size by a group that is collapsed or off-screen). Pinned in Task 2 (every control found in exactly one named group, by name, on phone and desktop).
-- The keyboard guide group, which today is hidden on touch and narrow screens (`hidden md:pointer-fine:flex`). The new structure must not show an empty group on a phone, nor a group tab/row that leads to nothing. Pinned in Task 4.
-- Arabic and right-to-left: long Arabic group names wrapping, chevrons and back arrows pointing the wrong way, tab order and arrow-key direction in a tab list or rail. Pinned in Task 6.
-- Focus: after drilling into a group, switching tabs, restoring a backup or answering a confirmation, focus must land somewhere sensible (never on `body`, never on a removed element). `BackupRestore` already restores focus to its file input; keep that. Pinned in Task 5.
-- Small and large text: 320 px wide with text at 200%, and the largest lesson text size, must not clip a control or put Done out of reach. Pinned in Task 6.
+- A setting that exists but is no longer reachable (forgotten when controls are moved between groups, or hidden on a screen size by a group that is collapsed or off-screen). Pinned in Task 4 (every control found in exactly one named group, by name, on phone and desktop).
+- The keyboard guide, which today is hidden on touch and narrow screens (`hidden md:pointer-fine:flex`). The Lesson group must not show an empty "Keyboard guide" section or a preview keyboard where the lesson has none. Pinned in Task 5 and Task 6.
+- Unlocking all keys changes what Auto vocalization asks for (every mark). A lesson in progress must restart cleanly and the Practice page must still fit one screen at every size. Pinned in Task 8.
+- Arabic and right-to-left: long Arabic group names wrapping, chevrons and back arrows pointing the wrong way, the rail and the three-column preview layout. Pinned in Task 10.
+- Focus: after drilling into a group, choosing a rail item, restoring a backup or answering a confirmation, focus must land somewhere sensible (never on `body`, never on a removed element). `BackupRestore` already restores focus to its file input; keep that. Pinned in Task 9.
+- Small and large text: 320 px wide with text at 200%, and the largest lesson text size, must not clip a control or put Done out of reach. Pinned in Task 10.
 
 ## Required skills
 
@@ -109,15 +157,17 @@ There is no jsdom component-test setup in this repo; widgets are tested at S5. N
 
 - Every step: `pnpm check`, `pnpm typecheck`, `pnpm test`.
 - A task that changes browser behaviour writes its Playwright test first and runs only the spec it changes. Never skip or loosen an existing test; if a test must change because the design changed on purpose, change it in the same commit and say why in the message.
-- The full gate `pnpm verify` runs once, in Task 8. It must be green before anything is called done.
+- The full gate `pnpm verify` runs once, in Task 12. It must be green before anything is called done.
 
 ## Review checkpoints
 
-At the end of Task 3 and Task 6, stop, take real-app screenshots with Playwright at 1440x900 (desktop), 390x844 (phone) and 320x568 with text at 200%, device scale 2, English and Arabic, with the approved mock-up beside each, and show them to the user. Apply their feedback before continuing. Then spawn a fresh review sub-agent (model `sonnet`, effort `medium`; if unavailable, run the same brief yourself as an adversarial reviewer over the diff since the previous checkpoint). Brief: "Review only the changes since the previous checkpoint against the approved mock-ups, the UX targets and the Review Focus list in docs/superpowers/plans/2026-11-23-settings-restructure.md. Assume the code is wrong until you have tried to break it; run it with `pnpm dev` and Playwright. Prioritise UX and fidelity to the mock-ups, then accessibility, correctness, test quality (implementation-coupled or tautological tests are findings), simplicity (dead code, speculative options, anything removable), and en/ar parity. Report findings only, as `[severity] file:line - finding - how to reproduce - suggested fix`. Do not edit files." The main agent fixes every finding, test-first when it is a behaviour, in a commit `Address review of checkpoint N`.
+At the end of Task 4, Task 6 and Task 10, stop, take real-app screenshots with Playwright at 1440x900 (desktop), 390x844 (phone) and 320x568 with text at 200%, device scale 2, English and Arabic, with the approved mock-up beside each, and show them to the user. Apply their feedback before continuing. Then spawn a fresh review sub-agent (model `sonnet`, effort `medium`; if unavailable, run the same brief yourself as an adversarial reviewer over the diff since the previous checkpoint). Brief: "Review only the changes since the previous checkpoint against the approved mock-ups, the UX targets and the Review Focus list in docs/superpowers/plans/2026-11-23-settings-restructure.md. Assume the code is wrong until you have tried to break it; run it with `pnpm dev` and Playwright. Prioritise UX and fidelity to the mock-ups, then accessibility, correctness, test quality (implementation-coupled or tautological tests are findings), simplicity (dead code, speculative options, anything removable), and en/ar parity. Report findings only, as `[severity] file:line - finding - how to reproduce - suggested fix`. Do not edit files." The main agent fixes every finding, test-first when it is a behaviour, in a commit `Address review of checkpoint N`.
 
 ---
 
 # Phase 0: Design with the user (mock-ups, in rounds)
+
+**Status: complete.** Rounds 1 to 3 are done (`docs/design/settings/round1`, `round2`, `round3`, feedback in `feedback.md`). Task 0.4 is satisfied by "Decisions so far", "Settled design" and the rewritten Phase 1 below; it still needs the owner to confirm the amended plan before any code is written.
 
 **This is the very first step. Write no production code, change no spec and install nothing in the app until Task 0.4 is complete.** The point of the phase is to let the user see and compare real options before anything is built, and to let their feedback, not the agent's taste, decide the design.
 
@@ -174,143 +224,170 @@ At the end of Task 3 and Task 6, stop, take real-app screenshots with Playwright
 
 # Phase 1: Build the settled design
 
-**Where this phase still mentions a Practice group, a Keyboard guide group or tabs, the "Decisions so far" section overrides it: the groups are General, Lesson, Recitation, Your data; the keyboard guide switches sit inside Lesson (desktop only); "Unlock all letter keys" is built on the Stats page; the preview mounts the real lesson components. Task 0.4 rewrites this phase to match before any code is written.**
+Work in vertical slices on `claude/inspiring-franklin-csy594`. Run the checks in "Verification" after every slice. Task numbers are the order of work.
 
-The tasks below are the order of work. They are complete in shape (files, tests, acceptance) but name the new components generically ("the group screen", "the navigation"); Task 0.4 replaces those generic words with the real names. Everything marked "(from the settled design)" is filled in there and nowhere else.
+## File structure
 
-## File structure (before the settled design adds to it)
-
-- `src/settings/SettingsDialog.tsx` (158 lines, owns 6 inline blocks and orders 6 more): becomes the shell that holds the navigation and shows the current group. It no longer renders individual controls.
-- One focused file per group (from the settled design), each owning the controls of its group and nothing else. Controls that already have a file keep it (`RecitationSettings.tsx`, `AudioSettings.tsx`, `BackupRestore.tsx`, `UnlockLetters.tsx`, `ResetProgress.tsx`); the inline blocks (language, vocalization, backspace, font, size, keyboard guide) each move to a group file in `src/settings/`.
-- `src/ui/*`: reuse. Add a primitive only if two groups need it.
-- `e2e/helpers/pages.ts`: one adapter, `openSettingsGroup(page, name)`, the only place that knows how to reach a group.
-- `e2e/settings-layout.spec.ts` (new): the reach, grouping and scroll-budget tests.
+- `src/ui/Dialog.tsx` (only Settings uses it): gains optional `leading?: ReactNode` (the back button, start side), `titleAlign?: "start" | "center"` (default `"start"`), `className?: string` (appended to the dialog) and `bodyClassName?: string` (replaces the body's default padding and gap), and renders its header as a three-column grid. Existing behaviour is unchanged for defaults.
+- `src/ui/Segmented.tsx`: option gains `hint?: string`. The chosen option's hint is shown under the control; every option's hint is in the DOM, visually hidden unless chosen, and each radio is linked to its own with `aria-describedby`.
+- `src/ui/ConfirmDialog.tsx` (new): `{ open, question, warning, keepLabel, confirmLabel, onAnswer(confirmed: boolean) }`, built on `Dialog` with `closeLabel={keepLabel}`.
+- `src/settings/groups.ts` (new): `GROUP_IDS = ["general", "lesson", "recitation", "data"] as const`, `type GroupId`, and `GROUP_TITLE: Record<GroupId, MessageKey>`.
+- `src/settings/SettingsDialog.tsx`: becomes the shell (state `group: GroupId | null`; `null` is the phone list; wide layouts treat `null` as `"general"`). It renders no controls itself.
+- `src/settings/GroupList.tsx`, `src/settings/GroupRail.tsx` (new): the phone list and the wide rail, both showing `GroupSummary` rows.
+- `src/settings/GeneralSettings.tsx`, `LessonSettings.tsx`, `DataSettings.tsx` (new); `src/recitation/RecitationSettings.tsx` takes over the audio controls (`AudioSettings.tsx` stays as its sub-block).
+- `src/settings/FontPicker.tsx` (new): three radio chips.
+- `src/settings/LessonPreview.tsx`, `previewSession.ts`, `PreviewScale.tsx` (new).
+- `src/settings/settings.ts`: `DISPLAY_SETTING_KEYS`, `LessonDisplaySettings`, `SETTING_KIND`.
+- `src/practice/ladder.ts`: `unlockAllKeys` replaces `unlockAllLetters`; `LETTERS_END` is deleted. `src/practice/UnlockAllKeys.tsx` (new) is rendered by `Hud.tsx`. `src/settings/UnlockLetters.tsx` is deleted.
+- `e2e/helpers/pages.ts`: `openSettingsGroup`. New specs: `e2e/settings-layout.spec.ts`, `e2e/preview-parity.spec.ts`.
 
 ## Task 1: One adapter between the specs and the layout (pure refactor)
 
-**Files:**
-- Modify: `e2e/helpers/pages.ts`, `e2e/settings.spec.ts`, `e2e/transfer.spec.ts`, `e2e/guide.spec.ts`, `e2e/reduced-motion.spec.ts`, `e2e/practice.spec.ts`, `e2e/shell.spec.ts`, `e2e/site.spec.ts` (every place that opens Settings and then looks for a control)
+**Files:** Modify `e2e/helpers/pages.ts`, and every spec that opens Settings: `settings.spec.ts` (local `opener`, `dialog`, `openSettings`, `closeSettings` at lines 14 to 26), `transfer.spec.ts`, `guide.spec.ts` (around lines 319 and 333), `shell.spec.ts` (332), `site.spec.ts` (89), `practice.spec.ts` (126, 224), `audio.spec.ts` (805, 929), `recitation-map.spec.ts` (84), `reduced-motion.spec.ts`, `a11y-matrix.spec.ts`.
 
-**Interfaces:**
-- Produces: `openSettingsGroup(page: Page, group: string): Promise<Locator>` returning the locator that contains that group's controls. Today it opens Settings if it is not open and returns the dialog; after the settled design it also navigates to the group (click the tab, the row or the rail item).
+**Interfaces:** Produces `openSettingsGroup(page: Page, group?: "General" | "Lesson" | "Recitation" | "Your data"): Promise<Locator>`. Now it opens Settings if needed and returns the dialog locator. Task 4 makes it also choose the group (a row tap on a phone, a rail click on wide layouts) and return the locator of that group's pane.
 
-- [ ] **Step 1: Write the failing test.** In `e2e/settings.spec.ts`, a test named `openSettingsGroup returns a locator that contains the named group's controls` that calls `openSettingsGroup(page, "Lesson font")` and expects `getByRole("radio", { name: "Amiri" })` inside the result to be visible. Fails: the helper does not exist.
-- [ ] **Step 2: Run it to verify it fails** (`pnpm build && ... playwright test e2e/settings.spec.ts -g "openSettingsGroup"`; expect a missing-export error).
-- [ ] **Step 3: Implement `openSettingsGroup`** in `e2e/helpers/pages.ts` so that today it returns the Settings dialog locator; migrate the specs listed above to call it wherever they look for a control, without changing any assertion.
-- [ ] **Step 4: Run the whole of the Settings-related specs** (`settings`, `transfer`, `guide`, `reduced-motion`, `practice`, `shell`, `site`) on `desktop` and `phone` projects. Expected: all pass, unchanged assertions.
-- [ ] **Step 5: Commit** `test: reach Settings controls through one helper` (`simplicity_delta` footer).
+- [ ] **Step 1: Failing test.** In `e2e/settings.spec.ts`: `openSettingsGroup opens Settings and returns a locator that contains the Lesson font radios`, asserting `getByRole("radio", { name: "Amiri" })` is visible inside the result. Fails: the export does not exist.
+- [ ] **Step 2: Run it** (`pnpm build && PW_CHROMIUM_PATH=/opt/pw-browsers/chromium pnpm exec playwright test e2e/settings.spec.ts -g "openSettingsGroup" --project=desktop`) and see the failure.
+- [ ] **Step 3: Implement the helper and migrate** every listed spec to it without changing any assertion.
+- [ ] **Step 4: Run** the migrated specs on the `desktop` and `phone` projects; all pass.
+- [ ] **Step 5: Commit** `test: reach Settings controls through one helper`.
 
-**Removes:** the repeated "open Settings then find the control" snippets in the specs.
+**Removes:** the repeated open-Settings snippets.
 
-## Task 2: The red tests that define the new structure
+## Task 2: Classify every setting; one type for the lesson display (S1 tests)
 
-**Files:**
-- Create: `e2e/settings-layout.spec.ts`
+**Files:** Modify `src/settings/settings.ts`, `src/settings/settings.test.ts`, `src/typing/TypingSurface.tsx` (the `settings` prop type only).
 
-**Interfaces:**
-- Consumes: `openSettingsGroup` (Task 1).
+**Interfaces:** Produces `DISPLAY_SETTING_KEYS = ["font", "fontSize", "vocalization", "requireBackspace", "showKeyboard", "fingerGuide", "keyLabels", "delayedHint"] as const`; `type LessonDisplaySettings = Pick<Settings, (typeof DISPLAY_SETTING_KEYS)[number]>`; `SETTING_KIND: Readonly<Record<keyof Settings, "lesson-display" | "other">>`.
 
-- [ ] **Step 1: Write the grouping test, red against today's dialog.** A table-driven test `every setting and action is in exactly one named group` whose expected table is the settled design's group table (from the settled design): for each group name, the accessible names of its controls, for example `["Lesson font", "Lesson text size"]` under the group that holds them. For each row: `openSettingsGroup(page, group)` then each control is visible in the returned locator, and the same control is **not** found in any other group's locator. A final assertion counts all controls found and expects 12 settings plus 6 actions (delete saved recitations, download backup, restore, unlock all letters, reset progress, About), so a forgotten control fails the test.
-- [ ] **Step 2: Write the reach test.** `any control is reachable in at most 2 actions from a freshly opened Settings` counting the clicks and key presses `openSettingsGroup` performs (expose the count through the helper's return value, not by instrumenting the app).
-- [ ] **Step 3: Write the scroll-budget test**, using the numbers confirmed in "Settled design": at 390x844 the dialog's (or pane's) `scrollHeight / clientHeight` is at most 1.5 for every group, and at 1440x900 it is at most 1.0; at 320x568 with text at 200% every control can be scrolled into view and `Done` stays reachable.
-- [ ] **Step 4: Run them and confirm all three fail for the right reason** (today: groups do not exist, reach is unbounded, the dialog is several screens tall). Commit the failing tests on a local commit only if the project's convention allows; otherwise keep them uncommitted until Task 3 makes the first one pass.
+- [ ] **Step 1: Failing tests** in `settings.test.ts`: `every setting is classified` (`Object.keys(defaultSettings([])).sort()` equals `Object.keys(SETTING_KIND).sort()`) and `the lesson-display settings are exactly the eight the lesson shows` (the sorted keys of `SETTING_KIND` whose value is `"lesson-display"` equal the literal `["delayedHint","fingerGuide","font","fontSize","keyLabels","requireBackspace","showKeyboard","vocalization"]`).
+- [ ] **Step 2: Implement** the three exports; `TypingSurfaceProps.settings` becomes `LessonDisplaySettings` (callers still pass a `Settings`).
+- [ ] **Step 3: Run** `pnpm typecheck && pnpm test`. Adding a field to `Settings` without classifying it must fail the type check: check it by hand once and say so in the commit message.
+- [ ] **Step 4: Commit** `feat: classify settings; one type for the lesson display`.
 
-## Task 3: The shell and the first group (thin vertical slice)
+## Task 3: Make the real lesson surface mountable beside a real lesson (spike, then extraction)
 
-**Files:**
-- Modify: `src/settings/SettingsDialog.tsx`
-- Create: the navigation component and the first group file (names from the settled design; the first group is the one that holds Language and Lesson text, because it is the most used and the easiest to judge)
-- Modify: `src/i18n/en.ts`, `src/i18n/ar.ts` (group names, navigation labels)
-- Test: `e2e/settings-layout.spec.ts`
+The risk of the whole work lives here. `TypingSurface` (509 lines) paints text with the CSS Custom Highlight API under global names (`mafatih-done`, `mafatih-apparatus`, and so on; see `HIGHLIGHT_NAMES` in `src/typing/paint.ts` and the `::highlight()` rules in `src/styles/globals.css`), listens on `document` for `keydown` (activation on Enter), takes focus, fits itself to the page (`useStageFit`, `useReportFitMinHeight`, `useChrome`), and renders live regions. A preview opened over a lesson page puts two surfaces on one page.
 
-- [ ] **Step 1:** Take the first row of the grouping test and make it the only enabled row (others `test.fixme` with the group name, removed again in Task 4); run it; it fails.
-- [ ] **Step 2: Implement the shell**: `SettingsDialog` renders the navigation (from the settled design) and the selected group; the rest of today's blocks stay temporarily in a "Everything else" group so no control disappears while the slice is in progress.
-- [ ] **Step 3: Move the first group's controls** out of `SettingsDialog.tsx` into its group file, unchanged apart from the compaction technique the settled design names for them (for example font and size merged into one block with one live sample at the real size).
-- [ ] **Step 4:** Run `e2e/settings.spec.ts`, `e2e/settings-layout.spec.ts` (first row), `e2e/aria-snapshots.spec.ts` (expected to differ; review, do not yet update), on both projects. All behaviour specs pass; the first row passes.
-- [ ] **Step 5: Commit** `feat: settings opens on grouped screens, first group moved`.
-- [ ] **Checkpoint 1** (see "Review checkpoints"): screenshots against the mock-up, user feedback, review sub-agent. **Stop and wait for the user before Task 4.**
+**Files:** Modify `src/typing/TypingSurface.tsx` (and the smallest set of siblings it needs), `src/typing/paint.ts`, `src/styles/globals.css`; Create `docs/design/settings/spike-notes.md`.
 
-**Removes:** the first group's inline blocks from `SettingsDialog.tsx`.
+**Acceptance (every item pinned by a test in Task 6 and by the existing suite staying green):**
+1. Two surfaces on one page paint independent highlights. Highlight names get a per-instance scope; every `::highlight()` rule lists both scopes in **one selector list**, so the two sets of names can never carry different styles.
+2. A read-only instance does not take focus, does not listen for keys, is not announced (no live regions), and is `inert`.
+3. It does not report to the fit-screen context and does not hide or show the guide by page space: it takes a fixed text window (a number of lines) instead of fitting.
+4. The painting and markup of the text and of the guide are the same code for both modes. A mode flag may switch wiring off; it must not switch any painting or class name.
 
-## Task 4: Move the remaining groups, one slice each
+- [ ] **Step 1: Spike (time-boxed to one sitting).** Mount the real `TypingSurface` with a stub `Trainer` (built from `buildPrompt`, `createSession`, `applyKey`) inside a `<dialog>` on top of a real Practice lesson, in a scratch page. Write down in `spike-notes.md` what breaks, per acceptance item. If mounting as is cannot meet the four items, extract the shared display part (the text paragraphs, caret, highlights and the guide hand-off) into one component that both the lesson pages and the preview render. **Never copy it.**
+- [ ] **Step 2: Characterize before changing.** With the existing pixel helper (`e2e/helpers/pixels.ts`), capture the lesson surface for a seeded Custom lesson at the three font sizes 28, 40, 72 and the three fonts, and keep them as the baseline for this task.
+- [ ] **Step 3: Refactor in small green steps** until the four items hold. After each step run `typing`, `ligatures`, `ligature-census`, `perf`, `fit`, `scrollbar`, `reduced-motion` specs. The captured pixels must be identical at the end.
+- [ ] **Step 4: Commit** `refactor: lesson surface can be mounted read-only beside a lesson` with the `simplicity_delta` footer.
 
-For each group in the settled design's order, repeat the loop: enable its row of the grouping test (red), move its controls into its own file with its compaction technique, run its behaviour specs, commit. One commit per group.
+**Removes:** anything the extraction makes redundant. No duplicate of the surface may exist afterwards.
 
-- [ ] **Typing group** (Vocalization, Backspace): vocalization as the settled design shows it (for example a segmented control with the chosen option's hint under it and a one-line example of what will be typed). Keep every radio's accessible name and description (`settings.spec.ts` asserts the four descriptions).
-- [ ] **Keyboard guide group:** keeps today's rule of being absent on touch and narrow screens. Test first: on a phone project the navigation shows no Keyboard guide entry and no empty screen (Review Focus 2); on desktop it shows with its four switches and the layout note. Make the rule one pure function if the navigation needs it (`isGuideAvailable`, S1 test, with the media-query result as input) rather than duplicating the CSS in two places.
-- [ ] **Recitation group** (ayat per passage, surah order, reciter, saved audio): Recitation and Audio become one group if the settled design says so; the usage line and "Delete saved recitations" become one compact row. Keep `audio.usage`, `audio.deleted` and `audio.notDeleted` messages and the `role="status"` line (`audio.spec.ts`).
-- [ ] **Your data group** (backup, restore, unlock all letters, reset progress, About): the destructive actions are visually separate and last. `ConfirmChoice` flows are untouched; focus handling stays as in `BackupRestore` (focus returns to the file input) and `useConfirmation` (focus returns to the opener).
-- [ ] After the last group: delete the temporary "Everything else" group and the `fixme` markers; the grouping test is fully green and counts 12 settings and 6 actions.
+## Task 4: The shell, with every control moved as it is (first slice)
 
-**Removes:** the remaining inline blocks and the temporary group; any `className` left unused.
+**Files:** Modify `src/ui/Dialog.tsx`, `src/settings/SettingsDialog.tsx`, `e2e/helpers/pages.ts`, `src/i18n/en.ts`, `src/i18n/ar.ts`; Create `groups.ts`, `GroupList.tsx`, `GroupRail.tsx`, `GeneralSettings.tsx`, `LessonSettings.tsx`, `DataSettings.tsx`; Modify `RecitationSettings.tsx`; Create `e2e/settings-layout.spec.ts`.
 
-## Task 5: Navigation behaviour, focus and keyboard
+**Interfaces:** Consumes `openSettingsGroup` (Task 1). `openSettingsGroup(page, group)` now also selects the group and returns that group's pane locator (and, on a phone, it returns to the list first). New messages: `settings.group.general|lesson|recitation|data` (English: General, Lesson, Recitation, Your data; Arabic: عام, الدرس, التلاوة, بياناتك), `settings.text` (Text / النص), `settings.typing` (Typing / الكتابة), `settings.summary.recitation` (`{reciter} · {count} ayat` / `{reciter} · {count} آيات`), `settings.summary.data` (Backup, restore, reset / نسخ، استعادة، إعادة ضبط).
 
-**Files:**
-- Modify: the navigation and group files; `e2e/settings-layout.spec.ts`, `e2e/settings.spec.ts`
+- [ ] **Step 1: Red tests** in `e2e/settings-layout.spec.ts`, using `openSettingsGroup`. Each fails against today's dialog.
+  - `Settings opens on a list of four groups, each with a one-line summary` (phone project): the rows are, in order, General, Lesson, Recitation, Your data; each summary's height is below 1.6 times its line height at 390 x 844 and at 320 x 568 with `WIDE_LARGE_TEXT`-style large text.
+  - `the title is centred in the dialog` (phone project, English and Arabic): the centre x of the heading is within 1 px of the centre x of the dialog, in the list and in each group.
+  - `every control is in exactly one group` (table-driven from S2: group name to the accessible names of its controls). Unlock all keys is not in the table. A final count asserts no control is found outside a group.
+  - `any setting is reachable in at most two actions` (count the taps or clicks `openSettingsGroup` performs; expose the count through its return value only if needed).
+  - `the tallest group fits the budget`: at 390 x 844 the tallest pane's `scrollHeight / clientHeight` is at most 1.5; at 1440 x 900 it is at most 1.0. Mark this one `test.fixme` until Task 7 and say so.
+  - Change `the dialog always opens at its top` to `Settings always opens on the first group at its top`.
+- [ ] **Step 2: Implement `Dialog` changes and the shell** (S3). Move the old inline blocks unchanged into `GeneralSettings` (Language radios, About link), `LessonSettings` (language excluded: font, size, vocalization, Backspace, keyboard guide), `RecitationSettings` plus `AudioSettings`, and `DataSettings` (`BackupRestore`, `ResetProgress`). `UnlockLetters` stays in Data until Task 8. Add `GroupSummary` and the one-line `truncate` rule (S4).
+- [ ] **Step 3: Run** `settings-layout`, `settings`, `transfer`, `guide`, `audio`, `recitation-map`, `practice`, `shell`, `site` specs on `desktop` and `phone`. Existing behaviour specs pass unchanged except where they open Settings; ARIA snapshots will differ (read, do not update yet).
+- [ ] **Step 4: Commit** `feat: Settings opens as a list of groups`.
+- [ ] **Checkpoint 1.** Screenshots at 1440 x 900, 390 x 844 and 320 x 568 (large text), English and Arabic, beside `round3/FINAL.png`. Show the owner and wait.
 
-- [ ] **Step 1: Write one failing test per behaviour, then make it pass, one at a time (vertical slices):**
-  - `opening Settings always starts at its first group and its top` (replaces `the dialog always opens at its top`; same strength).
-  - `Escape, Done and a click outside still close it and give focus back to the Settings button` (existing test, must stay green and be extended to run from a group other than the first).
-  - `the group navigation works from the keyboard` with the keys the settled design names (for a tab list: Left/Right or Up/Down by orientation and direction, Home, End; Tab leaves the list into the pane).
-  - `choosing a group moves focus to the pane heading or its first control` and `going back returns focus to the row that was chosen` (for a drill-in design).
-  - `a confirmation flow keeps focus inside the group when it ends` for restore, unlock and reset.
-  - `the group, a changed value and a status message are announced` (a `role="status"` per group that changes; no duplicate announcements).
-- [ ] **Step 2: Commit after each green slice.**
+**Removes:** the single long column.
 
-## Task 6: Responsive, Arabic, large text, motion
+## Task 5: The Lesson group's controls
 
-**Files:**
-- Modify: group, navigation and `Dialog`-related styling; `e2e/settings-layout.spec.ts`, `e2e/a11y-matrix.spec.ts` if it enumerates dialogs
+**Files:** Create `FontPicker.tsx`; Modify `Segmented.tsx`, `LessonSettings.tsx`, `src/i18n/en.ts`, `ar.ts` (delete `vocalization.autoHint`), `e2e/settings.spec.ts`.
 
-- [ ] **Step 1: One failing test, then the fix, for each:**
-  - `in Arabic the navigation, its arrows and the key directions are mirrored` (Review Focus 3).
-  - `at 320 pixels with text at 200 percent no control is clipped and Done can be reached` (extend the existing test in `settings.spec.ts` to every group).
-  - `at the largest lesson text size the live sample does not overflow its box`.
-  - `a landscape phone with a display cutout keeps the navigation out of the cutout` (existing test, extended).
-  - `with forced colours the selected group and every control are distinguishable`.
-  - `with reduced motion nothing in Settings moves when changing group` (and, with motion allowed, any slide is the only motion and sits inside the `no-preference` query).
-  - `axe finds no violations in any group, on phone and desktop, in English and Arabic`.
-- [ ] **Step 2: Commit after each green slice.**
-- [ ] **Checkpoint 2:** screenshots at the sizes above with the mock-ups beside them, user feedback, review sub-agent. **Stop and wait for the user before Task 7.**
+- [ ] **Step 1: Red tests** (`e2e/settings.spec.ts`, `settings-layout.spec.ts`):
+  - `Vocalization shows the hint of the chosen option and Auto has none`: with Auto chosen no hint text is visible and Auto has no accessible description; choosing Letters only shows "Marks are shown but not typed."; Harakat shows "Type fatha, damma, kasra, shadda and sukun."; Full shows "Type every mark, tanween included."; every non-chosen option still has its accessible description.
+  - `Lesson holds exactly the eight lesson-display controls` (derive the expected names from `DISPLAY_SETTING_KEYS` through a literal table in the spec: Lesson font, Lesson text size, Vocalization, Correct mistakes with Backspace, and the four Keyboard guide switches) and nothing else.
+  - `the font choice is three radio chips named by family, each showing the sample in its own font` (keep the `[data-font-sample]` assertions of `settings.spec.ts:180`, `perf.spec.ts:96`, `site.spec.ts:92`).
+  - `there is no Keyboard guide section on a phone or on a touch tablet` and `there is one on a wide screen with a fine pointer`.
+- [ ] **Step 2: Implement** `FontPicker`, the `Segmented` hint behaviour, the Lesson sections (Text, Typing, Keyboard guide) and delete the Auto hint.
+- [ ] **Step 3: Run** the affected specs on both projects; commit `feat: Lesson group controls`.
 
-## Task 7: One vocabulary across the interface (English and Arabic)
+## Task 6: The truthful preview (S5 and UX target 10)
 
-The owner found "Keys unlocked 14 of 44" next to a button "Unlock all letters". Fix that case and audit for every other like it. Do this before the documentation task, because it changes strings and therefore the ARIA snapshots.
+**Files:** Create `src/settings/previewSession.ts`, `previewSession.test.ts`, `LessonPreview.tsx`, `PreviewScale.tsx`, `e2e/preview-parity.spec.ts`; Modify `LessonSettings.tsx`, `src/i18n/*` (`settings.preview`, `settings.previewScale` with `{percent}`; Arabic: معاينة, بحجم {percent}٪).
 
-**Files:**
-- Create: `docs/design/settings/glossary.md`
-- Modify: `src/i18n/en.ts`, `src/i18n/ar.ts`, `src/i18n/i18n.test.ts`, `README.md` and `docs/TECHNICAL.md` where they quote a string, and the specs that assert strings.
+**Interfaces:** Produces `PREVIEW_TEXT` (the sample, S5) and `previewSession(options: { vocalization: Vocalization; unlockedMarks: ReadonlySet<string>; requireBackspace: boolean }): Session`, built only with `buildPrompt`, `requiredMarks`, `createSession` and `applyKey`. Consumes the Task 3 read-only surface. `<LessonPreview settings: LessonDisplaySettings />` reads the learner's real unlocked marks from the profile and renders the real surface and guide. `<PreviewScale>` applies one uniform scale and renders the label only below 100%.
 
-- [ ] **Step 1: Inventory.** List every user-facing string in the interface (all of `en.ts`, plus text inside components that bypasses `t()`, such as the Language radio labels, font names and the Done and Settings labels), grouped by concept. Not only Settings: the Practice, Stats, Recitation, Custom and About pages, the audio player, the dialogs, error and status messages, `aria-label`s and `title`s.
-- [ ] **Step 2: Write the glossary** (`docs/design/settings/glossary.md`): one row per concept with the single English term, the single Arabic term, the forbidden synonyms in each language, and where it is used. Decide each conflict explicitly; do not leave two terms for one thing. Candidates already visible in the strings to settle (check each against the code before deciding):
-  - **key / letter / mark / harakat / tashkeel** (counted "keys", unlocked "letters", "marks", "Harakat", Arabic "التشكيل" and "الحركات"): "keys" is what is counted and unlocked ("Keys unlocked", "Keys in Practice", "Time per key"); letters and marks are kinds of key. Use "letter keys" and "mark keys" when a kind matters.
-  - **unlock / unlocked / locked** and **reset / start over / erase** and **restore / replace / backup**.
-  - **lesson / passage / text / prompt** ("Lesson font", "Ayat per passage", "Text to type") and **recitation / audio / reciter / saved recitations**.
-  - **progress / data / statistics / history** ("Reset progress", "Your data", "Stats", "Last ten lessons") and **Settings / Done / Keep my progress / Not now**.
-  - **Backspace** as a key name and "correct mistakes" ("Mistake", "wrong key") and **vocalization** (Arabic "التشكيل") against **marks**.
-  - Arabic: the same concept must keep one Arabic word, including numbers, "key" (مفتاح), and the names of the three modes.
-- [ ] **Step 3: Write the failing tests first.** In `src/i18n/i18n.test.ts` add a table-driven test per glossary decision that reads the message tables and asserts the forbidden term is absent from the listed keys in both languages, with the first row being the case found: no message in the unlock flow (button, question, warning, confirm, done, status) contains "letters" where the count says "keys" ("Unlock all letter keys", "Practice will use every letter key from now on. Mark keys stay locked.", "All letter keys are unlocked."); the Arabic uses "مفاتيح الحروف" and "مفاتيح الحركات" consistently with "المفاتيح المفتوحة". Run them; they fail on today's strings.
-- [ ] **Step 4: Make them pass** by editing `en.ts` and `ar.ts` together (same placeholders), then fix every other place that quotes a changed string (specs, README, TECHNICAL, ARIA snapshots later in Task 8). Have the Arabic wording reviewed as "not human verified" in the PR text.
-- [ ] **Step 5: Audit by eye in the real app.** Screenshot every page and dialog in English and Arabic at phone and desktop sizes and read the text as a learner would. List any remaining mismatch in the PR text rather than leaving it silent.
-- [ ] **Step 6: Commit** `i18n: one vocabulary, keys not letters` with the `simplicity_delta` footer.
+- [ ] **Step 1: Red unit tests** (`previewSession.test.ts`, expectations are independent literals): the next required key is `ج` after the typed first word in every mode (`expectedText(previewSession(...))`); the typed prefix needs 5 keys for `letters`, 7 for `harakat`, 8 for `full`, 5 for `auto` with no marks unlocked and 8 for `auto` with all marks unlocked (count the keys the session accepted); `view(session).mistakes` is `"ب"` when `requireBackspace` is true and `""` when false.
+- [ ] **Step 2: Red parity tests** (`e2e/preview-parity.spec.ts`, real browser). The real lesson is the Custom page seeded with `customText = PREVIEW_TEXT`, with the same prefix typed through real keys. For each case, read from both surfaces a normalised snapshot (text content, computed font family, computed font size divided by the preview's scale, the painted highlight ranges and their colours, the mistake text and colour, the caret colour, the keyboard's keys, legends, lit key and finger text) and assert deep equality. Cases, table-driven: every font x sizes 28, 40, 72 x all four vocalizations (Auto with 10 and with 44 keys unlocked) x Backspace on and off; the four keyboard switches in all 16 combinations (wide project). A test that compares the preview with itself, or with a copy of the expected values written from the implementation, is a defect.
+- [ ] **Step 3: Red isolation and behaviour tests:** `opening Settings and changing a setting does not change the lesson behind it except as the setting says` (type three keys, open Settings, assert the lesson's highlights are unchanged, change the font, assert the lesson changed its font only); `keys pressed while Settings is open do not move the preview and Enter does not activate the lesson behind it`; `the preview is inert, not focusable and not announced`; `the label "Shown at N%" appears exactly when the scale is below 1 and N equals the rounded scale`; `on a phone the preview opens from one line to three and is pinned only when the viewport is at least 36rem high`; `with Backspace correction off the preview shows no mistake, with it on it shows the mistake`.
+- [ ] **Step 4: Implement** `previewSession`, `LessonPreview`, `PreviewScale` and place them: phone peek, pinned above the pane (wide), third column (wide with a fine pointer, at least 64rem) holding the preview, the keyboard and the Keyboard guide switches.
+- [ ] **Step 5: Add the boundary test** `src/settings/preview.boundary.test.ts` (read the sources, like `src/practice/boundary.test.ts`): no file in the preview set contains `fontFamily`, `fontSize`, `text-center`, `leading-`, `::highlight`, a colour token for lesson text or a key class; its imports are limited to the shared lesson components, the session and prompt functions, the profile hook and the types. It fails today's code if you add such a line (try it once).
+- [ ] **Step 6: Run** `preview-parity`, `typing`, `settings-layout` on both projects and `pnpm test`; commit `feat: truthful live preview in Lesson`.
+- [ ] **Checkpoint 2.** Screenshots of the preview in every layout beside `round3/FINAL.png`, English and Arabic, and the parity matrix result. Show the owner and wait.
 
-**Interfaces:** Produces `glossary.md`, which every later string edit follows.
+## Task 7: Recitation and Your data
 
-**Removes:** every synonym the glossary forbids.
+**Files:** Modify `RecitationSettings.tsx`, `AudioSettings.tsx`, `DataSettings.tsx`, `e2e/recitation-map.spec.ts` (line 237), `e2e/audio.spec.ts`, `e2e/settings-layout.spec.ts` (remove the `fixme`).
 
-## Task 8: Documentation, snapshots, full gate
+- [ ] **Step 1: Red tests:** `Ayat per passage is four radios named 1 to 4` (replaces the combobox test; the chosen value still saves as `ayatPerLesson`); `Surah order and Reciter keep their option hints` (Mushaf order: "From Al-Faatiha to An-Naas."; Murattal: "Measured and paced for learning."); `saved recitations shows its usage line and Delete saved recitations with their status messages` (keep `audio.usage`, `audio.deleted`, `audio.notDeleted`); `Your data shows the reset explanation before the Reset progress button` (text equal to `settings.resetWarning`); the budget test from Task 4 becomes active and must pass.
+- [ ] **Step 2: Implement** with `Segmented` and compact blocks; keep `ConfirmChoice` flows and focus behaviour for restore and reset untouched.
+- [ ] **Step 3: Run** `settings`, `settings-layout`, `audio`, `recitation-map`, `transfer` on both projects; commit `feat: Recitation and Your data groups`.
 
-**Files:**
-- Modify: `docs/TECHNICAL.md` (the Settings description and the file map), `README.md` ("What you can do" Settings line, only if the wording is now wrong), `e2e/aria-snapshots.spec.ts-snapshots/*settings*`, `docs/QA-DEVICES.md` (add the manual checks for Settings on a real phone: sheet gestures, keyboard focus and the soft keyboard when a text field is focused)
+## Task 8: Unlock all keys on the Practice page (S7)
 
-- [ ] **Step 1:** Update `docs/TECHNICAL.md` to describe the grouped structure, the adapter in `e2e/helpers/pages.ts` and the rule that adding a setting means placing it in a group (and extending the grouping test's table). Commit the approved mock-ups' final PNGs under `docs/design/settings/`.
-- [ ] **Step 2:** Regenerate the ARIA snapshots (command in Global Constraints) and read the diff: only intended structure changes.
-- [ ] **Step 3: Run `pnpm verify`.** Expected: every step green (check, check:style, build, check:size, typecheck, test, playwright on all projects). If a browser project fails only for a known engine limit, read `e2e/helpers/engines.ts` before touching the test.
-- [ ] **Step 4: Commit** `docs: describe the grouped settings`. Tell the user what changed and what was not verified (a real phone, native-speaker Arabic wording).
+**Files:** Modify `src/practice/ladder.ts`, `ladder.test.ts`, `lesson.test.ts`, `Hud.tsx`; Create `src/ui/ConfirmDialog.tsx`, `src/practice/UnlockAllKeys.tsx`; Delete `src/settings/UnlockLetters.tsx`; Modify `src/i18n/en.ts`, `ar.ts`, `e2e/practice.spec.ts` (the test at line 250), `e2e/fit.spec.ts`, `docs/TECHNICAL.md` (line 152), `README.md`.
 
-## Self-review (done when writing this plan)
+**Interfaces:** Produces `unlockAllKeys(progress: LadderProgress): LadderProgress`. Messages `practice.unlock`, `practice.unlockQuestion`, `practice.unlockWarning`, `practice.unlockKeep`, `practice.unlockConfirm` (S7 wording) replace `settings.unlock*`.
 
-- **Spec coverage:** scrolling too far -> UX targets 1 and 2, tests in Task 2. Illogical grouping -> UX target 3, Phase 0 round 1 step 3, Task 2 grouping test and Task 4. Design first in rounds, wide then concrete -> Phase 0, tasks 0.2 and 0.3 with explicit stops. `tdd` and `laws-of-simplicity` -> header, "Required skills", every task's loop. Great UX first -> Goal, UX targets, mock-up-before-code rule, user checkpoints.
-- **Known gap by design:** Phase 1 names components generically because the right names depend on the design the user picks. Task 0.4 step 2 amends them; nothing in Phase 1 may be started before that step is done.
-- **Types and names:** `openSettingsGroup(page, group)` is defined in Task 1 and used with the same signature in Tasks 2 to 6. Setting names match `src/settings/settings.ts`.
+- [ ] **Step 1: Red unit tests** (`ladder.test.ts`): `unlockAllKeys from 10 unlocked gives 44`; `never lowers progress`; `unlocks the 8 marks` (`unlockedMarks(unlockAllKeys(initialProgress())).size` is 8); `Auto then requires every mark` (`requiredMarks("auto", unlockedMarks(...)).size` is 8). In `lesson.test.ts`: `with 44 keys unlocked and Auto vocalization the lesson requires all eight marks`.
+- [ ] **Step 2: Red browser tests** (`practice.spec.ts`, replacing the old test): `Unlock all keys asks first, then unlocks all 44 keys including the marks` (seed 10 unlocked; the HUD shows "10 of 44"; the button opens a dialog named "Unlock all keys?" described by text containing "marks included"; "Not now" is focused; choosing it closes the dialog, changes nothing and returns focus to the button; choosing "Unlock" saves `{ unlocked: 44 }`, the HUD shows "44 of 44" and "All keys are unlocked.", the button is gone, and focus is in the typing input); `Unlock all keys is hidden when the HUD is hidden` (phone keyboard up) and `is not in Settings`; in `fit.spec.ts`: `the Unlock all keys button keeps the Practice page on one screen at every matrix size` (seed 10 unlocked so the button is present).
+- [ ] **Step 3: Implement** `unlockAllKeys` (delete `unlockAllLetters` and `LETTERS_END`), `ConfirmDialog`, `UnlockAllKeys` in `Hud` (end of the row on wide screens, its own row on a phone), the new messages (delete `settings.unlock*`), and remove `UnlockLetters` from `DataSettings`. Update TECHNICAL ("Unlock all keys (Practice page)") and README.
+- [ ] **Step 4: Run** `practice`, `fit`, `a11y-matrix`, `settings-layout`, `typing` on both projects and `pnpm test`; commit `feat: Unlock all keys unlocks every key, on the Practice page`.
+
+**Removes:** `UnlockLetters.tsx`, `unlockAllLetters`, `LETTERS_END`, `settings.unlock*`.
+
+## Task 9: Navigation behaviour, focus and keyboard (S8)
+
+- [ ] **Step 1: One failing test, then the fix, for each** (`settings-layout.spec.ts`, `settings.spec.ts`): `Escape, Done and a click outside close Settings from any group and return focus to the Settings button` (extend the existing test); `choosing a group moves focus to its title and back returns focus to that group's row` (phone); `the rail marks the chosen group with aria-current and keeps focus on it` (wide); `the Tab walk through Settings visits every control once and reaches Done` (extend `keyboard-walk.spec.ts`); `restoring a backup and resetting progress keep focus inside the group` (existing behaviour, now from inside a pane); `a status or alert inside a group is announced once`.
+- [ ] **Step 2: Commit** after each green slice.
+
+## Task 10: Responsive, Arabic, large text, motion
+
+- [ ] **Step 1: One failing test, then the fix, for each:** `in Arabic the list, the rail, the back arrow, Done and the preview column mirror` (screenshot-free: compare bounding boxes against the English layout mirrored); `at 320 px with text at 200% nothing is clipped, Done is reachable, back keeps only its arrow with its accessible name, and the preview scrolls with the controls instead of being pinned`; `at the largest text size the preview and the font chips do not overflow their boxes`; `a landscape phone with a display cutout keeps the list and header out of the cutout` (extends the existing test); `with forced colours the chosen group, the chosen segment and the chosen font chip are distinguishable`; `with reduced motion nothing in Settings moves when the group changes` (and any transition sits inside the no-preference query or has a `motion-reduce:` class); `axe finds no violations in the list, in each group, on phone and desktop, in English and Arabic`.
+- [ ] **Step 2: Commit** after each green slice.
+- [ ] **Checkpoint 3.** The full set of screenshots beside the mock-ups, English and Arabic, and the Practice page with the new button. Show the owner and wait.
+
+## Task 11: One vocabulary across the interface (English and Arabic)
+
+The owner found "Keys unlocked 14 of 44" next to a button "Unlock all letters". That case is fixed in Task 8 ("keys"). This task audits the rest, before the documentation task because it changes strings.
+
+**Files:** Create `docs/design/settings/glossary.md`; Modify `src/i18n/en.ts`, `src/i18n/ar.ts`, `src/i18n/i18n.test.ts`, `README.md`, `docs/TECHNICAL.md`, and the specs that assert strings.
+
+- [ ] **Step 1: Inventory** every user-facing string, grouped by concept: all of `en.ts`, text that bypasses `t()` (Language radio labels, font names, Done and Settings), and every `aria-label`, `title` and status message, on every page, dialog and the audio player.
+- [ ] **Step 2: Write the glossary** (one row per concept: the one English term, the one Arabic term, the forbidden synonyms in each language, where used). Decide each conflict explicitly. Candidates to settle after checking the code: key, letter, mark, harakat, tashkeel, vocalization; unlock, locked, reset, restore, replace, backup; lesson, passage, text, prompt; recitation, audio, reciter, saved recitations; progress, data, statistics, history; Settings, Done, Keep my progress, Not now; Backspace, mistake, wrong key; and in Arabic one word per concept, including "key" (مفتاح), the three modes and numbers.
+- [ ] **Step 3: Failing tests first** in `i18n.test.ts`: a table with one row per glossary decision asserting that the forbidden term is absent from the listed message keys in both languages. The first row is the case found: no message in the unlock flow uses "letters" where the progress count says "keys".
+- [ ] **Step 4: Make them pass** by editing `en.ts` and `ar.ts` together (same placeholders), then every place that quotes a changed string (specs, README, TECHNICAL).
+- [ ] **Step 5: Read the real app** in English and Arabic at phone and desktop sizes, page by page, as a learner would; list any mismatch that remains in the PR text. Say that the Arabic wording is not human verified.
+- [ ] **Step 6: Commit** `i18n: one vocabulary`.
+
+## Task 12: Documentation, snapshots, full gate
+
+**Files:** Modify `docs/TECHNICAL.md` (the Settings description, the file map, the unlock line, a section "The Settings preview is the real lesson surface" listing the mechanisms of UX target 10), `README.md` (the Settings line), `docs/QA-DEVICES.md` (Settings on a real phone: sheet gestures, the centred title with a notch, focus and the soft keyboard; the preview with the system's text size), `e2e/aria-snapshots.spec.ts-snapshots/*settings*`.
+
+- [ ] **Step 1: Update the documents.** Copy the final mock-ups' PNGs into `docs/design/settings/` (already committed).
+- [ ] **Step 2: Regenerate the ARIA snapshots** (command in Global Constraints) and read the diff: only the intended structure changes.
+- [ ] **Step 3: Run `pnpm verify`.** Every step must be green. If a browser project fails only for a known engine limit, read `e2e/helpers/engines.ts` before touching a test.
+- [ ] **Step 4: Commit** `docs: describe the grouped Settings and the truthful preview`. Tell the owner what was and was not verified (a real phone; native-speaker Arabic).
+
+## Self-review (done when amending the plan, Task 0.4)
+
+- **Spec coverage:** scrolling too far and no logical grouping: S2, S3, Task 4 and Task 7 (budget and grouping tests). Master and detail with the title centred, General first: S3, Task 4. One-line summaries: S4, Task 4. No Auto hint: S5, Task 5. Preview only in Lesson with every setting that changes it: S2, S5, Tasks 2, 5, 6. Truthful preview: UX target 10, Tasks 2, 3, 6. Unlock all keys unlocking harakat too, on the Practice page: S7, Task 8. One vocabulary: UX target 11, Task 11. `tdd` and `laws-of-simplicity`: header and "Required skills".
+- **Names and types:** `openSettingsGroup`, `LessonDisplaySettings`, `SETTING_KIND`, `previewSession`, `unlockAllKeys`, `ConfirmDialog` are defined once and used with the same signatures later.
+- **Known risk:** Task 3 (the real surface was not built to be mounted twice on one page). It is a spike with acceptance items, not a guess; if it needs an extraction, the extraction is part of the task.
+- **Assumptions to confirm with the owner:** Settings opens on General each time; the wide three-column layout needs a fine pointer and at least 64rem; the Unlock dialog uses a header "Not now"; Ayat per passage becomes four radios; the summaries are as in S4.
