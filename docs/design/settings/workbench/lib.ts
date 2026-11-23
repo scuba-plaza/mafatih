@@ -689,7 +689,7 @@ document.addEventListener('input',function(ev){
   if(!f){return;}
   if(e.matches('[data-size]')){
     var px=SIZES[Number(e.value)];
-    f.style.setProperty('--lesson-size',px+'px');
+    f.style.setProperty('--lesson-size',px+'px');f.style.setProperty('--lesson-n',px);
     f.querySelectorAll('[data-size-out]').forEach(function(o){o.textContent=new Intl.NumberFormat(f.lang==='ar'?'ar-u-nu-arab':'en').format(px);});
   }
   if(e.matches('[data-font]')){f.style.setProperty('--lesson-font','"'+e.dataset.font+'"');}
