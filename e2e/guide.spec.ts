@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { HINT_DELAY_MS } from "../src/keyboard/hint.ts";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { emulatePlatform } from "./helpers/platform.ts";
 import { savedSettings, seedSettings } from "./helpers/profile.ts";
 import { startTyping, typeKeys } from "./helpers/typing.ts";
@@ -118,7 +119,7 @@ test.describe("with a wide screen and a mouse", () => {
 
   test("Settings says what the layout is called on this system", async ({ page }) => {
     await start(page, { customText: "بتن" });
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openSettingsGroup(page, "Lesson");
     const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
     await expect(group).toContainText(
       /Mafatih follows the standard Arabic PC layout\. In your system settings it is called \u2068Arabic \(101\)\u2069\./,
@@ -129,7 +130,7 @@ test.describe("with a wide screen and a mouse", () => {
     await emulatePlatform(page, "mac");
     await start(page, { customText: "بتن" });
     await expect(guide(page).locator('[data-key="Space"]')).toHaveText("Arabic – PC");
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openSettingsGroup(page, "Lesson");
     const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
     await expect(group).toContainText(/In your system settings it is called \u2068Arabic – PC\u2069\./);
   });
@@ -178,7 +179,7 @@ test.describe("with a wide screen and a mouse", () => {
 
   test("the key labels and the delayed hint are switched in Settings and remembered", async ({ page }) => {
     await start(page, { customText: "بتن" });
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openSettingsGroup(page, "Lesson");
     const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
     await group.getByRole("switch", { name: "Show letters on the keys" }).uncheck();
     await expect(guide(page).locator('[data-key="KeyQ"]')).toHaveText("");
@@ -196,7 +197,7 @@ test.describe("with a wide screen and a mouse", () => {
 
   test("the keyboard and its finger guide are turned off and on in Settings", async ({ page }) => {
     await start(page, { customText: "بتن" });
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openSettingsGroup(page, "Lesson");
     const group = page.getByRole("dialog", { name: "Settings" }).getByRole("group", { name: "Keyboard guide" });
     await group.getByRole("switch", { name: "Show which finger to use" }).uncheck();
     await expect(guide(page).getByText("Left index finger")).toHaveCount(0);
@@ -315,7 +316,7 @@ test.describe("on a phone", () => {
     await start(page, { customText: "بتن" });
     await expect(guide(page)).toBeHidden();
     await page.keyboard.press("Tab");
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openSettingsGroup(page, "Lesson");
     const dialog = page.getByRole("dialog", { name: "Settings" });
     await expect(dialog.getByRole("group", { name: "Vocalization" })).toBeVisible();
     await expect(dialog.getByRole("group", { name: "Keyboard guide" })).toHaveCount(0);
@@ -329,7 +330,7 @@ test.describe("on a wide touch screen", () => {
     await start(page, { customText: "بتن" });
     expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
     await expect(guide(page)).toBeHidden();
-    await page.getByRole("button", { name: "Settings" }).click();
+    await openSettingsGroup(page, "Lesson");
     const dialog = page.getByRole("dialog", { name: "Settings" });
     await expect(dialog.getByRole("group", { name: "Vocalization" })).toBeVisible();
     await expect(dialog.getByRole("group", { name: "Keyboard guide" })).toHaveCount(0);

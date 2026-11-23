@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { openAndWait, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
+import { openAndWait, openSettingsGroup, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
 import { seedProfile } from "./helpers/profile.ts";
 import { lettersOf, surah } from "./helpers/quran.ts";
 import { startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -35,8 +35,7 @@ async function moving(page: Page): Promise<string[]> {
 }
 
 async function openSettings(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+  await openSettingsGroup(page, "Lesson");
 }
 
 async function finishKawthar(page: Page): Promise<void> {

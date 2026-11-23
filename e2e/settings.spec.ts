@@ -43,11 +43,12 @@ test("openSettingsGroup opens Settings and returns a locator that contains the L
 test("the Settings button opens a dialog with every setting in a named group", async ({ browserName, page }) => {
   test.skip(browserName === "firefox", FIREFOX_PAGE_CRASH);
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "General");
   const language = dialog(page).getByRole("group", { name: "Language" });
   await expect(language.getByRole("radio")).toHaveCount(2);
   await expect(language.getByRole("radio", { name: "English" })).toBeChecked();
   await expect(language.getByText("العربية")).toHaveAttribute("lang", "ar");
+  await openSettings(page, "Lesson");
   const vocalization = dialog(page).getByRole("group", { name: "Vocalization" });
   await expect(vocalization.getByRole("radio", { name: "Auto", exact: true })).toBeChecked();
   await expect(vocalization.getByRole("radio", { name: "Auto", exact: true })).toHaveAccessibleDescription(
@@ -98,7 +99,7 @@ test("changing the language applies at once, turns the page right-to-left and ke
   await page.goto("/#/custom");
   await startTyping(page);
   await typeKeys(page, ["ب"]);
-  await openSettings(page);
+  await openSettings(page, "General");
   await dialog(page).getByRole("radio", { name: "العربية" }).check();
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -117,7 +118,7 @@ test("changing the vocalization starts the lesson afresh with the new marks to t
   await startTyping(page);
   await typeKeys(page, ["ب"]);
   expect(await doneText(page)).toBe(`ب${KASRA}`);
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   await dialog(page).getByRole("radio", { name: "Full", exact: true }).check();
   await closeSettings(page);
   expect(await doneText(page)).toBe("");
@@ -133,7 +134,7 @@ test("a finished summary goes away when a new vocalization changes the lesson", 
   await startTyping(page);
   await typeKeys(page, ["ب", "ت"]);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toBeFocused();
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   await dialog(page).getByRole("radio", { name: "Letters only", exact: true }).check();
   await closeSettings(page);
   await expect(page.getByRole("heading", { level: 2, name: "Finished" })).toHaveCount(0);
@@ -145,7 +146,7 @@ test("turning off correction with Backspace keeps the lesson and applies from th
   await page.goto("/#/custom");
   await startTyping(page);
   await typeKeys(page, ["ب"]);
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
   await closeSettings(page);
   await startTyping(page);
@@ -158,7 +159,7 @@ test("turning off correction with Backspace keeps the lesson and applies from th
 
 test("every setting is still as it was left after a reload", async ({ page, isMobile }) => {
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   await dialog(page).getByRole("radio", { name: "Harakat", exact: true }).check();
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
@@ -167,7 +168,7 @@ test("every setting is still as it was left after a reload", async ({ page, isMo
     await dialog(page).getByRole("switch", { name: "Show the keyboard" }).uncheck();
   }
   await page.reload();
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   await expect(dialog(page).getByRole("radio", { name: "Harakat", exact: true })).toBeChecked();
   await expect(dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" })).not.toBeChecked();
   await expect(dialog(page).getByRole("radio", { name: "Amiri", exact: true })).toBeChecked();
@@ -184,7 +185,7 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await expect(lessonText(page)).toHaveCSS("font-family", /Scheherazade New/);
   await expect(page.locator("body")).toHaveCSS("font-family", /^"?Noto Naskh Arabic"?/);
   await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", /^"?Noto Naskh Arabic"?/);
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   const samples = dialog(page).locator("[data-font-sample]");
   await expect(samples).toHaveCount(3);
   await expect(samples.nth(0)).toHaveCSS("font-family", /Scheherazade New/);
@@ -202,7 +203,7 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await expect(lessonText(page)).toHaveCSS("font-family", /Amiri/);
   await expect(page.locator("body")).toHaveCSS("font-family", bodyFont);
   await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", bodyFont);
-  await expect(dialog(page).getByRole("heading", { name: "Settings" })).toHaveCSS("font-family", bodyFont);
+  await expect(dialog(page).getByRole("heading", { level: 2 })).toHaveCSS("font-family", bodyFont);
   await expect.poll(() => page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
 });
 
@@ -210,7 +211,7 @@ test("the text size slider works from the keyboard, says its value and resizes t
   await page.setViewportSize({ width: 1280, height: 800 });
   await seedSettings(page, { customText: "بتن" });
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   const slider = dialog(page).getByRole("slider", { name: "Lesson text size" });
   await slider.focus();
   await page.keyboard.press("ArrowRight");
@@ -227,12 +228,14 @@ test("the text size slider works from the keyboard, says its value and resizes t
 test("on a phone the dialog is a sheet along the bottom edge that scrolls inside itself", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   const box = await dialog(page).boundingBox();
   expect(box?.x).toBe(0);
   expect(box?.width).toBe(360);
   expect((box?.y ?? 0) + (box?.height ?? 0)).toBe(640);
-  expect(box?.y).toBeGreaterThan(40);
+  await dialog(page)
+    .locator("[data-settings-scroll]")
+    .evaluate((element) => element.scrollTo(0, element.scrollHeight));
   await dialog(page).evaluate((element) => element.scrollTo(0, element.scrollHeight));
   await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport({ ratio: 1 });
   expect(await dialog(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
@@ -247,11 +250,11 @@ function centre(box: { y: number; height: number } | null): number {
 test("on a wide screen the dialog stands in the middle", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "General");
   const box = await dialog(page).boundingBox();
   const left = box?.x ?? 0;
   const right = 1280 - left - (box?.width ?? 0);
-  expect(left).toBeGreaterThan(200);
+  expect(left).toBeGreaterThan(16);
   expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
   expect(box?.y).toBeGreaterThan(0);
 });
@@ -276,8 +279,8 @@ test("on a landscape phone with a display cutout the dialog keeps its content ou
   await session.send("Emulation.setSafeAreaInsetsOverride", { insets: { left: 44, right: 44 } });
   await page.setViewportSize({ width: 667, height: 375 });
   await page.goto("/#/custom");
-  await openSettings(page);
-  const title = await dialog(page).getByRole("heading", { name: "Settings" }).boundingBox();
+  await openSettings(page, "General");
+  const title = await dialog(page).getByRole("heading", { level: 2 }).boundingBox();
   const done = await dialog(page).getByRole("button", { name: "Done" }).boundingBox();
   const radio = await dialog(page).getByRole("radio", { name: "English" }).boundingBox();
   expect(title?.x).toBeGreaterThanOrEqual(44);
@@ -285,15 +288,20 @@ test("on a landscape phone with a display cutout the dialog keeps its content ou
   expect(radio?.x).toBeGreaterThanOrEqual(44);
 });
 
-test("the dialog always opens at its top, however far it was scrolled when it was closed", async ({ page }) => {
+test("Settings always opens at the top of its first group, however far a pane was scrolled", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await page.goto("/#/custom");
-  await openSettings(page);
-  await dialog(page).evaluate((element) => element.scrollTo(0, 300));
-  expect(await dialog(page).evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await openSettings(page, "Lesson");
+  const pane = dialog(page).locator("[data-settings-scroll]");
+  await pane.evaluate((element) => element.scrollTo(0, 300));
+  expect(await pane.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await page.keyboard.press("Escape");
   await openSettings(page);
-  expect(await dialog(page).evaluate((element) => element.scrollTop)).toBe(0);
+  expect(
+    await dialog(page)
+      .locator("[data-settings-scroll]")
+      .evaluate((element) => element.scrollTop),
+  ).toBe(0);
 });
 
 test("while the dialog is open the page behind it does not scroll, and it scrolls again afterwards", async ({
@@ -328,19 +336,29 @@ test("a switch shows its state by where its thumb stands, in both reading direct
         return shift === "none" ? 0 : Number.parseFloat(shift);
       });
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   expect(await thumb("en")).toBe(16);
   await dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" }).uncheck();
   await expect.poll(() => thumb("en")).toBe(0);
+  await openSettings(page, "General");
   await dialog(page).getByRole("radio", { name: "العربية" }).check();
-  await page.getByRole("dialog").getByRole("switch", { name: "تصحيح الأخطاء بمفتاح الحذف الخلفي" }).check();
+  const arabic = page.getByRole("dialog");
+  const back = arabic.getByRole("button", { name: "العودة إلى الإعدادات" });
+  if (await back.isVisible()) {
+    await back.click();
+  }
+  await arabic
+    .getByRole("navigation")
+    .getByRole("button", { name: /^الدرس/ })
+    .click();
+  await arabic.getByRole("switch", { name: "تصحيح الأخطاء بمفتاح الحذف الخلفي" }).check();
   await expect.poll(() => thumb("ar")).toBe(-16);
 });
 
 test("with forced colours a switch is the browser's own checkbox again", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   const backspace = dialog(page).getByRole("switch", { name: "Correct mistakes with Backspace" });
   expect(await backspace.evaluate((element) => getComputedStyle(element).appearance)).toBe("auto");
   expect(await backspace.evaluate((element) => getComputedStyle(element, "::before").display)).toBe("none");
@@ -351,7 +369,7 @@ test("a font that cannot be loaded does not break the page", async ({ page }) =>
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route(/assets\/arabic-400-[^/]*\.css$/, (route) => route.abort());
   await page.goto("/#/custom");
-  await openSettings(page);
+  await openSettings(page, "Lesson");
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
   await page.evaluate(() => document.fonts.ready);
   await afterFrames(page, 5);
@@ -408,8 +426,20 @@ test.describe("Arabic", () => {
     await page.goto("/#/custom");
     await page.getByRole("button", { name: "الإعدادات" }).click();
     const arabic = page.getByRole("dialog", { name: "الإعدادات" });
+    const choose = async (title: string): Promise<void> => {
+      const back = arabic.getByRole("button", { name: "العودة إلى الإعدادات" });
+      if (await back.isVisible()) {
+        await back.click();
+      }
+      await arabic
+        .getByRole("navigation")
+        .getByRole("button", { name: new RegExp(`^${title}`) })
+        .click();
+    };
+    await choose("عام");
     await expect(arabic.getByRole("group", { name: "اللغة" }).getByRole("radio", { name: "العربية" })).toBeChecked();
     await expect(arabic.getByText("English")).toHaveAttribute("lang", "en");
+    await choose("الدرس");
     await expect(arabic.getByRole("slider", { name: "حجم نص الدرس" })).toHaveAttribute("aria-valuetext", "٤٠");
     await expectNoAxeViolations(page);
     await page.keyboard.press("Escape");

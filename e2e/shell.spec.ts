@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { seedSettings } from "./helpers/profile.ts";
 
 const PAGES = [
@@ -328,9 +329,10 @@ test("everything that can be pressed shows the pointer cursor", async ({ page, i
   const cursorOf = (locator: Locator) => locator.evaluate((element) => getComputedStyle(element).cursor);
   expect(await cursorOf(page.getByRole("button", { name: "Settings" }))).toBe("pointer");
   expect(await cursorOf(page.getByRole("link", { name: "Practice" }))).toBe("pointer");
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "General");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   expect(await cursorOf(dialog.getByRole("radio", { name: "English" }))).toBe("pointer");
+  await openSettingsGroup(page, "Lesson");
   expect(await cursorOf(dialog.getByRole("switch", { name: "Correct mistakes with Backspace" }))).toBe("pointer");
   expect(await cursorOf(dialog.getByRole("button", { name: "Done" }))).toBe("pointer");
 });

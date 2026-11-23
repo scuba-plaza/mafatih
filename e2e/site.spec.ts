@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { afterFrames } from "./helpers/waits.ts";
 
 const CLIP = readFileSync(new URL("./fixtures/ayah.mp3", import.meta.url));
@@ -85,11 +86,12 @@ test("nothing the app does is blocked by the policy: every page, the fonts, audi
   await page.goto("/#/recitation/1");
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Lesson");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("radio", { name: "Amiri" }).check();
   await dialog.getByRole("radio", { name: "Scheherazade New" }).check();
   await expect(page.locator("[data-font-sample]").first()).toBeVisible();
+  await openSettingsGroup(page, "Your data");
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     dialog.getByRole("button", { name: "Download backup" }).click(),

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { passageBar, passageRange } from "./helpers/passage.ts";
 import { PROFILE_KEY, savedProfile, savedSettings, seedProfile } from "./helpers/profile.ts";
 import { lettersOf, surah } from "./helpers/quran.ts";
@@ -80,7 +81,7 @@ test("the map shows progress in words and a thin line, a completed surah says so
 test("the order setting puts the map in Mushaf order or with Juz ʿAmma first", async ({ page }) => {
   await page.goto("/");
   await expect(map(page).getByRole("link").first()).toContainText("Al-Faatiha");
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Surah order" });
   await expect(group.getByRole("radio", { name: "Mushaf order" })).toBeChecked();
@@ -231,7 +232,7 @@ test("Settings offers ayat per passage and the surah order together, and a chang
 }) => {
   await page.goto("/#/recitation/1/1");
   await expect(passageRange(page, "Ayat 1 to 4 of 7")).toHaveCount(1);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Recitation" });
   const select = group.getByRole("combobox", { name: "Ayat per passage" });

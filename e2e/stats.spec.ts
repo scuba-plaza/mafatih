@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { seedProfile } from "./helpers/profile.ts";
 import { addStyle } from "./helpers/style.ts";
 
@@ -253,7 +254,7 @@ test("Reset progress empties the statistics and the lesson list", async ({ page 
   await seedProfile(page, PROFILE);
   await openPractice(page);
   await expect(keys(page)).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Your data");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
   await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();

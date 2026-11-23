@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { resaveProfile, savedProfile, seedProfile } from "./helpers/profile.ts";
 import { MARKS } from "./helpers/quran.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -122,7 +123,7 @@ test("after Reset progress the readout forgets the last lesson and its unlock", 
   }
   await expect(status).toHaveText(/^Unlocked:/);
   await expect(hud(page).getByText(/characters per minute/)).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Your data");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
   await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
@@ -197,7 +198,7 @@ test("changing the vocalization builds a new lesson", async ({ page }) => {
   await start(page);
   await typeKeys(page, [...keysOf(await shownText(page))].slice(0, 2));
   expect((await doneText(page)).length).toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Lesson");
   await page.getByRole("dialog", { name: "Settings" }).getByRole("radio", { name: "Full", exact: true }).check();
   await page.getByRole("dialog", { name: "Settings" }).getByRole("button", { name: "Done" }).click();
   expect(await doneText(page)).toBe("");
@@ -220,7 +221,7 @@ test("Reset progress asks first, then clears keys, statistics and lesson history
   });
   await page.goto("/#/practice");
   await expect(hud(page).getByText("20 of 44")).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Your data");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
   const group = dialog.getByRole("group", { name: "Reset progress?" });
@@ -250,7 +251,7 @@ test("Reset progress asks first, then clears keys, statistics and lesson history
 test("Unlock all letters asks first, then unlocks every letter and leaves the marks locked", async ({ page }) => {
   await page.goto("/#/practice");
   await expect(hud(page).getByText("10 of 44")).toBeVisible();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Your data");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Unlock all letters" }).click();
   const group = dialog.getByRole("group", { name: "Unlock all letters?" });

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { doneText, startTyping, typeKeys } from "./helpers/typing.ts";
 
@@ -92,7 +93,7 @@ test("only the interface font is loaded for a page without a lesson, and the les
   await page.waitForLoadState("networkidle");
   const before = new Set(requests.filter((path) => FONT_FILE.test(path)));
   expect(before.size).toBeLessThanOrEqual(2);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await openSettingsGroup(page, "Lesson");
   await expect(page.locator("[data-font-sample]")).toHaveCount(3);
   await expect.poll(() => new Set(requests.filter((path) => FONT_FILE.test(path))).size).toBe(4);
 });

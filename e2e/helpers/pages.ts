@@ -53,11 +53,30 @@ export async function openAndWait(page: Page, hash: string, typing: boolean): Pr
 
 export type SettingsGroup = "General" | "Lesson" | "Recitation" | "Your data";
 
-export async function openSettingsGroup(page: Page, _group?: SettingsGroup): Promise<Locator> {
+async function isWide(page: Page): Promise<boolean> {
+  return page.evaluate(() => window.matchMedia("(min-width: 48rem)").matches);
+}
+
+export async function openSettingsGroup(page: Page, group?: SettingsGroup): Promise<Locator> {
   const dialog = page.getByRole("dialog", { name: "Settings" });
   if (!(await dialog.isVisible())) {
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(dialog).toBeVisible();
   }
-  return dialog;
+  if (group === undefined) {
+    return dialog;
+  }
+  if (!(await isWide(page))) {
+    const back = dialog.getByRole("button", { name: "Back to Settings" });
+    if (await back.isVisible()) {
+      await back.click();
+    }
+  }
+  await dialog
+    .getByRole("navigation", { name: "Settings groups" })
+    .getByRole("button", { name: new RegExp(`^${group}`) })
+    .click();
+  const pane = dialog.getByRole("region", { name: group, exact: true });
+  await expect(pane).toBeVisible();
+  return pane;
 }
