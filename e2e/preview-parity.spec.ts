@@ -70,7 +70,7 @@ const GUIDE_CASES: Case[] = Array.from({ length: 16 }, (_, mask) => {
 interface Snapshot {
   readonly text: string;
   readonly fontFamily: string;
-  readonly fontSize: string;
+  readonly fontSize: number;
   readonly lineHeightRatio: number;
   readonly highlights: Readonly<Record<string, readonly string[]>>;
   readonly mistakes: string;
@@ -113,8 +113,9 @@ async function snapshot(page: Page, rootSelector: string, scope: "lesson" | "pre
       return {
         text: [...text.querySelectorAll("[data-block]")].map((block) => block.textContent ?? "").join("\n"),
         fontFamily: style.fontFamily,
-        fontSize: style.fontSize,
-        lineHeightRatio: Number.parseFloat(style.lineHeight) / Number.parseFloat(style.fontSize),
+        fontSize: Math.round(Number.parseFloat(style.fontSize) * 10) / 10,
+        lineHeightRatio:
+          Math.round((Number.parseFloat(style.lineHeight) / Number.parseFloat(style.fontSize)) * 100) / 100,
         highlights,
         mistakes: mistakes?.textContent ?? "",
         mistakeColor: mistakes === null ? "" : getComputedStyle(mistakes).color,
