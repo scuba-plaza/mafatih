@@ -202,6 +202,8 @@ export const en = {
   "settings.title": "Settings",
   "settings.text": "Text",
   "settings.typing": "Typing",
+  "settings.preview": "Preview",
+  "settings.previewScale": "Shown at {percent}%",
   "settings.back": "Back to Settings",
   "settings.groups": "Settings groups",
   "settings.group.general": "General",

@@ -29,10 +29,9 @@ export interface LessonSettingsProps {
   readonly change: (patch: Partial<Settings>) => void;
 }
 
-export function LessonSettings({ settings, change }: LessonSettingsProps) {
+export function LessonControls({ settings, change }: LessonSettingsProps) {
   const { t, formatNumber } = useI18n();
   const sizeId = useId();
-  const layoutName = useLayoutName();
   const sizeIndex = FONT_SIZES.indexOf(settings.fontSize);
   return (
     <>
@@ -79,31 +78,38 @@ export function LessonSettings({ settings, change }: LessonSettingsProps) {
           onChange={(requireBackspace) => change({ requireBackspace })}
         />
       </Section>
-      <fieldset className="hidden flex-col md:pointer-fine:flex">
-        <legend className={`mb-2 ${SECTION_TITLE}`}>{t("settings.guide")}</legend>
-        <Switch
-          label={t("settings.showKeyboard")}
-          checked={settings.showKeyboard}
-          onChange={(showKeyboard) => change({ showKeyboard })}
-        />
-        <Switch
-          label={t("settings.fingerGuide")}
-          checked={settings.fingerGuide}
-          onChange={(fingerGuide) => change({ fingerGuide })}
-        />
-        <Switch
-          label={t("settings.keyLabels")}
-          checked={settings.keyLabels}
-          onChange={(keyLabels) => change({ keyLabels })}
-        />
-        <Switch
-          label={t("settings.delayedHint")}
-          hint={t("settings.delayedHintHint", { seconds: HINT_DELAY_MS / 1000 })}
-          checked={settings.delayedHint}
-          onChange={(delayedHint) => change({ delayedHint })}
-        />
-        <p className="text-sm text-muted">{t("settings.layoutHint", { layout: layoutName })}</p>
-      </fieldset>
     </>
+  );
+}
+
+export function KeyboardGuideSettings({ settings, change }: LessonSettingsProps) {
+  const { t } = useI18n();
+  const layoutName = useLayoutName();
+  return (
+    <fieldset className="hidden flex-col md:pointer-fine:flex">
+      <legend className={`mb-2 ${SECTION_TITLE}`}>{t("settings.guide")}</legend>
+      <Switch
+        label={t("settings.showKeyboard")}
+        checked={settings.showKeyboard}
+        onChange={(showKeyboard) => change({ showKeyboard })}
+      />
+      <Switch
+        label={t("settings.fingerGuide")}
+        checked={settings.fingerGuide}
+        onChange={(fingerGuide) => change({ fingerGuide })}
+      />
+      <Switch
+        label={t("settings.keyLabels")}
+        checked={settings.keyLabels}
+        onChange={(keyLabels) => change({ keyLabels })}
+      />
+      <Switch
+        label={t("settings.delayedHint")}
+        hint={t("settings.delayedHintHint", { seconds: HINT_DELAY_MS / 1000 })}
+        checked={settings.delayedHint}
+        onChange={(delayedHint) => change({ delayedHint })}
+      />
+      <p className="text-sm text-muted">{t("settings.layoutHint", { layout: layoutName })}</p>
+    </fieldset>
   );
 }

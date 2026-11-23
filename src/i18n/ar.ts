@@ -198,6 +198,8 @@ export const ar: Record<MessageKey, string> = {
   "settings.title": "الإعدادات",
   "settings.text": "النص",
   "settings.typing": "الكتابة",
+  "settings.preview": "معاينة",
+  "settings.previewScale": "بحجم {percent}٪",
   "settings.back": "العودة إلى الإعدادات",
   "settings.groups": "مجموعات الإعدادات",
   "settings.group.general": "عام",

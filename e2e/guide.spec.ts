@@ -9,7 +9,7 @@ import { startTyping, typeKeys } from "./helpers/typing.ts";
 const FATHA = String.fromCodePoint(0x64e);
 
 function guide(page: Page) {
-  return page.locator("[data-guide-keyboard]");
+  return page.locator("[data-stage] [data-guide-keyboard]");
 }
 
 async function dueKeys(page: Page): Promise<string[]> {

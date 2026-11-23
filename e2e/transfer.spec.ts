@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { FIREFOX_PAGE_CRASH } from "./helpers/engines.ts";
+import { openSettingsGroup } from "./helpers/pages.ts";
 import { PROFILE_KEY, savedProfile, seedProfile, storeItem } from "./helpers/profile.ts";
 
 const STAT = { attempts: 9, hits: 9, timed: 9, meanMs: 300, recentAccuracy: 1 };
@@ -33,8 +34,7 @@ function dialog(page: Page) {
 }
 
 async function openSettings(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Settings" }).click();
-  await expect(dialog(page)).toBeVisible();
+  await openSettingsGroup(page, "Your data");
 }
 
 function section(page: Page) {
@@ -279,6 +279,10 @@ test("in Arabic the section is in Arabic and restoring a backup in English switc
   await page.goto("/#/practice");
   await page.getByRole("button", { name: "الإعدادات" }).click();
   const arabic = page.getByRole("dialog", { name: "الإعدادات" });
+  await arabic
+    .getByRole("navigation")
+    .getByRole("button", { name: /^بياناتك/ })
+    .click();
   const group = arabic.getByRole("group", { name: "النسخ الاحتياطي والاستعادة" });
   await expect(group.getByRole("button", { name: "تنزيل نسخة احتياطية" })).toBeVisible();
   await expectNoAxeViolations(page);

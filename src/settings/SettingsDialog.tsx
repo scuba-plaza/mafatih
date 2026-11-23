@@ -9,8 +9,11 @@ import { DataSettings } from "./DataSettings.tsx";
 import { FONTS, loadFont } from "./fonts.ts";
 import { GeneralSettings } from "./GeneralSettings.tsx";
 import { GroupNav } from "./GroupNav.tsx";
-import { GROUP_TITLE, type GroupId, WIDE_QUERY } from "./groups.ts";
-import { LessonSettings } from "./LessonSettings.tsx";
+import { GROUP_TITLE, type GroupId, TALL_QUERY, TRIPLE_QUERY, WIDE_QUERY } from "./groups.ts";
+import { LessonPreview } from "./LessonPreview.tsx";
+import { KeyboardGuideSettings, LessonControls } from "./LessonSettings.tsx";
+import { PreviewPeek } from "./PreviewPeek.tsx";
+import { PreviewScale } from "./PreviewScale.tsx";
 import type { Settings } from "./settings.ts";
 import { useGroupSummaries } from "./useGroupSummaries.tsx";
 
@@ -27,6 +30,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const { profile, update } = useProfile();
   const { settings } = profile;
   const wide = useMediaQuery(WIDE_QUERY);
+  const triple = useMediaQuery(TRIPLE_QUERY);
+  const tall = useMediaQuery(TALL_QUERY);
   const [chosen, setChosen] = useState<GroupId | null>(null);
   const summaries = useGroupSummaries(settings);
 
@@ -51,7 +56,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       case "general":
         return <GeneralSettings settings={settings} change={change} onNavigate={onClose} />;
       case "lesson":
-        return <LessonSettings settings={settings} change={change} />;
+        return <LessonControls settings={settings} change={change} />;
       case "recitation":
         return (
           <>
@@ -64,19 +69,70 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     }
   };
 
+  const scrolling = (id: GroupId, children: ReactNode, labelled = true): ReactNode => (
+    <section
+      aria-label={labelled ? t(GROUP_TITLE[id]) : undefined}
+      data-settings-scroll=""
+      className={`flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${SIDE_PADDING}`}
+    >
+      {children}
+    </section>
+  );
+
+  const lesson = (): ReactNode => {
+    const preview = (
+      <PreviewScale>
+        <LessonPreview settings={settings} lines={2} />
+      </PreviewScale>
+    );
+    const guide = <KeyboardGuideSettings settings={settings} change={change} />;
+    if (wide && triple) {
+      return (
+        <section aria-label={t(GROUP_TITLE.lesson)} className="flex min-h-0 min-w-0 flex-1">
+          {scrolling("lesson", pane("lesson"), false)}
+          <aside className="flex w-[29rem] shrink-0 flex-col gap-5 overflow-y-auto border-s border-line bg-faint p-4">
+            {preview}
+            {guide}
+          </aside>
+        </section>
+      );
+    }
+    if (wide) {
+      return scrolling(
+        "lesson",
+        <>
+          <div className="sticky top-0 z-10 -mt-4 bg-surface pt-4 pb-3">{preview}</div>
+          {pane("lesson")}
+          {guide}
+        </>,
+      );
+    }
+    if (tall) {
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <PreviewPeek settings={settings} />
+          {scrolling("lesson", pane("lesson"))}
+        </div>
+      );
+    }
+    return scrolling(
+      "lesson",
+      <>
+        {preview}
+        {pane("lesson")}
+      </>,
+    );
+  };
+
   const content =
     active === null ? (
       <div className={`min-h-0 flex-1 overflow-y-auto ${SIDE_PADDING}`}>
         <GroupNav variant="list" active={null} summaries={summaries} onChoose={setChosen} />
       </div>
+    ) : active === "lesson" ? (
+      lesson()
     ) : (
-      <section
-        aria-label={t(GROUP_TITLE[active])}
-        data-settings-scroll=""
-        className={`flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] ${SIDE_PADDING}`}
-      >
-        {pane(active)}
-      </section>
+      scrolling(active, pane(active))
     );
 
   return (

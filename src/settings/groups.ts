@@ -12,3 +12,5 @@ export const GROUP_TITLE: Readonly<Record<GroupId, MessageKey>> = {
 };
 
 export const WIDE_QUERY = "(min-width: 48rem)";
+export const TRIPLE_QUERY = "(min-width: 64rem) and (pointer: fine)";
+export const TALL_QUERY = "(min-height: 36rem)";

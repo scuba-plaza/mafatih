@@ -200,7 +200,7 @@ test("the lesson font changes the lesson text only, and every choice previews it
   await dialog(page).getByRole("radio", { name: "Amiri", exact: true }).check();
   await expect(lessonText(page)).toHaveCSS("font-family", /Amiri/);
   await expect(page.locator("body")).toHaveCSS("font-family", bodyFont);
-  await expect(page.locator('[data-key="KeyS"]')).toHaveCSS("font-family", bodyFont);
+  await expect(page.locator('[data-stage] [data-key="KeyS"]')).toHaveCSS("font-family", bodyFont);
   await expect(dialog(page).getByRole("heading", { level: 2 })).toHaveCSS("font-family", bodyFont);
   await expect.poll(() => page.evaluate(() => document.fonts.check('40px "Amiri"'))).toBe(true);
 });

@@ -213,7 +213,9 @@ test.describe("the language asked for in the link", () => {
   test("a language chosen in Settings afterwards is not undone by a reload", async ({ page }) => {
     await page.goto("/?lang=ar#/practice");
     await page.getByRole("button", { name: "الإعدادات" }).click();
-    await page.getByRole("dialog", { name: "الإعدادات" }).getByRole("radio", { name: "English" }).check();
+    const dialog = page.getByRole("dialog", { name: "الإعدادات" });
+    await dialog.getByRole("navigation").getByRole("button", { name: /^عام/ }).click();
+    await dialog.getByRole("radio", { name: "English" }).check();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
