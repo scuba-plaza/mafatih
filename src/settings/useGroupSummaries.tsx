@@ -19,6 +19,5 @@ export function useGroupSummaries(settings: Settings): Readonly<Record<GroupId, 
       reciter: t(settings.reciter === "murattal" ? "reciter.murattal" : "reciter.mujawwad"),
       count: formatNumber(settings.ayatPerLesson),
     }),
-    data: t("settings.summary.data"),
   };
 }

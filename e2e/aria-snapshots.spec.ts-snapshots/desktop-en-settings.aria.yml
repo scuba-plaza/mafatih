@@ -5,7 +5,6 @@
     - button "General English"
     - button /Lesson Scheherazade New · \d+/
     - button "Recitation ⁨Murattal⁩ · ⁨4⁩ ayat"
-    - button "Your data Backup, restore, reset"
   - region "General":
     - group "Language":
       - text: ""
@@ -13,5 +12,17 @@
       - text: English
       - radio "العربية"
       - text: العربية
+    - group "Backup and restore":
+      - text: ""
+      - paragraph: Save your progress and settings to a file, or bring them back from one. Nothing leaves this device unless you send the file yourself.
+      - button "Download backup"
+      - button "Restore from a backup file"
+      - text: Restore from a backup file
+      - status
+    - region "Reset progress":
+      - heading "Reset progress" [level=3]
+      - paragraph: This clears your unlocked keys, your key statistics and your lesson history. Your settings and your place in the Qur'an are kept.
+      - button "Reset progress"
+      - status
     - link "About":
       - /url: "#/about"

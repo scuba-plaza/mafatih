@@ -1,10 +1,9 @@
-import { Component, type ReactNode, useEffect, useRef } from "react";
+import { Component, type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { eraseStoredProfile } from "~/storage/ProfileProvider.tsx";
-import { ConfirmChoice } from "~/ui/ConfirmChoice.tsx";
+import { ConfirmDialog } from "~/ui/ConfirmDialog.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
-import { useConfirmation } from "~/ui/useConfirmation.ts";
 
 function reload(): void {
   window.location.reload();
@@ -12,7 +11,7 @@ function reload(): void {
 
 function ErrorScreen() {
   const { t } = useI18n();
-  const { confirming, opener, ask, settle } = useConfirmation();
+  const [asking, setAsking] = useState(false);
   const screen = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -25,31 +24,30 @@ function ErrorScreen() {
       reload();
       return;
     }
-    settle();
+    setAsking(false);
   };
 
   return (
     <main ref={screen} className="mx-auto flex max-w-prose flex-col items-start gap-4 p-4">
       <PageHeading>{t("error.title")}</PageHeading>
       <p role="alert">{t("error.body")}</p>
-      {confirming ? (
-        <ConfirmChoice
-          question={t("error.question")}
-          warning={t("error.warning")}
-          keepLabel={t("settings.keepProgress")}
-          confirmLabel={t("error.erase")}
-          onAnswer={answer}
-        />
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={reload} className={PRIMARY_BUTTON}>
-            {t("action.reload")}
-          </button>
-          <button type="button" ref={opener} onClick={ask} className={BUTTON}>
-            {t("error.startOver")}
-          </button>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={reload} className={PRIMARY_BUTTON}>
+          {t("action.reload")}
+        </button>
+        <button type="button" onClick={() => setAsking(true)} className={BUTTON}>
+          {t("error.startOver")}
+        </button>
+      </div>
+      <ConfirmDialog
+        danger
+        open={asking}
+        question={t("error.question")}
+        warning={t("error.warning")}
+        keepLabel={t("settings.keepProgress")}
+        confirmLabel={t("error.erase")}
+        onAnswer={answer}
+      />
     </main>
   );
 }

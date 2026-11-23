@@ -2,7 +2,7 @@ import { type ChangeEvent, useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
-import { ConfirmChoice } from "~/ui/ConfirmChoice.tsx";
+import { ConfirmDialog } from "~/ui/ConfirmDialog.tsx";
 import { BUTTON, SECTION_TITLE } from "~/ui/styles.ts";
 import { deviceLanguages, useProfile } from "./ProfileProvider.tsx";
 import type { Profile } from "./profile.ts";
@@ -127,15 +127,15 @@ export function BackupRestore() {
           {t("backup.notSaved")}
         </p>
       )}
-      {pending !== null && (
-        <ConfirmChoice
-          question={t("backup.question")}
-          warning={t("backup.warning")}
-          keepLabel={t("settings.keepProgress")}
-          confirmLabel={t("backup.replace")}
-          onAnswer={answer}
-        />
-      )}
+      <ConfirmDialog
+        danger
+        open={pending !== null}
+        question={t("backup.question")}
+        warning={t("backup.warning")}
+        keepLabel={t("settings.keepProgress")}
+        confirmLabel={t("backup.replace")}
+        onAnswer={answer}
+      />
       <p role="status" className="min-h-5 text-sm text-muted">
         {status === null ? "" : t(status === "downloaded" ? "backup.downloaded" : "backup.restored")}
       </p>

@@ -55,3 +55,9 @@ Ok now please go ahead with task 0.4. If you have any questions please ask anyti
 - The Auto vocalization option has no hint; the other three keep theirs.
 - The button is "Unlock all keys", on the Practice page, and `unlockAllKeys` sets all 44 keys including the marks. Because it also changes what Auto asks for, the confirmation says "marks included".
 - Written into the plan as "Decisions so far" 5, 8, 9, the "Settled design" section and Phase 1 Tasks 5 and 8.
+
+## After the build (owner)
+
+- Move everything from "Your data" into "General" and drop the group. Done: three groups, General holds the language, backup and restore, Reset progress and the link to About.
+- The "Unlock all keys?" confirmation looked bad; make it a simple confirmation with the title and explanation on top and the two buttons at the end. Done: `ConfirmDialog` is a plain dialog (`Dialog` with `plain`).
+- A caret bug in the scaled preview (the caret was far from the mistake) was found by the owner; it is fixed and pinned by `e2e/preview-parity.spec.ts`.

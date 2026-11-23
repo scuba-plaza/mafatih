@@ -21,4 +21,4 @@ The tests in `src/i18n/i18n.test.ts` pin the decisions marked (test).
 | A typing exercise | lesson (Practice, Custom, history rows); passage (a run of ayat in Recitation) | درس؛ مقطع | | |
 | Speed | characters per minute; "cpm" only in the live line | حرف في الدقيقة؛ حرف/د في السطر الحي | | The short form exists only where space is tight. |
 | Statistics | "Stats" as a page and tab name; "statistics" in a sentence | الإحصاءات | | |
-| Settings groups | General, Lesson, Recitation, Your data | عام، الدرس، التلاوة، بياناتك | Practice (no such group) | |
+| Settings groups | General, Lesson, Recitation | عام، الدرس، التلاوة | Practice (no such group), Your data (merged into General on the owner's request) | |

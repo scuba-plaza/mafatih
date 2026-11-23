@@ -5,7 +5,6 @@ import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
 import { Dialog, SIDE_PADDING } from "~/ui/Dialog.tsx";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
-import { DataSettings } from "./DataSettings.tsx";
 import { FONTS, loadFont } from "./fonts.ts";
 import { GeneralSettings } from "./GeneralSettings.tsx";
 import { GroupNav } from "./GroupNav.tsx";
@@ -80,8 +79,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <AudioSettings settings={settings} change={change} />
           </>
         );
-      case "data":
-        return <DataSettings />;
     }
   };
 

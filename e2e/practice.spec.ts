@@ -123,10 +123,10 @@ test("after Reset progress the readout forgets the last lesson and its unlock", 
   }
   await expect(status).toHaveText(/^Unlocked:/);
   await expect(hud(page).getByText(/characters per minute/)).toBeVisible();
-  await openSettingsGroup(page, "Your data");
+  await openSettingsGroup(page, "General");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
-  await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
+  await dialog.getByRole("dialog", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(hud(page).getByText("10 of 44")).toBeVisible();
   await expect(status).toHaveText("");
@@ -221,10 +221,10 @@ test("Reset progress asks first, then clears keys, statistics and lesson history
   });
   await page.goto("/#/practice");
   await expect(hud(page).getByText("20 of 44")).toBeVisible();
-  await openSettingsGroup(page, "Your data");
+  await openSettingsGroup(page, "General");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
-  const group = dialog.getByRole("group", { name: "Reset progress?" });
+  const group = dialog.getByRole("dialog", { name: "Reset progress?" });
   await expect(group).toHaveAccessibleDescription(/unlocked keys, your key statistics and your lesson history/);
   const keep = group.getByRole("button", { name: "Keep my progress" });
   await expect(keep).toBeFocused();
@@ -233,7 +233,7 @@ test("Reset progress asks first, then clears keys, statistics and lesson history
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 20 });
   expect((await savedProfile(page)).history).toHaveLength(1);
   await dialog.getByRole("button", { name: "Reset progress" }).click();
-  await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
+  await dialog.getByRole("dialog", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
   await expect(dialog.getByRole("status").filter({ hasText: "Progress was reset." })).toHaveCount(1);
   await expect(dialog.getByRole("button", { name: "Reset progress" })).toBeFocused();
   const profile = await savedProfile(page);
@@ -279,6 +279,33 @@ test("with every key unlocked the Auto lesson asks for marks", async ({ page }) 
   expect(MARKS.test(await shownText(page))).toBe(true);
 });
 
+test("the Unlock all keys question is a plain confirmation: title, explanation, then Not now and Unlock at the end", async ({
+  page,
+}) => {
+  await page.goto("/#/practice");
+  await hud(page).getByRole("button", { name: "Unlock all keys" }).click();
+  const dialog = page.getByRole("dialog", { name: "Unlock all keys?" });
+  await expect(dialog.getByRole("button")).toHaveCount(2);
+  const box = async (locator: import("@playwright/test").Locator) => {
+    const found = await locator.boundingBox();
+    if (found === null) {
+      throw new Error("not on screen");
+    }
+    return found;
+  };
+  const frame = await box(dialog);
+  const title = await box(dialog.getByRole("heading", { name: "Unlock all keys?" }));
+  const explanation = await box(dialog.getByText(/marks included/));
+  const keep = await box(dialog.getByRole("button", { name: "Not now" }));
+  const unlock = await box(dialog.getByRole("button", { name: "Unlock", exact: true }));
+  expect(title.y).toBeLessThan(explanation.y);
+  expect(explanation.y + explanation.height).toBeLessThan(keep.y);
+  expect(Math.abs(keep.y - unlock.y)).toBeLessThan(2);
+  expect(keep.x + keep.width).toBeLessThan(unlock.x);
+  expect(frame.x + frame.width - (unlock.x + unlock.width)).toBeLessThan(40);
+  expect(keep.y - frame.y).toBeGreaterThan(title.height + explanation.height);
+});
+
 test("Escape and a click outside both mean Not now", async ({ page }) => {
   await page.goto("/#/practice");
   await hud(page).getByRole("button", { name: "Unlock all keys" }).click();
@@ -294,7 +321,7 @@ test("Escape and a click outside both mean Not now", async ({ page }) => {
 
 test("Unlock all keys is not in Settings any more", async ({ page }) => {
   await page.goto("/#/practice");
-  await openSettingsGroup(page, "Your data");
+  await openSettingsGroup(page, "General");
   await expect(page.getByRole("dialog", { name: "Settings" }).getByRole("button", { name: /Unlock/ })).toHaveCount(0);
 });
 

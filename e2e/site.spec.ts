@@ -91,7 +91,7 @@ test("nothing the app does is blocked by the policy: every page, the fonts, audi
   await dialog.getByRole("radio", { name: "Amiri" }).check();
   await dialog.getByRole("radio", { name: "Scheherazade New" }).check();
   await expect(page.locator("[data-font-sample]").first()).toBeVisible();
-  await openSettingsGroup(page, "Your data");
+  await openSettingsGroup(page, "General");
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     dialog.getByRole("button", { name: "Download backup" }).click(),

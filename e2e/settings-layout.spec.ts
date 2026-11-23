@@ -3,7 +3,7 @@ import { openSettingsGroup, type SettingsGroup } from "./helpers/pages.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 
-const GROUPS: readonly SettingsGroup[] = ["General", "Lesson", "Recitation", "Your data"];
+const GROUPS: readonly SettingsGroup[] = ["General", "Lesson", "Recitation"];
 
 interface Control {
   readonly group: SettingsGroup;
@@ -60,16 +60,16 @@ const CONTROLS: readonly Control[] = [
     find: (pane) => pane.getByRole("button", { name: "Delete saved recitations" }),
   },
   {
-    group: "Your data",
+    group: "General",
     name: "Download backup",
     find: (pane) => pane.getByRole("button", { name: "Download backup" }),
   },
   {
-    group: "Your data",
+    group: "General",
     name: "Restore from a backup file",
     find: (pane) => pane.getByText("Restore from a backup file"),
   },
-  { group: "Your data", name: "Reset progress", find: (pane) => pane.getByRole("button", { name: "Reset progress" }) },
+  { group: "General", name: "Reset progress", find: (pane) => pane.getByRole("button", { name: "Reset progress" }) },
 ];
 
 function dialogOf(page: import("@playwright/test").Page): Locator {
@@ -89,10 +89,10 @@ async function openFresh(page: import("@playwright/test").Page, name = "Settings
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("Settings opens on a list of four groups, each with a one-line summary", async ({ page }) => {
+  test("Settings opens on a list of three groups, each with a one-line summary", async ({ page }) => {
     await openFresh(page);
     const rows = groupNav(page).getByRole("button");
-    await expect(rows).toHaveText([/^General/, /^Lesson/, /^Recitation/, /^Your data/]);
+    await expect(rows).toHaveText([/^General/, /^Lesson/, /^Recitation/]);
     const summaries = groupNav(page).locator("[data-summary]");
     const isolates = /[\u2066-\u2069]/g;
     expect((await summaries.allTextContents()).map((text) => text.replace(isolates, ""))).toEqual([
@@ -116,7 +116,7 @@ test.describe("on a phone", () => {
     await addStyle(page, WIDE_LARGE_TEXT);
     await page.getByRole("button", { name: "Settings" }).click();
     const summaries = groupNav(page).locator("[data-summary]");
-    await expect(summaries).toHaveCount(4);
+    await expect(summaries).toHaveCount(3);
     for (const lines of await summaries.evaluateAll((all) =>
       all.map(
         (element) => element.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(element).lineHeight),
@@ -174,9 +174,9 @@ test("any group is one action away from a freshly opened Settings", async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await openFresh(page);
   await groupNav(page)
-    .getByRole("button", { name: /^Your data/ })
+    .getByRole("button", { name: /^Recitation/ })
     .click();
-  await expect(dialogOf(page).getByRole("button", { name: "Reset progress" })).toBeVisible();
+  await expect(dialogOf(page).getByRole("group", { name: "Reciter" })).toBeVisible();
 });
 
 test("Settings always opens on the first group, wide or narrow", async ({ page }) => {
@@ -190,7 +190,7 @@ test("Settings always opens on the first group, wide or narrow", async ({ page }
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(groupNav(page).getByRole("button")).toHaveCount(4);
+  await expect(groupNav(page).getByRole("button")).toHaveCount(3);
   await expect(dialogOf(page).getByRole("region")).toHaveCount(0);
 });
 
@@ -279,15 +279,15 @@ test("Surah order and Reciter show the hint of the chosen option and keep every 
   );
 });
 
-test("Your data explains what Reset progress does before the button", async ({ page }) => {
+test("General explains what Reset progress does before the button", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openFresh(page);
-  const pane = await openSettingsGroup(page, "Your data");
+  const pane = await openSettingsGroup(page, "General");
   const explanation = pane.getByText(/This clears your unlocked keys, your key statistics and your lesson history/);
   await expect(explanation).toBeVisible();
   const above = (await explanation.boundingBox())?.y ?? 0;
   const button = (await pane.getByRole("button", { name: "Reset progress" }).boundingBox())?.y ?? 0;
   expect(above).toBeLessThan(button);
   await pane.getByRole("button", { name: "Reset progress" }).click();
-  await expect(pane.getByText(/This clears your unlocked keys/)).toHaveCount(1);
+  await expect(page.getByRole("dialog", { name: "Reset progress?" })).toBeVisible();
 });

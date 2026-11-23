@@ -4,11 +4,11 @@ import { openSettingsGroup, type SettingsGroup } from "./helpers/pages.ts";
 import { seedSettings } from "./helpers/profile.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
 
-const GROUPS: readonly SettingsGroup[] = ["General", "Lesson", "Recitation", "Your data"];
+const GROUPS: readonly SettingsGroup[] = ["General", "Lesson", "Recitation"];
 const ARABIC = {
   open: "الإعدادات",
   back: "العودة إلى الإعدادات",
-  rows: ["عام", "الدرس", "التلاوة", "بياناتك"],
+  rows: ["عام", "الدرس", "التلاوة"],
 } as const;
 
 function dialogOf(page: Page): Locator {
@@ -81,13 +81,13 @@ test.describe("on a phone", () => {
         return `${active?.closest("dialog") === null ? "outside" : "inside"}:${active?.textContent?.trim().split(/\s/)[0] ?? ""}`;
       });
     names.push(await current());
-    for (let step = 0; step < 4; step += 1) {
+    for (let step = 0; step < 3; step += 1) {
       await page.keyboard.press("Tab");
       names.push(await current());
     }
     expect(names.every((name) => name.startsWith("inside:"))).toBe(true);
     expect(names.some((name) => name === "inside:Done")).toBe(true);
-    for (const row of ["General", "Lesson", "Recitation", "Your"]) {
+    for (const row of ["General", "Lesson", "Recitation"]) {
       expect(names.some((name) => name.startsWith(`inside:${row}`))).toBe(true);
     }
   });

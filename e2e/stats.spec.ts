@@ -254,10 +254,10 @@ test("Reset progress empties the statistics and the lesson list", async ({ page 
   await seedProfile(page, PROFILE);
   await openPractice(page);
   await expect(keys(page)).toBeVisible();
-  await openSettingsGroup(page, "Your data");
+  await openSettingsGroup(page, "General");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   await dialog.getByRole("button", { name: "Reset progress" }).click();
-  await dialog.getByRole("group", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
+  await dialog.getByRole("dialog", { name: "Reset progress?" }).getByRole("button", { name: "Reset" }).click();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(keys(page)).toHaveCount(0);
   await expect(page.getByText("No lessons yet.")).toBeVisible();

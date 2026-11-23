@@ -2,14 +2,13 @@ import { useId, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { initialProgress } from "~/practice/ladder.ts";
 import { useProfile } from "~/storage/ProfileProvider.tsx";
-import { ConfirmChoice } from "~/ui/ConfirmChoice.tsx";
+import { ConfirmDialog } from "~/ui/ConfirmDialog.tsx";
 import { BUTTON, SECTION_TITLE } from "~/ui/styles.ts";
-import { useConfirmation } from "~/ui/useConfirmation.ts";
 
 export function ResetProgress() {
   const { t } = useI18n();
   const { update } = useProfile();
-  const { confirming, opener, ask, settle } = useConfirmation();
+  const [asking, setAsking] = useState(false);
   const titleId = useId();
   const [done, setDone] = useState(false);
 
@@ -23,7 +22,7 @@ export function ResetProgress() {
       }));
     }
     setDone(reset);
-    settle();
+    setAsking(false);
   };
 
   return (
@@ -31,22 +30,19 @@ export function ResetProgress() {
       <h3 id={titleId} className={SECTION_TITLE}>
         {t("settings.reset")}
       </h3>
-      {confirming ? (
-        <ConfirmChoice
-          question={t("settings.resetQuestion")}
-          warning={t("settings.resetWarning")}
-          keepLabel={t("settings.keepProgress")}
-          confirmLabel={t("settings.resetConfirm")}
-          onAnswer={answer}
-        />
-      ) : (
-        <>
-          <p className="text-sm text-muted">{t("settings.resetWarning")}</p>
-          <button type="button" ref={opener} onClick={ask} className={BUTTON}>
-            {t("settings.reset")}
-          </button>
-        </>
-      )}
+      <p className="text-sm text-muted">{t("settings.resetWarning")}</p>
+      <button type="button" onClick={() => setAsking(true)} className={BUTTON}>
+        {t("settings.reset")}
+      </button>
+      <ConfirmDialog
+        danger
+        open={asking}
+        question={t("settings.resetQuestion")}
+        warning={t("settings.resetWarning")}
+        keepLabel={t("settings.keepProgress")}
+        confirmLabel={t("settings.resetConfirm")}
+        onAnswer={answer}
+      />
       <p role="status" className="min-h-5 text-sm text-muted">
         {done ? t("settings.resetDone") : ""}
       </p>

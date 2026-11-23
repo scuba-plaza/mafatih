@@ -12,7 +12,8 @@ export interface DialogProps {
   readonly label?: string;
   readonly describedBy?: string;
   readonly titleRef?: RefObject<HTMLHeadingElement | null>;
-  readonly closeLabel: string;
+  readonly closeLabel?: string;
+  readonly plain?: boolean;
   readonly onClose: () => void;
   readonly leading?: ReactNode;
   readonly className?: string;
@@ -27,6 +28,7 @@ export function Dialog({
   describedBy,
   titleRef,
   closeLabel,
+  plain = false,
   onClose,
   leading,
   className = "md:w-lg",
@@ -65,26 +67,39 @@ export function Dialog({
       {open && (
         <>
           <span aria-hidden="true" className="mx-auto mt-2 block h-1 w-10 shrink-0 rounded-full bg-edge md:hidden" />
-          <div
-            className={`@container grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 border-b border-line bg-surface py-2 md:grid-cols-[minmax(0,1fr)_auto] ${SIDE_PADDING}`}
-          >
-            <div className="justify-self-start md:hidden">{leading}</div>
-            <h2
-              ref={titleRef}
-              id={titleId}
-              className="min-w-0 text-center text-lg font-medium break-words outline-none md:text-start"
-            >
-              {title}
-            </h2>
-            <button
-              type="button"
-              onClick={() => dialog.current?.close()}
-              className={`${BUTTON} shrink-0 justify-self-end`}
-            >
-              {closeLabel}
-            </button>
-          </div>
-          <div className={bodyClassName}>{children}</div>
+          {plain ? (
+            <div className={bodyClassName}>
+              <h2 ref={titleRef} id={titleId} className="text-xl font-semibold break-words outline-none">
+                {title}
+              </h2>
+              {children}
+            </div>
+          ) : (
+            <>
+              <div
+                className={`@container grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 border-b border-line bg-surface py-2 md:grid-cols-[minmax(0,1fr)_auto] ${SIDE_PADDING}`}
+              >
+                <div className="justify-self-start md:hidden">{leading}</div>
+                <h2
+                  ref={titleRef}
+                  id={titleId}
+                  className="min-w-0 text-center text-lg font-medium break-words outline-none md:text-start"
+                >
+                  {title}
+                </h2>
+                {closeLabel !== undefined && (
+                  <button
+                    type="button"
+                    onClick={() => dialog.current?.close()}
+                    className={`${BUTTON} shrink-0 justify-self-end`}
+                  >
+                    {closeLabel}
+                  </button>
+                )}
+              </div>
+              <div className={bodyClassName}>{children}</div>
+            </>
+          )}
         </>
       )}
     </dialog>

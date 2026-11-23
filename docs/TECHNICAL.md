@@ -86,7 +86,7 @@ Surah data is split into one chunk per surah. A passage is a run of ayat (1 to 4
 
 One localStorage key, `mafatih:profile:2`, holds `{ schema: 2, settings, ladder, stats: { practice, recitation, custom }, history, recitation }`. Every part is read through its own sanitizer that builds a fresh object from known fields, so a broken part falls back to defaults without discarding the rest, and `__proto__`, wrong types and huge lists cannot get in. If storage is unavailable the app runs in memory with a notice; a profile of a newer schema is left alone with a notice; an unreadable one is copied to `…:unreadable` and replaced.
 
-Backup and restore (`transfer.ts`, in the Settings dialog): `{ app: "mafatih", schema: 2, exportedAt, profile }`, at most 2,000,000 bytes, refused as `too-large`, `not-json`, `not-a-backup` or `wrong-version` (the old app's export, with no `app` and `schema` 1, is a `wrong-version`), and replaced only after the learner confirms. A render error shows a screen with Reload and Start over (which erases the profile, not the audio cache, after asking). The boundary catches render errors only: errors in event handlers, effects and promises, and in the two providers above it, are not caught.
+Backup and restore (`transfer.ts`, in the General group of the Settings dialog): `{ app: "mafatih", schema: 2, exportedAt, profile }`, at most 2,000,000 bytes, refused as `too-large`, `not-json`, `not-a-backup` or `wrong-version` (the old app's export, with no `app` and `schema` 1, is a `wrong-version`), and replaced only after the learner confirms. A render error shows a screen with Reload and Start over (which erases the profile, not the audio cache, after asking). The boundary catches render errors only: errors in event handlers, effects and promises, and in the two providers above it, are not caught.
 
 ## Data
 
@@ -153,7 +153,7 @@ A learner's review of the live app changed these things, and they take precedenc
 
 ## Settings, 2026-11-23
 
-Settings is one master-detail dialog (`SettingsDialog.tsx`), not a page. Four groups in this order: General, Lesson, Recitation, Your data (`groups.ts`). On a phone it is a push list: the list of groups, then one group with a back button at the start, the group title centred and Done at the end. From 48rem it is a rail of groups beside the controls; with a fine pointer from 64rem the Lesson group adds a third column with the preview. Each group row shows a one-line summary (`useGroupSummaries.tsx`) on every viewport. The Lesson group holds every setting that changes how a lesson is drawn (font, size, vocalization, Backspace correction, the keyboard guide switches) and the live preview.
+Settings is one master-detail dialog (`SettingsDialog.tsx`), not a page. Three groups in this order: General, Lesson, Recitation (`groups.ts`). General holds the language, backup and restore, Reset progress and the link to About. On a phone it is a push list: the list of groups, then one group with a back button at the start, the group title centred and Done at the end. From 48rem it is a rail of groups beside the controls; with a fine pointer from 64rem the Lesson group adds a third column with the preview. Each group row shows a one-line summary (`useGroupSummaries.tsx`) on every viewport. The Lesson group holds every setting that changes how a lesson is drawn (font, size, vocalization, Backspace correction, the keyboard guide switches) and the live preview.
 
 ### The Settings preview is the real lesson surface
 

@@ -34,7 +34,7 @@ function dialog(page: Page) {
 }
 
 async function openSettings(page: Page): Promise<void> {
-  await openSettingsGroup(page, "Your data");
+  await openSettingsGroup(page, "General");
 }
 
 function section(page: Page) {
@@ -73,7 +73,7 @@ test("choosing a backup asks first, then replaces the progress and settings and 
   await expect(hud(page).getByText("12 of 44")).toBeVisible();
   await openSettings(page);
   await section(page).getByLabel(FILE_LABEL).setInputFiles(file(backupOf()));
-  const question = section(page).getByRole("group", { name: "Replace your current progress?" });
+  const question = section(page).getByRole("dialog", { name: "Replace your current progress?" });
   await expect(question).toBeVisible();
   await expect(question).toHaveAccessibleDescription(/progress and settings on this device will be replaced/);
   await expect(question.getByRole("button", { name: "Keep my progress" })).toBeFocused();
@@ -115,7 +115,7 @@ test("Keep my progress leaves everything as it was and says nothing", async ({ p
   await openSettings(page);
   await section(page).getByLabel(FILE_LABEL).setInputFiles(file(backupOf()));
   await section(page).getByRole("button", { name: "Keep my progress" }).click();
-  await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toHaveCount(0);
+  await expect(section(page).getByRole("dialog", { name: "Replace your current progress?" })).toHaveCount(0);
   await expect(section(page).getByLabel(FILE_LABEL)).toBeFocused();
   await expect(dialog(page).getByRole("status").filter({ hasText: "Progress restored." })).toHaveCount(0);
   expect((await savedProfile(page)).ladder).toEqual({ unlocked: 12 });
@@ -151,7 +151,7 @@ for (const failure of FAILURES) {
     await expect(alert).toHaveText(failure.message);
     await expect(input).toHaveAttribute("aria-invalid", "true");
     await expect(input).toHaveAccessibleDescription(failure.message);
-    await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toHaveCount(0);
+    await expect(section(page).getByRole("dialog", { name: "Replace your current progress?" })).toHaveCount(0);
     expect((await savedProfile(page)).ladder).toEqual({ unlocked: 12 });
     await expectNoAxeViolations(page);
   });
@@ -173,7 +173,7 @@ test("the field is emptied after each choice so that the same file can be chosen
   await input.setInputFiles(file(backupOf()));
   await expect(section(page).getByRole("alert")).toHaveCount(0);
   await expect(input).not.toHaveAttribute("aria-invalid", "true");
-  await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toBeVisible();
+  await expect(section(page).getByRole("dialog", { name: "Replace your current progress?" })).toBeVisible();
   await expect(input).toHaveValue("");
 });
 
@@ -252,7 +252,7 @@ test("the section, its question and its alert pass axe", async ({ page }) => {
   await page.goto("/#/practice");
   await openSettings(page);
   await section(page).getByLabel(FILE_LABEL).setInputFiles(file(backupOf()));
-  await expect(section(page).getByRole("group", { name: "Replace your current progress?" })).toBeVisible();
+  await expect(section(page).getByRole("dialog", { name: "Replace your current progress?" })).toBeVisible();
   await expectNoAxeViolations(page);
   await section(page).getByRole("button", { name: "Keep my progress" }).click();
   await section(page).getByLabel(FILE_LABEL).setInputFiles(file("nonsense"));
@@ -279,10 +279,7 @@ test("in Arabic the section is in Arabic and restoring a backup in English switc
   await page.goto("/#/practice");
   await page.getByRole("button", { name: "الإعدادات" }).click();
   const arabic = page.getByRole("dialog", { name: "الإعدادات" });
-  await arabic
-    .getByRole("navigation")
-    .getByRole("button", { name: /^بياناتك/ })
-    .click();
+  await arabic.getByRole("navigation").getByRole("button", { name: /^عام/ }).click();
   const group = arabic.getByRole("group", { name: "النسخ الاحتياطي والاستعادة" });
   await expect(group.getByRole("button", { name: "تنزيل نسخة احتياطية" })).toBeVisible();
   await expectNoAxeViolations(page);

@@ -51,7 +51,7 @@ export async function openAndWait(page: Page, hash: string, typing: boolean): Pr
   }
 }
 
-export type SettingsGroup = "General" | "Lesson" | "Recitation" | "Your data";
+export type SettingsGroup = "General" | "Lesson" | "Recitation";
 
 async function isWide(page: Page): Promise<boolean> {
   return page.evaluate(() => window.matchMedia("(min-width: 48rem)").matches);

@@ -21,6 +21,7 @@
 7. **One vocabulary** across the interface in English and Arabic (UX target 11, Task 11). First case: the app counts and names **keys** everywhere, so the button is "Unlock all keys", never "letters" next to a count of "keys".
 8. **Group summaries are one line, on every viewport**, never wrapping, and carry as little as one or two values.
 9. **The hint "Asks only for the marks you have unlocked in Practice." is removed** (the Auto option has no hint).
+10. **Amended after the build (owner):** there is no "Your data" group. Backup and restore and Reset progress live in General, below Language. Three groups remain: General, Lesson, Recitation. The "Unlock all keys?" confirmation is a plain dialog: title, explanation, then "Not now" and the primary action at the end, with no header bar.
 
 ## Settled design (Task 0.4)
 
