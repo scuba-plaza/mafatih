@@ -2,7 +2,7 @@ import { ar } from "../../../../src/i18n/ar.ts";
 import { en, type MessageKey } from "../../../../src/i18n/en.ts";
 
 export type Lang = "en" | "ar";
-export type Kind = "phone" | "desk";
+export type Kind = "phone" | "desk" | "tab" | "small";
 export type GroupId = "general" | "lesson" | "typing" | "guide" | "recitation" | "progress";
 
 const MOCK = {
@@ -356,7 +356,7 @@ export function dialog(ctx: Ctx, o: DialogOptions): string {
   const style = [o.width === undefined ? "" : `--w:${o.width}px`, o.height === undefined ? "" : `--h:${o.height}px`]
     .filter((part) => part !== "")
     .join(";");
-  return `<div class="sheet${o.height === undefined ? "" : " fixed"}" style="${style}" role="dialog">${ctx.kind === "phone" ? '<span class="grab"></span>' : ""}<div class="dhead">${o.lead ?? ""}<h2>${o.titleHtml ?? o.title ?? ctx.t("settings.title")}</h2>${o.noDone ? "" : `<button class="btn small" type="button">${ctx.t("settings.done")}</button>`}</div>${o.top ?? ""}<div class="body ${o.bodyClass ?? ""}" data-scroll>${o.body}</div></div>`;
+  return `<div class="sheet${o.height === undefined ? "" : " fixed"}" style="${style}" role="dialog">${ctx.kind === "phone" || ctx.kind === "small" ? '<span class="grab"></span>' : ""}<div class="dhead">${o.lead ?? ""}<h2>${o.titleHtml ?? o.title ?? ctx.t("settings.title")}</h2>${o.noDone ? "" : `<button class="btn small" type="button">${ctx.t("settings.done")}</button>`}</div>${o.top ?? ""}<div class="body ${o.bodyClass ?? ""}" data-scroll>${o.body}</div></div>`;
 }
 
 export function section(id: string, title: string, body: string): string {
@@ -379,13 +379,14 @@ export interface FrameSpec {
   readonly state?: string;
   readonly states?: readonly string[];
   readonly scrollTo?: string;
+  readonly init?: string;
   readonly prefill?: string;
   readonly page?: boolean;
   readonly build: (ctx: Ctx) => string;
 }
 
 function backdrop(ctx: Ctx): string {
-  if (ctx.kind === "phone") {
+  if (ctx.kind === "phone" || ctx.kind === "small") {
     return `<div class="bd"><div class="bdbar"><span class="brand">${ctx.t("app.name")}</span><span class="bdicon">⚌</span></div><h1 class="bdh">${ctx.t("nav.practice")}</h1><div class="bdtext" lang="ar" dir="rtl">قَرَأَ الطَّالِبُ الكِتَابَ</div></div><div class="scrim"></div>`;
   }
   return `<div class="bd"><div class="bdbar"><span class="brand">${ctx.t("app.name")}</span><span class="bdnav"><i>${ctx.t("nav.recitation")}</i><i class="on">${ctx.t("nav.practice")}</i><i>${ctx.t("nav.custom")}</i><i>${ctx.t("nav.stats")}</i><i>${ctx.t("settings.title")}</i></span></div><h1 class="bdh">${ctx.t("nav.practice")}</h1><div class="bdtext" lang="ar" dir="rtl">قَرَأَ الطَّالِبُ الكِتَابَ</div></div><div class="scrim"></div>`;
@@ -395,7 +396,7 @@ export function frame(spec: FrameSpec, boardId: string): string {
   const ctx = makeCtx(spec.lang, spec.kind);
   const states = (spec.states ?? [spec.state ?? ""]).join(" ");
   const inner = spec.page ? spec.build(ctx) : `${backdrop(ctx)}${spec.build(ctx)}`;
-  return `<figure class="fig"><div class="frame ${spec.kind}${spec.page ? " pageframe" : ""}" data-frame data-mid="${boardId}-${spec.id}" data-states="${states}" data-state="${spec.state ?? ""}" ${spec.scrollTo === undefined ? "" : `data-scrollafter="${esc(spec.scrollTo)}"`} ${spec.prefill === undefined ? "" : `data-prefill="${spec.prefill}"`} data-kbd="on" data-finger="on" data-bs="on" data-vocal="auto" dir="${ctx.dir}" lang="${spec.lang}">${inner}</div><figcaption>${esc(spec.label)}</figcaption></figure>`;
+  return `<figure class="fig"><div class="frame ${spec.kind}${spec.page ? " pageframe" : ""}" data-frame data-mid="${boardId}-${spec.id}" data-states="${states}" data-state="${spec.state ?? ""}" ${spec.scrollTo === undefined ? "" : `data-scrollafter="${esc(spec.scrollTo)}"`} ${spec.prefill === undefined ? "" : `data-prefill="${spec.prefill}"`} ${spec.init === undefined ? "" : `data-init="${spec.init}"`} data-kbd="on" data-finger="on" data-labels="on" data-bs="on" data-vocal="auto" dir="${ctx.dir}" lang="${spec.lang}">${inner}</div><figcaption>${esc(spec.label)}</figcaption></figure>`;
 }
 
 export interface Board {
@@ -436,12 +437,12 @@ function fontFaces(mode: FontMode): string {
   ].join("");
 }
 
-export function page(title: string, content: string, mode: FontMode): string {
+export function page(title: string, content: string, mode: FontMode, extraCss = ""): string {
   const googleLink =
     mode === "google"
       ? `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri&family=Noto+Naskh+Arabic:wght@400;600&family=Scheherazade+New&display=swap">`
       : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${googleLink}<style>${fontFaces(mode)}${CSS}</style></head><body>${content}<script>${SCRIPT}</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${googleLink}<style>${fontFaces(mode)}${CSS.replace(/font-size:(\d+(?:\.\d+)?)px/g, "font-size:calc($1px*var(--ts,1))")}${extraCss}</style></head><body>${content}<script>${SCRIPT}</script></body></html>`;
 }
 
 export const CSS = `
@@ -486,8 +487,8 @@ body.measure .frame.desk{zoom:1}
 .bdtext{font-family:"Scheherazade New",serif;font-size:56px;text-align:center;margin-top:120px;filter:blur(3px)}
 .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6)}
 .sheet{position:absolute;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);color:var(--ink);overflow:hidden}
-.phone .sheet{inset-inline:0;bottom:0;max-height:760px;border-radius:24px 24px 0 0}
-.desk .sheet{inset:0;margin:auto;width:var(--w,512px);height:fit-content;max-height:810px;border-radius:16px}
+.phone .sheet,.small .sheet{inset-inline:0;bottom:0;max-height:760px;border-radius:24px 24px 0 0}
+.desk .sheet,.tab .sheet{inset:0;margin:auto;width:var(--w,512px);height:fit-content;max-height:810px;border-radius:16px}
 .sheet.fixed{height:var(--h)}
 .grab{display:block;width:40px;height:4px;border-radius:2px;background:var(--edge);margin:8px auto 0;flex:none}
 .dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;border-bottom:1px solid var(--line);flex:none}
@@ -715,6 +716,14 @@ document.querySelectorAll('[data-frame]').forEach(function(f){
   apply(f);flags(f);
   var pre=f.dataset.prefill;
   if(pre){var i=f.querySelector('[data-search]');i.value=pre;i.dispatchEvent(new Event('input',{bubbles:true}));}
+  var init=f.dataset.init;
+  if(init){init.split(';').forEach(function(pair){
+    var kv=pair.split('='),k=kv[0],v=kv[1],el;
+    if(k==='size'){el=f.querySelector('[data-size]');if(el){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));}}
+    else if(k==='font'){f.querySelectorAll('[data-font]').forEach(function(r){if(r.dataset.font===v){r.checked=true;r.dispatchEvent(new Event('input',{bubbles:true}));}});}
+    else if(k==='vocal'){f.querySelectorAll('[data-pv-vocal]').forEach(function(r){if(r.dataset.vocal===v){r.checked=true;r.dispatchEvent(new Event('input',{bubbles:true}));}});}
+    else{el=f.querySelector('[data-flag="'+k+'"]');if(el){el.checked=false;el.dispatchEvent(new Event('input',{bubbles:true}));}}
+  });}
   var after=f.dataset.scrollafter;
   if(after){
     var t=f.querySelector(after),b=f.querySelector('[data-scroll]');
