@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import type { Settings } from "~/settings/settings.ts";
-import { RadioGroup } from "~/ui/RadioGroup.tsx";
-import { BUTTON } from "~/ui/styles.ts";
+import { Segmented } from "~/ui/Segmented.tsx";
+import { BUTTON, SECTION_TITLE } from "~/ui/styles.ts";
 import { type AudioCacheUsage, sharedAudioCache } from "./cache.ts";
 import type { ReciterId } from "./reciters.ts";
 
@@ -41,8 +41,8 @@ export function AudioSettings({ settings, change }: AudioSettingsProps) {
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="mb-1 font-semibold">{t("settings.audio")}</legend>
-      <RadioGroup<ReciterId>
+      <legend className={`mb-3 ${SECTION_TITLE}`}>{t("settings.audio")}</legend>
+      <Segmented<ReciterId>
         legend={t("settings.reciter")}
         value={settings.reciter}
         options={[

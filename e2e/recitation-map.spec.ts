@@ -235,10 +235,10 @@ test("Settings offers ayat per passage and the surah order together, and a chang
   await openSettingsGroup(page, "Recitation");
   const dialog = page.getByRole("dialog", { name: "Settings" });
   const group = dialog.getByRole("group", { name: "Recitation" });
-  const select = group.getByRole("combobox", { name: "Ayat per passage" });
-  await expect(select.getByRole("option")).toHaveCount(4);
-  await expect(select).toHaveValue("4");
-  await select.selectOption("2");
+  const ayat = group.getByRole("group", { name: "Ayat per passage" });
+  await expect(ayat.getByRole("radio")).toHaveCount(4);
+  await expect(ayat.getByRole("radio", { name: "4", exact: true })).toBeChecked();
+  await ayat.getByRole("radio", { name: "2", exact: true }).check();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(passageRange(page, "Ayat 1 to 2 of 7")).toHaveCount(1);
   expect((await savedSettings(page)).ayatPerLesson).toBe(2);

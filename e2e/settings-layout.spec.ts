@@ -50,7 +50,7 @@ const CONTROLS: readonly Control[] = [
   {
     group: "Recitation",
     name: "Ayat per passage",
-    find: (pane) => pane.getByRole("combobox", { name: "Ayat per passage" }),
+    find: (pane) => pane.getByRole("group", { name: "Ayat per passage" }),
   },
   { group: "Recitation", name: "Surah order", find: (pane) => pane.getByRole("group", { name: "Surah order" }) },
   { group: "Recitation", name: "Reciter", find: (pane) => pane.getByRole("group", { name: "Reciter" }) },
@@ -199,12 +199,14 @@ test("Settings always opens on the first group, wide or narrow", async ({ page }
   await expect(dialogOf(page).getByRole("region")).toHaveCount(0);
 });
 
-test("the tallest group fits the scroll budget", async ({ page }) => {
-  test.fixme(true, "enabled in the Recitation and Your data task, once every group is compact");
+test("the tallest group fits the scroll budget", async ({ page, hasTouch }) => {
   for (const [size, limit] of [
     [{ width: 390, height: 844 }, 1.5],
     [{ width: 1440, height: 900 }, 1],
   ] as const) {
+    if (hasTouch && size.width > 800) {
+      continue;
+    }
     await page.setViewportSize(size);
     await openFresh(page);
     for (const group of GROUPS) {
@@ -214,6 +216,7 @@ test("the tallest group fits the scroll budget", async ({ page }) => {
         .evaluate((element) => element.scrollHeight / element.clientHeight);
       expect(ratio, `${group} at ${size.width}`).toBeLessThanOrEqual(limit);
     }
+    await page.keyboard.press("Escape");
   }
 });
 
@@ -242,4 +245,52 @@ test("Lesson holds the lesson-display controls and nothing else", async ({ page,
   await expect(pane.getByRole("button")).toHaveCount(0);
   await expect(pane.getByRole("link")).toHaveCount(0);
   await expect(pane.getByRole("combobox")).toHaveCount(0);
+});
+
+test("Ayat per passage is four radios named 1 to 4, and the choice is saved", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFresh(page);
+  const pane = await openSettingsGroup(page, "Recitation");
+  const group = pane.getByRole("group", { name: "Ayat per passage" });
+  await expect(group.locator("label")).toHaveText(["1", "2", "3", "4"]);
+  await expect(group.getByRole("radio", { name: "4", exact: true })).toBeChecked();
+  await group.getByRole("radio", { name: "2", exact: true }).check();
+  await expect(pane.getByRole("navigation")).toHaveCount(0);
+  const saved = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("mafatih:profile:2") ?? "{}").settings.ayatPerLesson,
+  );
+  expect(saved).toBe(2);
+});
+
+test("Surah order and Reciter show the hint of the chosen option and keep every hint announced", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFresh(page);
+  const pane = await openSettingsGroup(page, "Recitation");
+  const order = pane.getByRole("group", { name: "Surah order" });
+  await expect(order.getByText("From Al-Faatiha to An-Naas.")).toBeVisible();
+  await expect(order.getByRole("radio", { name: "Juz ʿAmma first" })).toHaveAccessibleDescription(
+    "The short surahs from An-Naas back to An-Naba, then Al-Faatiha onwards.",
+  );
+  await order.getByRole("radio", { name: "Juz ʿAmma first" }).check();
+  await expect(
+    order.getByText("The short surahs from An-Naas back to An-Naba, then Al-Faatiha onwards."),
+  ).toBeVisible();
+  const reciter = pane.getByRole("group", { name: "Reciter" });
+  await expect(reciter.getByText("Measured and paced for learning.")).toBeVisible();
+  await expect(reciter.getByRole("radio", { name: "Mujawwad", exact: true })).toHaveAccessibleDescription(
+    "Melodic and ornamented.",
+  );
+});
+
+test("Your data explains what Reset progress does before the button", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFresh(page);
+  const pane = await openSettingsGroup(page, "Your data");
+  const explanation = pane.getByText(/This clears your unlocked keys, your key statistics and your lesson history/);
+  await expect(explanation).toBeVisible();
+  const above = (await explanation.boundingBox())?.y ?? 0;
+  const button = (await pane.getByRole("button", { name: "Reset progress" }).boundingBox())?.y ?? 0;
+  expect(above).toBeLessThan(button);
+  await pane.getByRole("button", { name: "Reset progress" }).click();
+  await expect(pane.getByText(/This clears your unlocked keys/)).toHaveCount(1);
 });

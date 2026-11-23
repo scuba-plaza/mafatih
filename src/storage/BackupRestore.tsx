@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { ConfirmChoice } from "~/ui/ConfirmChoice.tsx";
-import { BUTTON } from "~/ui/styles.ts";
+import { BUTTON, SECTION_TITLE } from "~/ui/styles.ts";
 import { deviceLanguages, useProfile } from "./ProfileProvider.tsx";
 import type { Profile } from "./profile.ts";
 import { type Backup, exportProfile, type ImportFailure, importProfile, MAX_IMPORT_BYTES } from "./transfer.ts";
@@ -94,7 +94,7 @@ export function BackupRestore() {
 
   return (
     <fieldset className="flex flex-col items-start gap-3">
-      <legend className="mb-1 font-semibold">{t("backup.title")}</legend>
+      <legend className={`mb-2 ${SECTION_TITLE}`}>{t("backup.title")}</legend>
       <p className="text-sm text-muted">{t("backup.hint")}</p>
       <button type="button" onClick={download} className={BUTTON}>
         {t("backup.download")}
