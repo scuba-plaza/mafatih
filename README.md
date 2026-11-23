@@ -19,7 +19,7 @@ Mafatih ("keys") is a free typing trainer that runs in your browser. It has two 
 - **Practice:** a ladder of 44 keys (36 letters and 8 marks), a short readout of what you are working on, and lessons of everyday words built for the keys you have unlocked.
 - **Custom:** paste any Arabic text (up to 5,000 characters) and type it.
 - **Stats:** time per key, how often you were right first time and the attempts, for each mode, and your last ten lessons.
-- **Settings:** English or Arabic interface, how many marks you are asked to type (auto, letters only, harakat, full), whether mistakes stay until you press Backspace, three Arabic fonts, text size, an on-screen keyboard that shows the next key and the finger to use, with optional blank keys and a hint that appears after a pause (on wide screens with a mouse or trackpad), unlocking every letter in Practice at once, backup and restore of your progress as a file, and reset.
+- **Settings:** four groups, General, Lesson, Recitation and Your data. The Lesson group has a live preview and everything that changes how a lesson looks: three Arabic fonts, text size, how many marks you are asked to type (auto, letters only, harakat, full), whether mistakes stay until you press Backspace, and an on-screen keyboard that shows the next key and the finger to use, with optional blank keys and a hint that appears after a pause (on wide screens with a mouse or trackpad). Recitation has the passage length, the order and the reciter; Your data has backup and restore of your progress as a file, and reset. Practice has an Unlock all keys button.
 
 ## Sharing a link in Arabic
 
