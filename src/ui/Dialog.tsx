@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useRef } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useRef } from "react";
 import { announceDialogChange } from "./dialogs.ts";
 import { BUTTON, SHEET } from "./styles.ts";
 
@@ -11,6 +11,7 @@ export interface DialogProps {
   readonly title: string;
   readonly label?: string;
   readonly describedBy?: string;
+  readonly titleRef?: RefObject<HTMLHeadingElement | null>;
   readonly closeLabel: string;
   readonly onClose: () => void;
   readonly leading?: ReactNode;
@@ -24,6 +25,7 @@ export function Dialog({
   title,
   label,
   describedBy,
+  titleRef,
   closeLabel,
   onClose,
   leading,
@@ -64,10 +66,14 @@ export function Dialog({
         <>
           <span aria-hidden="true" className="mx-auto mt-2 block h-1 w-10 shrink-0 rounded-full bg-edge md:hidden" />
           <div
-            className={`grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 border-b border-line bg-surface py-2 md:grid-cols-[minmax(0,1fr)_auto] ${SIDE_PADDING}`}
+            className={`@container grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 border-b border-line bg-surface py-2 md:grid-cols-[minmax(0,1fr)_auto] ${SIDE_PADDING}`}
           >
             <div className="justify-self-start md:hidden">{leading}</div>
-            <h2 id={titleId} className="min-w-0 text-center text-lg font-medium break-words md:text-start">
+            <h2
+              ref={titleRef}
+              id={titleId}
+              className="min-w-0 text-center text-lg font-medium break-words outline-none md:text-start"
+            >
               {title}
             </h2>
             <button

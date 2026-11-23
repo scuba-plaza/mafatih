@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { AudioSettings } from "~/recitation/audio/AudioSettings.tsx";
 import { RecitationSettings } from "~/recitation/RecitationSettings.tsx";
@@ -33,6 +33,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const triple = useMediaQuery(TRIPLE_QUERY);
   const tall = useMediaQuery(TALL_QUERY);
   const [chosen, setChosen] = useState<GroupId | null>(null);
+  const [returnTo, setReturnTo] = useState<GroupId | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const summaries = useGroupSummaries(settings);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       }
     } else {
       setChosen(null);
+      setReturnTo(null);
     }
   }, [open]);
 
@@ -50,6 +53,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   const active: GroupId | null = wide ? (chosen ?? "general") : chosen;
   const nested = !wide && active !== null;
+
+  useEffect(() => {
+    const title = titleRef.current;
+    if (nested && title !== null) {
+      title.tabIndex = -1;
+      title.focus();
+    }
+  }, [nested]);
+
+  const choose = (group: GroupId) => {
+    setReturnTo(null);
+    setChosen(group);
+  };
 
   const pane = (id: GroupId): ReactNode => {
     switch (id) {
@@ -127,7 +143,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const content =
     active === null ? (
       <div className={`min-h-0 flex-1 overflow-y-auto ${SIDE_PADDING}`}>
-        <GroupNav variant="list" active={null} summaries={summaries} onChoose={setChosen} />
+        <GroupNav variant="list" active={null} summaries={summaries} onChoose={choose} focusOn={returnTo} />
       </div>
     ) : active === "lesson" ? (
       lesson()
@@ -142,6 +158,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       label={t("settings.title")}
       closeLabel={t("settings.done")}
       onClose={onClose}
+      titleRef={titleRef}
       className={SHEET_SIZE}
       bodyClassName="flex min-h-0 flex-1"
       leading={
@@ -149,19 +166,22 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           <button
             type="button"
             aria-label={t("settings.back")}
-            onClick={() => setChosen(null)}
+            onClick={() => {
+              setReturnTo(chosen);
+              setChosen(null);
+            }}
             className="flex min-h-11 items-center gap-1 rounded-lg pe-2 text-sm font-medium text-accent"
           >
             <span
               aria-hidden="true"
               className="size-2.5 rotate-135 border-e-2 border-b-2 border-accent rtl:-rotate-135"
             />
-            <span className="max-[20rem]:sr-only">{t("settings.title")}</span>
+            <span className="@max-[20rem]:sr-only">{t("settings.title")}</span>
           </button>
         ) : undefined
       }
     >
-      {wide && <GroupNav variant="rail" active={active} summaries={summaries} onChoose={setChosen} />}
+      {wide && <GroupNav variant="rail" active={active} summaries={summaries} onChoose={choose} />}
       {content}
     </Dialog>
   );

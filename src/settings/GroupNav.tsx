@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GROUP_IDS, GROUP_TITLE, type GroupId } from "./groups.ts";
 
@@ -7,10 +7,17 @@ export interface GroupNavProps {
   readonly active: GroupId | null;
   readonly summaries: Readonly<Record<GroupId, ReactNode>>;
   readonly onChoose: (group: GroupId) => void;
+  readonly focusOn?: GroupId | null;
 }
 
-export function GroupNav({ variant, active, summaries, onChoose }: GroupNavProps) {
+export function GroupNav({ variant, active, summaries, onChoose, focusOn = null }: GroupNavProps) {
   const { t } = useI18n();
+  const buttons = useRef(new Map<GroupId, HTMLButtonElement>());
+  useEffect(() => {
+    if (focusOn !== null) {
+      buttons.current.get(focusOn)?.focus();
+    }
+  }, [focusOn]);
   const list = variant === "list";
   return (
     <nav
@@ -22,6 +29,13 @@ export function GroupNav({ variant, active, summaries, onChoose }: GroupNavProps
       {GROUP_IDS.map((id) => (
         <button
           key={id}
+          ref={(element) => {
+            if (element === null) {
+              buttons.current.delete(id);
+            } else {
+              buttons.current.set(id, element);
+            }
+          }}
           type="button"
           aria-current={!list && id === active ? "true" : undefined}
           onClick={() => onChoose(id)}
