@@ -112,6 +112,12 @@ function rangeBetween(nodes: readonly Text[], from: number, to: number): Range |
   return range;
 }
 
+function layoutScale(element: HTMLElement): number {
+  const layoutWidth = element.offsetWidth;
+  const ratio = layoutWidth === 0 ? 1 : element.getBoundingClientRect().width / layoutWidth;
+  return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+}
+
 function caretRect(paragraph: HTMLElement, local: number): DOMRect | undefined {
   const mistakes = paragraph.querySelector("[data-mistakes]");
   if (mistakes !== null) {
@@ -146,17 +152,18 @@ function placeSplit(paragraph: HTMLElement, from: number, to: number): number | 
     return undefined;
   }
   const frame = paragraph.getBoundingClientRect();
+  const scale = layoutScale(paragraph);
   const style = getComputedStyle(paragraph);
   const side = Math.min(SPLIT_SIDE_EM * toPixels(style.fontSize), SPLIT_SIDE_MAX);
   const left = Math.min(...pieces.map((piece) => piece.left));
   const right = Math.max(...pieces.map((piece) => piece.right));
-  const middle = ((pieces[0]?.top ?? 0) + (pieces[0]?.bottom ?? 0)) / 2 - frame.top;
+  const middle = (((pieces[0]?.top ?? 0) + (pieces[0]?.bottom ?? 0)) / 2 - frame.top) / scale;
   const half = toPixels(style.lineHeight) / 2;
   const cut = (left + right) / 2;
   for (const [name, value] of [
-    ["--cut", cut - frame.left],
-    ["--l", left - side - frame.left],
-    ["--r", right + side - frame.left],
+    ["--cut", (cut - frame.left) / scale],
+    ["--l", (left - frame.left) / scale - side],
+    ["--r", (right - frame.left) / scale + side],
     ["--t", middle - half],
     ["--b", middle + half],
   ] as const) {
@@ -359,16 +366,18 @@ export function TypingSurface(props: TypingSurfaceProps) {
         return;
       }
       const frame = container.getBoundingClientRect();
-      const x = (cut ?? rect.left) - frame.left + container.scrollLeft;
-      const y = rect.top - frame.top + container.scrollTop;
+      const scale = layoutScale(container);
+      const x = ((cut ?? rect.left) - frame.left) / scale + container.scrollLeft;
+      const y = (rect.top - frame.top) / scale + container.scrollTop;
+      const height = rect.height / scale;
       caret.style.transform = `translate(${x}px, ${y}px)`;
-      caret.style.height = `${rect.height}px`;
+      caret.style.height = `${height}px`;
       if (focused && caretLine.current !== y) {
         const style = getComputedStyle(container);
         const lineHeight = toPixels(style.lineHeight);
         const padTop = toPixels(style.paddingTop);
         const row = caretRow(wholeLines(container.clientHeight, lineHeight, padTop));
-        const top = caretScrollTop(y, rect.height, row, lineHeight, padTop);
+        const top = caretScrollTop(y, height, row, lineHeight, padTop);
         if (!readOnly) {
           container.scrollIntoView({ block: "nearest" });
         }

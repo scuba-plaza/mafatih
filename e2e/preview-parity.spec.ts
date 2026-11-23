@@ -304,3 +304,60 @@ test.describe("on a phone", () => {
     expect(await top()).toBeLessThan(before);
   });
 });
+
+interface CaretPlacement {
+  readonly gapX: number;
+  readonly gapY: number;
+  readonly zoom: number;
+}
+
+async function caretPlacement(page: Page, rootSelector: string): Promise<CaretPlacement> {
+  return page.evaluate((selector) => {
+    const root = document.querySelector(selector);
+    const caret = root?.querySelector("[data-caret]");
+    const mistakes = root?.querySelector("[data-mistakes]");
+    if (root === null || root === undefined || caret === null || caret === undefined) {
+      throw new Error(`no caret in ${selector}`);
+    }
+    if (mistakes === null || mistakes === undefined) {
+      throw new Error(`no mistake in ${selector}`);
+    }
+    const range = document.createRange();
+    range.selectNodeContents(mistakes);
+    const line = [...range.getClientRects()].filter((rect) => rect.height > 0).at(-1);
+    if (line === undefined) {
+      throw new Error("the mistake has no box");
+    }
+    const spot = caret.getBoundingClientRect();
+    const scaled = root.closest<HTMLElement>("[data-preview-scale]");
+    return {
+      gapX: Math.abs(spot.left - line.left),
+      gapY: Math.abs(spot.top - line.top),
+      zoom: scaled === null || scaled.style.zoom === "" ? 1 : Number(scaled.style.zoom),
+    };
+  }, rootSelector);
+}
+
+test("the caret stands at the mistake in the lesson and in the preview, at any preview scale", async ({
+  page,
+  hasTouch,
+}) => {
+  test.skip(hasTouch, "the preview scales only beside a keyboard guide");
+  await page.setViewportSize({ width: 1440, height: 1300 });
+  const testCase = CASES[0];
+  if (testCase === undefined) {
+    throw new Error("no case");
+  }
+  await realLesson(page, testCase);
+  const real = await caretPlacement(page, "[data-stage]");
+  expect(real.gapX).toBeLessThanOrEqual(2);
+  expect(real.gapY).toBeLessThanOrEqual(2);
+  await openSettingsGroup(page, "Lesson");
+  await expect(page.locator("[data-preview]")).toBeVisible();
+  await expect
+    .poll(async () => {
+      const shown = await caretPlacement(page, "[data-preview]");
+      return shown.zoom < 1 && shown.gapX <= 2 && shown.gapY <= 2;
+    })
+    .toBe(true);
+});
