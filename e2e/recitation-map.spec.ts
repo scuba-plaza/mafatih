@@ -259,7 +259,7 @@ test("retyping only the last passage of a surah completed earlier just moves on:
   await expect(card(page)).toHaveCount(0);
 });
 
-test("Type it again after a completed surah starts a fresh count: a partial retype just moves on", async ({ page }) => {
+test("Type again after a completed surah starts a fresh count: a partial retype just moves on", async ({ page }) => {
   const kawthar = surah(108);
   await seedProfile(page, {
     recitation: { position: { surah: 108, ayah: 3 }, surahs: { 108: { typed: [[1, 2]], completions: 0 } } },
@@ -269,7 +269,7 @@ test("Type it again after a completed surah starts a fresh count: a partial rety
   await startTyping(page);
   await typeKeys(page, lettersOf(kawthar, 3, 3));
   await expect(card(page)).toBeVisible();
-  await card(page).getByRole("button", { name: "Type it again" }).click();
+  await card(page).getByRole("button", { name: "Type again" }).click();
   await expect(page).toHaveURL(/#\/recitation\/108\/1$/);
   await typeKeys(page, lettersOf(kawthar, 1, 1, true));
   await expect(page).toHaveURL(/#\/recitation\/108\/2$/);

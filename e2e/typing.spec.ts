@@ -763,7 +763,7 @@ test("a quiet line under the text shows speed, accuracy, mistakes and time on a 
   await expect(live).toHaveAttribute("aria-hidden", "true");
   await expect(live).toContainText("cpm");
   await expect(live).toContainText("50%");
-  await expect(live).toContainText("Errors 1");
+  await expect(live).toContainText("Mistakes 1");
   await expect(live).toContainText("0:0");
 });
 

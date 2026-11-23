@@ -93,6 +93,6 @@ test("the error screen is in the saved language", async ({ page }) => {
   await seedOnceAndBreakDatesWhileSaved(page, "ar");
   await page.goto("/#/stats");
   await expect(page.getByRole("heading", { level: 1, name: "حدث خطأ ما" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "ابدأ من جديد" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "ابدأ من الصفر" })).toBeVisible();
   await expectNoAxeViolations(page);
 });

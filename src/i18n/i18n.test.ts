@@ -223,3 +223,31 @@ test("an address that asks for nothing, or for something else, asks for no langu
     expect(languageFromSearch(search), search).toBeNull();
   }
 });
+
+const KEYS_UNIT = /^(practice\.unlock|hud\.)/;
+
+test("the unlock flow and the progress readout count and name keys, never letters", () => {
+  for (const [key, text] of Object.entries(english).filter(([name]) => KEYS_UNIT.test(name))) {
+    expect(text, key).not.toMatch(/\bletters?\b/i);
+  }
+  for (const [key, text] of Object.entries(arabic).filter(([name]) => KEYS_UNIT.test(name))) {
+    expect(text, key).not.toContain("الحروف");
+  }
+});
+
+test("a wrong key counted is called a mistake everywhere, in English, outside the error page", () => {
+  for (const [key, text] of Object.entries(english).filter(([name]) => !name.startsWith("error."))) {
+    expect(text, key).not.toMatch(/\berrors?\b/i);
+  }
+  expect(english["live.errors"]).toBe(`${english["result.mistakes"]} {value}`);
+});
+
+test("retyping has one label wherever it is offered, in both languages", () => {
+  expect(english["celebration.again"]).toBe(english["result.again"]);
+  expect(arabic["celebration.again"]).toBe(arabic["result.again"]);
+});
+
+test("going back to the first surah and erasing everything never share a label", () => {
+  expect(english["recitation.startAgain"]).not.toBe(english["error.startOver"]);
+  expect(arabic["recitation.startAgain"]).not.toBe(arabic["error.startOver"]);
+});

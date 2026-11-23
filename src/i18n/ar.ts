@@ -15,7 +15,7 @@ export const ar: Record<MessageKey, string> = {
   "notice.dismiss": "إخفاء",
   "error.title": "حدث خطأ ما",
   "error.body": "تعذّر على مفاتيح عرض هذه الصفحة. تحميلها من جديد يحلّ المشكلة غالبًا.",
-  "error.startOver": "ابدأ من جديد",
+  "error.startOver": "ابدأ من الصفر",
   "error.question": "هل تريد مسح تقدمك وإعداداتك؟",
   "error.warning":
     "يحذف هذا تقدمك وإعداداتك من هذا المتصفح ويبدأ من جديد. يمكنك بعد ذلك استعادة نسخة احتياطية إن كانت لديك.",
@@ -145,7 +145,7 @@ export const ar: Record<MessageKey, string> = {
   "celebration.perMinute": "/د",
   "celebration.star": "دقة {percent}٪ أو أفضل",
   "celebration.continue": "المتابعة إلى {surah}",
-  "celebration.again": "اكتبها مرة أخرى",
+  "celebration.again": "اكتب مجددًا",
   "settings.recitation": "التلاوة",
   "settings.ayatPerPassage": "عدد الآيات في المقطع",
   "settings.surahOrder": "ترتيب السور",
