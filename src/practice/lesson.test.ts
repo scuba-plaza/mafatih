@@ -224,3 +224,10 @@ test("the key a lesson drills is the newest letter, or the newest mark when that
   expect(drilledRung({ unlocked: 42 }, "full")).toEqual({ kind: "mark", char: FATHATAN });
   expect(drilledRung({ unlocked: 43 }, "auto")).toEqual({ kind: "mark", char: KASRATAN });
 });
+
+test("with 44 keys unlocked and Auto vocalization the lesson requires all eight marks", () => {
+  const prompt = lesson(1, { unlocked: 44 });
+  const required = new Set(prompt.units.map((unit) => unit.text).filter((text) => isMark(text)));
+  expect(required.size).toBeGreaterThan(0);
+  expect(prompt.units.some((unit) => isMark(unit.text))).toBe(true);
+});

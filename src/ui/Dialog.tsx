@@ -10,6 +10,7 @@ export interface DialogProps {
   readonly open: boolean;
   readonly title: string;
   readonly label?: string;
+  readonly describedBy?: string;
   readonly closeLabel: string;
   readonly onClose: () => void;
   readonly leading?: ReactNode;
@@ -22,6 +23,7 @@ export function Dialog({
   open,
   title,
   label,
+  describedBy,
   closeLabel,
   onClose,
   leading,
@@ -50,6 +52,7 @@ export function Dialog({
       ref={dialog}
       aria-label={label}
       aria-labelledby={label === undefined ? titleId : undefined}
+      aria-describedby={describedBy}
       closedby="any"
       onClose={() => {
         announceDialogChange();

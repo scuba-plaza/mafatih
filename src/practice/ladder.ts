@@ -43,10 +43,8 @@ export function initialProgress(): LadderProgress {
   return { unlocked: LADDER.starter };
 }
 
-export const LETTERS_END = LADDER.rungs.findIndex((rung) => rung.kind === "mark");
-
-export function unlockAllLetters(progress: LadderProgress): LadderProgress {
-  return { unlocked: Math.max(progress.unlocked, LETTERS_END) };
+export function unlockAllKeys(progress: LadderProgress): LadderProgress {
+  return { unlocked: Math.max(progress.unlocked, LADDER.rungs.length) };
 }
 
 function unlockedOf(kind: Rung["kind"], progress: LadderProgress): ReadonlySet<string> {

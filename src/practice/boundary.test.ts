@@ -39,6 +39,7 @@ test("the check reads Practice, the extraction script and the files they import 
     [
       "Hud.tsx",
       "PracticePage.tsx",
+      "UnlockAllKeys.tsx",
       "extract-words.ts",
       "ladder.ts",
       "lesson.ts",

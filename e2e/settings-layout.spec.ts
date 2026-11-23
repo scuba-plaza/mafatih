@@ -70,11 +70,6 @@ const CONTROLS: readonly Control[] = [
     find: (pane) => pane.getByText("Restore from a backup file"),
   },
   { group: "Your data", name: "Reset progress", find: (pane) => pane.getByRole("button", { name: "Reset progress" }) },
-  {
-    group: "Your data",
-    name: "Unlock all letters",
-    find: (pane) => pane.getByRole("button", { name: "Unlock all letters" }),
-  },
 ];
 
 function dialogOf(page: import("@playwright/test").Page): Locator {

@@ -3,6 +3,7 @@ import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
 import { MARKS, TYPEABLE_LETTERS } from "~/keyboard/typeable.ts";
 import { type KeyStats, recordSample } from "~/stats/keystats.ts";
 import { DAMMA, DAMMATAN, FATHA, FATHATAN, KASRA, KASRATAN, SHADDA, SUKUN } from "~/text/arabic.ts";
+import { requiredMarks } from "~/text/vocalization.ts";
 import {
   advance,
   DEFAULT_UNLOCK_CONFIG,
@@ -11,7 +12,7 @@ import {
   LADDER,
   type LadderProgress,
   sanitizeProgress,
-  unlockAllLetters,
+  unlockAllKeys,
   unlockedLetters,
   unlockedMarks,
 } from "./ladder.ts";
@@ -140,22 +141,30 @@ test("anything else falls back or is brought into range", () => {
   expect(sanitizeProgress({ unlocked: 99 })).toEqual({ unlocked: 44 });
 });
 
-test("unlocking all letters lands on the first mark: every letter is unlocked and no mark is", () => {
-  const unlocked = unlockAllLetters(initialProgress());
-  expect(unlocked).toEqual({ unlocked: 36 });
+test("unlocking all keys from the starter keys reaches 44, letters and marks together", () => {
+  const unlocked = unlockAllKeys(initialProgress());
+  expect(unlocked).toEqual({ unlocked: 44 });
   expect([...unlockedLetters(unlocked)].sort()).toEqual([...TYPEABLE_LETTERS].sort());
-  expect(unlockedMarks(unlocked).size).toBe(0);
+  expect(unlockedMarks(unlocked).size).toBe(8);
 });
 
-test("unlocking all letters never takes progress away and does the same thing twice", () => {
-  expect(unlockAllLetters({ unlocked: 40 })).toEqual({ unlocked: 40 });
-  expect(unlockAllLetters({ unlocked: 44 })).toEqual({ unlocked: 44 });
-  expect(unlockAllLetters({ unlocked: 36 })).toEqual({ unlocked: 36 });
-  const once = unlockAllLetters({ unlocked: 12 });
-  expect(unlockAllLetters(once)).toEqual(once);
+test("unlocking all keys from ten unlocked gives 44", () => {
+  expect(unlockAllKeys({ unlocked: 10 })).toEqual({ unlocked: 44 });
 });
 
-test("what unlocking all letters produces is saved progress that is read back unchanged", () => {
-  const unlocked = unlockAllLetters({ unlocked: 17 });
+test("unlocking all keys never takes progress away and does the same thing twice", () => {
+  expect(unlockAllKeys({ unlocked: 44 })).toEqual({ unlocked: 44 });
+  const once = unlockAllKeys({ unlocked: 12 });
+  expect(unlockAllKeys(once)).toEqual(once);
+});
+
+test("what unlocking all keys produces is saved progress that is read back unchanged", () => {
+  const unlocked = unlockAllKeys({ unlocked: 17 });
   expect(sanitizeProgress(unlocked)).toEqual(unlocked);
+});
+
+test("with every key unlocked Auto vocalization requires all eight marks", () => {
+  const marks = unlockedMarks(unlockAllKeys(initialProgress()));
+  expect(requiredMarks("auto", marks).size).toBe(8);
+  expect([...requiredMarks("auto", marks)].sort()).toEqual([...marks].sort());
 });
