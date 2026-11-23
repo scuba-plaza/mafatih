@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { MessageKey } from "~/i18n/en.ts";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
+import { type Language, translate } from "~/i18n/i18n.ts";
 import { carriedMark } from "~/text/arabic.ts";
 import { expectedText, type Session, type SessionOptions } from "~/typing/session.ts";
 import type { Finger } from "./fingers.ts";
@@ -85,8 +86,15 @@ function legendOf(slot: Slot, shifted: boolean, layoutName: string, labelled: bo
   if (!labelled) {
     return "";
   }
-  const legend = shifted ? (slot.cap?.shift ?? "") : (slot.cap?.base ?? "");
-  return carriedMark(legend);
+  return carriedMark((shifted ? slot.cap?.shift : slot.cap?.base) ?? "");
+}
+
+function captionOf(finger: MessageKey | undefined, shifted: boolean, language: Language): string {
+  if (finger === undefined) {
+    return "";
+  }
+  const name = translate(language, finger);
+  return shifted ? translate(language, "guide.withShift", { finger: name }) : name;
 }
 
 function fingerName(finger: Finger | undefined): MessageKey | undefined {
@@ -114,7 +122,7 @@ export function GuideKeyboard({
   hidden,
   ref,
 }: GuideKeyboardProps) {
-  const { t } = useI18n();
+  const { language } = useI18n();
   const deleting = options.requireBackspace && session.mistakes.length > 0;
   const revealed = useRevealAfter(
     `${session.cursor}:${session.within}:${paused}`,
@@ -123,8 +131,7 @@ export function GuideKeyboard({
   );
   const guide = revealed && !paused ? guideFor(expectedText(session), deleting) : NOTHING_DUE;
   const layoutName = useLayoutName();
-  const name = fingerName(guide.finger);
-  const caption = name === undefined ? "" : guide.shifted ? t("guide.withShift", { finger: t(name) }) : t(name);
+  const caption = captionOf(fingerName(guide.finger), guide.shifted, language);
 
   return (
     <div

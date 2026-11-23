@@ -28,21 +28,18 @@ export function arcLengths(weights: readonly number[], total: number, floor: num
     return weights.map(() => total / weights.length);
   }
   const held = new Set<number>();
-  let settled = false;
-  while (!settled) {
+  while (true) {
     const free = weights.reduce((sum, weight, index) => sum + (held.has(index) ? 0 : weight), 0);
     const room = total - held.size * floor;
-    const small = weights.flatMap((weight, index) =>
-      !held.has(index) && (room * weight) / free < floor ? [index] : [],
-    );
+    const lengths = weights.map((weight, index) => (held.has(index) ? floor : (room * weight) / free));
+    const small = lengths.flatMap((length, index) => (!held.has(index) && length < floor ? [index] : []));
+    if (small.length === 0) {
+      return lengths;
+    }
     for (const index of small) {
       held.add(index);
     }
-    settled = small.length === 0;
   }
-  const free = weights.reduce((sum, weight, index) => sum + (held.has(index) ? 0 : weight), 0);
-  const room = total - held.size * floor;
-  return weights.map((weight, index) => (held.has(index) ? floor : (room * weight) / free));
 }
 
 export function ringArcs(weights: readonly number[]): readonly Arc[] {

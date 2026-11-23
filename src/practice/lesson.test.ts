@@ -1,13 +1,11 @@
 import { expect, test } from "vitest";
 import { HOME_ROW_LETTERS } from "~/keyboard/layout101.ts";
-import { isFullyVocalized, isMark, skeleton } from "~/text/arabic.ts";
+import { DAMMATAN, FATHA, FATHATAN, isFullyVocalized, isMark, KASRATAN, skeleton } from "~/text/arabic.ts";
 import type { Prompt } from "~/text/prompt.ts";
 import { initialProgress, type LadderProgress, unlockedLetters } from "./ladder.ts";
 import { buildPracticeLesson, drilledRung } from "./lesson.ts";
 import { loadWords, type PracticeWord } from "./words.ts";
 
-const FATHA = String.fromCodePoint(0x64e);
-const DAMMATAN = String.fromCodePoint(0x64c);
 const FIRST_MARK_RUNG = 37;
 const LESSON_CHARS = 38;
 const WORDS = await loadWords();
@@ -24,13 +22,12 @@ function wordsOf(prompt: Prompt): string[] {
   return prompt.shown.split(" ");
 }
 
-test("a new learner gets a lesson at once, and it needs nothing but the ten home-row letters", () => {
-  for (let seed = 0; seed < 200; seed += 1) {
-    const prompt = lesson(seed);
-    expect(prompt.units.length).toBeGreaterThanOrEqual(LESSON_CHARS);
-    expect([...typedText(prompt)].every((char) => char === " " || HOME_ROW_LETTERS.includes(char))).toBe(true);
-  }
-});
+function expectNoWordRepeatedTooOften(shown: readonly string[]): void {
+  shown.forEach((word, index) => {
+    expect(shown[index + 1]).not.toBe(word);
+    expect(shown.filter((other) => other === word).length).toBeLessThanOrEqual(2);
+  });
+}
 
 test("at every point of the ladder a lesson is full length and uses only the letters unlocked so far", () => {
   for (const unlocked of [10, 11, 15, 22, 30, 36, 37, 40, 44]) {
@@ -84,11 +81,7 @@ test("a lesson is about thirty-eight typed characters of whole words, single spa
 test("no word comes twice in a row or more than twice in a lesson", () => {
   for (const unlocked of [10, 20, 44]) {
     for (let seed = 0; seed < 40; seed += 1) {
-      const shown = wordsOf(lesson(seed, { unlocked }));
-      shown.forEach((word, index) => {
-        expect(shown[index + 1]).not.toBe(word);
-        expect(shown.filter((other) => other === word).length).toBeLessThanOrEqual(2);
-      });
+      expectNoWordRepeatedTooOften(wordsOf(lesson(seed, { unlocked })));
     }
   }
 });
@@ -134,10 +127,9 @@ test("on auto a learner types exactly the marks unlocked so far", () => {
 });
 
 test("when the newest rung is a mark, most words carry it", () => {
-  const kasratan = String.fromCodePoint(0x64d);
   const drilled = Array.from({ length: 60 }, (_, seed) => lesson(seed, { unlocked: 43 })).flatMap(wordsOf);
   const plain = Array.from({ length: 60 }, (_, seed) => lesson(seed, { unlocked: 42 })).flatMap(wordsOf);
-  const share = (shown: readonly string[]) => shown.filter((word) => word.includes(kasratan)).length / shown.length;
+  const share = (shown: readonly string[]) => shown.filter((word) => word.includes(KASRATAN)).length / shown.length;
   expect(share(drilled)).toBeGreaterThan(0.4);
   expect(share(drilled)).toBeGreaterThan(2 * share(plain));
 });
@@ -196,10 +188,7 @@ test("a short list is used up to twice a word, never the same word twice in a ro
   for (let seed = 0; seed < 40; seed += 1) {
     const shown = wordsOf(lesson(seed, initialProgress(), list));
     expect(shown.length).toBeGreaterThanOrEqual(9);
-    shown.forEach((word, index) => {
-      expect(shown[index + 1]).not.toBe(word);
-      expect(shown.filter((other) => other === word).length).toBeLessThanOrEqual(2);
-    });
+    expectNoWordRepeatedTooOften(shown);
   }
 });
 
@@ -226,13 +215,12 @@ test("a list of one or two words still ends", () => {
 });
 
 test("the key a lesson drills is the newest letter, or the newest mark when that mark is typed at the chosen level", () => {
-  const kasratan = String.fromCodePoint(0x64d);
   expect(drilledRung({ unlocked: 10 }, "auto")).toEqual({ kind: "letter", char: "ش" });
   expect(drilledRung({ unlocked: 10 }, "letters")).toEqual({ kind: "letter", char: "ش" });
   expect(drilledRung({ unlocked: 37 }, "auto")).toEqual({ kind: "mark", char: FATHA });
   expect(drilledRung({ unlocked: 37 }, "letters")).toBeUndefined();
   expect(drilledRung({ unlocked: 37 }, "harakat")).toEqual({ kind: "mark", char: FATHA });
   expect(drilledRung({ unlocked: 42 }, "harakat")).toBeUndefined();
-  expect(drilledRung({ unlocked: 42 }, "full")).toEqual({ kind: "mark", char: String.fromCodePoint(0x64b) });
-  expect(drilledRung({ unlocked: 43 }, "auto")).toEqual({ kind: "mark", char: kasratan });
+  expect(drilledRung({ unlocked: 42 }, "full")).toEqual({ kind: "mark", char: FATHATAN });
+  expect(drilledRung({ unlocked: 43 }, "auto")).toEqual({ kind: "mark", char: KASRATAN });
 });

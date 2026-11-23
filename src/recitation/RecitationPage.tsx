@@ -124,7 +124,7 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
   const marksTyped = requiredMarks(settings.vocalization, unlockedMarks(ladder)).size > 0;
   const range = t(from === to ? "recitation.ayah" : "recitation.ayat", { from, to, count: meta.ayat });
   const shortRange = from === to ? formatNumber(from) : `${formatNumber(from)}\u2013${formatNumber(to)}`;
-  const label = `${language === "ar" ? meta.name : meta.tname} \u00b7 ${shortRange}`;
+  const label = `${surahName(meta, language)} \u00b7 ${shortRange}`;
   const hintId = `hint-${meta.n}`;
 
   const { go, next, previous } = recitation;
@@ -145,7 +145,7 @@ function PassagePage({ surah, ayah }: { surah: number; ayah: number | null }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <PassagePager previous={recitation.previous} next={recitation.next} onGo={recitation.go} hidden={textOnly}>
+      <PassagePager previous={previous} next={next} onGo={go} hidden={textOnly}>
         <PageHeading quiet>
           <span id={`passage-${meta.n}`}>{label}</span>
         </PageHeading>

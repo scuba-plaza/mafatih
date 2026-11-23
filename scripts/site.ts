@@ -6,7 +6,7 @@ const AUDIO_ORIGIN = "https://everyayah.com";
 const CHARSET = '<meta charset="UTF-8" />';
 const PLACEHOLDER = "%SITE_URL%";
 
-export const CONTENT_SECURITY_POLICY = [
+const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
   "media-src 'self' blob:",
@@ -16,21 +16,13 @@ export const CONTENT_SECURITY_POLICY = [
   "form-action 'none'",
 ].join("; ");
 
-function parseUrl(value: string): URL | undefined {
-  try {
-    return new URL(value);
-  } catch {
-    return undefined;
-  }
-}
-
 export function siteUrlFrom(value: string | undefined): string {
   if (value === undefined || value === "") {
     return DEFAULT_SITE_URL;
   }
-  const url = parseUrl(value);
+  const url = URL.parse(value);
   const plain =
-    url !== undefined &&
+    url !== null &&
     (url.protocol === "http:" || url.protocol === "https:") &&
     url.username === "" &&
     url.password === "" &&
@@ -73,26 +65,33 @@ export function sitemapXml(siteUrl: string, day: string): string {
 }
 
 export function seo(siteUrl: string): Plugin {
-  const robots = robotsTxt(siteUrl);
-  const sitemap = sitemapXml(siteUrl, new Date().toISOString().slice(0, 10));
+  const files = [
+    { name: "robots.txt", type: "text/plain", source: robotsTxt(siteUrl) },
+    {
+      name: "sitemap.xml",
+      type: "application/xml",
+      source: sitemapXml(siteUrl, new Date().toISOString().slice(0, 10)),
+    },
+  ];
   return {
     name: "mafatih:seo",
     transformIndexHtml: (html) => withSiteUrl(html, siteUrl),
     configureServer(server) {
       server.middlewares.use((request, response, next) => {
         const path = request.url?.split("?")[0] ?? "";
-        const body = path.endsWith("/robots.txt") ? robots : path.endsWith("/sitemap.xml") ? sitemap : null;
-        if (body === null) {
+        const file = files.find(({ name }) => path.endsWith(`/${name}`));
+        if (file === undefined) {
           next();
           return;
         }
-        response.setHeader("Content-Type", path.endsWith(".txt") ? "text/plain" : "application/xml");
-        response.end(body);
+        response.setHeader("Content-Type", file.type);
+        response.end(file.source);
       });
     },
     generateBundle() {
-      this.emitFile({ type: "asset", fileName: "robots.txt", source: robots });
-      this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemap });
+      for (const { name, source } of files) {
+        this.emitFile({ type: "asset", fileName: name, source });
+      }
     },
   };
 }

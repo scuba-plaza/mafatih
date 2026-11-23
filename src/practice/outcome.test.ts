@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { statOf } from "~/stats/keystats.ts";
+import { DAMMATAN } from "~/text/arabic.ts";
 import type { Sample } from "~/typing/session.ts";
 import { initialProgress } from "./ladder.ts";
 import { applyPracticeLesson, type PracticeState } from "./outcome.ts";
@@ -46,9 +47,8 @@ test("a lesson with nothing typed changes nothing", () => {
 });
 
 test("at the top of the ladder a mastered lesson is recorded and unlocks nothing more", () => {
-  const dammatan = String.fromCodePoint(0x64c);
   const top: PracticeState = { stats: {}, progress: { unlocked: 44 } };
-  const outcome = applyPracticeLesson(top, hits(dammatan, 30));
-  expect(statOf(outcome.stats, dammatan).hits).toBe(30);
+  const outcome = applyPracticeLesson(top, hits(DAMMATAN, 30));
+  expect(statOf(outcome.stats, DAMMATAN).hits).toBe(30);
   expect(outcome.progress).toBe(top.progress);
 });

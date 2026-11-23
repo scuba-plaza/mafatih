@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { FATHA } from "~/text/arabic.ts";
 import type { Sample } from "~/typing/session.ts";
 import { type KeyStats, recordSample, sanitizeStats, statOf } from "./keystats.ts";
 
@@ -107,10 +108,9 @@ test("hostile or broken entries are dropped and the rest kept", () => {
 
 test("only keys the keyboard can type are kept: a letter, a mark, the space or a lam-alef pair", () => {
   const good = { attempts: 1, hits: 1, timed: 1, meanMs: 300, recentAccuracy: 1 };
-  const fatha = String.fromCodePoint(0x64e);
   const raw = {
     [BEH]: good,
-    [fatha]: good,
+    [FATHA]: good,
     " ": good,
     لا: good,
     ab: good,
@@ -119,7 +119,7 @@ test("only keys the keyboard can type are kept: a letter, a mark, the space or a
     "\u{1F642}": good,
     ٱ: good,
   };
-  expect(Object.keys(sanitizeStats(raw)).sort()).toEqual([BEH, fatha, " ", "لا"].sort());
+  expect(Object.keys(sanitizeStats(raw)).sort()).toEqual([BEH, FATHA, " ", "لا"].sort());
 });
 
 test("figures no session could have produced are dropped", () => {

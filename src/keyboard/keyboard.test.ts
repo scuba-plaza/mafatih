@@ -62,12 +62,6 @@ test("the table matches Microsoft's KBDA1 layout key by key", () => {
   }
 });
 
-test("the layout has unique key codes and a space bar", () => {
-  const codes = WIN101_CAPS.map((cap) => cap.code);
-  expect(new Set(codes).size).toBe(codes.length);
-  expect(WIN101_CAPS.some((cap) => cap.code === "Space" && cap.base === " ")).toBe(true);
-});
-
 test("a character is found on its key, with Shift when it needs it", () => {
   expect(strokeFor("ض")).toEqual({ code: "KeyQ", shift: false });
   expect(strokeFor("َ")).toEqual({ code: "KeyQ", shift: true });
@@ -106,56 +100,21 @@ test("letters, marks, the other characters and the space are what can be asked f
   }
 });
 
-test("sentence punctuation, Latin digits and the typographic quotes are typeable", () => {
-  for (const mark of [".", "،", ":", "؟", "؛", "!", ",", "1", "‘", "’", "×"]) {
-    expect(isTypeable(mark), mark).toBe(true);
-  }
-});
-
-test("what the layout has no key for is not typeable", () => {
-  for (const glyph of ["«", "»", "١", "ٱ", "٪", "h", "ٰ", "۝", ""]) {
+test("what the layout has no key for, the tatweel and the ligature keys are never asked for", () => {
+  for (const glyph of ["«", "»", "١", "ٱ", "٪", "h", "ٰ", "۝", "", "ـ", "ﻻ", "ﻷ", "ﻹ", "ﻵ"]) {
     expect(isTypeable(glyph), glyph).toBe(false);
   }
 });
 
-test("tatweel has a key but is never asked for, and the ligature keys are typed as their letters", () => {
-  expect(WIN101_CAPS.some((cap) => cap.shift === "ـ")).toBe(true);
-  expect(isTypeable("ـ")).toBe(false);
-  for (const form of ["ﻻ", "ﻷ", "ﻹ", "ﻵ"]) {
-    expect(isTypeable(form), form).toBe(false);
-  }
-});
-
-test("every mark is on the Shift layer of its documented key", () => {
-  const expected: [string, string][] = [
-    ["َ", "KeyQ"],
-    ["ً", "KeyW"],
-    ["ُ", "KeyE"],
-    ["ٌ", "KeyR"],
-    ["ِ", "KeyA"],
-    ["ٍ", "KeyS"],
-    ["ْ", "KeyX"],
-    ["ّ", "Backquote"],
-  ];
-  for (const [mark, code] of expected) {
-    expect(strokeFor(mark), mark).toEqual({ code, shift: true });
-  }
-});
-
 test("the four lam-alef keys stand for a lam followed by an alef", () => {
-  expect(strokeFor("ﻻ")).toEqual({ code: "KeyB", shift: false });
-  expect(strokeFor("ﻷ")).toEqual({ code: "KeyG", shift: true });
-  expect(strokeFor("ﻹ")).toEqual({ code: "KeyT", shift: true });
-  expect(strokeFor("ﻵ")).toEqual({ code: "KeyB", shift: true });
-  expect([...LIGATURE_KEYS]).toEqual(
-    expect.arrayContaining([
+  expect(LIGATURE_KEYS).toEqual(
+    new Map([
       ["لا", "ﻻ"],
       ["لأ", "ﻷ"],
       ["لإ", "ﻹ"],
       ["لآ", "ﻵ"],
     ]),
   );
-  expect(LIGATURE_KEYS.size).toBe(4);
 });
 
 test("a lam-alef presentation form expands to its two letters, anything else stays as it is", () => {

@@ -42,6 +42,14 @@ function Scrollable({ label, children }: { label: string; children: ReactNode })
   );
 }
 
+function ColumnHead({ children }: { children: ReactNode }) {
+  return (
+    <th scope="col" className={HEAD}>
+      {children}
+    </th>
+  );
+}
+
 function KeyLabel({ char }: { char: string }) {
   const { t } = useI18n();
   if (char === " ") {
@@ -102,18 +110,10 @@ export function StatsPage() {
               <table aria-labelledby={keysTitleId} className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th scope="col" className={HEAD}>
-                      {t("stats.key")}
-                    </th>
-                    <th scope="col" className={HEAD}>
-                      {t("stats.time")}
-                    </th>
-                    <th scope="col" className={HEAD}>
-                      {t("stats.firstTry")}
-                    </th>
-                    <th scope="col" className={HEAD}>
-                      {t("stats.attempts")}
-                    </th>
+                    <ColumnHead>{t("stats.key")}</ColumnHead>
+                    <ColumnHead>{t("stats.time")}</ColumnHead>
+                    <ColumnHead>{t("stats.firstTry")}</ColumnHead>
+                    <ColumnHead>{t("stats.attempts")}</ColumnHead>
                   </tr>
                 </thead>
                 <tbody>
@@ -154,19 +154,13 @@ export function StatsPage() {
               <table aria-labelledby={lessonsTitleId} className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th scope="col" className={HEAD}>
-                      {t("stats.date")}
-                    </th>
-                    <th scope="col" className={HEAD}>
-                      {t("stats.modeColumn")}
-                    </th>
-                    <th scope="col" className={HEAD}>
+                    <ColumnHead>{t("stats.date")}</ColumnHead>
+                    <ColumnHead>{t("stats.modeColumn")}</ColumnHead>
+                    <ColumnHead>
                       {t("result.speedShort")}
                       <span className="sr-only"> ({t("result.unit")})</span>
-                    </th>
-                    <th scope="col" className={HEAD}>
-                      {t("result.accuracy")}
-                    </th>
+                    </ColumnHead>
+                    <ColumnHead>{t("result.accuracy")}</ColumnHead>
                   </tr>
                 </thead>
                 <tbody>

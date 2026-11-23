@@ -62,7 +62,7 @@ export const WIN101_CAPS: readonly KeyCap[] = [
   { code: "Space", base: " ", shift: " ", row: 4 },
 ];
 
-export interface KeyStroke {
+interface KeyStroke {
   readonly code: string;
   readonly shift: boolean;
 }

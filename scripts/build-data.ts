@@ -24,6 +24,14 @@ const MIN_WORDS_PER_STARTER_LETTER = 8;
 const MIN_WORDS_PER_MARK = 50;
 const MIN_SPELLINGS_PER_RUNG = 10;
 
+function checkInto(problems: string[]): (holds: boolean, problem: string) => void {
+  return (holds, problem) => {
+    if (!holds) {
+      problems.push(problem);
+    }
+  };
+}
+
 function read(name: string): string {
   return readFileSync(resolve(PRACTICE, name), "utf8");
 }
@@ -38,11 +46,7 @@ function practiceProblems(): string[] {
   };
   const coverage = coverageOf(rows, HOME_ROW_LETTERS);
   const problems = violationsOf(rows, rules);
-  const check = (holds: boolean, problem: string) => {
-    if (!holds) {
-      problems.push(problem);
-    }
-  };
+  const check = checkInto(problems);
   check(Buffer.byteLength(text) <= MAX_BYTES, `words.tsv is larger than ${MAX_BYTES} bytes`);
   check(
     coverage.starterWords >= MIN_STARTER_WORDS,
@@ -89,15 +93,15 @@ function quranBuildProblems(): string[] {
   const text = bytes.toString("utf8");
   const meta: readonly SurahMeta[] = JSON.parse(readFileSync(resolve(ROOT, "data/surahs.json"), "utf8"));
   const problems = quranProblems(text, new Map(meta.map((surah) => [surah.n, surah.ayat])));
-  const check = (holds: boolean, problem: string) => {
-    if (!holds) {
-      problems.push(problem);
-    }
-  };
+  const check = checkInto(problems);
   const ayat = parseQuran(text);
   const surahs = splitSurahs(ayat);
   const rejoined = surahs.flatMap(sourceLinesOf);
-  const written = surahs.flatMap((surah) => [surah.basmala ?? "", ...surah.ayat]).join("");
+  const daggerAlefs =
+    surahs
+      .flatMap((surah) => [surah.basmala ?? "", ...surah.ayat])
+      .join("")
+      .split(DAGGER_ALEF).length - 1;
   check(
     isTanzilText(bytes),
     "data/quran-simple.txt is not the Tanzil text it is meant to be: not one character of it may change",
@@ -108,10 +112,7 @@ function quranBuildProblems(): string[] {
     rejoined.join("\n") === ayat.map((ayah) => `${ayah.surah}|${ayah.ayah}|${ayah.text}`).join("\n"),
     "the built surahs do not give back the source text",
   );
-  check(
-    written.split(DAGGER_ALEF).length - 1 === DAGGER_ALEFS,
-    `the built surahs hold ${written.split(DAGGER_ALEF).length - 1} dagger alefs, not ${DAGGER_ALEFS}`,
-  );
+  check(daggerAlefs === DAGGER_ALEFS, `the built surahs hold ${daggerAlefs} dagger alefs, not ${DAGGER_ALEFS}`);
   if (problems.length === 0) {
     const source = noticeOf(text);
     mkdirSync(QURAN_OUTPUT, { recursive: true });

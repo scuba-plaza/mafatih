@@ -70,8 +70,6 @@ export async function differenceBeyondShift(
         return context.getImageData(0, 0, image.width, image.height);
       };
       const [p, q] = [await decode(a), await decode(b)];
-      const width = Math.max(p.width, q.width);
-      const height = Math.max(p.height, q.height);
       const at = (image: ImageData, x: number, y: number, offset: number) =>
         x < image.width && y < image.height ? (image.data[(y * image.width + x) * 4 + offset] ?? 0) : 0;
       const unmatched = (from: ImageData, other: ImageData): number => {
@@ -93,7 +91,7 @@ export async function differenceBeyondShift(
         }
         return count;
       };
-      return Math.max(unmatched(p, q), unmatched(q, p), width * 0 + height * 0);
+      return Math.max(unmatched(p, q), unmatched(q, p));
     },
     [first.toString("base64"), second.toString("base64"), shift, tolerance] as const,
   );

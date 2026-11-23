@@ -2,7 +2,7 @@ import { expandLigature } from "~/keyboard/ligatures.ts";
 import { canonicalizeMarks, isMark } from "~/text/arabic.ts";
 import type { Prompt } from "~/text/prompt.ts";
 
-export interface PreparedText {
+interface PreparedText {
   readonly text: string;
   readonly truncated: boolean;
 }

@@ -35,18 +35,52 @@ function CheckIcon() {
   );
 }
 
+interface RowState {
+  readonly typed: number;
+  readonly completed: number;
+  readonly starred: boolean;
+}
+
+function RowMark({ typed, completed, starred }: RowState) {
+  const { t } = useI18n();
+  if (starred) {
+    return (
+      <>
+        <StarIcon />
+        <span className="sr-only">{t("map.starred")}</span>
+      </>
+    );
+  }
+  if (completed > 0) {
+    return (
+      <>
+        <CheckIcon />
+        {typed > 0 && <span className="sr-only">{t("map.completed", { count: completed })}</span>}
+      </>
+    );
+  }
+  return null;
+}
+
 function SurahRow({ meta, progress }: { meta: SurahMeta; progress: RecitationProgress }) {
   const { t, plural, language, formatNumber } = useI18n();
-  const typed = typedAyat(progress, meta.n);
-  const completed = completionsOf(progress, meta.n);
-  const starred = starredOf(progress, meta.n);
-  const fraction = typed > 0 ? typed / meta.ayat : completed > 0 ? 1 : 0;
-  const detail =
-    typed > 0
-      ? plural("map.typed", meta.ayat, { typed, total: meta.ayat })
-      : completed > 0
-        ? t("map.completed", { count: completed })
-        : plural("map.ayat", meta.ayat, { count: meta.ayat });
+  const state: RowState = {
+    typed: typedAyat(progress, meta.n),
+    completed: completionsOf(progress, meta.n),
+    starred: starredOf(progress, meta.n),
+  };
+  const { typed, completed } = state;
+  let fraction = 0;
+  let detail: string;
+  if (typed > 0) {
+    fraction = typed / meta.ayat;
+    detail = plural("map.typed", meta.ayat, { typed, total: meta.ayat });
+  } else if (completed > 0) {
+    fraction = 1;
+    detail = t("map.completed", { count: completed });
+  } else {
+    detail = plural("map.ayat", meta.ayat, { count: meta.ayat });
+  }
   return (
     <a
       href={formatRoute({ page: "recitation", surah: meta.n, ayah: null })}
@@ -55,18 +89,8 @@ function SurahRow({ meta, progress }: { meta: SurahMeta; progress: RecitationPro
       <span className="font-mono text-xs text-muted tabular-nums">{formatNumber(meta.n)}</span>
       <span className="flex min-w-0 flex-col wrap-anywhere">
         <span className="flex items-center gap-2">
-          {language === "ar" ? null : <span>{meta.tname}</span>}
-          {starred ? (
-            <>
-              <StarIcon />
-              <span className="sr-only">{t("map.starred")}</span>
-            </>
-          ) : completed > 0 ? (
-            <>
-              <CheckIcon />
-              {typed > 0 && <span className="sr-only">{t("map.completed", { count: completed })}</span>}
-            </>
-          ) : null}
+          {language !== "ar" && <span>{meta.tname}</span>}
+          <RowMark {...state} />
         </span>
         <span className="text-sm text-muted">{detail}</span>
       </span>

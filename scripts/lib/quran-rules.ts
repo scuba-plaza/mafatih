@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { skeleton } from "~/text/arabic.ts";
 
-export interface SourceAyah {
+interface SourceAyah {
   readonly surah: number;
   readonly ayah: number;
   readonly text: string;
 }
 
-export interface SurahData {
+interface SurahData {
   readonly number: number;
   readonly basmala: string | null;
   readonly ayat: readonly string[];

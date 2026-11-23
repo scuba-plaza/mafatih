@@ -18,7 +18,7 @@ async function builtPage(page: Page): Promise<string> {
   return (await page.request.get("/")).text();
 }
 
-test("the built page carries the content security policy, a strict referrer policy and no script of its own", async ({
+test("the built page carries the content security policy, a strict referrer policy, the agreed viewport and no script of its own", async ({
   page,
 }) => {
   const html = await builtPage(page);
@@ -29,6 +29,12 @@ test("the built page carries the content security policy, a strict referrer poli
   expect(scripts.filter((attributes) => !/\bsrc="/.test(attributes))).toEqual([' type="application/ld+json"']);
   expect(html).not.toContain("%SITE_URL%");
   expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^"]+\/" \/>/);
+  await page.goto("/");
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+    "content",
+    "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+  );
+  await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute("content", "dark");
 });
 
 test("robots.txt and sitemap.xml are served and point at each other", async ({ page }) => {

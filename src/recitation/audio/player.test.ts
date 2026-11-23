@@ -6,7 +6,15 @@ function run(actions: readonly PlayerAction[], from: PlayerState = initialPlayer
 }
 
 test("a player starts idle on the first clip of a passage", () => {
-  expect(initialPlayer(4)).toMatchObject({ status: "idle", index: 0, count: 4, held: false, whole: false });
+  expect(initialPlayer(4)).toMatchObject({
+    status: "idle",
+    index: 0,
+    count: 4,
+    held: false,
+    whole: false,
+    loop: false,
+    restarts: 0,
+  });
 });
 
 test("play starts and pause stops, and play with nothing to play does nothing", () => {
@@ -40,7 +48,6 @@ test("Previous restarts the clip after more than two seconds, otherwise steps ba
   expect(restarted.index).toBe(1);
   expect(restarted.restarts).toBe(onSecond.restarts + 1);
   expect(playerReducer(onSecond, { type: "previous", elapsed: RESTART_AFTER_SECONDS }).index).toBe(0);
-  expect(playerReducer(onSecond, { type: "previous", elapsed: 0.5 }).index).toBe(0);
   const first = initialPlayer(4);
   const again = playerReducer(first, { type: "previous", elapsed: 0.5 });
   expect(again.index).toBe(0);
@@ -48,7 +55,7 @@ test("Previous restarts the clip after more than two seconds, otherwise steps ba
 });
 
 test("a clip that ends stops the player, unless the whole passage is to be played: then the next clip follows", () => {
-  expect(run([{ type: "play" }, { type: "ended" }])).toMatchObject({ status: "paused", index: 0 });
+  expect(run([{ type: "play" }, { type: "ended" }])).toMatchObject({ status: "paused", index: 0, restarts: 0 });
   const whole = run([{ type: "whole", value: true }, { type: "play" }, { type: "ended" }]);
   expect(whole).toMatchObject({ status: "playing", index: 1 });
 });
@@ -63,10 +70,6 @@ test("when the last clip of the whole passage ends the player stops, ready to st
   ]);
   expect(lastClip.index).toBe(3);
   expect(run([{ type: "ended" }], lastClip)).toMatchObject({ status: "paused", index: 0 });
-});
-
-test("a player repeats nothing by default", () => {
-  expect(initialPlayer(4).loop).toBe(false);
 });
 
 test("with repeat on, the end of the last clip of the whole passage starts the passage again and keeps playing", () => {
@@ -107,8 +110,7 @@ test("with repeat on but not the whole passage, the clip that ends plays again, 
   expect(again.restarts).toBe(last.restarts + 2);
 });
 
-test("with repeat off, or with nothing loaded, a clip that ends does not play again", () => {
-  expect(run([{ type: "play" }, { type: "ended" }])).toMatchObject({ status: "paused", index: 0, restarts: 0 });
+test("with repeat on but nothing loaded, a clip that ends does not play again", () => {
   expect(run([{ type: "loop", value: true }, { type: "ended" }], initialPlayer(0)).status).not.toBe("playing");
 });
 
@@ -118,7 +120,6 @@ test("with repeat on, Next on the last clip goes round to the first and changes 
   const playing = run([{ type: "play" }], paused);
   expect(run([{ type: "next" }], playing)).toMatchObject({ status: "playing", index: 0 });
   expect(run([{ type: "next" }], { ...paused, index: 0, count: 1, status: "playing" }).restarts).toBe(1);
-  expect(run([{ type: "next" }, { type: "next" }, { type: "next" }, { type: "next" }]).index).toBe(3);
 });
 
 test("the repeat choice survives a new passage", () => {

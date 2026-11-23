@@ -33,12 +33,8 @@ const DEFAULT_VOLUME = 0.8;
 
 const VOCALIZATIONS: readonly Vocalization[] = ["auto", "letters", "harakat", "full"];
 
-function isVocalization(value: unknown): value is Vocalization {
-  return VOCALIZATIONS.some((level) => level === value);
-}
-
-function isSurahOrder(value: unknown): value is SurahOrder {
-  return SURAH_ORDERS.some((order) => order === value);
+function isOneOf<Value>(options: readonly Value[], value: unknown): value is Value {
+  return options.some((option) => option === value);
 }
 
 function clampAyatPerLesson(value: unknown): number {
@@ -83,7 +79,7 @@ export function sanitizeSettings(raw: unknown, preferredLanguages: readonly stri
     language: isLanguage(raw.language) ? raw.language : defaults.language,
     font: isFontId(raw.font) ? raw.font : defaults.font,
     fontSize: clampFontSize(raw.fontSize),
-    vocalization: isVocalization(raw.vocalization) ? raw.vocalization : defaults.vocalization,
+    vocalization: isOneOf(VOCALIZATIONS, raw.vocalization) ? raw.vocalization : defaults.vocalization,
     requireBackspace: raw.requireBackspace !== false,
     showKeyboard: raw.showKeyboard !== false,
     fingerGuide: raw.fingerGuide !== false,
@@ -91,7 +87,7 @@ export function sanitizeSettings(raw: unknown, preferredLanguages: readonly stri
     delayedHint: raw.delayedHint === true,
     customText: typeof raw.customText === "string" ? prepareCustomText(raw.customText).text : defaults.customText,
     ayatPerLesson: clampAyatPerLesson(raw.ayatPerLesson),
-    surahOrder: isSurahOrder(raw.surahOrder) ? raw.surahOrder : defaults.surahOrder,
+    surahOrder: isOneOf(SURAH_ORDERS, raw.surahOrder) ? raw.surahOrder : defaults.surahOrder,
     reciter: isReciterId(raw.reciter) ? raw.reciter : defaults.reciter,
     volume: clampVolume(raw.volume),
     muted: raw.muted === true,

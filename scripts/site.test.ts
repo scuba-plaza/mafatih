@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import {
-  CONTENT_SECURITY_POLICY,
   DEFAULT_SITE_URL,
   robotsTxt,
   sitemapXml,
@@ -13,25 +12,24 @@ import {
 const INDEX = readFileSync("index.html", "utf8");
 const MANIFEST: unknown = JSON.parse(readFileSync("public/site.webmanifest", "utf8"));
 
-test("the policy allows the page's own files, played audio only from blob URLs, and fetches only from EveryAyah", () => {
-  expect(CONTENT_SECURITY_POLICY.split("; ")).toEqual([
-    "default-src 'self'",
-    "script-src 'self'",
-    "media-src 'self' blob:",
-    "connect-src 'self' https://everyayah.com",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'none'",
-  ]);
-});
-
-test("the policy goes into the page right after the charset, with a strict referrer policy", () => {
-  const html = withContentSecurityPolicy('<head>\n<meta charset="UTF-8" />\n<title>x</title>');
-  expect(html).toContain(
-    `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CONTENT_SECURITY_POLICY}" />`,
+test("right after the charset the page gets the policy: its own files, audio from blob URLs, fetches only from EveryAyah; and a strict referrer policy", () => {
+  expect(withContentSecurityPolicy('<head>\n<meta charset="UTF-8" />\n<title>x</title>')).toBe(
+    [
+      "<head>",
+      '<meta charset="UTF-8" />',
+      `    <meta http-equiv="Content-Security-Policy" content="${[
+        "default-src 'self'",
+        "script-src 'self'",
+        "media-src 'self' blob:",
+        "connect-src 'self' https://everyayah.com",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'none'",
+      ].join("; ")}" />`,
+      '    <meta name="referrer" content="strict-origin-when-cross-origin" />',
+      "<title>x</title>",
+    ].join("\n"),
   );
-  expect(html).toContain('<meta name="referrer" content="strict-origin-when-cross-origin" />');
-  expect(html.indexOf("charset")).toBeLessThan(html.indexOf("Content-Security-Policy"));
 });
 
 test("the site address always ends in one slash and falls back to the default", () => {

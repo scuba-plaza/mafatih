@@ -15,7 +15,7 @@ import {
   translatePlural,
 } from "./i18n.ts";
 
-export interface I18n {
+interface I18n {
   language: Language;
   direction: "ltr" | "rtl";
   t: (key: MessageKey, params?: MessageParams) => string;

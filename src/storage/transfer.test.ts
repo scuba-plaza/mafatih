@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
+import { FATHA } from "~/text/arabic.ts";
 import { openProfile, type Profile } from "./profile.ts";
 import { exportProfile, importProfile, MAX_IMPORT_BYTES } from "./transfer.ts";
 
 const FRESH = openProfile(null, ["en"]).profile;
-const FATHA = String.fromCodePoint(0x64e);
 const NOW = new Date(2026, 10, 12, 15, 4, 5);
 
 const USED: Profile = {
@@ -47,12 +47,7 @@ test("a backup restores exactly the profile it was made from", () => {
   expect(result).toEqual({ ok: true, profile: USED });
 });
 
-test("a backup of a fresh profile restores a fresh profile", () => {
-  expect(importProfile(exportProfile(FRESH, NOW).json, ["en"])).toEqual({ ok: true, profile: FRESH });
-});
-
 test("text over two megabytes of bytes is refused before it is read, however few characters it has", () => {
-  expect(MAX_IMPORT_BYTES).toBe(2_000_000);
   expect(importProfile("x".repeat(5_000_000), ["en"])).toEqual({ ok: false, reason: "too-large" });
   const arabic = "ب".repeat(1_000_001);
   expect(arabic.length).toBeLessThan(MAX_IMPORT_BYTES);

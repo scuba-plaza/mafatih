@@ -1,9 +1,10 @@
-import { Component, type ReactNode, useEffect, useRef, useState } from "react";
+import { Component, type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { eraseStoredProfile } from "~/storage/ProfileProvider.tsx";
 import { ConfirmChoice } from "~/ui/ConfirmChoice.tsx";
 import { PageHeading } from "~/ui/PageHeading.tsx";
 import { BUTTON, PRIMARY_BUTTON } from "~/ui/styles.ts";
+import { useConfirmation } from "~/ui/useConfirmation.ts";
 
 function reload(): void {
   window.location.reload();
@@ -11,21 +12,12 @@ function reload(): void {
 
 function ErrorScreen() {
   const { t } = useI18n();
-  const [confirming, setConfirming] = useState(false);
-  const opener = useRef<HTMLButtonElement>(null);
+  const { confirming, opener, ask, settle } = useConfirmation();
   const screen = useRef<HTMLElement>(null);
-  const restoreFocus = useRef(false);
 
   useEffect(() => {
     screen.current?.querySelector("h1")?.focus();
   }, []);
-
-  useEffect(() => {
-    if (!confirming && restoreFocus.current) {
-      restoreFocus.current = false;
-      opener.current?.focus();
-    }
-  }, [confirming]);
 
   const answer = (erase: boolean) => {
     if (erase) {
@@ -33,8 +25,7 @@ function ErrorScreen() {
       reload();
       return;
     }
-    restoreFocus.current = true;
-    setConfirming(false);
+    settle();
   };
 
   return (
@@ -54,7 +45,7 @@ function ErrorScreen() {
           <button type="button" onClick={reload} className={PRIMARY_BUTTON}>
             {t("action.reload")}
           </button>
-          <button type="button" ref={opener} onClick={() => setConfirming(true)} className={BUTTON}>
+          <button type="button" ref={opener} onClick={ask} className={BUTTON}>
             {t("error.startOver")}
           </button>
         </div>

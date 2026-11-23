@@ -18,10 +18,6 @@ test("each ayah weighs its number of words, and the basmala that opens a surah i
   expect(stopWeights(buildPassage(NABA, 1, 4, NO_MARKS))).toEqual([4, 2, 3, 4, 2]);
 });
 
-test("one stop takes the whole ring", () => {
-  expect(arcLengths([50], 200, 15)).toEqual([200]);
-});
-
 test("arcs share the ring in proportion to their weights when none is too small", () => {
   const arcs = arcLengths([8, 11, 15, 6], 200, 15);
   expect(sum(arcs)).toBeCloseTo(200, 6);

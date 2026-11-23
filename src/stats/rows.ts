@@ -2,14 +2,14 @@ import { LADDER } from "~/practice/ladder.ts";
 import type { LessonRecord, Mode } from "./history.ts";
 import type { KeyStats } from "./keystats.ts";
 
-export interface KeyRow {
+interface KeyRow {
   readonly key: string;
   readonly meanMs: number | null;
   readonly accuracy: number;
   readonly attempts: number;
 }
 
-export interface LessonRow {
+interface LessonRow {
   readonly id: number;
   readonly at: number;
   readonly mode: Mode;

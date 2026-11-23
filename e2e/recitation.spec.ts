@@ -3,8 +3,8 @@ import { expectNoAxeViolations } from "./helpers/axe.ts";
 import { NEEDS_CDP } from "./helpers/engines.ts";
 import { passageRange } from "./helpers/passage.ts";
 import { clearlyDifferentPixels } from "./helpers/pixels.ts";
-import { savedProfile, seedSettings } from "./helpers/profile.ts";
-import { lettersOf, shownAyat, sign, surah } from "./helpers/quran.ts";
+import { resaveProfile, savedProfile, seedSettings } from "./helpers/profile.ts";
+import { lettersOf, MARKS, shownAyat, sign, surah } from "./helpers/quran.ts";
 import { addStyle } from "./helpers/style.ts";
 import { doneText, paintedTwice, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 
@@ -14,7 +14,6 @@ declare global {
   }
 }
 
-const MARKS = /[\u064B-\u0652\u0670]/g;
 const DAGGER_ALEF = "\u0670";
 const MEDIAN_BUDGET_MS = 50;
 const SLOWEST_TENTH_BUDGET_MS = 100;
@@ -180,7 +179,7 @@ test("progress is saved ayah by ayah, into recitation only, and a reload resumes
   expect(await doneText(page)).toBe("");
 });
 
-test("a finished passage is saved once and the next passage opens at once, across surahs, with the field still focused", async ({
+test("a finished passage is saved once and the next passage opens at once, with no summary or dialog, across surahs, with the field still focused", async ({
   page,
 }) => {
   const fatiha = surah(1);
@@ -192,10 +191,14 @@ test("a finished passage is saved once and the next passage opens at once, acros
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
   expect(await doneText(page)).toBe("");
   await expect(surface(page).locator("[data-mistakes]")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /type again/i })).toHaveCount(0);
   const whenFinished = await savedProfile(page);
   const history = whenFinished.history as { mode: string; chars: number; accuracy: number }[];
   expect(history).toHaveLength(1);
   expect(history[0]).toMatchObject({ mode: "recitation", chars: lettersOf(fatiha, 1, 4).length, accuracy: 1 });
+  expect(whenFinished.recitation).toMatchObject({ position: { surah: 1, ayah: 5 } });
 
   expect(await page.evaluate(() => history.length)).toBe(entries);
   await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
@@ -239,10 +242,7 @@ test("a lesson in progress survives another tab saving the profile", async ({ co
   expect(typed.length).toBeGreaterThan(20);
   const other = await context.newPage();
   await other.goto("/#/about");
-  await other.evaluate(() => {
-    const key = "mafatih:profile:2";
-    localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "{}"), null, 1));
-  });
+  await resaveProfile(other);
   await page.bringToFront();
   await page.keyboard.insertText(lettersOf(fatiha, 2, 2)[6] ?? "");
   expect((await doneText(page)).length).toBeGreaterThan(typed.length);
@@ -284,7 +284,9 @@ test("with forced colours the typed text and the ayah signs are still told apart
   expect(colours.sign).not.toBe(colours.text);
 });
 
-test("Type it again starts the surah over, and the next finish is counted as the second", async ({ page }) => {
+test("Type it again starts the surah over, the next finish is counted as the second, and Escape goes on like Continue", async ({
+  page,
+}) => {
   const kawthar = surah(108);
   await seedSettings(page, { vocalization: "letters", requireBackspace: false });
   await page.goto("/#/recitation/108");
@@ -297,6 +299,7 @@ test("Type it again starts the surah over, and the next finish is counted as the
   await expect(card(page)).toHaveCount(0);
   await expect(page).toHaveURL(/#\/recitation\/108(\/1)?$/);
   await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
+  await expect(surface(page).locator("[data-block]")).toHaveCount(2);
   expect(await doneText(page)).toBe("");
   await typeKeys(page, keys);
   await expect(card(page).getByText("Completed 2 times.")).toBeVisible();
@@ -304,6 +307,10 @@ test("Type it again starts the surah over, and the next finish is counted as the
   const profile = await savedProfile(page);
   expect(profile.recitation).toMatchObject({ surahs: { 108: { typed: [], completions: 2 } } });
   expect(profile.history).toHaveLength(2);
+  await page.keyboard.press("Escape");
+  await expect(card(page)).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
+  await expect(page.getByRole("textbox", { name: "Type the text shown" })).toBeFocused();
 });
 
 test("an address past the end of a surah shows its last ayah, and a single ayah is named as one", async ({ page }) => {

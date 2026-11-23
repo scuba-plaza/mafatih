@@ -212,7 +212,7 @@ export function violationsOf(rows: readonly PracticeWord[], rules: Rules): strin
   return problems;
 }
 
-export interface Coverage {
+interface Coverage {
   readonly starterWords: number;
   readonly starterSpellings: number;
   readonly wordsPerStarterLetter: ReadonlyMap<string, number>;

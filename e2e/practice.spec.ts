@@ -1,10 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { savedProfile, seedProfile } from "./helpers/profile.ts";
+import { resaveProfile, savedProfile, seedProfile } from "./helpers/profile.ts";
+import { MARKS } from "./helpers/quran.ts";
 import { doneText, shownText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
 import { afterFrames, storageEventsSeen, watchStorageEvents } from "./helpers/waits.ts";
 
-const MARKS = /[\u064B-\u0652\u0670]/g;
 const HOME_ROW = new Set([..."ايملبتنسكش"]);
 const ONE_SAMPLE_SHORT = { attempts: 7, hits: 7, timed: 7, meanMs: 400, recentAccuracy: 1 };
 
@@ -143,10 +143,7 @@ test("another tab saving the profile does not rebuild the lesson being typed", a
   await watchStorageEvents(page);
   const other = await context.newPage();
   await other.goto("/#/about");
-  await other.evaluate(() => {
-    const key = "mafatih:profile:2";
-    localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "{}"), null, 1));
-  });
+  await resaveProfile(other);
   await page.bringToFront();
   await expect.poll(() => storageEventsSeen(page)).toBeGreaterThan(0);
   await afterFrames(page);

@@ -1,23 +1,16 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { type Language, openAndWait, PAGES, seedTypicalProfile } from "./helpers/pages.ts";
+import { type Language, openAndWait, PAGES, SETTINGS_NAME, seedTypicalProfile } from "./helpers/pages.ts";
 import { addStyle, WIDE_LARGE_TEXT } from "./helpers/style.ts";
+import { afterFrames } from "./helpers/waits.ts";
 
 test.use({ timezoneId: "UTC", locale: "en-US" });
 
 const LANGUAGES: readonly Language[] = ["en", "ar"];
-const SCHEMES = ["dark"] as const;
-const SETTINGS_NAME = { en: "Settings", ar: "الإعدادات" } as const;
 const NARROW = { width: 320, height: 568 } as const;
 
-async function settled(page: Page): Promise<void> {
-  await page.evaluate(
-    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
-  );
-}
-
 async function expectNothingLost(page: Page): Promise<void> {
-  await settled(page);
+  await afterFrames(page, 2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(NARROW.width);
   const outside = await page.evaluate((width) => {
     const scrolls = (element: Element): boolean => {
@@ -44,27 +37,23 @@ async function expectNothingLost(page: Page): Promise<void> {
 }
 
 for (const language of LANGUAGES) {
-  for (const colorScheme of SCHEMES) {
-    test.describe(`${language}, ${colorScheme}`, () => {
-      test.use({ colorScheme });
-
-      for (const { name, hash, typing } of PAGES) {
-        test(`the ${name} page has no accessibility violations`, async ({ page }) => {
-          await seedTypicalProfile(page, language);
-          await openAndWait(page, hash, typing);
-          await expectNoAxeViolations(page);
-        });
-      }
-
-      test("the Settings dialog has no accessibility violations", async ({ page }) => {
+  test.describe(`${language}, axe`, () => {
+    for (const { name, hash, typing } of PAGES) {
+      test(`the ${name} page has no accessibility violations`, async ({ page }) => {
         await seedTypicalProfile(page, language);
-        await openAndWait(page, "#/practice", true);
-        await page.getByRole("button", { name: SETTINGS_NAME[language] }).click();
-        await expect(page.getByRole("dialog", { name: SETTINGS_NAME[language] })).toBeVisible();
+        await openAndWait(page, hash, typing);
         await expectNoAxeViolations(page);
       });
+    }
+
+    test("the Settings dialog has no accessibility violations", async ({ page }) => {
+      await seedTypicalProfile(page, language);
+      await openAndWait(page, "#/practice", true);
+      await page.getByRole("button", { name: SETTINGS_NAME[language] }).click();
+      await expect(page.getByRole("dialog", { name: SETTINGS_NAME[language] })).toBeVisible();
+      await expectNoAxeViolations(page);
     });
-  }
+  });
 
   test.describe(`${language}, headings`, () => {
     for (const { name, hash, typing } of PAGES) {

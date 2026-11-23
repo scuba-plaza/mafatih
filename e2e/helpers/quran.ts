@@ -7,7 +7,7 @@ export interface SurahFile {
   readonly source: string;
 }
 
-const MARKS = /[ً-ْٰ]/g;
+export const MARKS = /[ً-ْٰ]/g;
 const NO_BREAK_SPACE = " ";
 const END_OF_AYAH = "۝";
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";

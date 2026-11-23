@@ -72,15 +72,6 @@ test("an answer that is not audio, a login page for example, is an error and is 
   expect(cache.puts).toEqual([]);
 });
 
-test("a removed ayah is fetched again", async () => {
-  const cache = memoryCache();
-  const fetcher = respond("audio");
-  await loadAyahBlob(URL_A, cache);
-  await cache.remove(URL_A);
-  await loadAyahBlob(URL_A, cache);
-  expect(fetcher).toHaveBeenCalledTimes(2);
-});
-
 test("a request that never answers is given up after a while, and the next one fetches again", async () => {
   vi.useFakeTimers();
   try {

@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { surface } from "./typing.ts";
 
-export interface OneScreen {
+interface OneScreen {
   readonly header: boolean;
   readonly player: boolean;
   readonly guide: boolean | "either";

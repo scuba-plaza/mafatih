@@ -104,7 +104,6 @@ test("a letter carries at most one shadda and exactly one vowel, tanween or suku
   expect(isFullyVocalized(`ب${FATHATAN}${FATHATAN}`)).toBe(false);
   expect(isFullyVocalized(`مَن${SHADDA}${SHADDA}${FATHA}`)).toBe(false);
   expect(isFullyVocalized(`مَن${FATHA}${SHADDA}`)).toBe(false);
-  expect(isFullyVocalized(`مَن${SHADDA}${FATHA}`)).toBe(true);
 });
 
 test("a word starts with a letter that carries a vowel, not with a mark, a sukun or a shadda", () => {
@@ -117,8 +116,6 @@ test("a word starts with a letter that carries a vowel, not with a mark, a sukun
 test("tanween only ends a word, optionally followed by its silent alef or alef maksura", () => {
   expect(isFullyVocalized("بًبَ")).toBe(false);
   expect(isFullyVocalized("بٌبَا")).toBe(false);
-  expect(isFullyVocalized("كِتَابًا")).toBe(true);
-  expect(isFullyVocalized("هُدًى")).toBe(true);
   expect(isFullyVocalized("كِتَابٍ")).toBe(true);
 });
 

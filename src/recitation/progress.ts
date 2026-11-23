@@ -7,7 +7,7 @@ export interface Position {
   readonly ayah: number;
 }
 
-export type AyahRange = readonly [number, number];
+type AyahRange = readonly [number, number];
 
 export const STAR_ACCURACY = 0.95;
 
@@ -19,7 +19,7 @@ export interface RunTally {
 
 export const NO_RUN: RunTally = { correct: 0, total: 0, ms: 0 };
 
-export interface SurahProgress {
+interface SurahProgress {
   readonly typed: readonly AyahRange[];
   readonly completions: number;
   readonly run: RunTally;
@@ -157,15 +157,13 @@ export function recordAyah(
   const after: SurahProgress = completes
     ? { typed: [], completions: before.completions + 1, run: NO_RUN, best: Math.max(before.best, accuracyOf(run)) }
     : { typed, completions: before.completions, run, best: before.best };
-  const resume = completes
-    ? positionAfter({ surah, ayah: ayatIn(surah) }, order)
-    : afterTypedRange(typed, position, order);
-  return { position: resume, surahs: { ...progress.surahs, [surah]: after } };
-}
-
-function afterTypedRange(typed: readonly AyahRange[], position: Position, order: SurahOrder): Position {
-  const range = typed.find(([start, end]) => start <= position.ayah && position.ayah <= end);
-  return positionAfter({ surah: position.surah, ayah: range?.[1] ?? position.ayah }, order);
+  const resumeAfter = completes
+    ? ayatIn(surah)
+    : (typed.find(([start, end]) => start <= ayah && ayah <= end)?.[1] ?? ayah);
+  return {
+    position: positionAfter({ surah, ayah: resumeAfter }, order),
+    surahs: { ...progress.surahs, [surah]: after },
+  };
 }
 
 function sanitizePosition(raw: unknown): Position | null {

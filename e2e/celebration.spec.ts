@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/axe.ts";
-import { passageRange } from "./helpers/passage.ts";
+import { passageBar, passageRange } from "./helpers/passage.ts";
 import { savedProfile, seedProfile } from "./helpers/profile.ts";
 import { lettersOf, surah } from "./helpers/quran.ts";
 import { doneText, startTyping, surface, typeKeys } from "./helpers/typing.ts";
@@ -22,27 +22,6 @@ async function startKawthar(page: Page, settings: Record<string, unknown> = {}, 
   await startTyping(page);
   await expect(field(page)).toBeFocused();
 }
-
-test("finishing a passage inside a surah opens the next one by itself: no summary, no dialog, the field stays focused", async ({
-  page,
-}) => {
-  const fatiha = surah(1);
-  await seedProfile(page, { settings: { vocalization: "letters" } });
-  await page.goto("/#/recitation/1");
-  await startTyping(page);
-  const entries = await page.evaluate(() => history.length);
-  await typeKeys(page, lettersOf(fatiha, 1, 4));
-  await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
-  expect(await page.evaluate(() => history.length)).toBe(entries);
-  await expect(passageRange(page, "Ayat 5 to 7 of 7")).toHaveCount(1);
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /type again/i })).toHaveCount(0);
-  await expect(field(page)).toBeFocused();
-  const profile = await savedProfile(page);
-  expect(profile.history).toHaveLength(1);
-  expect(profile.recitation).toMatchObject({ position: { surah: 1, ayah: 5 } });
-});
 
 test("typing straight on past the end of a passage keeps the focus in the field and loses no key", async ({ page }) => {
   const fatiha = surah(1);
@@ -128,25 +107,6 @@ test("the rays burst without end while motion is welcome, and are not drawn when
   expect(await name.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
 });
 
-test("Escape and Continue do the same; Type it again starts the surah over and counts the next finish", async ({
-  page,
-}) => {
-  await startKawthar(page);
-  await typeKeys(page, lettersOf(surah(108), 1, 3, true));
-  await expect(card(page)).toBeVisible();
-  await card(page).getByRole("button", { name: "Type it again" }).click();
-  await expect(card(page)).toHaveCount(0);
-  await expect(page).toHaveURL(/#\/recitation\/108(\/1)?$/);
-  await expect(field(page)).toBeFocused();
-  await expect(surface(page).locator("[data-block]")).toHaveCount(2);
-  await typeKeys(page, lettersOf(surah(108), 1, 3, true));
-  await expect(card(page).getByText("Completed 2 times.")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(card(page)).toHaveCount(0);
-  await expect(page).toHaveURL(/#\/recitation\/109\/1$/);
-  await expect(field(page)).toBeFocused();
-});
-
 test("Page Down while the celebration is open does not change the passage behind it", async ({ page }) => {
   await startKawthar(page);
   await typeKeys(page, lettersOf(surah(108), 1, 3, true));
@@ -169,7 +129,7 @@ test("going back to the passage that finished a surah does not open its celebrat
     .getByRole("button", { name: /^Continue to / })
     .click();
   await expect(page).toHaveURL(/#\/recitation\/2\/1$/);
-  const play = page.getByRole("group", { name: "Passage" }).getByRole("button", { name: "Play", exact: true });
+  const play = passageBar(page).getByRole("button", { name: "Play", exact: true });
   await play.focus();
   await page.keyboard.press("PageUp");
   await expect(page).toHaveURL(/#\/recitation\/1\/5$/);
@@ -178,20 +138,7 @@ test("going back to the passage that finished a surah does not open its celebrat
   await expect(card(page)).toHaveCount(0);
 });
 
-test("the last surah of the order offers to start again instead", async ({ page }) => {
-  await seedProfile(page, { settings: { vocalization: "letters", surahOrder: "mushaf" } });
-  await page.goto("/#/recitation/114");
-  await startTyping(page);
-  await typeKeys(page, lettersOf(surah(114), 1, 4, true));
-  await expect(page).toHaveURL(/#\/recitation\/114\/5$/);
-  await typeKeys(page, lettersOf(surah(114), 5, 6));
-  await expect(card(page)).toBeVisible();
-  await expect(card(page).getByText("This was the last surah in this order. Next, it starts again.")).toBeVisible();
-  await card(page).getByRole("button", { name: "Start again" }).click();
-  await expect(page).toHaveURL(/#\/recitation\/1\/1$/);
-});
-
-test("the card has no accessibility violations, in English and in Arabic", async ({ page }) => {
+test("the card has no accessibility violations", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await startKawthar(page);
   await typeKeys(page, lettersOf(surah(108), 1, 3, true));

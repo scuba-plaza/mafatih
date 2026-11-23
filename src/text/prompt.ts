@@ -4,7 +4,7 @@ import { isMark } from "./arabic.ts";
 
 export const NO_BREAK_SPACE = "\u00A0";
 
-export function isWordSpace(character: string): boolean {
+function isWordSpace(character: string): boolean {
   return character === " " || character === NO_BREAK_SPACE;
 }
 
@@ -37,10 +37,11 @@ function mergeLamAlef(units: readonly Unit[], breaks: readonly number[]): Unit[]
   const merged: Unit[] = [];
   for (const unit of units) {
     const previous = merged.at(-1);
-    const splitByBreak = breaks.some(
-      (offset) => previous !== undefined && previous.start < offset && offset <= unit.start,
-    );
-    if (previous !== undefined && !splitByBreak && LIGATURE_KEYS.has(previous.text + unit.text)) {
+    if (
+      previous !== undefined &&
+      LIGATURE_KEYS.has(previous.text + unit.text) &&
+      !breaks.some((offset) => previous.start < offset && offset <= unit.start)
+    ) {
       merged[merged.length - 1] = { text: previous.text + unit.text, start: previous.start, end: unit.end };
     } else {
       merged.push(unit);

@@ -41,6 +41,17 @@ export interface Trainer {
 
 const NO_CHECKPOINTS: readonly number[] = [];
 
+interface Passed {
+  readonly prompt: Prompt;
+  readonly checkpoints: number;
+  readonly samples: number;
+  readonly activeMs: number;
+}
+
+function nothingPassed(prompt: Prompt): Passed {
+  return { prompt, checkpoints: 0, samples: 0, activeMs: 0 };
+}
+
 export function useTrainer(config: TrainerConfig): Trainer {
   const { prompt, options, onComplete, checkpoints = NO_CHECKPOINTS, onCheckpoint } = config;
   const [session, setSession] = useState(() => createSession(prompt));
@@ -50,7 +61,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   const checkpointsRef = useRef(checkpoints);
   const onCheckpointRef = useRef(onCheckpoint);
   const reported = useRef<Session | null>(null);
-  const passed = useRef({ prompt, checkpoints: 0, samples: 0, activeMs: 0 });
+  const passed = useRef(nothingPassed(prompt));
 
   useEffect(() => {
     optionsRef.current = options;
@@ -92,7 +103,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   useEffect(() => {
     const marks = checkpointsRef.current;
     if (passed.current.prompt !== session.prompt) {
-      passed.current = { prompt: session.prompt, checkpoints: 0, samples: 0, activeMs: 0 };
+      passed.current = nothingPassed(session.prompt);
     }
     for (
       let index = passed.current.checkpoints;
@@ -121,7 +132,7 @@ export function useTrainer(config: TrainerConfig): Trainer {
   const focus = useCallback(() => inputRef.current?.focus(), [inputRef]);
 
   const restart = useCallback(() => {
-    passed.current = { prompt: passed.current.prompt, checkpoints: 0, samples: 0, activeMs: 0 };
+    passed.current = nothingPassed(passed.current.prompt);
     flushSync(() => setSession((current) => createSession(current.prompt)));
     inputRef.current?.focus();
   }, [inputRef]);

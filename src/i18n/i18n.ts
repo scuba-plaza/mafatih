@@ -9,15 +9,18 @@ const CATALOGS: Record<Language, Record<MessageKey, string>> = { en, ar };
 
 const LOCALE_WITH_OWN_DIGITS: Record<Language, string> = { en: "en", ar: "ar-u-nu-arab" };
 
-const WHOLE_NUMBERS: Record<Language, Intl.NumberFormat> = {
-  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { maximumFractionDigits: 0 }),
-  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { maximumFractionDigits: 0 }),
-};
+function numberFormats(options: Intl.NumberFormatOptions): Record<Language, Intl.NumberFormat> {
+  return {
+    en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, options),
+    ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, options),
+  };
+}
 
-const WHOLE_PERCENTAGES: Record<Language, Intl.NumberFormat> = {
-  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { style: "percent", maximumFractionDigits: 0 }),
-  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { style: "percent", maximumFractionDigits: 0 }),
-};
+const WHOLE_NUMBERS = numberFormats({ maximumFractionDigits: 0 });
+const WHOLE_PERCENTAGES = numberFormats({ style: "percent", maximumFractionDigits: 0 });
+const TWO_DIGITS = numberFormats({ minimumIntegerDigits: 2, maximumFractionDigits: 0 });
+const KILOBYTES = numberFormats({ style: "unit", unit: "kilobyte", maximumFractionDigits: 0 });
+const MEGABYTES = numberFormats({ style: "unit", unit: "megabyte", maximumFractionDigits: 1 });
 
 const PLURAL_RULES: Record<Language, Intl.PluralRules> = {
   en: new Intl.PluralRules("en"),
@@ -73,25 +76,10 @@ export function formatAccuracy(language: Language, ratio: number): string {
   return WHOLE_PERCENTAGES[language].format(Math.floor(finite(ratio) * 100 + 1e-9) / 100);
 }
 
-const TWO_DIGITS: Record<Language, Intl.NumberFormat> = {
-  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { minimumIntegerDigits: 2, maximumFractionDigits: 0 }),
-  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { minimumIntegerDigits: 2, maximumFractionDigits: 0 }),
-};
-
 export function formatDuration(language: Language, ms: number): string {
   const seconds = Math.max(0, Math.round(finite(ms) / 1000));
   return `${formatNumber(language, Math.floor(seconds / 60))}:${TWO_DIGITS[language].format(seconds % 60)}`;
 }
-
-const KILOBYTES: Record<Language, Intl.NumberFormat> = {
-  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { style: "unit", unit: "kilobyte", maximumFractionDigits: 0 }),
-  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { style: "unit", unit: "kilobyte", maximumFractionDigits: 0 }),
-};
-
-const MEGABYTES: Record<Language, Intl.NumberFormat> = {
-  en: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.en, { style: "unit", unit: "megabyte", maximumFractionDigits: 1 }),
-  ar: new Intl.NumberFormat(LOCALE_WITH_OWN_DIGITS.ar, { style: "unit", unit: "megabyte", maximumFractionDigits: 1 }),
-};
 
 const BYTES_IN_KILOBYTE = 1000;
 const BYTES_IN_MEGABYTE = 1_000_000;

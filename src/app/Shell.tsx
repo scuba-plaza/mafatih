@@ -23,14 +23,13 @@ const TOP_LINK = `${TOUCH_TARGET} border-b-2 border-transparent px-3 text-sm tex
 const TAB_LINK =
   "relative flex min-h-16 min-w-0 flex-1 items-center justify-center px-1 text-center text-sm leading-tight wrap-anywhere text-muted after:absolute after:bottom-2.5 after:h-0.5 after:w-5 after:rounded-full after:bg-transparent aria-[current=page]:text-ink aria-[current=page]:after:bg-accent";
 
-interface NavProps {
+interface PageLinksProps {
   readonly page: Page;
-  readonly label: string;
   readonly linkClass: string;
   readonly title: (page: Page) => string;
 }
 
-function PageLinks({ page, linkClass, title }: Omit<NavProps, "label">) {
+function PageLinks({ page, linkClass, title }: PageLinksProps) {
   return PAGES.map((route) => (
     <li key={route.page} className="flex flex-1 md:flex-none">
       <a

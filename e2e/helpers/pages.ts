@@ -14,6 +14,8 @@ export type PageName = (typeof PAGES)[number]["name"];
 
 export type Language = "en" | "ar";
 
+export const SETTINGS_NAME = { en: "Settings", ar: "الإعدادات" } as const;
+
 const MODES = ["practice", "recitation", "custom"] as const;
 
 function stat(attempts: number, hits: number, meanMs: number) {
