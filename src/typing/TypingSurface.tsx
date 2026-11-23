@@ -11,7 +11,15 @@ import { wordAt } from "~/text/prompt.ts";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
 import { activatesOnEnter, isOnControl } from "./activation.ts";
 import { type Ligature, ligatureAt } from "./ligature.ts";
-import { HIGHLIGHT_NAMES, type HighlightName, type PaintRun, paintRuns, type TextSpan } from "./paint.ts";
+import {
+  HIGHLIGHT_NAMES,
+  type HighlightName,
+  type HighlightScope,
+  highlightName,
+  type PaintRun,
+  paintRuns,
+  type TextSpan,
+} from "./paint.ts";
 import { isComplete, type Session, view } from "./session.ts";
 import { caretRow, caretScrollTop, MIN_WINDOW_LINES, OVERFLOW_TOLERANCE, toPixels, wholeLines } from "./stage.ts";
 import { useStageFit } from "./useStageFit.ts";
@@ -23,6 +31,7 @@ const MARK_CARRIER = "\u0640\u0640";
 const NARROW_SCREEN_SCALE = "0.1945vw";
 const MISS_RING = "0 0 0 2px var(--color-danger)";
 const CARET_IDLE_MS = 250;
+const NO_REPORT = (): void => undefined;
 
 const MISS_SHAKE: Keyframe[] = [
   { offset: 0, backgroundColor: "var(--color-danger)", boxShadow: MISS_RING, translate: "0 0" },
@@ -176,7 +185,12 @@ function rangeOf(
   return nodes === undefined ? undefined : rangeBetween(nodes, run.start - offset, run.end - offset);
 }
 
-function paint(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], runs: readonly PaintRun[]): void {
+function paint(
+  paragraphs: readonly HTMLElement[],
+  blocks: readonly TextSpan[],
+  runs: readonly PaintRun[],
+  scope: HighlightScope,
+): void {
   const highlights = highlightRegistry();
   if (highlights === undefined) {
     return;
@@ -192,9 +206,9 @@ function paint(paragraphs: readonly HTMLElement[], blocks: readonly TextSpan[], 
   for (const name of HIGHLIGHT_NAMES) {
     const painted = ranges.get(name);
     if (painted === undefined) {
-      highlights.delete(name);
+      highlights.delete(highlightName(name, scope));
     } else {
-      highlights.set(name, new Highlight(...painted));
+      highlights.set(highlightName(name, scope), new Highlight(...painted));
     }
   }
 }
@@ -221,6 +235,10 @@ function BlockText({ shown, block, cursor, mistakes }: BlockTextProps): ReactNod
   );
 }
 
+export interface SurfacePreview {
+  readonly lines: number;
+}
+
 export interface TypingSurfaceProps {
   readonly trainer: Trainer;
   readonly settings: LessonDisplaySettings;
@@ -228,10 +246,13 @@ export interface TypingSurfaceProps {
   readonly playing?: TextSpan | null;
   readonly describedBy?: string;
   readonly footer?: ReactNode;
+  readonly preview?: SurfacePreview;
 }
 
 export function TypingSurface(props: TypingSurfaceProps) {
-  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy, footer } = props;
+  const { trainer, settings, apparatus = NO_SPANS, playing = null, describedBy, footer, preview } = props;
+  const readOnly = preview !== undefined;
+  const scope: HighlightScope = readOnly ? "preview" : "lesson";
   const { font, fontSize } = settings;
   const { t } = useI18n();
   const layoutName = useLayoutName();
@@ -248,16 +269,17 @@ export function TypingSurface(props: TypingSurfaceProps) {
   const wantsGuide = useMediaQuery(GUIDE_QUERY) && settings.showKeyboard;
   const textOnly = useChrome().chrome === "text-only";
   const reportMinHeight = useReportFitMinHeight();
-  const { showGuide, windowHeight } = useStageFit(
+  const stageFit = useStageFit(
     { stage: stageRef, section: sectionRef, text: textRef, guide: guideRef },
     wantsGuide,
     guideHeight(settings.fingerGuide),
     textOnly ? 1 : MIN_WINDOW_LINES,
-    reportMinHeight,
+    readOnly ? NO_REPORT : reportMinHeight,
   );
-  const scrollRegion = scrollable
-    ? ({ tabIndex: 0, role: "group", "aria-label": t("typing.scrollable") } as const)
-    : {};
+  const showGuide = readOnly || stageFit.showGuide;
+  const windowHeight = readOnly ? null : stageFit.windowHeight;
+  const scrollRegion =
+    scrollable && !readOnly ? ({ tabIndex: 0, role: "group", "aria-label": t("typing.scrollable") } as const) : {};
 
   const { doneUntil, mistakes } = view(session);
   const complete = isComplete(session);
@@ -288,7 +310,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
 
   useEffect(() => {
     const element = caretRef.current;
-    if (misses === 0 || element === null) {
+    if (readOnly || misses === 0 || element === null) {
       return;
     }
     const calm = prefersReducedMotion();
@@ -298,7 +320,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
       easing: calm ? "linear" : "ease-out",
     });
     return () => animation.cancel();
-  }, [misses]);
+  }, [misses, readOnly]);
 
   const shownPrompt = useRef(session.prompt);
   useLayoutEffect(() => {
@@ -328,6 +350,7 @@ export function TypingSurface(props: TypingSurfaceProps) {
         paragraphs,
         blocks,
         paintRuns({ blocks, doneUntil, apparatus, playing, exempt: cut === undefined ? null : ligature }),
+        scope,
       );
       setScrollable(container.scrollHeight - container.clientHeight > OVERFLOW_TOLERANCE);
       const rect = complete ? undefined : caretRect(paragraph, doneUntil - block.start);
@@ -346,7 +369,9 @@ export function TypingSurface(props: TypingSurfaceProps) {
         const padTop = toPixels(style.paddingTop);
         const row = caretRow(wholeLines(container.clientHeight, lineHeight, padTop));
         const top = caretScrollTop(y, rect.height, row, lineHeight, padTop);
-        container.scrollIntoView({ block: "nearest" });
+        if (!readOnly) {
+          container.scrollIntoView({ block: "nearest" });
+        }
         container.scrollTo({ top, behavior: prefersReducedMotion() ? "auto" : "smooth" });
       }
       caretLine.current = focused ? y : null;
@@ -371,13 +396,16 @@ export function TypingSurface(props: TypingSurfaceProps) {
       observer.disconnect();
       document.fonts.removeEventListener("loadingdone", place);
       for (const name of HIGHLIGHT_NAMES) {
-        highlightRegistry()?.delete(name);
+        highlightRegistry()?.delete(highlightName(name, scope));
       }
     };
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     const section = sectionRef.current;
+    if (readOnly) {
+      return;
+    }
     const keepFocus = (event: MouseEvent) => event.preventDefault();
     section?.addEventListener("click", focus);
     section?.addEventListener("mousedown", keepFocus);
@@ -385,10 +413,10 @@ export function TypingSurface(props: TypingSurfaceProps) {
       section?.removeEventListener("click", focus);
       section?.removeEventListener("mousedown", keepFocus);
     };
-  }, [focus]);
+  }, [focus, readOnly]);
 
   useEffect(() => {
-    if (!paused) {
+    if (!paused || readOnly) {
       return;
     }
     const activate = (event: KeyboardEvent) => {
@@ -408,25 +436,34 @@ export function TypingSurface(props: TypingSurfaceProps) {
     };
     document.addEventListener("keydown", activate);
     return () => document.removeEventListener("keydown", activate);
-  }, [paused, focus]);
+  }, [paused, focus, readOnly]);
 
   return (
-    <div ref={stageRef} data-stage="" className="flex min-h-0 flex-1 flex-col justify-center-safe gap-3">
+    <div
+      ref={stageRef}
+      data-stage={readOnly ? undefined : ""}
+      className="flex min-h-0 flex-1 flex-col justify-center-safe gap-3"
+    >
       <section
         ref={sectionRef}
         aria-label={t("typing.text")}
-        data-typing-surface=""
-        className={`relative flex cursor-text flex-col ${textOnly ? "min-h-[calc(2em+0.75rem)]" : "min-h-[calc(4em+0.75rem)]"}`}
+        data-typing-surface={readOnly ? undefined : ""}
+        data-preview-surface={readOnly ? "" : undefined}
+        className={`relative flex flex-col ${readOnly ? "" : `cursor-text ${textOnly ? "min-h-[calc(2em+0.75rem)]" : "min-h-[calc(4em+0.75rem)]"}`}`}
         style={{ fontSize: `calc(${fontSize} * min(1px, ${NARROW_SCREEN_SCALE}))` }}
       >
         <div
           ref={textRef}
           lang="ar"
           dir="rtl"
-          data-lesson-text=""
+          data-lesson-text={readOnly ? undefined : ""}
+          data-preview-text={readOnly ? "" : undefined}
           {...scrollRegion}
           className={`relative min-h-0 ${scrollable ? "overflow-y-auto" : "overflow-y-clip"} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-4 pt-3 text-center leading-[2] text-upcoming wrap-anywhere${paused ? " blur-[6px]" : ""}`}
-          style={{ fontFamily: `"${family.family}", serif`, height: windowHeight ?? undefined }}
+          style={{
+            fontFamily: `"${family.family}", serif`,
+            height: readOnly ? `calc(${preview.lines} * 2em + 0.75rem)` : (windowHeight ?? undefined),
+          }}
         >
           {blocks.map((block, index) => (
             <p
@@ -470,26 +507,30 @@ export function TypingSurface(props: TypingSurfaceProps) {
             <span className="hidden pointer-coarse:inline">{t("typing.activateTouch")}</span>
           </button>
         )}
-        <p role="status" className="sr-only">
-          {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
-        </p>
-        {wrongLayout && (
-          <p role="alert" className="px-4 py-1 text-center text-sm font-medium">
-            {t("typing.wrongLayout", { layout: layoutName })}
-          </p>
+        {!readOnly && (
+          <>
+            <p role="status" className="sr-only">
+              {focused && flagged && t(options.requireBackspace ? "typing.mistakeBackspace" : "typing.mistake")}
+            </p>
+            {wrongLayout && (
+              <p role="alert" className="px-4 py-1 text-center text-sm font-medium">
+                {t("typing.wrongLayout", { layout: layoutName })}
+              </p>
+            )}
+            <input
+              {...inputProps}
+              ref={inputRef}
+              aria-label={t("typing.inputLabel")}
+              aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
+              tabIndex={complete ? -1 : undefined}
+              data-typing-input=""
+              className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"
+            />
+            <p id={nextWordId} role="status" lang="ar" dir="rtl" className="sr-only">
+              {wordAt(session.prompt, doneUntil)}
+            </p>
+          </>
         )}
-        <input
-          {...inputProps}
-          ref={inputRef}
-          aria-label={t("typing.inputLabel")}
-          aria-describedby={describedBy === undefined ? nextWordId : `${describedBy} ${nextWordId}`}
-          tabIndex={complete ? -1 : undefined}
-          data-typing-input=""
-          className="absolute top-1/2 left-1/2 size-px border-0 bg-transparent p-0 text-base text-transparent caret-transparent opacity-0 outline-none"
-        />
-        <p id={nextWordId} role="status" lang="ar" dir="rtl" className="sr-only">
-          {wordAt(session.prompt, doneUntil)}
-        </p>
       </section>
       {settings.showKeyboard && (
         <GuideKeyboard
