@@ -51,9 +51,7 @@ test("the Settings button opens a dialog with every setting in a named group", a
   await openSettings(page, "Lesson");
   const vocalization = dialog(page).getByRole("group", { name: "Vocalization" });
   await expect(vocalization.getByRole("radio", { name: "Auto", exact: true })).toBeChecked();
-  await expect(vocalization.getByRole("radio", { name: "Auto", exact: true })).toHaveAccessibleDescription(
-    "Asks only for the marks you have unlocked in Practice.",
-  );
+  await expect(vocalization.getByRole("radio", { name: "Auto", exact: true })).toHaveAccessibleDescription("");
   await expect(vocalization.getByRole("radio", { name: "Letters only", exact: true })).toHaveAccessibleDescription(
     "Marks are shown but not typed.",
   );
@@ -455,4 +453,32 @@ test("the page behind a dialog is dimmed", async ({ page }) => {
   const colour = await dialog.evaluate((element) => getComputedStyle(element, "::backdrop").backgroundColor);
   const alpha = colour.startsWith("rgb(") ? 1 : Number(colour.match(/([\d.]+)\)$/)?.[1]);
   expect(alpha, `the backdrop is ${colour}`).toBeGreaterThanOrEqual(0.5);
+});
+
+test("vocalization shows the hint of the chosen option only, and Auto has none", async ({ page }) => {
+  await page.goto("/#/custom");
+  await openSettings(page, "Lesson");
+  const vocalization = dialog(page).getByRole("group", { name: "Vocalization" });
+  const hints = {
+    "Letters only": "Marks are shown but not typed.",
+    Harakat: "Type fatha, damma, kasra, shadda and sukun.",
+    Full: "Type every mark, tanween included.",
+  } as const;
+  const shown = async (hint: string): Promise<boolean> =>
+    ((await vocalization.getByText(hint).boundingBox())?.width ?? 0) > 50;
+  await expect(vocalization.getByText("Asks only for the marks")).toHaveCount(0);
+  for (const hint of Object.values(hints)) {
+    expect(await shown(hint)).toBe(false);
+  }
+  for (const [name, hint] of Object.entries(hints)) {
+    await vocalization.getByRole("radio", { name, exact: true }).check();
+    await expect.poll(() => shown(hint)).toBe(true);
+    for (const other of Object.values(hints).filter((text) => text !== hint)) {
+      expect(await shown(other)).toBe(false);
+    }
+  }
+  await vocalization.getByRole("radio", { name: "Auto", exact: true }).check();
+  for (const hint of Object.values(hints)) {
+    await expect.poll(() => shown(hint)).toBe(false);
+  }
 });

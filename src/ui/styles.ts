@@ -5,3 +5,4 @@ export const DANGER_BUTTON =
 export const SHEET =
   "fixed inset-x-0 top-auto bottom-0 m-0 max-h-[90dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface p-0 text-ink backdrop:bg-black/60 md:inset-0 md:m-auto md:h-fit md:max-w-[calc(100%-2rem)] md:rounded-2xl";
 export const PRIMARY_BUTTON = "halo min-h-11 rounded-xl border px-5 text-sm font-medium";
+export const SECTION_TITLE = "text-xs tracking-widest text-muted uppercase";

@@ -216,3 +216,30 @@ test("the tallest group fits the scroll budget", async ({ page }) => {
     }
   }
 });
+
+test("the three font choices sit in one row on a phone, each showing its sample", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFresh(page);
+  const pane = await openSettingsGroup(page, "Lesson");
+  const radios = pane.getByRole("group", { name: "Lesson font" }).getByRole("radio");
+  await expect(radios).toHaveCount(3);
+  const tops = await pane
+    .getByRole("group", { name: "Lesson font" })
+    .locator("label")
+    .evaluateAll((labels) => labels.map((label) => Math.round(label.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
+  await expect(pane.getByRole("group", { name: "Lesson font" }).locator("[data-font-sample]")).toHaveCount(3);
+});
+
+test("Lesson holds the lesson-display controls and nothing else", async ({ page, hasTouch }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openFresh(page);
+  const pane = await openSettingsGroup(page, "Lesson");
+  const guide = !hasTouch;
+  await expect(pane.getByRole("radio")).toHaveCount(7);
+  await expect(pane.getByRole("slider")).toHaveCount(1);
+  await expect(pane.getByRole("switch")).toHaveCount(guide ? 5 : 1);
+  await expect(pane.getByRole("button")).toHaveCount(0);
+  await expect(pane.getByRole("link")).toHaveCount(0);
+  await expect(pane.getByRole("combobox")).toHaveCount(0);
+});

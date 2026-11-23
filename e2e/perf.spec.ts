@@ -95,7 +95,14 @@ test("only the interface font is loaded for a page without a lesson, and the les
   expect(before.size).toBeLessThanOrEqual(2);
   await openSettingsGroup(page, "Lesson");
   await expect(page.locator("[data-font-sample]")).toHaveCount(3);
-  await expect.poll(() => new Set(requests.filter((path) => FONT_FILE.test(path))).size).toBe(4);
+  await expect
+    .poll(() => {
+      const files = requests.filter((path) => FONT_FILE.test(path));
+      return ["noto-naskh-arabic-arabic-400", "scheherazade-new-arabic-400", "amiri-arabic-400"].every((font) =>
+        files.some((file) => file.includes(font)),
+      );
+    })
+    .toBe(true);
 });
 
 test("typing a hundred and fifty characters never freezes the page for a fifth of a second and drops none", async ({
