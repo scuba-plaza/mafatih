@@ -221,10 +221,12 @@ test("the three font choices sit in one row on a phone, each showing its sample"
   const pane = await openSettingsGroup(page, "Lesson");
   const radios = pane.getByRole("group", { name: "Lesson font" }).getByRole("radio");
   await expect(radios).toHaveCount(3);
-  const tops = await pane
-    .getByRole("group", { name: "Lesson font" })
-    .locator("label")
-    .evaluateAll((labels) => labels.map((label) => Math.round(label.getBoundingClientRect().top)));
+  const labels = pane.getByRole("group", { name: "Lesson font" }).locator("label");
+  const tops: number[] = [];
+  for (let index = 0; index < 3; index += 1) {
+    const box = await labels.nth(index).boundingBox();
+    tops.push(Math.round(box?.y ?? Number.NaN));
+  }
   expect(new Set(tops).size).toBe(1);
   await expect(pane.getByRole("group", { name: "Lesson font" }).locator("[data-font-sample]")).toHaveCount(3);
 });
