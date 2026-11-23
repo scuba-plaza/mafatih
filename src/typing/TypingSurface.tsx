@@ -5,7 +5,7 @@ import { useI18n } from "~/i18n/I18nProvider.tsx";
 import { GUIDE_QUERY, GuideKeyboard, guideHeight } from "~/keyboard/GuideKeyboard.tsx";
 import { useLayoutName } from "~/keyboard/useLayoutName.ts";
 import { FONTS, loadFont } from "~/settings/fonts.ts";
-import type { Settings } from "~/settings/settings.ts";
+import type { LessonDisplaySettings } from "~/settings/settings.ts";
 import { isMark } from "~/text/arabic.ts";
 import { wordAt } from "~/text/prompt.ts";
 import { useMediaQuery } from "~/ui/useMediaQuery.ts";
@@ -223,7 +223,7 @@ function BlockText({ shown, block, cursor, mistakes }: BlockTextProps): ReactNod
 
 export interface TypingSurfaceProps {
   readonly trainer: Trainer;
-  readonly settings: Settings;
+  readonly settings: LessonDisplaySettings;
   readonly apparatus?: readonly TextSpan[];
   readonly playing?: TextSpan | null;
   readonly describedBy?: string;

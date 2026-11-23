@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { FATHA, SHADDA } from "~/text/arabic.ts";
 import { clampFontSize, FONT_SIZES, FONTS } from "./fonts.ts";
-import { AYAT_PER_PASSAGE, defaultSettings, sanitizeSettings } from "./settings.ts";
+import { AYAT_PER_PASSAGE, defaultSettings, SETTING_KIND, sanitizeSettings } from "./settings.ts";
 
 const ENGLISH = ["en"];
 const DEFAULTS = {
@@ -142,4 +142,25 @@ test.each(["delayedHint", "muted"] as const)("%s stays off unless a saved true t
   for (const value of [false, "true", "yes", 1, null, {}, undefined]) {
     expect(read(value), String(value)).toBe(false);
   }
+});
+
+test("every setting is classified as changing the lesson display or not", () => {
+  expect(Object.keys(SETTING_KIND).sort()).toEqual(Object.keys(defaultSettings(ENGLISH)).sort());
+});
+
+test("the lesson-display settings are exactly the eight the lesson shows", () => {
+  const display = Object.entries(SETTING_KIND)
+    .filter(([, kind]) => kind === "lesson-display")
+    .map(([key]) => key)
+    .sort();
+  expect(display).toEqual([
+    "delayedHint",
+    "fingerGuide",
+    "font",
+    "fontSize",
+    "keyLabels",
+    "requireBackspace",
+    "showKeyboard",
+    "vocalization",
+  ]);
 });
